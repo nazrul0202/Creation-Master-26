@@ -1,0 +1,9 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="src-native/CM26.EngineBridge/CM26.EngineBridge.vcxproj" />
+  <Project Path="src/CM26.AssetBridge/CM26.AssetBridge.csproj" />
+  <Project Path="src/CM26.Application/CM26.Application.csproj" />
+  <Project Path="src/CM26.App/CM26.App.csproj" />
+</Solution>

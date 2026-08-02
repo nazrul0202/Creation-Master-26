@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <AppendPlatformToOutputPath>false</AppendPlatformToOutputPath>
+    <AssemblyName>CM26.AssetBridge</AssemblyName>
+    <RootNamespace>CM26.AssetBridge</RootNamespace>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CM26.MeshKit\CM26.MeshKit.csproj" />
+  </ItemGroup>
+</Project>

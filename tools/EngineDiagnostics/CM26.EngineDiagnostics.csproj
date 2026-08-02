@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>CM26.EngineDiagnostics</AssemblyName>
+    <RootNamespace>CM26.EngineDiagnostics</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CM26.Application\CM26.Application.csproj" />
+    <Reference Include="CM26.EngineBridge">
+      <HintPath>..\..\src-native\CM26.EngineBridge\bin\CM26.EngineBridge.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <None Include="..\..\src-native\CM26.EngineBridge\bin\Ijwhost.dll">
+      <Link>Ijwhost.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

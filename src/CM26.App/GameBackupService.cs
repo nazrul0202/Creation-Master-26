@@ -1,0 +1,306 @@
+using System.Diagnostics;
+using System.Text.Json;
+
+namespace CM26.App;
+
+/// <summary>
+/// Restores the FC26 Data/Patch tree from the user's CmModData snapshot.
+/// The snapshot is treated as immutable source material; CM26 never writes to
+/// it.  A restore is intentionally explicit because it replaces all modified
+/// and extra files below the two game folders.
+/// </summary>
+public static class GameBackupService
+{
+    private static readonly string[] RestoredFolders = ["Data", "Patch"];
+    private const string ManifestName = "cm26-backup-manifest.json";
+
+    public sealed record BackupStatus(bool IsReady, string GameRoot, string BackupRoot, string Message);
+    public sealed record BackupResult(bool Success, BackupStatus Status, int CopiedFiles, string Message);
+    public sealed record RestoreProgress(string Phase, int Completed, int Total, string CurrentFile);
+    public sealed record RestoreResult(bool Success, string Message, int CopiedFiles, int DeletedFiles);
+    public sealed record CompressionResult(bool Success, string Message);
+
+    public static BackupStatus Inspect(string? gameRoot)
+    {
+        if (string.IsNullOrWhiteSpace(gameRoot) || !Directory.Exists(gameRoot))
+            return new(false, string.Empty, string.Empty, "Game installation was not detected.");
+
+        var root = Path.GetFullPath(gameRoot!).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var backup = Path.Combine(root, "CmModData");
+        if (!Directory.Exists(backup))
+            return new(false, root, backup, "CmModData backup folder was not found.");
+        foreach (var name in RestoredFolders)
+            if (!Directory.Exists(Path.Combine(backup, name)))
+                return new(false, root, backup, $"CmModData is missing its {name} backup folder.");
+        if (!File.Exists(Path.Combine(backup, "Patch", "layout.toc")) ||
+            !File.Exists(Path.Combine(backup, "Patch", "initfs_Win32")))
+            return new(false, root, backup, "CmModData does not contain a complete Patch snapshot.");
+        var manifestPath = Path.Combine(backup, ManifestName);
+        if (File.Exists(manifestPath))
+        {
+            try
+            {
+                var manifest = JsonSerializer.Deserialize<BackupManifest>(File.ReadAllText(manifestPath))
+                    ?? throw new InvalidDataException("Backup manifest is empty.");
+                foreach (var item in manifest.Files)
+                {
+                    var candidate = Path.Combine(backup, item.RelativePath);
+                    EnsureChild(backup, candidate);
+                    var info = new FileInfo(candidate);
+                    if (!info.Exists || info.Length != item.Length)
+                        return new(false, root, backup,
+                            $"CmModData inventory validation failed for {item.RelativePath}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                return new(false, root, backup, "CmModData manifest is invalid: " + ex.Message);
+            }
+        }
+        return new(true, root, backup, "CmModData backup is ready.");
+    }
+
+    public static BackupResult EnsureCreated(
+        string? gameRoot, IProgress<RestoreProgress>? progress = null)
+    {
+        var existing = Inspect(gameRoot);
+        if (existing.IsReady)
+        {
+            EnsureManifest(existing.BackupRoot);
+            return new(true, existing, 0, "Existing CmModData backup verified.");
+        }
+        if (!FrostbiteAssetSession.IsGameRoot(gameRoot))
+            return new(false, existing, 0, existing.Message);
+        if (IsGameRunning())
+            return new(false, existing, 0, "Close the game before creating CmModData.");
+
+        var root = Path.GetFullPath(gameRoot!).TrimEnd(
+            Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var destination = Path.Combine(root, "CmModData");
+        if (Directory.Exists(destination))
+            return new(false, existing, 0,
+                "CmModData exists but is incomplete. Move or repair that folder before creating a new backup.");
+        var temporary = Path.Combine(root, ".CmModData.cm26creating-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(temporary);
+            var copied = 0;
+            foreach (var folder in RestoredFolders)
+            {
+                var source = Path.Combine(root, folder);
+                var target = Path.Combine(temporary, folder);
+                EnsureDirectChild(root, source);
+                EnsureDirectChild(root, target);
+                var files = EnumerateFiles(source).ToArray();
+                for (var index = 0; index < files.Length; index++)
+                {
+                    var file = files[index];
+                    var relative = Path.GetRelativePath(source, file);
+                    var output = Path.Combine(target, relative);
+                    EnsureChild(target, output);
+                    Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+                    progress?.Report(new($"Backing up {folder}", index + 1, files.Length, relative));
+                    File.Copy(file, output, overwrite: false);
+                    File.SetLastWriteTimeUtc(output, File.GetLastWriteTimeUtc(file));
+                    File.SetAttributes(output, File.GetAttributes(file));
+                    copied++;
+                }
+            }
+            WriteManifest(temporary);
+            Directory.Move(temporary, destination);
+            var status = Inspect(root);
+            return new(status.IsReady, status, copied,
+                status.IsReady
+                    ? $"Original Data and Patch backed up to CmModData ({copied} files)."
+                    : status.Message);
+        }
+        catch (Exception ex)
+        {
+            return new(false, Inspect(root), 0, "CmModData backup failed: " + ex.Message);
+        }
+        finally
+        {
+            if (Directory.Exists(temporary)) Directory.Delete(temporary, recursive: true);
+        }
+    }
+
+    public static RestoreResult Restore(BackupStatus status, IProgress<RestoreProgress>? progress = null)
+    {
+        if (!status.IsReady) return new(false, status.Message, 0, 0);
+        if (IsGameRunning())
+            return new(false, "Close the game before restoring its Data and Patch folders.", 0, 0);
+
+        try
+        {
+            var copied = 0;
+            var deleted = 0;
+            foreach (var folder in RestoredFolders)
+            {
+                var source = Path.Combine(status.BackupRoot, folder);
+                var target = Path.Combine(status.GameRoot, folder);
+                EnsureDirectChild(status.GameRoot, source);
+                EnsureDirectChild(status.GameRoot, target);
+                Directory.CreateDirectory(target);
+
+                var sourceFiles = EnumerateFiles(source).ToArray();
+                var sourceNames = sourceFiles.Select(path => Path.GetRelativePath(source, path))
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                for (var index = 0; index < sourceFiles.Length; index++)
+                {
+                    var file = sourceFiles[index];
+                    var relative = Path.GetRelativePath(source, file);
+                    var destination = Path.Combine(target, relative);
+                    EnsureChild(target, destination);
+                    Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                    progress?.Report(new($"Restoring {folder}", index + 1, sourceFiles.Length, relative));
+                    CopyAtomically(file, destination);
+                    copied++;
+                }
+
+                // Remove files introduced after the backup only after every
+                // backup file has been copied successfully.
+                foreach (var file in EnumerateFiles(target))
+                {
+                    var relative = Path.GetRelativePath(target, file);
+                    if (sourceNames.Contains(relative)) continue;
+                    EnsureChild(target, file);
+                    File.Delete(file);
+                    deleted++;
+                }
+                RemoveEmptyDirectories(target);
+            }
+            return new(true,
+                $"Original Data and Patch restored from CmModData ({copied} files copied, {deleted} extra files removed).",
+                copied, deleted);
+        }
+        catch (Exception ex)
+        {
+            return new(false, "Restore failed: " + ex.Message, 0, 0);
+        }
+    }
+
+    /// <summary>
+    /// Enables transparent NTFS compression for the immutable backup. File
+    /// contents and hashes remain unchanged; Windows handles decompression.
+    /// Frostbite CAS files are already compressed, so the space saving may be small.
+    /// </summary>
+    public static CompressionResult EnableNtfsCompression(string? gameRoot)
+    {
+        var status = Inspect(gameRoot);
+        if (!status.IsReady) return new(false, status.Message);
+        try
+        {
+            var compact = Path.Combine(Environment.SystemDirectory, "compact.exe");
+            if (!File.Exists(compact))
+                return new(false, "Windows compact.exe is unavailable.");
+            var start = new ProcessStartInfo(compact)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            start.ArgumentList.Add("/C");
+            start.ArgumentList.Add("/I");
+            start.ArgumentList.Add("/Q");
+            start.ArgumentList.Add("/S:" + status.BackupRoot);
+            using var process = Process.Start(start)
+                ?? throw new InvalidOperationException("Unable to start Windows compression.");
+            var outputTask = process.StandardOutput.ReadToEndAsync();
+            var errorTask = process.StandardError.ReadToEndAsync();
+            process.WaitForExit();
+            var output = outputTask.GetAwaiter().GetResult().Trim();
+            var error = errorTask.GetAwaiter().GetResult().Trim();
+            if (process.ExitCode != 0)
+                return new(false, string.IsNullOrWhiteSpace(error) ? output : error);
+            return new(true,
+                "Transparent NTFS compression is enabled for CmModData. Backup file contents are unchanged.");
+        }
+        catch (Exception ex)
+        {
+            return new(false, "Backup compression failed: " + ex.Message);
+        }
+    }
+
+    private static bool IsGameRunning() => new[] { "FC26", "FC26_Trial", "FC26_Showcase" }
+        .Any(name => Process.GetProcessesByName(name).Length > 0);
+
+    private static IEnumerable<string> EnumerateFiles(string root)
+    {
+        var normalizedRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+        {
+            var full = Path.GetFullPath(file);
+            if (!full.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
+                throw new IOException("A backup path points outside its expected folder.");
+            yield return full;
+        }
+    }
+
+    private static void CopyAtomically(string source, string destination)
+    {
+        var temporary = destination + ".cm26restore-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            if (File.Exists(destination))
+            {
+                var destinationAttributes = File.GetAttributes(destination);
+                if (destinationAttributes.HasFlag(FileAttributes.ReadOnly))
+                    File.SetAttributes(destination, destinationAttributes & ~FileAttributes.ReadOnly);
+            }
+            File.Copy(source, temporary, overwrite: false);
+            File.Move(temporary, destination, overwrite: true);
+            File.SetLastWriteTimeUtc(destination, File.GetLastWriteTimeUtc(source));
+            File.SetAttributes(destination, File.GetAttributes(source));
+        }
+        finally
+        {
+            if (File.Exists(temporary)) File.Delete(temporary);
+        }
+    }
+
+    private static void RemoveEmptyDirectories(string root)
+    {
+        foreach (var directory in Directory.EnumerateDirectories(root, "*", SearchOption.AllDirectories)
+                     .OrderByDescending(path => path.Length))
+        {
+            if (!Directory.EnumerateFileSystemEntries(directory).Any()) Directory.Delete(directory);
+        }
+    }
+
+    private static void EnsureDirectChild(string root, string candidate) => EnsureChild(root, candidate);
+
+    private static void EnsureManifest(string backupRoot)
+    {
+        var path = Path.Combine(backupRoot, ManifestName);
+        if (!File.Exists(path)) WriteManifest(backupRoot);
+    }
+
+    private static void WriteManifest(string backupRoot)
+    {
+        var files = RestoredFolders
+            .SelectMany(folder => EnumerateFiles(Path.Combine(backupRoot, folder)))
+            .Select(path => new BackupFile(
+                Path.GetRelativePath(backupRoot, path),
+                new FileInfo(path).Length))
+            .OrderBy(item => item.RelativePath, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (files.Length == 0)
+            throw new InvalidDataException("Cannot create an inventory for an empty CmModData backup.");
+        var manifest = new BackupManifest(1, DateTimeOffset.UtcNow, files);
+        File.WriteAllText(
+            Path.Combine(backupRoot, ManifestName),
+            JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    private static void EnsureChild(string root, string candidate)
+    {
+        var normalizedRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var normalizedCandidate = Path.GetFullPath(candidate);
+        if (!normalizedCandidate.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
+            throw new IOException("Restore target is outside the game installation.");
+    }
+
+    private sealed record BackupManifest(int Version, DateTimeOffset CreatedUtc, BackupFile[] Files);
+    private sealed record BackupFile(string RelativePath, long Length);
+}

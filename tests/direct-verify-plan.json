@@ -1,0 +1,12 @@
+{
+  "replacements": [
+    {
+      "legacyPath": "data/db/fifa_ng_db.db",
+      "sourcePath": "C:\\Users\\nazru\\AppData\\Local\\Creation Master 26\\legacy-assets\\data\\db\\fifa_ng_db.db"
+    },
+    {
+      "legacyPath": "data/loc/eng_us.db",
+      "sourcePath": "C:\\Users\\nazru\\AppData\\Local\\Creation Master 26\\legacy-assets\\data\\loc\\eng_us.db"
+    }
+  ]
+}

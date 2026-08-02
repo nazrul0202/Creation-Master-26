@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>CM26.Application</RootNamespace>
+    <!-- Release ships without PDBs and without embedded absolute build/source paths. -->
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
+    <PathMap>$(MSBuildProjectDirectory)\=cm26\,$(SolutionDir)\=cm26\</PathMap>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+    <!-- Read-only texture preview (PNG/JPEG via GDI+, DDS via self-contained decoder). Windows-only. -->
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- C++/CLI assemblies cannot be referenced via ProjectReference metadata; reference the built DLL. -->
+    <Reference Include="CM26.EngineBridge">
+      <HintPath>..\..\src-native\CM26.EngineBridge\bin\CM26.EngineBridge.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <!-- Ijwhost.dll is the C++/CLI native loader and must sit beside the bridge DLL. -->
+    <None Include="..\..\src-native\CM26.EngineBridge\bin\Ijwhost.dll">
+      <Link>Ijwhost.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

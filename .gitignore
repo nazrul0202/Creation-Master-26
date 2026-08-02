@@ -1,0 +1,39 @@
+# Build outputs
+bin/
+obj/
+publish_*/
+Release/
+
+# IDE / OS
+.vs/
+.vscode/
+*.user
+*.suo
+*.userprefs
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.pdb
+*.exe
+*.obj
+*.dll
+*.nupkg
+
+# Game data (copyrighted EA FC 26 files — NOT to be shared)
+database/
+database_scratch/
+*.dbc
+*.dbp
+*.big
+*.ebx
+*.res
+*.chunk
+exported-meshes/
+
+# Temp / logs
+artifacts/
+*.log
+_audit_backup_*/
+_structural_writer_backup_*/
+LocaleDiagnosticsOutput/

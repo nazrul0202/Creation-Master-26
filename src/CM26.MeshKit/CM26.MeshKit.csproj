@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>CM26.MeshKit</RootNamespace>
+    <AssemblyName>CM26.MeshKit</AssemblyName>
+    <Platforms>x64;AnyCPU</Platforms>
+  </PropertyGroup>
+
+</Project>
