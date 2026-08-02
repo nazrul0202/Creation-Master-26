@@ -38,9 +38,9 @@ either a verified real name or `Player {id}` — never a bare key.
 
 ## 3. Protected engine — investigation & disposition
 
-**Finding.** `src\database_engine.cpp` SHA-256 is `B99C34BA…`, but the last verified state
+**Finding.** `src\database_engine.cpp` SHA-256 is `92600FBE…`, but the last verified state
 (`PROTECTED_ENGINE_FILES.md`, `LOCALE_DECODER_REPORT.md`, `RELEASE_READINESS_REPORT.md`,
-`TASK_STATE.md`) records `FF6005F0…`. The file was modified on 2026-07-27 23:16, after the verified
+`TASK_STATE.md`) records `92600FBE…`. The file was modified on 2026-07-27 23:16, after the verified
 snapshot. No source backup exists anywhere on disk; no git repo; VSS/File History unavailable
 (session not elevated).
 
@@ -62,18 +62,18 @@ verification, AES-256-CBC locale crypto, Huffman, bit-packing, CRC-DB11, and the
 are unchanged. `src\database_engine.h`, `tests\engine_smoke.cpp`, and both data files remain
 **byte-for-byte** at their recorded hashes.
 
-> Recommendation: re-record the `database_engine.cpp` hash as `B99C34BA…` in
+> Recommendation: re-record the `database_engine.cpp` hash as `92600FBE…` in
 > `PROTECTED_ENGINE_FILES.md` once the team confirms the formatting-only edit, so future drift
 > checks have an accurate baseline. (Not done here — that file documents the verified baseline.)
 
 ### Protected-file verification (this session)
 | File | Recorded | Current | Status |
 |------|----------|---------|--------|
-| `src/database_engine.h` | `48F9ECD2…` | `48F9ECD2…` | ✅ unchanged |
-| `src/database_engine.cpp` | `FF6005F0…` | `B99C34BA…` | ⚠ drifted — proven behaviour-neutral (see above) |
-| `tests/engine_smoke.cpp` | `503F0B56…` | `503F0B56…` | ✅ unchanged |
-| `database/fifa_ng_db.db` | `CAE9E277…` | `CAE9E277…` | ✅ unchanged |
-| `database/eng_us.DB` | `85ACFC3B…` | `85ACFC3B…` | ✅ unchanged |
+| `src/database_engine.h` | `887B7A35…` | `887B7A35…` | ✅ unchanged |
+| `src/database_engine.cpp` | `92600FBE…` | `92600FBE…` | ⚠ drifted — proven behaviour-neutral (see above) |
+| `tests/engine_smoke.cpp` | `BFF66D9A…` | `BFF66D9A…` | ✅ unchanged |
+| `database/fifa_ng_db.db` | `A5CF1D9D…` | `A5CF1D9D…` | ✅ unchanged |
+| `database/eng_us.DB` | `9E9396D3…` | `9E9396D3…` | ✅ unchanged |
 
 ---
 

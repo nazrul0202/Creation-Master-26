@@ -12,10 +12,10 @@
     <AssemblyName>CM26_by_Rizco98</AssemblyName>
     <Product>Creation Master 26</Product>
     <AssemblyTitle>Creation Master 26</AssemblyTitle>
-    <Version>1.0.17</Version>
-    <AssemblyVersion>1.0.17.0</AssemblyVersion>
-    <FileVersion>1.0.17.0</FileVersion>
-    <InformationalVersion>1.0.17</InformationalVersion>
+    <Version>1.0.18</Version>
+    <AssemblyVersion>1.0.18.0</AssemblyVersion>
+    <FileVersion>1.0.18.0</FileVersion>
+    <InformationalVersion>1.0.18</InformationalVersion>
     <Company>Rizco98</Company>
     <Description>Creation Master 26 — database, competition data and legacy asset editor</Description>
     <Copyright>Community tool by Rizco98 — not affiliated with or endorsed by EA SPORTS</Copyright>
@@ -80,6 +80,27 @@
     </ItemGroup>
     <Copy SourceFiles="@(ThreeDViewerPublishFiles)"
           DestinationFiles="@(ThreeDViewerPublishFiles->'$(PublishDir)Tools\CM26.3DViewer\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="'$(PublishDir)' != ''" />
+  </Target>
+
+  <!-- The CM26 Scraper ships inside the package under Tools\CM26 Scraper so the
+       Data Sync page can open it and detect its squad output directly. -->
+  <Target Name="CopyScraper" AfterTargets="Build">
+    <ItemGroup>
+      <ScraperFiles Include="..\..\publish_scraper\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ScraperFiles)"
+          DestinationFiles="@(ScraperFiles->'$(OutDir)Tools\CM26 Scraper\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyScraperToPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <ScraperPublishFiles Include="..\..\publish_scraper\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ScraperPublishFiles)"
+          DestinationFiles="@(ScraperPublishFiles->'$(PublishDir)Tools\CM26 Scraper\%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true"
           Condition="'$(PublishDir)' != ''" />
   </Target>

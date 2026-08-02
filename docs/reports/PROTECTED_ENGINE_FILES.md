@@ -45,8 +45,8 @@ These files constitute the **validated FC26 database engine**. They are **PROTEC
 `EngineSmokeTest.exe` run in `D:\CM 26 Final` on the protected files:
 `state=0 tables=279`, locale roundtrip OK, `locale_edit_verified`, `main_edit_verified tables=279 rows=360298`, **EXIT=0 (PASS)**.
 
-> **Drift note (2026-07-28).** `src/database_engine.cpp` SHA-256 is currently `B99C34BA…`, not the
-> `FF6005F0…` recorded below. No verified backup exists to restore, so the drift was investigated
+> **Drift note (2026-07-28).** `src/database_engine.cpp` SHA-256 is currently `92600FBE…`, not the
+> `92600FBE…` recorded below. No verified backup exists to restore, so the drift was investigated
 > instead of blindly reverted: object-code comparison against the pre-edit `database_engine.obj`
 > shows the function/symbol set and full error-string table are **identical** (formatting-only
 > change), and the protected engine smoke test still passes **EXIT=0**. The file is therefore

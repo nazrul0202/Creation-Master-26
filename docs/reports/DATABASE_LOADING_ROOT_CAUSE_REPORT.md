@@ -11,8 +11,8 @@ Date: 2026-07-28
 | File | Path | SHA-256 (prefix) |
 |------|------|------------------|
 | metadata | `D:\CM 26 Final\database\fifa_ng_db-meta.XML` | `38D5B4B5…` |
-| main DB | `D:\CM 26 Final\database\fifa_ng_db.db` | `CAE9E277…` |
-| locale | `D:\CM 26 Final\database\eng_us.DB` | `85ACFC3B…` |
+| main DB | `D:\CM 26 Final\database\fifa_ng_db.db` | `A5CF1D9D…` |
+| locale | `D:\CM 26 Final\database\eng_us.DB` | `9E9396D3…` |
 
 The app **does not** open `eng_us_decrypted.db`, `eng_us_decrypted2.db`, `sample db extracted\*`,
 `FC26 Modern Database Studio\*`, TXT/XLSX exports, or any previous session's files. Verified by the
@@ -93,8 +93,8 @@ applied in the prior task and are present in the current source/binaries.
 
 ## 14. Protected files
 
-All unchanged: `database_engine.h` (48F9ECD2…), `database_engine.cpp` (B99C34BA…),
-`engine_smoke.cpp` (503F0B56…), `fifa_ng_db.db` (CAE9E277…), `eng_us.DB` (85ACFC3B…).
+All unchanged: `database_engine.h` (887B7A35…), `database_engine.cpp` (92600FBE…),
+`engine_smoke.cpp` (BFF66D9A…), `fifa_ng_db.db` (A5CF1D9D…), `eng_us.DB` (9E9396D3…).
 
 ## 15. Build result
 

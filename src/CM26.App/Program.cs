@@ -161,6 +161,15 @@ internal static class Program
             return;
         }
 
+        // Runs the full create-team + 23-player squad pipeline on a DB copy,
+        // then saves through the native engine and reloads the written files
+        // (position-code regression probe for "Integer value required").
+        if (args.Length >= 2 && args[0] == "--squad-probe")
+        {
+            Environment.ExitCode = HeadlessSmoke.SquadProbe(args[1]);
+            return;
+        }
+
         // Diagnoses the Bayern-crest-on-new-team screenshot against the installed game.
         if (args.Length >= 1 && args[0] == "--crest-probe")
         {

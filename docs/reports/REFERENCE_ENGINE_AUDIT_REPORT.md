@@ -23,7 +23,7 @@ No component was adapted. No files were modified. The current project is more ca
 
 | Layer | Reference | Current | Notes |
 |-------|-----------|---------|-------|
-| Physical DB | **different version** | PASS | Reference bundles different DB (BC537D5B… vs CAE9E277…) |
+| Physical DB | **different version** | PASS | Reference bundles different DB (BC537D5B… vs A5CF1D9D…) |
 | Metadata | PASS | PASS | Both read meta XML correctly |
 | Reference native reader (C#) | **FAIL** for locale | PASS (C++) | Reference admits it cannot decrypt eng_us.DB |
 | Current native reader (C++) | N/A | PASS | AES + Huffman work (smoke EXIT=0) |
@@ -81,11 +81,11 @@ All protected files in `D:\CM 26 Final` remain **unchanged** (no modifications w
 
 | File | SHA-256 | Status |
 |------|---------|--------|
-| `src/database_engine.h` | `48F9ECD2…` | unchanged |
-| `src/database_engine.cpp` | `B99C34BA…` | unchanged |
-| `tests/engine_smoke.cpp` | `503F0B56…` | unchanged |
-| `database/fifa_ng_db.db` | `CAE9E277…` | unchanged |
-| `database/eng_us.DB` | `85ACFC3B…` | unchanged |
+| `src/database_engine.h` | `887B7A35…` | unchanged |
+| `src/database_engine.cpp` | `92600FBE…` | unchanged |
+| `tests/engine_smoke.cpp` | `BFF66D9A…` | unchanged |
+| `database/fifa_ng_db.db` | `A5CF1D9D…` | unchanged |
+| `database/eng_us.DB` | `9E9396D3…` | unchanged |
 
 ## 6. Test results
 

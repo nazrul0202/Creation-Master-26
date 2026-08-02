@@ -62,11 +62,11 @@ schema). No TXT, XLSX, CSV, or sample database is used.
 
 | File | Status |
 |------|--------|
-| `src/database_engine.h` | **unchanged** (48F9ECD2…) |
-| `src/database_engine.cpp` | **unchanged** (B99C34BA…) |
-| `tests/engine_smoke.cpp` | **unchanged** (503F0B56…) |
-| `database/fifa_ng_db.db` | **unchanged** (CAE9E277…) |
-| `database/eng_us.DB` | **unchanged** (85ACFC3B…) |
+| `src/database_engine.h` | **unchanged** (887B7A35…) |
+| `src/database_engine.cpp` | **unchanged** (92600FBE…) |
+| `tests/engine_smoke.cpp` | **unchanged** (BFF66D9A…) |
+| `database/fifa_ng_db.db` | **unchanged** (A5CF1D9D…) |
+| `database/eng_us.DB` | **unchanged** (9E9396D3…) |
 
 The engine's `Huff::read()` defect was **not fixed** in the engine — it was **bypassed** by a
 read-only C# adapter. The protected engine remains untouched.
@@ -100,7 +100,7 @@ read-only C# adapter. The protected engine remains untouched.
 | 19 | Engine smoke test | PASS (EXIT=0) |
 | 20 | Scratch save round-trip | PASS (VERIFIED) |
 | 21 | Protected writer SHA-256 | PASS (unchanged) |
-| 22 | Original database SHA-256 | PASS (CAE9E277…, 85ACFC3B…) |
+| 22 | Original database SHA-256 | PASS (A5CF1D9D…, 9E9396D3…) |
 | — | Nav 17/17 | PASS |
 | — | No external file opened | PASS (clean) |
 

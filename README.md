@@ -1,33 +1,10 @@
 # Creation Master 26
 
-**Version 1.0.17** · Windows x64 · C# WinForms + C++/C# Frostbite engine bridge · MIT licensed · by Rizco98
+**Version 1.0.18** · Windows x64 · by Rizco98
 
-A direct editor for the EA SPORTS FC 26 database and legacy assets. It does not
-build a separate mod package. Saving writes the selected, validated changes into
-the installed game's `Data` and `Patch` containers with transactional commit
-(append-only CAS, verified TOC rebuild, restore-on-failure).
-
-## Repository layout
-
-```
-src/               C# sources: CM26.App (WinForms UI), CM26.Application,
-                   CM26.AssetBridge (Frostbite bridge), CM26.MeshKit (FBX export)
-src-native/        Native CM26.EngineBridge (C++/MSVC, optional)
-tools/             Engine diagnostics, locale diagnostics, compatibility, smoke
-tests/             Native smoke/structural test programs
-docs/reports/      Engineering reports, audits and decisions
-build*.cmd         Build entry points (managed publish, native, smoke)
-```
-
-## Features
-
-- Edit FC 26 database: players, teams, leagues, transfers, countries, compdata
-- Legacy asset import/remove with transactional save and original-data restore
-- Mesh + texture (DDS) export via FBX with validated material binding
-- Locale/name decoding, Frostbite bundle reading, packaged 3D viewer
-- Offline-first, no account; headless CLI self-tests (`--nav-test`,
-  `--mesh-query-test`, `--frostbite-kit-test`) — 23 navigable modules
-- No game files are included in this repository (see `.gitignore`)
+Creation Master 26 is a direct EA SPORTS FC 26 database and legacy-asset editor.
+It does not build a separate mod package. Saving writes the selected, validated
+changes into the installed game's `Data` and `Patch` containers.
 
 ## Safety model
 
@@ -73,8 +50,10 @@ The application contains 23 navigable public modules. The requested editors incl
 - Sponsors, adboards, flags, audio and presentation data.
 - Data Sync workspace that opens the local CM26 Scraper, detects and previews
   its latest squad output, then imports the confirmed squad directly to a
-  selected team with generated player IDs and team-player links. Transfermarkt
-  URL preview/CSV remains available as a non-writing research tool.
+  selected team with generated player IDs and team-player links. The scraper
+  ships inside the package under `Tools\CM26 Scraper\`; an existing copy next
+  to CM26, at a drive root, or configured in Settings is used automatically.
+  Transfermarkt URL preview/CSV remains available as a non-writing research tool.
 - Database Browser, Diagnostics and Settings.
 
 The public editor uses named CM16-style controls. It does not expose **All FC26
@@ -108,18 +87,12 @@ Native Frostbite mesh-to-FBX export is not yet performed inside CM26.
   `%LOCALAPPDATA%\Creation Master 26\`
 - Original game backup:
   `<FC26>\CmModData\`
-- Full Portable includes .NET 8 and the separate asset bridge.
+- Full Portable includes .NET 8, the separate asset bridge and the CM26 Scraper
+  under `Tools\CM26 Scraper\`.
 - Lite requires Microsoft .NET 8 Desktop Runtime x64.
 
 See `KNOWN_LIMITATIONS.md`, `ASSET_SUPPORT_MATRIX.md` and
-`FROSTBITE_ASSET_BRIDGE_STATUS.md` (under `docs/reports/`) for exact boundaries.
-
-## Build
-
-- Managed (App + AssetBridge + MeshKit): .NET 8 — `build-managed.cmd` or
-  `dotnet publish -c Release -r win-x64`
-- Native engine bridge (optional): `src-native/CM26.EngineBridge` (MSVC)
-- Full Portable packages .NET 8 runtime; Lite requires .NET 8 Desktop Runtime x64
+`FROSTBITE_ASSET_BRIDGE_STATUS.md` for exact boundaries.
 
 Creation Master 26 is a community tool and is not affiliated with or endorsed
 by EA SPORTS.

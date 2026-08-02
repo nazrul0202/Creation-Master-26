@@ -76,6 +76,39 @@ public sealed class SettingsSection : SectionBase
             Dock = DockStyle.Top, Height = 32, ForeColor = Theme.Muted, Font = Theme.Body, AutoEllipsis = true,
         };
 
+        var scraperHint = new Label
+        {
+            Text = "Optional. The packaged copy under Tools\\CM26 Scraper and copies next to CM26 or at a drive root are detected automatically; this setting overrides that search.",
+            Dock = DockStyle.Top, Height = 32, ForeColor = Theme.Muted, Font = Theme.Body, AutoEllipsis = true,
+        };
+
+        var scraperLabel = new Label { Text = "CM26 Scraper folder (Data Sync)", Dock = DockStyle.Top, Height = 22, ForeColor = Theme.Text, Font = Theme.Body, Padding = new Padding(0, 10, 0, 0) };
+        var scraperRow = new BufferedPanel { Dock = DockStyle.Top, Height = 27, BackColor = Theme.Background };
+        var scraperBox = new TextBox { Dock = DockStyle.Fill, Text = SettingsService.ScraperRoot, BackColor = SystemColors.Window, Font = Theme.Body };
+        var scraperBrowse = new Button { Text = "Browse…", Dock = DockStyle.Right, Width = 84 };
+        Theme.ApplyButton(scraperBrowse);
+        void ApplyScraperRoot()
+        {
+            SettingsService.ScraperRoot = scraperBox.Text.Trim();
+            scraperHint.Text = string.IsNullOrWhiteSpace(scraperBox.Text)
+                ? "Optional. The packaged copy under Tools\\CM26 Scraper and copies next to CM26 or at a drive root are detected automatically; this setting overrides that search."
+                : $"Scraper folder saved: {scraperBox.Text.Trim()}";
+        }
+        scraperBrowse.Click += (_, _) =>
+        {
+            using var dlg = new FolderBrowserDialog { Description = "Select the folder that contains CM26 Scraper.exe", UseDescriptionForTitle = true };
+            if (!string.IsNullOrWhiteSpace(scraperBox.Text) && Directory.Exists(scraperBox.Text))
+                dlg.SelectedPath = scraperBox.Text;
+            if (dlg.ShowDialog(this) == DialogResult.OK)
+            {
+                scraperBox.Text = dlg.SelectedPath;
+                ApplyScraperRoot();
+            }
+        };
+        scraperBox.Leave += (_, _) => ApplyScraperRoot();
+        scraperRow.Controls.Add(scraperBox);
+        scraperRow.Controls.Add(scraperBrowse);
+
         var backupRow = new BufferedPanel { Dock = DockStyle.Top, Height = 32, BackColor = Theme.Background };
         var compressBackup = new Button
         {
@@ -139,7 +172,7 @@ public sealed class SettingsSection : SectionBase
 
         var about = new Label
         {
-            Text = "Creation Master 26 · Version 1.0.17\nCM26_by_Rizco98.exe\n\n" +
+            Text = "Creation Master 26 · Version 1.0.18\nCM26_by_Rizco98.exe\n\n" +
                    "Save writes validated database and legacy changes directly to Data/Patch. " +
                    "File > Restore Original Data restores the immutable CmModData backup.",
             Dock = DockStyle.Top, Height = 110, ForeColor = Theme.Text, Font = Theme.Body, Padding = new Padding(0, 12, 0, 0),
@@ -152,6 +185,9 @@ public sealed class SettingsSection : SectionBase
         panel.Controls.Add(assetRow);
         panel.Controls.Add(assetLabel);
         panel.Controls.Add(backupHint);
+        panel.Controls.Add(scraperHint);
+        panel.Controls.Add(scraperRow);
+        panel.Controls.Add(scraperLabel);
         panel.Controls.Add(backupRow);
         panel.Controls.Add(_frostbiteStatus);
         panel.Controls.Add(gameFolderRow);

@@ -20,6 +20,7 @@ public sealed class TransfersSection : SectionBase
     private readonly Button _scraper = new();
     private readonly Button _refreshOutput = new();
     private readonly Button _chooseOutput = new();
+    private readonly Button _setFolder = new();
     private readonly Button _importToTeam = new();
     private readonly ComboBox _destinationTeam = new() { DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly Label _team = new();
@@ -62,10 +63,11 @@ public sealed class TransfersSection : SectionBase
         _destinationTeam.Dock = DockStyle.Fill;
         destination.Controls.Add(_destinationTeam, 1, 0);
 
-        var scraperActions = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4 };
+        var scraperActions = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 5 };
         scraperActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
         scraperActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
         scraperActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 125));
+        scraperActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 115));
         scraperActions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         _scraper.Text = "Open CM26 Scraper";
         _scraper.Dock = DockStyle.Fill;
@@ -76,6 +78,9 @@ public sealed class TransfersSection : SectionBase
         _chooseOutput.Text = "Choose output...";
         _chooseOutput.Dock = DockStyle.Fill;
         _chooseOutput.Click += (_, _) => ChooseScraperOutput();
+        _setFolder.Text = "Set folder...";
+        _setFolder.Dock = DockStyle.Fill;
+        _setFolder.Click += (_, _) => ChooseScraperFolder();
         _importToTeam.Text = "Import to selected team";
         _importToTeam.Dock = DockStyle.Fill;
         _importToTeam.Enabled = false;
@@ -83,7 +88,8 @@ public sealed class TransfersSection : SectionBase
         scraperActions.Controls.Add(_scraper, 0, 0);
         scraperActions.Controls.Add(_refreshOutput, 1, 0);
         scraperActions.Controls.Add(_chooseOutput, 2, 0);
-        scraperActions.Controls.Add(_importToTeam, 3, 0);
+        scraperActions.Controls.Add(_setFolder, 3, 0);
+        scraperActions.Controls.Add(_importToTeam, 4, 0);
 
         var address = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4 };
         address.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -123,7 +129,7 @@ public sealed class TransfersSection : SectionBase
         _squad.Columns.Add("Transfermarkt ID", 125);
 
         _status.Dock = DockStyle.Fill;
-        _status.Text = "Open the local scraper, scrape a squad, then Refresh output. CM26 will import that output directly into the selected team database records.";
+        _status.Text = "Open the CM26 Scraper (bundled under Tools\\CM26 Scraper or located automatically), scrape a squad, then Refresh output. CM26 will import that output directly into the selected team database records.";
         _status.TextAlign = ContentAlignment.MiddleLeft;
         _status.AutoEllipsis = true;
 
@@ -167,8 +173,9 @@ public sealed class TransfersSection : SectionBase
 
     private void DetectScraperOutput(bool showMissingMessage)
     {
-        var exe = ExternalToolLocator.FindFile(Path.Combine("CM26 SCRAPER", "CM26 Scraper.exe"), Path.Combine("CM26 Scraper", "CM26 Scraper.exe"));
+        var exe = ExternalToolLocator.FindScraperExecutable();
         var root = exe == null ? null : Path.GetDirectoryName(exe);
+        ToolTip.SetToolTip(_scraper, exe ?? "CM26 Scraper was not found. Use Set folder... or keep a copy next to CM26.");
         var candidates = root == null ? [] : new[]
         {
             Path.Combine(root, "Scraped teams"),
@@ -198,6 +205,25 @@ public sealed class TransfersSection : SectionBase
             _importToTeam.Enabled = false;
             if (showMissingMessage) MessageBox.Show(this, ex.Message, "Data Sync", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
+    }
+
+    private void ChooseScraperFolder()
+    {
+        var current = SettingsService.ScraperRoot;
+        using var dialog = new FolderBrowserDialog
+        {
+            Description = "Select the folder that contains CM26 Scraper.exe (bundled copy is used automatically when found)",
+            UseDescriptionForTitle = true,
+        };
+        if (Directory.Exists(current)) dialog.SelectedPath = current;
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        var chosen = dialog.SelectedPath.Trim();
+        if (string.Equals(chosen, current, StringComparison.OrdinalIgnoreCase)) return;
+        SettingsService.ScraperRoot = chosen;
+        _status.Text = File.Exists(Path.Combine(chosen, "CM26 Scraper.exe"))
+            ? $"CM26 Scraper folder set: {chosen}"
+            : $"Folder set, but CM26 Scraper.exe was not found there: {chosen}";
+        DetectScraperOutput(showMissingMessage: true);
     }
 
     private void ChooseScraperOutput()
@@ -307,29 +333,52 @@ public sealed class TransfersSection : SectionBase
 
     private void OpenLocalScraper()
     {
-        var executable = ExternalToolLocator.FindFile(
-            Path.Combine("CM26 SCRAPER", "CM26 Scraper.exe"),
-            Path.Combine("CM26 Scraper", "CM26 Scraper.exe"));
+        var executable = ExternalToolLocator.FindScraperExecutable();
         if (executable == null)
         {
             MessageBox.Show(this,
-                "CM26 Scraper was not found. Keep it in D:\\FC26 FILE TOOL\\CM26 SCRAPER (or Tools\\CM26 Scraper), run a squad scrape, then click Refresh output.",
-                "Data Sync", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                "CM26 Scraper was not found.\n\n" +
+                "The package ships it under Tools\\CM26 Scraper. You can also keep it in a " +
+                "\"CM26 Scraper\" or \"CM26 SCRAPER\" folder next to CM26, or use Set folder... " +
+                "to point to an existing copy, then run a squad scrape and click Refresh output.",
+                "Data Sync", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
         try
         {
-            Process.Start(new ProcessStartInfo(executable)
+            var process = Process.Start(new ProcessStartInfo(executable)
             {
                 UseShellExecute = true,
                 WorkingDirectory = Path.GetDirectoryName(executable)!,
             });
-            _status.Text = $"Opened full scraper: {executable}";
+            if (process == null)
+                throw new InvalidOperationException("Unable to start the CM26 Scraper.");
+            _status.Text = $"Opened CM26 Scraper: {executable} — its squad output is detected when it closes.";
+            _ = WatchScraperExitAsync(process);
         }
         catch (Exception ex)
         {
             MessageBox.Show(this, ex.Message, "Data Sync", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+    }
+
+    private async Task WatchScraperExitAsync(Process process)
+    {
+        try
+        {
+            await process.WaitForExitAsync();
+        }
+        catch { /* the scraper may already have been closed or killed */ }
+        finally
+        {
+            process.Dispose();
+        }
+        if (IsDisposed) return;
+        try
+        {
+            BeginInvoke((Action)(() => DetectScraperOutput(showMissingMessage: false)));
+        }
+        catch { /* the window may already be closing */ }
     }
 
     private static bool TryValidateUrl(string text, out Uri uri)

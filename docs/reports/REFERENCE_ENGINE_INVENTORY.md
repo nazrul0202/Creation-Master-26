@@ -14,8 +14,8 @@ It bundles its **own** database files in the project root (different from the te
 
 | File | Reference size | Test DB size | Reference SHA-256 | Test DB SHA-256 | Same? |
 |------|---------------|-------------|-------------------|-----------------|-------|
-| `fifa_ng_db.db` | 41,826,168 | 42,545,416 | `BC537D5B…` | `CAE9E277…` | **NO** |
-| `eng_us.DB` | 7,452,000 | 7,608,064 | `AE00C0FA…` | `85ACFC3B…` | **NO** |
+| `fifa_ng_db.db` | 41,826,168 | 42,545,416 | `BC537D5B…` | `A5CF1D9D…` | **NO** |
+| `eng_us.DB` | 7,452,000 | 7,608,064 | `AE00C0FA…` | `9E9396D3…` | **NO** |
 
 **The reference project uses a different database version.** Any name resolution test against its
 bundled DB is not comparable to the test DB.

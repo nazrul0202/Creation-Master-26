@@ -929,6 +929,200 @@ internal static class HeadlessSmoke
         }
     }
 
+    /// <summary>
+    /// Runs the real LeaguesSection create + FillTeamSquad pipeline (via a
+    /// SectionBase harness so the exact production code executes) against a COPY
+    /// of the database, then saves through the native engine and reloads the
+    /// written files in a fresh session. This is the regression probe for the
+    /// "Integer value required" error: position labels must be staged as integer
+    /// codes, and the staged rows must survive an engine save + reload.
+    /// </summary>
+    public static int SquadProbe(string folder)
+    {
+        string? probeFolder = null;
+        try
+        {
+            probeFolder = Path.Combine(Path.GetTempPath(), "cm26-squad", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(probeFolder);
+            foreach (var fileName in new[] { "fifa_ng_db-meta.XML", "fifa_ng_db.db", "eng_us.DB" })
+            {
+                var source = Path.Combine(folder, fileName);
+                if (File.Exists(source)) File.Copy(source, Path.Combine(probeFolder, fileName), overwrite: true);
+            }
+
+            using (var services = new AppServices())
+            {
+                services.LoadDatabase(probeFolder);
+                var session = services.Session;
+                var harness = new SectionHarness(services);
+
+                // Baseline: what does the engine's integrity check report on the
+                // pristine copy? (Nothing is structurally changed yet, so this
+                // also tells us whether dangling references are pre-existing.)
+                var baselineIssues = session.ValidateIntegrity();
+                Console.WriteLine($"pristine integrity issues: {baselineIssues.Count}");
+                var players0 = session.GetTable("players")!;
+                var hasPlayerId1 = Enumerable.Range(0, players0.RowCount).Any(row =>
+                    int.TryParse(session.GetCell("players", row, "playerid"), out var id) && id == 1);
+                Console.WriteLine($"players contains playerid 1: {hasPlayerId1}");
+                var teams0 = session.GetTable("teams")!;
+                var takerRefs = Enumerable.Range(0, teams0.RowCount)
+                    .Where(row => session.GetCell("teams", row, "rightcornerkicktakerid") == "1")
+                    .Select(row => $"{row}(id {session.GetCell("teams", row, "teamid")})");
+                Console.WriteLine("teams rows with rightcornerkicktakerid=1: " + string.Join(", ", takerRefs.Take(10)));
+
+                var playersBefore = session.GetTable("players")?.RowCount ?? 0;
+                var teamId = harness.CreateRecord("teams", "teamid",
+                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["teamid"] = "0",
+                        ["teamname"] = "Squad Probe FC",
+                        ["assetid"] = "0",
+                        ["presassetone"] = "0",
+                        ["presassettwo"] = "0",
+                        ["captainid"] = "-1",
+                    });
+                Console.WriteLine($"created team id = {teamId}");
+                if (teamId <= 0) throw new InvalidOperationException("No usable team id was assigned.");
+
+                var created = harness.FillSquad(teamId);
+                Console.WriteLine($"FillTeamSquad created {created} player(s)");
+                if (created != 23) throw new InvalidOperationException($"Expected 23 squad players, got {created}.");
+
+                // Every staged preferredposition1 and link position must be an
+                // integer code in the engine's supported range (the original bug
+                // staged "GK"/"RB"/... labels that the engine rejects on save).
+                var players = session.GetTable("players")!;
+                if (players.RowCount != playersBefore + 23)
+                    throw new InvalidOperationException(
+                        $"players row count {players.RowCount} != {playersBefore} + 23.");
+                var links = session.GetTable("teamplayerlinks")!;
+                var linkPlayerIds = new List<int>();
+                for (var row = 0; row < links.RowCount; row++)
+                {
+                    if (session.GetCell("teamplayerlinks", row, "teamid") != teamId.ToString()) continue;
+                    if (!int.TryParse(session.GetCell("teamplayerlinks", row, "playerid"), out var playerId))
+                        throw new InvalidOperationException(
+                            $"Staged teamplayerlinks.playerid is not an integer: '{session.GetCell("teamplayerlinks", row, "playerid")}'.");
+                    linkPlayerIds.Add(playerId);
+                    var linkPosition = session.GetCell("teamplayerlinks", row, "position");
+                    if (!int.TryParse(linkPosition, out var linkCode) || linkCode < 0 || linkCode > 27)
+                        throw new InvalidOperationException(
+                            $"Staged teamplayerlinks.position is not a valid integer code: '{linkPosition}'.");
+                }
+                if (linkPlayerIds.Count != 23)
+                    throw new InvalidOperationException($"Expected 23 team-player links, got {linkPlayerIds.Count}.");
+                var linkSet = linkPlayerIds.ToHashSet();
+                var seen = new HashSet<int>();
+                for (var row = 0; row < players.RowCount; row++)
+                {
+                    if (!int.TryParse(session.GetCell("players", row, "playerid"), out var id)) continue;
+                    if (!linkSet.Contains(id)) continue;
+                    seen.Add(id);
+                    var position = session.GetCell("players", row, "preferredposition1");
+                    if (!int.TryParse(position, out var code) || code < 0 || code > 27)
+                        throw new InvalidOperationException(
+                            $"Staged players.preferredposition1 is not a valid integer code: '{position}' (playerid {id}).");
+                }
+                if (seen.Count != 23)
+                    throw new InvalidOperationException($"Not every linked player row was found ({seen.Count}/23).");
+                var sheets = session.GetTable("default_teamsheets");
+                var sheetStaged = sheets != null && Enumerable.Range(0, sheets.RowCount)
+                    .Any(row => session.GetCell("default_teamsheets", row, "teamid") == teamId.ToString());
+                Console.WriteLine($"teamsheet row staged: {sheetStaged}");
+                var names = session.GetTable("editedplayernames");
+                var editableRows = names == null ? 0 : Enumerable.Range(0, names.RowCount)
+                    .Count(row => int.TryParse(session.GetCell("editedplayernames", row, "playerid"), out var nameId)
+                        && linkSet.Contains(nameId));
+                Console.WriteLine($"editedplayernames rows staged: {editableRows}");
+
+                // Save through the native engine. The original "Integer value
+                // required" error surfaced here, so this is the true regression gate.
+                var issuesAfter = session.ValidateIntegrity();
+                Console.WriteLine($"integrity issues after squad: {issuesAfter.Count}");
+                foreach (var issue in issuesAfter.Take(8)) Console.WriteLine("  issue: " + issue);
+                var save = services.Save.SaveToSourceFolder();
+                if (!save.Success) throw new InvalidOperationException("Engine save failed: " + save.Message);
+                Console.WriteLine("engine save + verify: OK");
+            }
+
+            // Reload the written files in a fresh session and confirm persistence.
+            using (var reloaded = new AppServices())
+            {
+                reloaded.LoadDatabase(probeFolder);
+                var session = reloaded.Session;
+                var links = session.GetTable("teamplayerlinks")!;
+                var persisted = new List<int>();
+                // Find the probe team by name (ids may be renumbered by the engine).
+                var teams = session.GetTable("teams")!;
+                var teamRow = Enumerable.Range(0, teams.RowCount)
+                    .FirstOrDefault(row => session.GetCell("teams", row, "teamname") == "Squad Probe FC");
+                var persistedTeamId = int.TryParse(session.GetCell("teams", teamRow, "teamid"), out var probeTeamId)
+                    ? probeTeamId
+                    : throw new InvalidOperationException("Reloaded probe team has no integer id.");
+                Console.WriteLine($"reloaded probe team id = {persistedTeamId}");
+                for (var row = 0; row < links.RowCount; row++)
+                {
+                    if (session.GetCell("teamplayerlinks", row, "teamid") != persistedTeamId.ToString()) continue;
+                    if (!int.TryParse(session.GetCell("teamplayerlinks", row, "playerid"), out var playerId))
+                        throw new InvalidOperationException("Reloaded teamplayerlinks.playerid is not an integer.");
+                    persisted.Add(playerId);
+                    var linkPosition = session.GetCell("teamplayerlinks", row, "position");
+                    if (!int.TryParse(linkPosition, out var linkCode) || linkCode < 0 || linkCode > 27)
+                        throw new InvalidOperationException(
+                            $"Reloaded teamplayerlinks.position is not a valid integer code: '{linkPosition}'.");
+                }
+                if (persisted.Count != 23)
+                    throw new InvalidOperationException($"Expected 23 persisted links, got {persisted.Count}.");
+                var players = session.GetTable("players")!;
+                var persistedSet = persisted.ToHashSet();
+                var playersSeen = 0;
+                for (var row = 0; row < players.RowCount; row++)
+                {
+                    if (!int.TryParse(session.GetCell("players", row, "playerid"), out var id)) continue;
+                    if (!persistedSet.Contains(id)) continue;
+                    playersSeen++;
+                    var position = session.GetCell("players", row, "preferredposition1");
+                    if (!int.TryParse(position, out var code) || code < 0 || code > 27)
+                        throw new InvalidOperationException(
+                            $"Reloaded players.preferredposition1 is not a valid integer code: '{position}'.");
+                }
+                if (playersSeen != 23)
+                    throw new InvalidOperationException($"Reloaded player rows missing ({playersSeen}/23).");
+                Console.WriteLine($"reloaded players verified: {playersSeen}/23, links: {persisted.Count}/23");
+            }
+
+            Console.WriteLine("SQUAD PROBE OK (positions staged as integer codes, engine save + reload verified)");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("SQUAD PROBE FAILED: " + ex);
+            return 31;
+        }
+        finally
+        {
+            if (probeFolder != null && Directory.Exists(probeFolder))
+            {
+                try { Directory.Delete(probeFolder, true); } catch { }
+            }
+        }
+    }
+
+    /// <summary>Headless SectionBase subclass used to run the production squad pipeline.</summary>
+    private sealed class SectionHarness : SectionBase
+    {
+        public SectionHarness(AppServices services) : base(services) { }
+        public override string SectionKey => "harness";
+        public override string SectionTitle => "Harness";
+        protected override string TableName => "teams";
+        protected override IReadOnlyList<CM26.Application.Models.RecordListItem> GetRecords() => Array.Empty<CM26.Application.Models.RecordListItem>();
+        protected override void ShowRecord(int recordIndex) { }
+        public int CreateRecord(string tableName, string idField, IReadOnlyDictionary<string, string> values) =>
+            CreateRecordFromTemplate(tableName, idField, values, templateRow: 0);
+        public int FillSquad(int teamId) => FillTeamSquad(teamId);
+    }
+
     private static int FindSafeTeamIdProbe(AppServices services)
     {
         var table = services.Session.GetTable("teams")

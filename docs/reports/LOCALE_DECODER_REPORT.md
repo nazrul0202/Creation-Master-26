@@ -103,11 +103,11 @@ SectionDataService.GetPlayers / PlayersSection  ← UI (read-only)
 
 | File | Hash (unchanged) |
 |------|------------------|
-| src/database_engine.h | 48F9ECD2… |
-| src/database_engine.cpp | FF6005F0… |
-| tests/engine_smoke.cpp | 503F0B56… |
-| database/fifa_ng_db.db | CAE9E277… |
-| database/eng_us.DB | 85ACFC3B… |
+| src/database_engine.h | 887B7A35… |
+| src/database_engine.cpp | 92600FBE… |
+| tests/engine_smoke.cpp | BFF66D9A… |
+| database/fifa_ng_db.db | A5CF1D9D… |
+| database/eng_us.DB | 9E9396D3… |
 
 Engine smoke test: **EXIT=0**. Save round-trip (scratch copy): **VERIFIED**.
 

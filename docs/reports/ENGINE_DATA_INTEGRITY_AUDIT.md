@@ -7,11 +7,11 @@ Database folder: `D:\CM 26 Final\database` (read-only)
 
 | Item | Value |
 |------|-------|
-| Protected `database_engine.h` SHA-256 | `48F9ECD2…` MATCH |
-| Protected `database_engine.cpp` SHA-256 | `B99C34BA…` (formatting-only drift from `FF6005F0…`, proven behaviour-neutral) |
-| Protected `engine_smoke.cpp` SHA-256 | `503F0B56…` MATCH |
-| `fifa_ng_db.db` SHA-256 | `CAE9E277…` MATCH |
-| `eng_us.DB` SHA-256 | `85ACFC3B…` MATCH |
+| Protected `database_engine.h` SHA-256 | `887B7A35…` MATCH |
+| Protected `database_engine.cpp` SHA-256 | `92600FBE…` (formatting-only drift from `92600FBE…`, proven behaviour-neutral) |
+| Protected `engine_smoke.cpp` SHA-256 | `BFF66D9A…` MATCH |
+| `fifa_ng_db.db` SHA-256 | `A5CF1D9D…` MATCH |
+| `eng_us.DB` SHA-256 | `9E9396D3…` MATCH |
 | Build command | `build-managed.cmd` (MSBuild Release\|x64 + native cl + EngineSmokeTest) |
 | Build result | PASS, 0 errors |
 | Engine smoke result | EXIT=0 (279 tables, 360,298 rows, locale round-trip + edits verified) |
@@ -28,8 +28,8 @@ Database folder: `D:\CM 26 Final\database` (read-only)
 | File | Resolved path | SHA-256 (prefix) |
 |------|---------------|------------------|
 | meta | `D:\CM 26 Final\database\fifa_ng_db-meta.XML` | `38D5B4B5…` |
-| database | `D:\CM 26 Final\database\fifa_ng_db.db` | `CAE9E277…` |
-| locale | `D:\CM 26 Final\database\eng_us.DB` | `85ACFC3B…` |
+| database | `D:\CM 26 Final\database\fifa_ng_db.db` | `A5CF1D9D…` |
+| locale | `D:\CM 26 Final\database\eng_us.DB` | `9E9396D3…` |
 
 No `sample db extracted`, no `FC26 Modern Database Studio`, no TXT/XLSX export is opened (verified by
 harness output + `--name-tests` file-access guard = clean).
@@ -101,7 +101,7 @@ harness output + `--name-tests` file-access guard = clean).
 | 21 | Managed tests (`--name-tests`) | PASS (EXIT=0) |
 | 22 | Scratch save round-trip | PASS (VERIFIED) |
 | 23 | Protected-file SHA-256 | PASS (all MATCH) |
-| 24 | Original DB SHA-256 | PASS (CAE9E277…, 85ACFC3B…) |
+| 24 | Original DB SHA-256 | PASS (A5CF1D9D…, 9E9396D3…) |
 
 ## 9. Remaining risk
 

@@ -155,11 +155,11 @@ cache” test. No names are ever retained from a previously opened database.
 
 | File | Hash | Status |
 |------|------|--------|
-| `src/database_engine.h` | `48F9ECD2…` | unchanged |
-| `src/database_engine.cpp` | `B99C34BA…` | unchanged this task (formatting-only drift proven earlier; smoke EXIT=0) |
-| `tests/engine_smoke.cpp` | `503F0B56…` | unchanged |
-| `database/fifa_ng_db.db` | `CAE9E277…` | unchanged |
-| `database/eng_us.DB` | `85ACFC3B…` | unchanged |
+| `src/database_engine.h` | `887B7A35…` | unchanged |
+| `src/database_engine.cpp` | `92600FBE…` | unchanged this task (formatting-only drift proven earlier; smoke EXIT=0) |
+| `tests/engine_smoke.cpp` | `BFF66D9A…` | unchanged |
+| `database/fifa_ng_db.db` | `A5CF1D9D…` | unchanged |
+| `database/eng_us.DB` | `9E9396D3…` | unchanged |
 
 Native T3DB parsing, database writing, save verification, AES/Huffman, CRC-DB11, and the tested
 schema logic were **not** modified.

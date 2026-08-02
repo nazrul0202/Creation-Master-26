@@ -14,7 +14,7 @@ struct LoadResult { LoadState state; std::wstring message; std::vector<Table> ta
 enum class NativeFieldType : int { String = 0, Integer = 3, Float = 4, ShortCompressedString = 13, LongCompressedString = 14 };
 using CellValue = std::variant<int, float, std::string>;
 struct NativeColumn { NativeFieldType type{}; std::string name, shortName, foreignTable; int bitOffset{}, depth{}, rangeLow{}, rangeHigh{}; bool key{}; };
-struct NativeRow { std::vector<CellValue> values, originalValues; std::vector<unsigned char> originalBytes; size_t sourceRecordIndex{}; };
+struct NativeRow { std::vector<CellValue> values, originalValues; std::vector<unsigned char> originalBytes; size_t sourceRecordIndex{}; bool inserted{}; };
 struct NativeTable { std::string name, shortName; unsigned flags{}, recordSize{}, recordCount{}, validRecordCount{}, compressedBytes{}; std::vector<NativeColumn> columns; std::vector<NativeRow> rows; size_t tableOffset{}, tableEndOffset{}, recordDataOffset{}, tableCrcOffset{}, recordsCrcOffset{}; bool structuralChanged{}; };
 struct NativeDatabase { bool littleEndian{true}, encrypted{}; size_t headerCrcOffset{}, shortNamesCrcOffset{}; std::vector<unsigned char> bytes; std::vector<NativeTable> tables; };
 struct EditResult { bool success{}; std::string message; };

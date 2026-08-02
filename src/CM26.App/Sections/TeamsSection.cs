@@ -204,6 +204,11 @@ public sealed class TeamsSection : SectionBase
         var fields = new Dictionary<string, string> { ["playerid"] = playerId.ToString(), ["teamid"] = teamId.ToString() };
         if (playerValues.TryGetValue("jerseynumber", out var jersey)) fields["jerseynumber"] = jersey;
         if (playerValues.TryGetValue("preferredposition1", out var position)) fields["position"] = position;
+        // teamplayerlinks keys on its artificialkey column; a duplicated template
+        // row keeps the template's value, so a unique key must be staged or the
+        // save's integrity check rejects every new link as a duplicate.
+        if (links.FindColumn("artificialkey") != null)
+            fields["artificialkey"] = NextAvailableId("teamplayerlinks", "artificialkey").ToString();
         foreach (var (field, value) in fields)
         {
             if (links.FindColumn(field) == null) continue;
@@ -273,12 +278,6 @@ public sealed class TeamsSection : SectionBase
             return int.TryParse(record.Get(idColumn), out nationId);
         }
         return false;
-    }
-
-    private static bool TryPositionCode(string label, out int code)
-    {
-        code = Array.IndexOf(new[] { "GK", "SW", "RWB", "RB", "RCB", "CB", "LCB", "LB", "LWB", "RDM", "CDM", "LDM", "RM", "RCM", "CM", "LCM", "LM", "RAM", "CAM", "LAM", "RF", "CF", "LF", "RW", "RS", "ST", "LS", "LW" }, label.ToUpperInvariant());
-        return code >= 0;
     }
 
     private static bool TryScraperDate(DataRow row, string column, out string rawDate)

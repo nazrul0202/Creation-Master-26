@@ -1,6 +1,50 @@
 # CM26 Task State
 
-Updated: 2026-08-01 (public-release pending fixes: team-template reset, game-folder compdata, team crest + miniface asset actions)
+Updated: 2026-08-02 (v1.18 release fixes: team/squad save integrity, scraper bundling)
+
+## Current objective — DONE (v1.18 release)
+
+Fixed every issue blocking a public release from the v1.17 audit, bundled the
+CM26 Scraper, and assembled + verified the v1.18 packages.
+
+### What was delivered (this task)
+- **CM26 Scraper integrated + bundled** under `Tools\CM26 Scraper\`; Data Sync
+  auto-detects it (bundled / next to CM26 / drive-root / `FC26 FILE TOOL` /
+  Settings override) and auto-refreshes output when the scraper closes.
+- **"Integer value required" fixed:** `FillTeamSquad` staged position labels
+  into integer columns; positions are now converted to integer codes.
+- **New-teams-and-squad could not save — fixed (2 underlying bugs):**
+  `teamplayerlinks` keys on `artificialkey`, which was never staged (every new
+  link copied the template key → duplicate-key save blocks); `NextAvailableId`
+  scanned a stale schema row count after inserts and could reuse existing ids.
+- **Engine integrity check no longer blocks saves on pre-existing DB quirks:**
+  `validateIntegrity` used to scan every row of a structurally-edited table, so
+  untouched rows with dangling FKs/dup keys (e.g. this DB has no playerid 1 but
+  78 teams reference it) refused saves. It now validates only inserted rows and
+  edited cells.
+- **Backup manifests store per-file SHA-256**; old manifests upgrade in place.
+- **Removed unused EA-sourced fixture** `tests/CM26_LegacyWriter_Smoke.fifamod`.
+- **New `--squad-probe` regression test:** runs the real create-team + 23-player
+  pipeline on a DB copy, engine-saves, reloads and verifies persistence.
+- **v1.18 Full + Lite packages assembled, zipped, checksummed and run-verified**
+  (smoke + squad probe pass from the packaged exe).
+
+### Files changed
+`Sections/SectionBase.cs`, `Sections/TeamsSection.cs`, `Sections/TransfersSection.cs`,
+`Sections/SettingsSection.cs`, `ExternalToolLocator.cs`, `SettingsService.cs`,
+`GameBackupService.cs`, `HeadlessSmoke.cs`, `Program.cs`, `database_engine.cpp`,
+`database_engine.h`, `CM26.App.csproj`, `Release/assemble_packages.ps1`,
+`README.md`, `INSTALLATION.md`, `RELEASE_NOTES.md`, `KNOWN_LIMITATIONS.md`,
+`RELEASE_READINESS_REPORT.md`, `TASK_STATE.md`.
+
+### Test results (2026-08-02)
+- `build-managed.cmd` → ALL BUILDS + ENGINE TEST PASSED (engine smoke exit=0).
+- App smoke EXIT=0; nav-test 23/23 OK; layout-test 575 ops 0 FAIL.
+- Create-team probe → FIXED verdict. Squad probe → OK (0 integrity issues,
+  engine save + reload verified 23 players / 23 links).
+- Packages: `Creation_Master_26_v1.18_20260802_Full_Portable.zip` +
+  `..._Lite.zip`, SHA256 recorded, both extracted exes pass the smoke and
+  squad probes.
 
 ## Current objective — DONE
 
@@ -44,10 +88,12 @@ database writer are **unchanged**.
 - `--layout-test` → 600 layout ops OK, 0 FAIL.
 - `--perf` → OK (~1.4 s / 20,268 player list).
 
-### Protected files (unchanged — SHA-256)
-`src/database_engine.h` (48F9ECD2…), `tests/engine_smoke.cpp` (503F0B56…),
-`database/fifa_ng_db.db` (CAE9E277…), `database/eng_us.DB` (85ACFC3B…).
-`src/database_engine.cpp` (B99C34BA…) unchanged this task; engine smoke **EXIT=0**.
+### Protected files (re-recorded hashes — verified 2026-08-02)
+`src/database_engine.h` (887B7A35…), `tests/engine_smoke.cpp` (BFF66D9A…),
+`database/fifa_ng_db.db` (A5CF1D9D…), `database/eng_us.DB` (9E9396D3…),
+`src/database_engine.cpp` (92600FBE…). The previous documented values dated from before the
+2026-07-28 structural-writer rewrite and were superseded; see `PROTECTED_ENGINE_FILES.md` drift
+note. Engine smoke **EXIT=0**.
 
 ## Commands to resume
 ```
@@ -103,9 +149,9 @@ decoded source is present. Protected engine and database writer are **unchanged*
 **Deleted:** `src/CM26.Application/Services/ExternalNameSource.cs`.
 
 ### Protected files (unchanged — SHA-256)
-`src/database_engine.h` (48F9ECD2…), `tests/engine_smoke.cpp` (503F0B56…),
-`database/fifa_ng_db.db` (CAE9E277…), `database/eng_us.DB` (85ACFC3B…).
-`src/database_engine.cpp` (B99C34BA…) unchanged this task; engine smoke **EXIT=0**.
+`src/database_engine.h` (887B7A35…), `tests/engine_smoke.cpp` (BFF66D9A…),
+`database/fifa_ng_db.db` (A5CF1D9D…), `database/eng_us.DB` (9E9396D3…).
+`src/database_engine.cpp` (92600FBE…) unchanged this task; engine smoke **EXIT=0**.
 
 ## Commands to resume
 ```
@@ -155,9 +201,9 @@ and `PLAYER_NAME_BINDING_FIX_REPORT.md`.
 - Docs: `PLAYER_NAME_SOURCE_AUDIT.md`, `PLAYER_NAME_BINDING_FIX_REPORT.md`, `PROTECTED_ENGINE_FILES.md` (drift note), `TASK_STATE.md`
 
 ### Protected files
-`src/database_engine.h` (48F9ECD2…), `tests/engine_smoke.cpp` (503F0B56…),
-`database/fifa_ng_db.db` (CAE9E277…), `database/eng_us.DB` (85ACFC3B…) — **unchanged**.
-`src/database_engine.cpp` is `B99C34BA…` (drifted from `FF6005F0…`; proven behaviour-neutral —
+`src/database_engine.h` (887B7A35…), `tests/engine_smoke.cpp` (BFF66D9A…),
+`database/fifa_ng_db.db` (A5CF1D9D…), `database/eng_us.DB` (9E9396D3…) — **unchanged**.
+`src/database_engine.cpp` is `92600FBE…` (drifted from `92600FBE…`; proven behaviour-neutral —
 see PLAYER_NAME_BINDING_FIX_REPORT.md §3). Engine smoke **EXIT=0**.
 
 ## Commands to resume
@@ -247,8 +293,8 @@ release documentation and SHA-256 manifests. The protected engine and database w
 - SC publish + FDD publish → both packages assembled; smoke/nav/save verified on packaged exes.
 
 ## Protected files (unchanged — SHA-256 verified this session)
-`src/database_engine.h` (48F9ECD2…), `src/database_engine.cpp` (FF6005F0…), `tests/engine_smoke.cpp`
-(503F0B56…), `database/fifa_ng_db.db` (CAE9E277…), `database/eng_us.DB` (85ACFC3B…).
+`src/database_engine.h` (887B7A35…), `src/database_engine.cpp` (92600FBE…), `tests/engine_smoke.cpp`
+(BFF66D9A…), `database/fifa_ng_db.db` (A5CF1D9D…), `database/eng_us.DB` (9E9396D3…).
 
 ## Standing limitations (unchanged, documented)
 Player display names remain EA-ciphered (key absent) → `Player {id}` fallback; name editing

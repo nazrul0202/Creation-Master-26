@@ -1,6 +1,6 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.17, 2026-08-02.
+Status: Version 1.0.18, 2026-08-02.
 
 ## Direct editing
 
@@ -67,10 +67,11 @@ FBX itself, so a face with no extracted FBX cannot be rendered in 3D.
 
 ## Transfermarkt and local scraper
 
-The Data Sync page can open the local CM26 Scraper, discover its latest
-`squad_*.xlsx` output, preview it and import a confirmed squad to the selected
-team. The import creates players and team-player links, but it does not
-overwrite existing CM26 records or silently write data without confirmation.
+The Data Sync page opens the bundled CM26 Scraper (`Tools\CM26 Scraper\` in the
+package, or a detected external copy), discovers its latest `squad_*.xlsx`
+output, previews it and imports a confirmed squad to the selected team. The
+import creates players and team-player links, but it does not overwrite
+existing CM26 records or silently write data without confirmation.
 
 The optional Transfermarkt URL preview/CSV view is a research aid only.
 Transfermarkt may change its HTML or block automated requests; in that case the
@@ -96,3 +97,15 @@ existing CM26 player.
 ## Platform
 
 Windows 10/11 x64 only. The Lite package requires .NET 8 Desktop Runtime x64.
+
+## Code signing and security tooling
+
+CM26 is distributed unsigned: Windows SmartScreen and some antivirus products may
+show an “unknown publisher” warning on first run. Because the app validates and
+rewrites parts of the FC26 database and patch containers, it ships helper
+libraries that share algorithms with the retail console packaging (EA's TOC and
+locale-string ciphers are implemented as reference keys inside the engine
+bridge; they only decrypt and re-encrypt the same formats the game itself
+reads). This is required to write edited files back without leaving them
+corrupted; CM26 never extracts or redistributes those original files. Reviewing
+the source or disabling encryption is unsupported.

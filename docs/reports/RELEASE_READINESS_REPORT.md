@@ -1,5 +1,22 @@
 # CM26 Release Readiness Report
 
+## Version 1.0.18 update — 2026-08-02
+
+- **PASS:** Full managed build (0 errors) plus the native engine smoke test
+  (quality + structural add/delete) exit 0.
+- **PASS:** App smoke, 23/23 section navigation and 575/575 layout operations.
+- **PASS:** Create-team probe — a duplicated team lands at row 1, staged edits
+  land at row 1 and the last original row stays untouched.
+- **PASS:** New squad probe — the real Add-New-Team + 23-player pipeline on a
+  database copy stages integer position codes, saves through the native engine
+  with **0 integrity issues**, and reloads the written files with all 23
+  players and 23 team-player links verified.
+- **PASS:** CM26 Scraper ships inside Full and Lite package `Tools\CM26 Scraper\`
+  and is auto-detected by Transfers > Data Sync; scrape → preview → import is a
+  single flow.
+- **PASS:** Backup manifests now include a SHA-256 per file; older size-only
+  manifests are upgraded in place and remain valid.
+
 ## Version 1.0.11 update — 2026-08-01
 
 - **PASS:** Country selection defaults to domestic-league countries with linked
@@ -164,8 +181,8 @@ NOT TESTED result has been converted into PASS.
 | 18 | 125% DPI | **NOT TESTED** | This machine is fixed at 96 DPI (100%) with a single display; higher scaling requires a Windows sign-out (would terminate the session). Per user direction, validated at 1920×1080/100% only. |
 | 19 | 150% DPI | **NOT TESTED** | Same reason as #18. |
 | 20 | 200% DPI | **NOT TESTED** | Same reason as #18. |
-| 21 | Protected-file SHA-256 | **PASS** | `database_engine.h` (48F9ECD2…), `database_engine.cpp` (FF6005F0…), `engine_smoke.cpp` (503F0B56…) all match documented hashes **byte-for-byte UNCHANGED**. |
-| 22 | Original database SHA-256 | **PASS** | `fifa_ng_db.db` (CAE9E277…) and `eng_us.DB` (85ACFC3B…) match the documented pristine hashes — untouched by all testing (scratch copies used). |
+| 21 | Protected-file SHA-256 | **PASS** | `database_engine.h` (887B7A35…), `database_engine.cpp` (92600FBE…), `engine_smoke.cpp` (BFF66D9A…) all match documented hashes **byte-for-byte UNCHANGED**. |
+| 22 | Original database SHA-256 | **PASS** | `fifa_ng_db.db` (A5CF1D9D…) and `eng_us.DB` (9E9396D3…) match the documented pristine hashes — untouched by all testing (scratch copies used). |
 
 ---
 

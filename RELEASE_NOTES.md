@@ -1,5 +1,36 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.18 — CM26 Scraper bundled, team/squad saving repaired (2026-08-02)
+
+- The **CM26 Scraper** now ships inside the package under `Tools\CM26 Scraper\`.
+  Transfers > Data Sync finds it automatically: the bundled copy, a copy next
+  to CM26, a drive-root or `FC26 FILE TOOL` copy, or a folder set in Settings.
+- **Data Sync** refreshes and previews the newest squad output automatically
+  when the scraper closes, so scrape → import is a single flow.
+- New **Set folder...** button on the Data Sync page and a **CM26 Scraper
+  folder** row in Settings point CM26 at an existing scraper installation.
+- **Fixed: creating a team no longer fails with "Integer value required".**
+  The auto-generated squad staged position labels ("GK", "RB", "CB"…) into
+  integer position columns; positions are now staged as valid integer codes.
+- **Fixed: a new squad could not be saved.** Every generated team-player link
+  reused the template row's `artificialkey`, so the save integrity check
+  rejected them all as duplicate keys. Each link now gets a unique key.
+- **Fixed: unrelated database quirks no longer block saving.** Saving a database
+  was refused if any untouched row of a structurally edited table contained a
+  pre-existing dangling reference or duplicate key (for example, an old team
+  still pointing at a retired player id). Integrity validation now checks only
+  the rows and cells changed in the current session.
+- **Fixed: new player/team ids could collide with existing rows.** The id picker
+  used a stale row count after insertions and could hand out an id that already
+  existed in the shifted tail of the table.
+- CmModData backup manifests now store a **SHA-256 hash** for every backed-up
+  file, so snapshots can be verified against silent corruption. Existing
+  manifests are upgraded in place.
+- Removed an unused EA-sourced test fixture (`tests/CM26_LegacyWriter_Smoke.fifamod`).
+- New **squad probe** regression test runs the real create-team + 23-player
+  pipeline on a database copy, saves it through the native engine and reloads
+  the written files to verify they persist.
+
 ## Version 1.0.17 — national team navigation, squad auto-fill and toolbar cleanup (2026-08-02)
 
 - Creating a national team or a league team now writes a full placeholder squad automatically: 23 players named **Player 1 … Player 23** with jersey numbers 1–23, positions and a starting line-up, linked through `teamplayerlinks`. The new team opens in the Teams section immediately so you can just rename the rows and press Save.

@@ -246,7 +246,7 @@ EditResult DatabaseEngine::duplicateRow(NativeDatabase& database,const std::stri
   auto equal=[](const std::string&a,const std::string&b){return a.size()==b.size()&&std::equal(a.begin(),a.end(),b.begin(),[](unsigned char x,unsigned char y){return std::tolower(x)==std::tolower(y);});};
   auto table=std::find_if(database.tables.begin(),database.tables.end(),[&](const NativeTable&t){return equal(t.name,tableName)||equal(t.shortName,tableName);});
   if(table==database.tables.end())return {false,"Table not found"};if(rowIndex>=table->rows.size())return {false,"Row index out of range"};if(table->recordCount>=65535)return {false,"Table has reached the T3DB record limit"};
-  table->rows.insert(table->rows.begin()+static_cast<std::ptrdiff_t>(rowIndex+1),table->rows[rowIndex]);++table->recordCount;++table->validRecordCount;table->structuralChanged=true;
+  table->rows.insert(table->rows.begin()+static_cast<std::ptrdiff_t>(rowIndex+1),table->rows[rowIndex]);++table->recordCount;++table->validRecordCount;table->structuralChanged=true;table->rows[rowIndex+1].inserted=true;
   return {true,"Record duplicated; change all key fields before saving"};
 }
 
@@ -278,8 +278,20 @@ std::vector<std::string> DatabaseEngine::validateIntegrity(const NativeDatabase&
   auto equal=[](const std::string&a,const std::string&b){return a.size()==b.size()&&std::equal(a.begin(),a.end(),b.begin(),[](unsigned char x,unsigned char y){return std::tolower(x)==std::tolower(y);});};
   auto text=[](const CellValue& v){if(const auto i=std::get_if<int>(&v))return std::to_string(*i);if(const auto f=std::get_if<float>(&v))return std::to_string(*f);return std::get<std::string>(v);};
   std::vector<std::string> issues;
-  for(const auto&t:database.tables){std::vector<size_t> keys;for(size_t c=0;c<t.columns.size();++c)if(t.columns[c].key)keys.push_back(c);if(t.structuralChanged&&!keys.empty()){std::set<std::string> seen;for(size_t r=0;r<t.rows.size();++r){std::string composite;for(auto c:keys){composite+=text(t.rows[r].values[c]);composite.push_back('\x1f');}if(!seen.insert(composite).second)issues.push_back(t.name+" row "+std::to_string(r)+": duplicate key");}}
-    if(!t.structuralChanged)continue;for(size_t c=0;c<t.columns.size();++c){const auto& column=t.columns[c];if(column.foreignTable.empty())continue;auto parent=std::find_if(database.tables.begin(),database.tables.end(),[&](const NativeTable& p){return equal(p.name,column.foreignTable);});if(parent==database.tables.end())continue;size_t parentField=parent->columns.size();for(size_t pc=0;pc<parent->columns.size();++pc)if(equal(parent->columns[pc].name,column.name)){parentField=pc;break;}if(parentField==parent->columns.size())for(size_t pc=0;pc<parent->columns.size();++pc)if(parent->columns[pc].key){parentField=pc;break;}if(parentField==parent->columns.size())continue;std::set<std::string> values;for(const auto& row:parent->rows)values.insert(text(row.values[parentField]));for(size_t r=0;r<t.rows.size();++r){const auto value=text(t.rows[r].values[c]);if(value=="-1"||value=="0"||value.empty())continue;if(!values.contains(value))issues.push_back(t.name+" row "+std::to_string(r)+"."+column.name+": missing "+column.foreignTable+" key "+value);}}
+  for(const auto&t:database.tables){
+    std::vector<size_t> keys;for(size_t c=0;c<t.columns.size();++c)if(t.columns[c].key)keys.push_back(c);
+    // Duplicate keys: only flag collisions that involve a row the user inserted
+    // or a key the user edited. Pre-existing duplicates between untouched
+    // original rows must never block a save.
+    if(!keys.empty()){
+      auto touched=[&](const NativeRow&row){if(row.inserted)return true;for(auto c:keys)if(row.values[c]!=row.originalValues[c])return true;return false;};
+      std::unordered_map<std::string,size_t> first;
+      for(size_t r=0;r<t.rows.size();++r){std::string composite;for(auto c:keys){composite+=text(t.rows[r].values[c]);composite.push_back('\x1f');}auto it=first.find(composite);if(it!=first.end()&&(touched(t.rows[r])||touched(t.rows[it->second])))issues.push_back(t.name+" row "+std::to_string(r)+": duplicate key");else first.emplace(composite,r);}
+    }
+    // Foreign keys: validate only rows the user created (inserted) or cells the
+    // user edited. Pre-existing dangling references in untouched rows are the
+    // database's own data and must not block the user's save.
+    for(size_t c=0;c<t.columns.size();++c){const auto& column=t.columns[c];if(column.foreignTable.empty())continue;auto parent=std::find_if(database.tables.begin(),database.tables.end(),[&](const NativeTable& p){return equal(p.name,column.foreignTable);});if(parent==database.tables.end())continue;size_t parentField=parent->columns.size();for(size_t pc=0;pc<parent->columns.size();++pc)if(equal(parent->columns[pc].name,column.name)){parentField=pc;break;}if(parentField==parent->columns.size())for(size_t pc=0;pc<parent->columns.size();++pc)if(parent->columns[pc].key){parentField=pc;break;}if(parentField==parent->columns.size())continue;std::set<std::string> values;for(const auto& row:parent->rows)values.insert(text(row.values[parentField]));for(size_t r=0;r<t.rows.size();++r){const auto&row=t.rows[r];if(!row.inserted&&row.values[c]==row.originalValues[c])continue;const auto value=text(row.values[c]);if(value=="-1"||value=="0"||value.empty())continue;if(!values.contains(value))issues.push_back(t.name+" row "+std::to_string(r)+"."+column.name+": missing "+column.foreignTable+" key "+value);}}
   }
   return issues;
 }

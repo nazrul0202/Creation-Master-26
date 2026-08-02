@@ -6,7 +6,7 @@ Scope: trace how the reference project resolves player names, and prove the exac
 ## 1. Cannot run reference exe against the test DB
 
 The reference project's exe (`D:\Creation Master 26\bin\Release\...\CM26_by_Rizco98.exe`) was built
-against a **different bundled database** (SHA-256 `BC537D5B…` vs test `CAE9E277…`). Running it against
+against a **different bundled database** (SHA-256 `BC537D5B…` vs test `A5CF1D9D…`). Running it against
 the test DB would not produce comparable results — the schema/data versions differ.
 
 Instead, the name-resolution pipeline was traced through **source-code analysis**.

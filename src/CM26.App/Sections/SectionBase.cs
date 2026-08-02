@@ -413,6 +413,11 @@ public abstract class SectionBase : UserControl
 
     protected int NextAvailableId(string tableName, string idField)
     {
+        // The cached schema snapshot keeps a stale row count after staged
+        // inserts (new rows are inserted at the top, shifting the original
+        // rows down), which made this scan miss the table tail and hand out
+        // ids that already exist. Refresh first so every live row is scanned.
+        Services.Session.RefreshSchema();
         var table = Services.Session.GetTable(tableName)
             ?? throw new InvalidOperationException($"Table '{tableName}' is unavailable.");
         var column = table.FindColumn(idField)
@@ -552,6 +557,19 @@ public abstract class SectionBase : UserControl
         "RM", "LM", "RW",
     };
 
+    private static readonly string[] PositionLabels =
+    {
+        "GK", "SW", "RWB", "RB", "RCB", "CB", "LCB", "LB", "LWB",
+        "RDM", "CDM", "LDM", "RM", "RCM", "CM", "LCM", "LM",
+        "RAM", "CAM", "LAM", "RF", "CF", "LF", "RW", "RS", "ST", "LS", "LW",
+    };
+
+    protected static bool TryPositionCode(string label, out int code)
+    {
+        code = Array.IndexOf(PositionLabels, label.ToUpperInvariant());
+        return code >= 0;
+    }
+
     /// <summary>
     /// Creates a full default squad (Player 1..23) for a brand-new team and links
     /// each player via teamplayerlinks, so the user can open the Team page and just
@@ -567,6 +585,7 @@ public abstract class SectionBase : UserControl
         var playerIds = new List<int>();
         for (var i = 1; i <= DefaultSquadPositions.Length; i++)
         {
+            var positionCode = TryPositionCode(DefaultSquadPositions[i - 1], out var code) ? code : 0;
             var name = $"Player {i}";
             var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -577,13 +596,13 @@ public abstract class SectionBase : UserControl
                 ["commonnameid"] = "0",
                 ["playerjerseynameid"] = "0",
                 ["headclasscode"] = "0",
-                ["preferredposition1"] = DefaultSquadPositions[i - 1],
+                ["preferredposition1"] = positionCode.ToString(),
             };
             var playerId = CreateRecordFromTemplate("players", "playerid", values, templateRow: 0);
             playerIds.Add(playerId);
             Services.SetPlayerNameOverride(playerId, name, string.Empty);
             CreateSquadEditedPlayerName(playerId, name);
-            CreateSquadPlayerLink(playerId, teamId, i, DefaultSquadPositions[i - 1]);
+            CreateSquadPlayerLink(playerId, teamId, i, positionCode.ToString());
         }
 
         CreateSquadTeamsSheet(teamId, playerIds);
@@ -607,6 +626,11 @@ public abstract class SectionBase : UserControl
             ["jerseynumber"] = jerseyNumber.ToString(),
             ["position"] = position,
         };
+        // teamplayerlinks keys on its artificialkey column; a duplicated template
+        // row keeps the template's value, so a unique key must be staged or the
+        // save's integrity check rejects every new link as a duplicate.
+        if (links?.FindColumn("artificialkey") != null)
+            fields["artificialkey"] = NextAvailableId("teamplayerlinks", "artificialkey").ToString();
         foreach (var (field, value) in fields)
         {
             if (links?.FindColumn(field) == null) continue;

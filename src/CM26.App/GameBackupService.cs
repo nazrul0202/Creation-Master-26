@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace CM26.App;
@@ -50,6 +51,14 @@ public static class GameBackupService
                     if (!info.Exists || info.Length != item.Length)
                         return new(false, root, backup,
                             $"CmModData inventory validation failed for {item.RelativePath}.");
+                    // Manifests written by older versions only store the size;
+                    // newer manifests also carry a SHA-256 so the snapshot can be
+                    // verified against silent corruption even when a file keeps
+                    // its exact length.
+                    if (item.Sha256 != null && item.Sha256.Length > 0 &&
+                        !string.Equals(item.Sha256, ComputeSha256(candidate), StringComparison.OrdinalIgnoreCase))
+                        return new(false, root, backup,
+                            $"CmModData integrity check failed for {item.RelativePath}.");
                 }
             }
             catch (Exception ex)
@@ -273,7 +282,23 @@ public static class GameBackupService
     private static void EnsureManifest(string backupRoot)
     {
         var path = Path.Combine(backupRoot, ManifestName);
-        if (!File.Exists(path)) WriteManifest(backupRoot);
+        if (!File.Exists(path))
+        {
+            WriteManifest(backupRoot);
+            return;
+        }
+        // Upgrade older size-only inventories to the hashed format so existing
+        // backups gain silent-corruption protection without being re-created.
+        try
+        {
+            var manifest = JsonSerializer.Deserialize<BackupManifest>(File.ReadAllText(path));
+            if (manifest != null && manifest.Version < 2)
+                WriteManifest(backupRoot);
+        }
+        catch
+        {
+            // Leave a malformed manifest alone; Inspect reports it explicitly.
+        }
     }
 
     private static void WriteManifest(string backupRoot)
@@ -282,12 +307,13 @@ public static class GameBackupService
             .SelectMany(folder => EnumerateFiles(Path.Combine(backupRoot, folder)))
             .Select(path => new BackupFile(
                 Path.GetRelativePath(backupRoot, path),
-                new FileInfo(path).Length))
+                new FileInfo(path).Length,
+                ComputeSha256(path)))
             .OrderBy(item => item.RelativePath, StringComparer.OrdinalIgnoreCase)
             .ToArray();
         if (files.Length == 0)
             throw new InvalidDataException("Cannot create an inventory for an empty CmModData backup.");
-        var manifest = new BackupManifest(1, DateTimeOffset.UtcNow, files);
+        var manifest = new BackupManifest(2, DateTimeOffset.UtcNow, files);
         File.WriteAllText(
             Path.Combine(backupRoot, ManifestName),
             JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }));
@@ -301,6 +327,12 @@ public static class GameBackupService
             throw new IOException("Restore target is outside the game installation.");
     }
 
+    private static string ComputeSha256(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+    }
+
     private sealed record BackupManifest(int Version, DateTimeOffset CreatedUtc, BackupFile[] Files);
-    private sealed record BackupFile(string RelativePath, long Length);
+    private sealed record BackupFile(string RelativePath, long Length, string? Sha256);
 }

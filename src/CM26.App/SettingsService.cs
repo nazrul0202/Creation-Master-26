@@ -28,6 +28,17 @@ public static class SettingsService
         set { _values["FC26GameFolder"] = value; Save(); }
     }
 
+    /// <summary>
+    /// Folder containing the external CM26 Scraper tool (CM26 Scraper.exe).
+    /// Optional: the scraper bundled under Tools\CM26 Scraper and drive-root
+    /// copies are auto-detected when this is not set.
+    /// </summary>
+    public static string ScraperRoot
+    {
+        get => _values.TryGetValue("ScraperRoot", out var v) ? v : string.Empty;
+        set { _values["ScraperRoot"] = value; Save(); }
+    }
+
     /// <summary>Root folder containing FC26 visual-asset packs (minifaces, balls, etc.). User-configurable.</summary>
     public static string AssetRoot
     {
