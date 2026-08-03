@@ -140,7 +140,7 @@ internal static class HeadlessSmoke
             var root = FrostbiteAssetSession.ResolveGameRoot(gameRoot ?? SettingsService.FC26GameFolder);
             var result = GameBackupService.EnsureCreated(root);
             if (!result.Success) throw new InvalidOperationException(result.Message);
-            var status = GameBackupService.Inspect(root);
+            var status = GameBackupService.Inspect(root, verifyContent: true);
             if (!status.IsReady) throw new InvalidDataException(status.Message);
 
             foreach (var folder in new[] { "Data", "Patch" })
@@ -1764,6 +1764,59 @@ internal static class HeadlessSmoke
             Console.WriteLine("LAYOUT TEST FAILED: " + ex);
             return 13;
         }
+    }
+
+    /// <summary>Validates every Formation record used by the public pitch preview.</summary>
+    public static int FormationTest(string folder)
+    {
+        try
+        {
+            using var services = new AppServices();
+            services.LoadDatabase(folder);
+            var table = services.Session.GetTable("formations")
+                ?? throw new InvalidDataException("The formations table is unavailable.");
+            var required = new[] { "formationid", "formationname", "teamid" }
+                .Concat(Enumerable.Range(0, 11).SelectMany(i => new[] { $"position{i}", $"offset{i}x", $"offset{i}y" }))
+                .ToArray();
+            var missing = required.Where(field => table.FindColumn(field) == null).ToArray();
+            if (missing.Length > 0)
+                throw new InvalidDataException("Formation schema is missing: " + string.Join(", ", missing));
+
+            var incomplete = 0;
+            var invalid = 0;
+            for (var row = 0; row < table.RowCount; row++)
+            {
+                var mapped = 0;
+                for (var slot = 0; slot < 11; slot++)
+                {
+                    var x = services.Session.GetCell("formations", row, $"offset{slot}x");
+                    var y = services.Session.GetCell("formations", row, $"offset{slot}y");
+                    if (!TryFormationCoordinate(x, out _) || !TryFormationCoordinate(y, out _))
+                    {
+                        invalid++;
+                        continue;
+                    }
+                    mapped++;
+                }
+                if (mapped < 11) incomplete++;
+            }
+            Console.WriteLine($"FORMATIONS: rows={table.RowCount}, incomplete={incomplete}, invalidCoordinates={invalid}");
+            return invalid == 0 && incomplete == 0 ? 0 : 29;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("FORMATION TEST FAILED: " + ex);
+            return 29;
+        }
+    }
+
+    private static bool TryFormationCoordinate(string raw, out double coordinate)
+    {
+        coordinate = 0;
+        if (!double.TryParse(raw, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var value)) return false;
+        coordinate = value is >= 0 and <= 1 ? value : value / 100d;
+        return coordinate is >= 0 and <= 1;
     }
 
     /// <summary>Instantiate every section, load its record list, and select the first record — no UI shown.</summary>

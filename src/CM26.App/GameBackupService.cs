@@ -17,11 +17,13 @@ public static class GameBackupService
 
     public sealed record BackupStatus(bool IsReady, string GameRoot, string BackupRoot, string Message);
     public sealed record BackupResult(bool Success, BackupStatus Status, int CopiedFiles, string Message);
-    public sealed record RestoreProgress(string Phase, int Completed, int Total, string CurrentFile);
+    public sealed record RestoreProgress(
+        string Phase, int Completed, int Total, string CurrentFile,
+        long CompletedBytes = 0, long TotalBytes = 0);
     public sealed record RestoreResult(bool Success, string Message, int CopiedFiles, int DeletedFiles);
     public sealed record CompressionResult(bool Success, string Message);
 
-    public static BackupStatus Inspect(string? gameRoot)
+    public static BackupStatus Inspect(string? gameRoot, bool verifyContent = false)
     {
         if (string.IsNullOrWhiteSpace(gameRoot) || !Directory.Exists(gameRoot))
             return new(false, string.Empty, string.Empty, "Game installation was not detected.");
@@ -55,7 +57,12 @@ public static class GameBackupService
                     // newer manifests also carry a SHA-256 so the snapshot can be
                     // verified against silent corruption even when a file keeps
                     // its exact length.
-                    if (item.Sha256 != null && item.Sha256.Length > 0 &&
+                    // The full SHA-256 check is intentionally reserved for the
+                    // explicit backup audit and Restore. Rehashing a 10 GB
+                    // immutable tree on every Open Game made startup needlessly
+                    // slow, while size/inventory checks still catch missing or
+                    // truncated backup files.
+                    if (verifyContent && item.Sha256 != null && item.Sha256.Length > 0 &&
                         !string.Equals(item.Sha256, ComputeSha256(candidate), StringComparison.OrdinalIgnoreCase))
                         return new(false, root, backup,
                             $"CmModData integrity check failed for {item.RelativePath}.");
@@ -94,28 +101,37 @@ public static class GameBackupService
         {
             Directory.CreateDirectory(temporary);
             var copied = 0;
+            var manifestFiles = new List<BackupFile>();
             foreach (var folder in RestoredFolders)
             {
                 var source = Path.Combine(root, folder);
                 var target = Path.Combine(temporary, folder);
                 EnsureDirectChild(root, source);
                 EnsureDirectChild(root, target);
-                var files = EnumerateFiles(source).ToArray();
+                var files = EnumerateFiles(source).Select(path => new FileInfo(path)).ToArray();
+                var totalBytes = files.Sum(file => file.Length);
+                var completedBytes = 0L;
                 for (var index = 0; index < files.Length; index++)
                 {
                     var file = files[index];
-                    var relative = Path.GetRelativePath(source, file);
+                    var relative = Path.GetRelativePath(source, file.FullName);
                     var output = Path.Combine(target, relative);
                     EnsureChild(target, output);
                     Directory.CreateDirectory(Path.GetDirectoryName(output)!);
-                    progress?.Report(new($"Backing up {folder}", index + 1, files.Length, relative));
-                    File.Copy(file, output, overwrite: false);
-                    File.SetLastWriteTimeUtc(output, File.GetLastWriteTimeUtc(file));
-                    File.SetAttributes(output, File.GetAttributes(file));
+                    progress?.Report(new($"Backing up {folder}", index, files.Length, relative, completedBytes, totalBytes));
+                    var hash = CopyAndHash(file.FullName, output, copiedBytes =>
+                        progress?.Report(new($"Backing up {folder}", index, files.Length, relative,
+                            completedBytes + copiedBytes, totalBytes)));
+                    File.SetLastWriteTimeUtc(output, file.LastWriteTimeUtc);
+                    File.SetAttributes(output, file.Attributes);
+                    completedBytes += file.Length;
+                    manifestFiles.Add(new BackupFile(
+                        Path.Combine(folder, relative), file.Length, hash));
                     copied++;
+                    progress?.Report(new($"Backing up {folder}", index + 1, files.Length, relative, completedBytes, totalBytes));
                 }
             }
-            WriteManifest(temporary);
+            WriteManifest(temporary, manifestFiles);
             Directory.Move(temporary, destination);
             var status = Inspect(root);
             return new(status.IsReady, status, copied,
@@ -139,6 +155,9 @@ public static class GameBackupService
         if (IsGameRunning())
             return new(false, "Close the game before restoring its Data and Patch folders.", 0, 0);
 
+        var verified = Inspect(status.GameRoot, verifyContent: true);
+        if (!verified.IsReady) return new(false, verified.Message, 0, 0);
+
         try
         {
             var copied = 0;
@@ -147,8 +166,8 @@ public static class GameBackupService
             {
                 var source = Path.Combine(status.BackupRoot, folder);
                 var target = Path.Combine(status.GameRoot, folder);
-                EnsureDirectChild(status.GameRoot, source);
-                EnsureDirectChild(status.GameRoot, target);
+                EnsureDirectChild(verified.GameRoot, source);
+                EnsureDirectChild(verified.GameRoot, target);
                 Directory.CreateDirectory(target);
 
                 var sourceFiles = EnumerateFiles(source).ToArray();
@@ -313,7 +332,17 @@ public static class GameBackupService
             .ToArray();
         if (files.Length == 0)
             throw new InvalidDataException("Cannot create an inventory for an empty CmModData backup.");
-        var manifest = new BackupManifest(2, DateTimeOffset.UtcNow, files);
+        WriteManifest(backupRoot, files);
+    }
+
+    private static void WriteManifest(string backupRoot, IEnumerable<BackupFile> files)
+    {
+        var inventory = files
+            .OrderBy(item => item.RelativePath, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (inventory.Length == 0)
+            throw new InvalidDataException("Cannot create an inventory for an empty CmModData backup.");
+        var manifest = new BackupManifest(2, DateTimeOffset.UtcNow, inventory);
         File.WriteAllText(
             Path.Combine(backupRoot, ManifestName),
             JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }));
@@ -331,6 +360,27 @@ public static class GameBackupService
     {
         using var stream = File.OpenRead(path);
         return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+    }
+
+    private static string CopyAndHash(string source, string destination, Action<long>? copied)
+    {
+        using var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read,
+            bufferSize: 1024 * 1024, FileOptions.SequentialScan);
+        using var output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None,
+            bufferSize: 1024 * 1024, FileOptions.SequentialScan);
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = new byte[1024 * 1024];
+        long total = 0;
+        int read;
+        while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            output.Write(buffer, 0, read);
+            hash.AppendData(buffer, 0, read);
+            total += read;
+            copied?.Invoke(total);
+        }
+        output.Flush(flushToDisk: true);
+        return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
     }
 
     private sealed record BackupManifest(int Version, DateTimeOffset CreatedUtc, BackupFile[] Files);

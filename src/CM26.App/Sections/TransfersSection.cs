@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Theming;
 
 namespace CM26.App.Sections;
 
@@ -39,7 +40,7 @@ public sealed class TransfersSection : SectionBase
     {
         var page = new TabPage("Team & Squad Scraper")
         {
-            BackColor = SystemColors.Control,
+            BackColor = Theme.Background,
             Padding = new Padding(8)
         };
         var root = new TableLayoutPanel
@@ -47,7 +48,7 @@ public sealed class TransfersSection : SectionBase
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 6,
-            BackColor = SystemColors.Control
+            BackColor = Theme.Background
         };
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 31));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));

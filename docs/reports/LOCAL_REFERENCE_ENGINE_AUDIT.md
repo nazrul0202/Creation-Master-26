@@ -1,6 +1,6 @@
-# Local reference engine audit
+﻿# Local reference engine audit
 
-`D:\Creation Master 26\T3DbEngine.cs` parses XML with `XDocument`, validates metadata version (expects 6), reads a little-endian directory and table records, uses `GetBitsLittle`/`SetBitsLittle`, handles fixed and compressed strings, computes CRC-DB11, and includes update/save/backup code. It is not proven superior for the current FC26 files.
+`<FC26 tools>\T3DbEngine.cs` parses XML with `XDocument`, validates metadata version (expects 6), reads a little-endian directory and table records, uses `GetBitsLittle`/`SetBitsLittle`, handles fixed and compressed strings, computes CRC-DB11, and includes update/save/backup code. It is not proven superior for the current FC26 files.
 
 Critical evidence:
 

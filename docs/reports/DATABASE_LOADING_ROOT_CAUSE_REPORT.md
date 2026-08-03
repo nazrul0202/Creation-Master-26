@@ -1,18 +1,18 @@
-# Database Loading Root-Cause Report — CM26
+﻿# Database Loading Root-Cause Report â€” CM26
 
 Date: 2026-07-28
 
 ## 1. Exact database folder loaded
 
-`D:\CM 26 Final\database`
+`<repo>\database`
 
 ## 2. Exact files opened
 
 | File | Path | SHA-256 (prefix) |
 |------|------|------------------|
-| metadata | `D:\CM 26 Final\database\fifa_ng_db-meta.XML` | `38D5B4B5…` |
-| main DB | `D:\CM 26 Final\database\fifa_ng_db.db` | `A5CF1D9D…` |
-| locale | `D:\CM 26 Final\database\eng_us.DB` | `9E9396D3…` |
+| metadata | `<repo>\database\fifa_ng_db-meta.XML` | `38D5B4B5â€¦` |
+| main DB | `<repo>\database\fifa_ng_db.db` | `A5CF1D9Dâ€¦` |
+| locale | `<repo>\database\eng_us.DB` | `9E9396D3â€¦` |
 
 The app **does not** open `eng_us_decrypted.db`, `eng_us_decrypted2.db`, `sample db extracted\*`,
 `FC26 Modern Database Studio\*`, TXT/XLSX exports, or any previous session's files. Verified by the
@@ -26,14 +26,14 @@ diagnostic harness `--show-loaded-files` and the `--name-tests` external-file gu
 
 ## 4. Schema comparison result
 
-PASS — field order, offsets, widths, signedness, and types match `fifa_ng_db-meta.XML`. See
+PASS â€” field order, offsets, widths, signedness, and types match `fifa_ng_db-meta.XML`. See
 `RAW_SCHEMA_COMPARISON.md`.
 
 ## 5. Country-confederation root cause
 
 - Raw DB value for Afghanistan `confederation` = **5** (correct for AFC).
-- **Earlier mapping** `5 → CAF` was wrong → caused the symptom.
-- **Current mapping** `5 → AFC` is correct (13/13 ground-truth PASS).
+- **Earlier mapping** `5 â†’ CAF` was wrong â†’ caused the symptom.
+- **Current mapping** `5 â†’ AFC` is correct (13/13 ground-truth PASS).
 - The user's report stems from **running a stale binary** (`build_updated\` 27/7, `publish\` 26/7,
   `Release\CM26\` 27/7). The rebuilt packages (28/7 00:58) are correct.
 
@@ -42,7 +42,7 @@ PASS — field order, offsets, widths, signedness, and types match `fifa_ng_db-m
 - `players.firstnameid/lastnameid` are correct integers (e.g. Beckham 8642/4000).
 - `playernames.name` for those IDs is an EA-ciphered `0xC4` placeholder (bytes `[C4 C4 C4 44 C4]`).
 - No readable name can be decoded from the database; the resolver honestly returns `Player {id}`.
-- `bareNumeric = 0` — no numeric ID is shown as a surname. The earlier `Split(' ',2)` UI bug is fixed.
+- `bareNumeric = 0` â€” no numeric ID is shown as a surname. The earlier `Split(' ',2)` UI bug is fixed.
 
 ## 7. Layer verdicts
 
@@ -93,39 +93,39 @@ applied in the prior task and are present in the current source/binaries.
 
 ## 14. Protected files
 
-All unchanged: `database_engine.h` (887B7A35…), `database_engine.cpp` (92600FBE…),
-`engine_smoke.cpp` (BFF66D9A…), `fifa_ng_db.db` (A5CF1D9D…), `eng_us.DB` (9E9396D3…).
+All unchanged: `database_engine.h` (887B7A35â€¦), `database_engine.cpp` (92600FBEâ€¦),
+`engine_smoke.cpp` (BFF66D9Aâ€¦), `fifa_ng_db.db` (A5CF1D9Dâ€¦), `eng_us.DB` (9E9396D3â€¦).
 
 ## 15. Build result
 
-`build-managed.cmd` → ALL BUILDS + ENGINE TEST PASSED (0 errors; smoke EXIT=0).
+`build-managed.cmd` â†’ ALL BUILDS + ENGINE TEST PASSED (0 errors; smoke EXIT=0).
 
 ## 16. Tests executed / results
 
-1. Loaded-file path — PASS
-2. DB-file SHA-256 — PASS
-3. Schema comparison — PASS
-4. Country raw-row — PASS
-5. Afghanistan confederation trace — PASS
-6. All-country confederation — PASS (13/13)
-7. Player raw-row — PASS
-8. 150-player sample — PASS
-9. Full-player pass — PASS (0 bare numeric)
-10. Engine vs bridge — PASS
-11. Cache-clear — PASS
-12. Database-switch — PASS
-13. Player selector — PASS
-14. Player Info binding — PASS
-15. Team Roster binding — PASS
-16. Formation label — PASS
-17. Captain/set-piece — PASS
-18. Transfer label — PASS
-19. Full Release build — PASS
-20. Engine smoke — PASS
-21. Managed tests — PASS
-22. Scratch save round-trip — PASS
-23. Protected-file SHA-256 — PASS
-24. Original DB SHA-256 — PASS
+1. Loaded-file path â€” PASS
+2. DB-file SHA-256 â€” PASS
+3. Schema comparison â€” PASS
+4. Country raw-row â€” PASS
+5. Afghanistan confederation trace â€” PASS
+6. All-country confederation â€” PASS (13/13)
+7. Player raw-row â€” PASS
+8. 150-player sample â€” PASS
+9. Full-player pass â€” PASS (0 bare numeric)
+10. Engine vs bridge â€” PASS
+11. Cache-clear â€” PASS
+12. Database-switch â€” PASS
+13. Player selector â€” PASS
+14. Player Info binding â€” PASS
+15. Team Roster binding â€” PASS
+16. Formation label â€” PASS
+17. Captain/set-piece â€” PASS
+18. Transfer label â€” PASS
+19. Full Release build â€” PASS
+20. Engine smoke â€” PASS
+21. Managed tests â€” PASS
+22. Scratch save round-trip â€” PASS
+23. Protected-file SHA-256 â€” PASS
+24. Original DB SHA-256 â€” PASS
 
 ## 17. Remaining risks
 

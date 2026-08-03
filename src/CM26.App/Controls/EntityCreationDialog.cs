@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
+using CM26.App.Theming;
 
 namespace CM26.App.Controls;
 
@@ -20,7 +21,8 @@ internal static class EntityCreationDialog
             MaximizeBox = false,
             ShowInTaskbar = false,
             ClientSize = new Size(430, 92 + (fields.Count * 34)),
-            Font = new Font("Segoe UI", 9F),
+            Font = Theme.Body,
+            BackColor = Theme.Background,
         };
 
         var editors = new List<TextBox>();
@@ -32,6 +34,8 @@ internal static class EntityCreationDialog
                 Text = fields[index].Label,
                 Location = new Point(16, y + 4),
                 Size = new Size(125, 22),
+                ForeColor = Theme.Text,
+                Font = Theme.Label,
             });
             var editor = new TextBox
             {
@@ -39,6 +43,7 @@ internal static class EntityCreationDialog
                 Location = new Point(146, y),
                 Size = new Size(265, 24),
             };
+            Theme.ApplyTextBox(editor);
             dialog.Controls.Add(editor);
             editors.Add(editor);
         }
@@ -48,7 +53,8 @@ internal static class EntityCreationDialog
             Text = "A safe unused ID will be assigned automatically.",
             Location = new Point(16, 26 + (fields.Count * 34)),
             Size = new Size(260, 22),
-            ForeColor = SystemColors.GrayText,
+            ForeColor = Theme.Muted,
+            Font = Theme.Muted9,
         };
         dialog.Controls.Add(note);
 
@@ -66,6 +72,8 @@ internal static class EntityCreationDialog
             Location = new Point(331, 54 + (fields.Count * 34)),
             Size = new Size(80, 28),
         };
+        Theme.ApplyButton(create, primary: true);
+        Theme.ApplyButton(cancel);
         dialog.Controls.Add(create);
         dialog.Controls.Add(cancel);
         dialog.AcceptButton = create;

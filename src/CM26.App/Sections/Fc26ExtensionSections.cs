@@ -63,14 +63,14 @@ internal abstract class Fc26ExtensionSection : SectionBase
     {
         _key = key; _title = title; _table = table; _fields = fields;
         Header.Visible = false;
-        var page = new TabPage("General") { BackColor = SystemColors.Control, Font = LegacyFont };
-        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = SystemColors.Control };
-        var box = new GroupBox { Text = group, Location = new Point(4, 4), Size = new Size(630, Math.Max(120, 35 + ((fields.Length + 1) / 2 * 28))), Font = LegacyFont, BackColor = SystemColors.Control };
+        var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
+        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background };
+        var box = new GroupBox { Text = group, Location = new Point(4, 4), Size = new Size(630, Math.Max(120, 35 + ((fields.Length + 1) / 2 * 28))), Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text };
         for (var i = 0; i < fields.Length; i++)
         {
             var col = i % 2; var row = i / 2;
             var x = col == 0 ? 12 : 322; var y = 20 + (row * 28);
-            box.Controls.Add(new Label { Text = Label(fields[i]), Location = new Point(x, y + 3), Size = new Size(145, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight });
+            box.Controls.Add(new Label { Text = Label(fields[i]), Location = new Point(x, y + 3), Size = new Size(145, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, ForeColor = Theme.Text, BackColor = Theme.Panel });
             var editor = new TextBox { Location = new Point(x + 151, y), Size = new Size(145, 20), Font = LegacyFont, Tag = fields[i] };
             editor.Leave += (_, _) => Commit(editor);
             _editors.Add(editor); box.Controls.Add(editor);
@@ -85,8 +85,8 @@ internal abstract class Fc26ExtensionSection : SectionBase
 
     protected TabPage AddCanvasTab(string title)
     {
-        var page = new TabPage(title) { BackColor = SystemColors.Control, Font = LegacyFont };
-        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = SystemColors.Control });
+        var page = new TabPage(title) { BackColor = Theme.Background, Font = LegacyFont };
+        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background });
         Tabs.TabPages.Add(page);
         return page;
     }
@@ -118,12 +118,13 @@ internal abstract class Fc26ExtensionSection : SectionBase
             if (_values.TryGetValue(key, out var value))
             {
                 editor.Text = value.Value; editor.ReadOnly = !value.IsWritable;
-                editor.BackColor = value.IsWritable ? Color.White : SystemColors.Control;
+                editor.BackColor = value.IsWritable ? Theme.Input : Theme.Raised;
+                editor.ForeColor = Theme.Text;
                 ToolTip.SetToolTip(editor, value.IsWritable
                     ? Label(key)
                     : Label(key) + " (read-only)");
             }
-            else { editor.Text = ""; editor.ReadOnly = true; editor.BackColor = SystemColors.Control; }
+            else { editor.Text = ""; editor.ReadOnly = true; editor.BackColor = Theme.Raised; editor.ForeColor = Theme.Muted; }
         }
         OnRecordShown();
     }
@@ -161,7 +162,7 @@ internal sealed class SponsorsSection : Fc26ExtensionSection
         var box = new GroupBox
         {
             Text = "Sponsor Artwork", Location = new Point(4, 4),
-            Size = new Size(850, 520), Font = LegacyFont, BackColor = SystemColors.Control
+            Size = new Size(850, 520), Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text
         };
         _preview.Location = new Point(12, 24);
         _preview.Size = new Size(825, 410);
@@ -236,7 +237,7 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
         {
             Text = "NewWave Audio Banks", Location = new Point(4, 4),
             Size = new Size(1120, 650), Font = LegacyFont,
-            BackColor = SystemColors.Control
+            BackColor = Theme.Panel, ForeColor = Theme.Text
         };
         box.Controls.Add(new Label
         {
@@ -268,7 +269,7 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
         _bankDetails.Size = new Size(482, 65);
         _bankDetails.BorderStyle = BorderStyle.FixedSingle;
         _bankDetails.Padding = new Padding(6);
-        _bankDetails.Text = "Select a NewWave bank to inspect its datasets.";
+        _bankDetails.Text = "Select a NewWave bank to inspect metadata. CM26 does not decode or play bank samples.";
         box.Controls.Add(_bankDetails);
 
         _inspect.Text = "Inspect Bank";
@@ -283,7 +284,7 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
         _export.Enabled = false;
         _export.Click += (_, _) => ExportBank();
         box.Controls.Add(_export);
-        _previewAudio.Text = "Preview Audio…";
+        _previewAudio.Text = "Play Local File…";
         _previewAudio.Location = new Point(859, 132);
         _previewAudio.Size = new Size(116, 26);
         _previewAudio.Click += (_, _) => PreviewLocalAudio();
@@ -375,7 +376,8 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
             }
             _bankDetails.Text =
                 $"{bank.Name}\r\n{bank.Endian} · alignment {bank.Alignment} · " +
-                $"bank {bank.BankKey} · project {bank.ProjectKey}";
+                $"bank {bank.BankKey} · project {bank.ProjectKey}\r\n" +
+                "Metadata only; raw .res export is not playable in CM26.";
             _export.Enabled = File.Exists(_extractedPath);
         }
         catch (Exception ex)
@@ -403,7 +405,7 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
     {
         using var dialog = new OpenFileDialog
         {
-            Title = "Preview Audio",
+            Title = "Play Local Audio File",
             Filter = "Audio files (*.wav;*.mp3;*.wma;*.m4a)|*.wav;*.mp3;*.wma;*.m4a|All files (*.*)|*.*",
             CheckFileExists = true,
         };
@@ -423,7 +425,10 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
         bytes >= 1024 * 1024 ? $"{bytes / 1024d / 1024d:N1} MB" :
         bytes >= 1024 ? $"{bytes / 1024d:N1} KB" : $"{bytes:N0} B";
 }
-internal sealed class TvSection(AppServices s) : Fc26ExtensionSection(s, "scoreboard", "Scoreboard", "broadcastleague", "Broadcast League", "artificialkey", "teamid", "leagueid", "nationid");
+// FC26's broadcastleague table maps broadcast presentation to team/league/nation
+// IDs. It does not contain an overlay asset path, so label it accurately instead
+// of implying that this is a complete scoreboard texture editor.
+internal sealed class TvSection(AppServices s) : Fc26ExtensionSection(s, "scoreboard", "Broadcast Links", "broadcastleague", "Broadcast League Links", "artificialkey", "teamid", "leagueid", "nationid");
 // These are FC26-only data sets, surfaced as explicit CM16-style forms rather than
 // hidden behind a generic database grid.  The field order follows the game table.
 internal sealed class AdboardsSection : Fc26ExtensionSection
@@ -440,7 +445,7 @@ internal sealed class AdboardsSection : Fc26ExtensionSection
         var box = new GroupBox
         {
             Text = "Dynamic Adboard Artwork", Location = new Point(4, 4),
-            Size = new Size(850, 520), Font = LegacyFont, BackColor = SystemColors.Control
+            Size = new Size(850, 520), Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text
         };
         _preview.Location = new Point(12, 24);
         _preview.Size = new Size(825, 410);

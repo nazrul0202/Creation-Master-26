@@ -1,5 +1,54 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.20 - full dark theme across every section (2026-08-04)
+
+- **Fixed: dark theme reached every control.** `Theme.ApplyControlTree` now styles
+  `CheckBox`, `RadioButton`, `NumericUpDown`, `TrackBar`, `RichTextBox`, `TreeView`
+  and modal dialogs, so no black-on-dark or light-box controls remain in any section.
+- **Fixed: white data grids.** Database Browser, Compdata and every `DataGridView`
+  now render dark headers and cells. Column-level palette is reapplied after
+  columns are generated so the whole column box matches the theme.
+- **Fixed: white text boxes.** All entity editors (Countries, Leagues, Teams,
+  Players, Managers, stadiums, kits, competitions) now use the dark input palette
+  on every record selection instead of flashing back to white/`SystemColors.Control`.
+- **Fixed: light panels, group boxes and canvases.** Every section's fixed-layout
+  canvas, group box and tab page now uses the dark background/panel colours, with
+  labels rendered transparent so they inherit the dark surface.
+- **Fixed: modal dialogs.** Team audio/transfer/loan dialogs, Compdata dialogs and
+  the entity creation dialog are now themed end-to-end.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.20.
+
+## Version 1.0.19 - release consistency and build reliability (2026-08-03)
+
+- The About dialog and Settings page now read the installed assembly version, so
+  they cannot drift from the executable metadata in a future release.
+- Public documentation and package assembly paths are synchronized to 1.0.19.
+- Native smoke-test builds now use isolated object directories and can run in
+  parallel without competing for `database_engine.obj`.
+- **Fixed: Formation preview layout.** The pitch now resizes with its section,
+  keeps all player markers inside the visible field, reports the number of mapped
+  slots, and safely handles invalid position or coordinate values.
+- Added a Formation regression probe covering every stored Formation row and all
+  11 coordinate pairs before release packaging.
+- **Fixed: Data Sync blank page.** The scraper workflow no longer receives the
+  generic "Select a record" empty state and now prioritises the detected
+  `D:\FC26 FILE TOOL\CM26 SCRAPER` installation.
+- **Improved: Team roster formation.** Starting-XI cards are more compact,
+  player names are shortened earlier, and collision resolution searches the
+  full pitch before using a least-overlap fallback.
+- **Improved: Countries, Leagues and Managers.** The country setup filter no
+  longer overlaps its guidance text, League Settings uses the lower-right
+  workspace, and the manager team field no longer overlaps portrait actions.
+- **Clarified: Audio and Broadcast Links.** NewWave remains metadata/raw-bank
+  export with local-file playback only; encoded FC26 audio injection is not
+  advertised. The former Scoreboard page is labelled Broadcast Links because
+  the verified FC26 table maps presentation IDs and has no proven overlay path.
+- **Improved: first Open Game backup.** CmModData still retains the complete
+  immutable Data/Patch restore snapshot, but CM26 now copies and hashes each
+  file in one sequential pass with byte-level progress. Regular Open Game uses
+  a fast inventory check; full SHA-256 verification remains part of backup
+  audit and runs before Restore Original Data writes any game files.
+
 ## Version 1.0.18 — CM26 Scraper bundled, team/squad saving repaired (2026-08-02)
 
 - The **CM26 Scraper** now ships inside the package under `Tools\CM26 Scraper\`.

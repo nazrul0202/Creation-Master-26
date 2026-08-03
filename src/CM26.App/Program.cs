@@ -6,6 +6,8 @@ namespace CM26.App;
 
 internal static class Program
 {
+    public static string ProductVersion => typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "unknown";
+
     public static readonly string LogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Creation Master 26", "cm26.log");
@@ -133,6 +135,12 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 2 && args[0] == "--formation-test")
+        {
+            Environment.ExitCode = HeadlessSmoke.FormationTest(args[1]);
+            return;
+        }
+
         if (args.Length >= 2 && args[0] == "--audio-mapping-test")
         {
             Environment.ExitCode = HeadlessSmoke.AudioMappingTest(args[1]);
@@ -211,7 +219,7 @@ internal static class Program
 
         WinApp.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         ApplicationConfiguration.Initialize();
-        WinApp.SetDefaultFont(new System.Drawing.Font("Segoe UI", 9f));
+        WinApp.SetDefaultFont(new System.Drawing.Font("Segoe UI", 9f, System.Drawing.FontStyle.Regular));
 
         Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
         Log("=== Creation Master 26 starting ===");

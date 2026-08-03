@@ -57,6 +57,9 @@ public sealed class PlayersSection : SectionBase
             return;
         try
         {
+            var requestedName = $"{values[0]} {values[1]}".Trim();
+            if (GetRecords().Any(item => string.Equals(item.Title.Trim(), requestedName, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("A player with that name already exists. Add a distinguishing name before creating the record.");
             var id = CreateRecordFromTemplate(TableName, "playerid", new Dictionary<string, string>
             {
                 ["firstnameid"] = "0",
@@ -65,6 +68,17 @@ public sealed class PlayersSection : SectionBase
                 ["playerjerseynameid"] = "0",
                 ["headclasscode"] = "0",
                 ["contractvaliduntil"] = DateTime.Today.Year.ToString(),
+                ["overallrating"] = "50",
+                ["potential"] = "60",
+                ["preferredposition1"] = "25",
+                ["preferredposition2"] = "-1",
+                ["preferredposition3"] = "-1",
+                ["preferredposition4"] = "-1",
+                ["preferredfoot"] = "1",
+                ["height"] = "180",
+                ["weight"] = "75",
+                ["jerseynumber"] = "0",
+                ["isretiring"] = "0",
             });
             var nameSaved = TryCreateEditedPlayerName(id, values[0], values[1]);
             Services.SetPlayerNameOverride(id, values[0], values[1]);
@@ -113,14 +127,14 @@ public sealed class PlayersSection : SectionBase
 
     private TabPage Page(string name)
     {
-        var page = new TabPage(name) { BackColor = SystemColors.Control, Font = LegacyFont };
-        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = SystemColors.Control });
+        var page = new TabPage(name) { BackColor = Theme.Background, Font = LegacyFont };
+        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background });
         Tabs.TabPages.Add(page);
         return page;
     }
 
     private static Panel Canvas(TabPage p) => (Panel)p.Controls[0];
-    private static GroupBox Box(string name, Point point, Size size) => new() { Text = name, Location = point, Size = size, Font = LegacyFont, BackColor = SystemColors.Control };
+    private static GroupBox Box(string name, Point point, Size size) => new() { Text = name, Location = point, Size = size, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text };
     private static PictureBox Viewer(Point point, Size size) => new() { Location = point, Size = size, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
 
     private void AddInfoTab()
@@ -267,7 +281,7 @@ public sealed class PlayersSection : SectionBase
         _traitsPanel.Controls.Add(new Label
         {
             Text = "Trait bitmasks are shown only when the loaded database provides them.",
-            Location = new Point(14, 24), Size = new Size(580, 22), Font = LegacyFont, ForeColor = SystemColors.GrayText
+            Location = new Point(14, 24), Size = new Size(580, 22), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         canvas.Controls.Add(_traitsPanel);
     }
@@ -344,7 +358,7 @@ public sealed class PlayersSection : SectionBase
             Text = "The Commentary Id must already exist " +
                    "in the installed commentary bank; CM26 will not create a fake database-only audio entry.",
             Location = new Point(16, 128), Size = new Size(610, 42),
-            Font = LegacyFont, ForeColor = SystemColors.GrayText
+            Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         var generator = new Button
         {
@@ -566,7 +580,8 @@ public sealed class PlayersSection : SectionBase
                     edit.Text = display;
                     var editableDate = key is "birthdate" or "playerjointeamdate";
                     edit.ReadOnly = !editableDate || !value.IsWritable;
-                    edit.BackColor = edit.ReadOnly ? SystemColors.Control : Color.White;
+                    edit.BackColor = edit.ReadOnly ? Theme.Raised : Theme.Input;
+                    edit.ForeColor = Theme.Text;
                     ToolTip.SetToolTip(edit, editableDate
                         ? "Use YYYY-MM-DD. The value is converted to the database date format when staged."
                         : NameFieldTooltip(key, value.RawValue));
@@ -575,7 +590,8 @@ public sealed class PlayersSection : SectionBase
                 {
                     edit.Text = value.Value;
                     edit.ReadOnly = !value.IsWritable;
-                    edit.BackColor = value.IsWritable ? Color.White : SystemColors.Control;
+                    edit.BackColor = value.IsWritable ? Theme.Input : Theme.Raised;
+                    edit.ForeColor = Theme.Text;
                     ToolTip.SetToolTip(edit, string.Empty);
                 }
             }
@@ -583,7 +599,8 @@ public sealed class PlayersSection : SectionBase
             {
                 edit.Text = TryGetMappedDisplay(key, playerId, string.Empty, out var display) ? display : string.Empty;
                 edit.ReadOnly = true;
-                edit.BackColor = SystemColors.Control;
+                edit.BackColor = Theme.Raised;
+                edit.ForeColor = Theme.Muted;
                 ToolTip.SetToolTip(edit, NameFieldTooltip(key, string.Empty));
             }
         }
@@ -620,7 +637,8 @@ public sealed class PlayersSection : SectionBase
             {
                 editor.Text = display;
                 editor.ReadOnly = !writable;
-                editor.BackColor = writable ? Color.White : SystemColors.Control;
+                editor.BackColor = writable ? Theme.Input : Theme.Raised;
+                editor.ForeColor = Theme.Text;
                 ToolTip.SetToolTip(editor, writable ? field : field + " is a resolved value; edit its relationship in the appropriate picker.");
             }
         }
@@ -761,7 +779,7 @@ public sealed class PlayersSection : SectionBase
             _traitsPanel.Controls.Add(new Label
             {
                 Text = "This database has no separate player trait or playstyle fields.",
-                Location = new Point(14, 24), Size = new Size(580, 36), Font = LegacyFont, ForeColor = SystemColors.GrayText
+                Location = new Point(14, 24), Size = new Size(580, 36), Font = LegacyFont, ForeColor = Theme.Muted
             });
             return;
         }
@@ -771,7 +789,7 @@ public sealed class PlayersSection : SectionBase
             var field = traitFields[index];
             var x = 14 + ((index % 2) * 294);
             var y = 24 + ((index / 2) * 30);
-            _traitsPanel.Controls.Add(new Label { Text = FieldLabel(field), Location = new Point(x, y + 4), Size = new Size(160, 18), Font = LegacyFont });
+            _traitsPanel.Controls.Add(new Label { Text = FieldLabel(field), Location = new Point(x, y + 4), Size = new Size(160, 18), Font = LegacyFont, ForeColor = Theme.Text });
             var editor = new TextBox { Location = new Point(x + 165, y), Size = new Size(105, 20), Font = LegacyFont, Tag = field };
             editor.Leave += (_, _) => StageEdit(editor);
             _editors.Add(editor);
@@ -780,12 +798,14 @@ public sealed class PlayersSection : SectionBase
             {
                 editor.Text = value.Value;
                 editor.ReadOnly = !value.IsWritable;
-                editor.BackColor = value.IsWritable ? Color.White : SystemColors.Control;
+                editor.BackColor = value.IsWritable ? Theme.Input : Theme.Raised;
+                editor.ForeColor = Theme.Text;
             }
             else
             {
                 editor.ReadOnly = true;
-                editor.BackColor = SystemColors.Control;
+                editor.BackColor = Theme.Raised;
+                editor.ForeColor = Theme.Text;
             }
             _traitsPanel.Controls.Add(editor);
         }

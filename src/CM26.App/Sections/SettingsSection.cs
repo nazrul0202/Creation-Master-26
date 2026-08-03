@@ -26,7 +26,7 @@ public sealed class SettingsSection : SectionBase
 
         var gameFolderLabel = new Label { Text = "Game folder (Frostbite Data / Patch)", Dock = DockStyle.Top, Height = 22, ForeColor = Theme.Text, Font = Theme.Body, Padding = new Padding(0, 10, 0, 0) };
         var gameFolderRow = new BufferedPanel { Dock = DockStyle.Top, Height = 27, BackColor = Theme.Background };
-        _gameFolderBox = new TextBox { Dock = DockStyle.Fill, Text = SettingsService.FC26GameFolder, BackColor = SystemColors.Window, Font = Theme.Body };
+        _gameFolderBox = new TextBox { Dock = DockStyle.Fill, Text = SettingsService.FC26GameFolder, BackColor = Theme.Input, ForeColor = Theme.Text, Font = Theme.Body };
         var gameBrowseBtn = new Button { Text = "Browse…", Dock = DockStyle.Right, Width = 84 };
         Theme.ApplyButton(gameBrowseBtn);
         gameBrowseBtn.Click += async (_, _) =>
@@ -52,7 +52,7 @@ public sealed class SettingsSection : SectionBase
 
         var assetLabel = new Label { Text = "Asset pack folder (minifaces / balls / stadiums / boots / flags)", Dock = DockStyle.Top, Height = 22, ForeColor = Theme.Text, Font = Theme.Body, Padding = new Padding(0, 10, 0, 0) };
         var assetRow = new BufferedPanel { Dock = DockStyle.Top, Height = 27, BackColor = Theme.Background };
-        _assetBox = new TextBox { Dock = DockStyle.Fill, Text = SettingsService.AssetRoot, BackColor = SystemColors.Window, Font = Theme.Body };
+        _assetBox = new TextBox { Dock = DockStyle.Fill, Text = SettingsService.AssetRoot, BackColor = Theme.Input, ForeColor = Theme.Text, Font = Theme.Body };
         var browseBtn = new Button { Text = "Browse…", Dock = DockStyle.Right, Width = 84 };
         Theme.ApplyButton(browseBtn);
         browseBtn.Click += (_, _) =>
@@ -84,7 +84,7 @@ public sealed class SettingsSection : SectionBase
 
         var scraperLabel = new Label { Text = "CM26 Scraper folder (Data Sync)", Dock = DockStyle.Top, Height = 22, ForeColor = Theme.Text, Font = Theme.Body, Padding = new Padding(0, 10, 0, 0) };
         var scraperRow = new BufferedPanel { Dock = DockStyle.Top, Height = 27, BackColor = Theme.Background };
-        var scraperBox = new TextBox { Dock = DockStyle.Fill, Text = SettingsService.ScraperRoot, BackColor = SystemColors.Window, Font = Theme.Body };
+        var scraperBox = new TextBox { Dock = DockStyle.Fill, Text = SettingsService.ScraperRoot, BackColor = Theme.Input, ForeColor = Theme.Text, Font = Theme.Body };
         var scraperBrowse = new Button { Text = "Browse…", Dock = DockStyle.Right, Width = 84 };
         Theme.ApplyButton(scraperBrowse);
         void ApplyScraperRoot()
@@ -153,7 +153,7 @@ public sealed class SettingsSection : SectionBase
             Text = "Backup storage: compression is optional and does not replace backup validation.",
             Dock = DockStyle.Top,
             Height = 25,
-            ForeColor = SystemColors.GrayText,
+            ForeColor = Theme.Muted,
         };
 
         var nameNote = new Label
@@ -172,7 +172,7 @@ public sealed class SettingsSection : SectionBase
 
         var about = new Label
         {
-            Text = "Creation Master 26 · Version 1.0.18\nCM26_by_Rizco98.exe\n\n" +
+            Text = $"Creation Master 26 · Version {Program.ProductVersion}\nCM26_by_Rizco98.exe\n\n" +
                    "Save writes validated database and legacy changes directly to Data/Patch. " +
                    "File > Restore Original Data restores the immutable CmModData backup.",
             Dock = DockStyle.Top, Height = 110, ForeColor = Theme.Text, Font = Theme.Body, Padding = new Padding(0, 12, 0, 0),

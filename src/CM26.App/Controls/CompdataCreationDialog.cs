@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
+using CM26.App.Theming;
 
 namespace CM26.App.Controls;
 
@@ -15,10 +16,11 @@ internal static class CompdataCreationDialog
         var stages = Add(dialog, "Stages", "1", 84);
         var groups = Add(dialog, "Groups per stage", "1", 118);
         dialog.Controls.Add(new Label { Text = "Creates Compdata objects, standings and a schedule skeleton.\nCreate/link the database competition separately in the Competition editor.",
-            Location = new Point(16, 150), Size = new Size(430, 42), ForeColor = SystemColors.GrayText });
+            Location = new Point(16, 150), Size = new Size(430, 42), ForeColor = Theme.Muted });
         var create = new Button { Text = "Build", DialogResult = DialogResult.OK, Location = new Point(280, 204), Size = new Size(78, 28) };
         var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(366, 204), Size = new Size(78, 28) };
         dialog.Controls.Add(create); dialog.Controls.Add(cancel); dialog.AcceptButton = create; dialog.CancelButton = cancel;
+        Theme.ApplyControlTree(dialog);
         if (dialog.ShowDialog(owner) != DialogResult.OK || !int.TryParse(databaseId.Text, out var dbId) ||
             !int.TryParse(stages.Text, out var stageCount) || !int.TryParse(groups.Text, out var groupCount) || string.IsNullOrWhiteSpace(name.Text))
         { request = default!; return false; }
@@ -36,6 +38,7 @@ internal static class CompdataCreationDialog
         var create = new Button { Text = "Add Link", DialogResult = DialogResult.OK, Location = new Point(240, 166), Size = new Size(84, 28) };
         var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(332, 166), Size = new Size(84, 28) };
         dialog.Controls.Add(create); dialog.Controls.Add(cancel); dialog.AcceptButton = create; dialog.CancelButton = cancel;
+        Theme.ApplyControlTree(dialog);
         if (dialog.ShowDialog(owner) != DialogResult.OK || !int.TryParse(source.Text, out var sourceId) ||
             !int.TryParse(rank.Text, out var sourceRank) || !int.TryParse(destination.Text, out var destinationId) ||
             !int.TryParse(destinationRank.Text, out var targetRank)) { link = default; return false; }

@@ -1,10 +1,10 @@
-# Database-Native Player Name Audit — CM26
+﻿# Database-Native Player Name Audit â€” CM26
 
 Date: 2026-07-28
 Scope: determine the authoritative **database-native** player-name source for the selected database
 folder only. No external TXT/CSV/XLSX export, no internet, no hard-coded or generated names.
 
-- **Source database folder:** `D:\CM 26 Final\database`
+- **Source database folder:** `<repo>\database`
 - **Access mode:** strictly read-only. No database, locale, or engine file was modified.
 
 ---
@@ -17,9 +17,9 @@ folder only. No external TXT/CSV/XLSX export, no internet, no hard-coded or gene
 | `fifa_ng_db-meta.XML` | 1,592,684 | schema | table/field metadata |
 | `eng_us.DB` | 7,608,064 | AES-256-CBC encrypted | `LanguageStrings1` (65,535), `LanguageStrings2` (37,715) |
 | `eng_us_decrypted.db` | 7,608,064 | container-decrypted T3DB (`DB 00 08`) | same two tables; **Huffman + EA text cipher remain** |
-| `eng_us_decrypted2.db` | 7,608,064 | still encrypted (`95 29…`) | **not decrypted**; random bytes |
+| `eng_us_decrypted2.db` | 7,608,064 | still encrypted (`95 29â€¦`) | **not decrypted**; random bytes |
 
-`eng_us_decrypted.db` ≠ `eng_us_decrypted2.db` ≠ `eng_us.DB` (SHA-256 all differ). Neither
+`eng_us_decrypted.db` â‰  `eng_us_decrypted2.db` â‰  `eng_us.DB` (SHA-256 all differ). Neither
 "decrypted" file yields readable player names.
 
 ---
@@ -28,15 +28,15 @@ folder only. No external TXT/CSV/XLSX export, no internet, no hard-coded or gene
 
 | Table | Rows | Relevant columns | Finding |
 |-------|------|------------------|---------|
-| `players` | 20,268 | `playerid`, `firstnameid`, `lastnameid`, `commonnameid`, `playerjerseynameid` | Name references are integer IDs → `playernames.nameid`. No `knownas` column (known-as is derived). |
+| `players` | 20,268 | `playerid`, `firstnameid`, `lastnameid`, `commonnameid`, `playerjerseynameid` | Name references are integer IDs â†’ `playernames.nameid`. No `knownas` column (known-as is derived). |
 | `playernames` | 41,190 | `nameid`, `commentaryid`, `name` | `name` is a **ciphered 0xC4 placeholder**. 0/41,190 decodable. |
-| `dcplayernames` | 0 | — | Empty. |
-| `editedplayernames` | 0 | `playerid`, `firstname`, `surname`, `commonname` | Header only — no in-game renames present. |
+| `dcplayernames` | 0 | â€” | Empty. |
+| `editedplayernames` | 0 | `playerid`, `firstname`, `surname`, `commonname` | Header only â€” no in-game renames present. |
 
 ### ID linkage (proven)
-`players.firstnameid / lastnameid / commonnameid → playernames.nameid → playernames.name`.
+`players.firstnameid / lastnameid / commonnameid â†’ playernames.nameid â†’ playernames.name`.
 There is no separate locale key per player; the name text lives only in `playernames.name`
-(ciphered) — the locale is **not** the name store for players.
+(ciphered) â€” the locale is **not** the name store for players.
 
 `playernames.name` byte samples (via engine, read-only):
 ```
@@ -55,11 +55,11 @@ Decryption + Huffman decode is performed by the **protected engine** (AES-256-CB
 The decoded `LanguageStrings1/2` rows have `stringid`, `sourcetext`, `hashid`.
 
 **The decoded `sourcetext` is still ciphered.** Measured on 300 sampled rows per table:
-- Distinct byte values: **45** (LanguageStrings1), **47** (LanguageStrings2) — a substitution-cipher
+- Distinct byte values: **45** (LanguageStrings1), **47** (LanguageStrings2) â€” a substitution-cipher
   alphabet, not the ~70+ symbols of real English.
 - `stringid` values are garbage (`C      an        u?   `), with **zero** player/name prefixes
-  (`player`, `name`, `firstname`, `surname`, … all absent).
-- Payloads are padded with `0x20` and symbols — the classic EA locale second-layer cipher.
+  (`player`, `name`, `firstname`, `surname`, â€¦ all absent).
+- Payloads are padded with `0x20` and symbols â€” the classic EA locale second-layer cipher.
 
 This matches `LOCALE_DECODER_REPORT.md`: the locale requires **EA's runtime text-cipher key**, which
 is **not present** in any database file, and is not recoverable by hash/frequency analysis.
@@ -70,16 +70,16 @@ is **not present** in any database file, and is not recoverable by hash/frequenc
 
 | Stage | Present? | Result |
 |-------|----------|--------|
-| AES-256-CBC container decrypt (`eng_us.DB`) | ✅ (protected engine) | T3DB container |
-| Huffman string decode | ✅ (protected engine) | symbol stream |
-| **EA second-layer text cipher (runtime key)** | ❌ **ABSENT** | readable text **not recoverable** |
-| `playernames.name` EA cipher (0xC4 fill) | ❌ key absent | names **not recoverable** |
+| AES-256-CBC container decrypt (`eng_us.DB`) | âœ… (protected engine) | T3DB container |
+| Huffman string decode | âœ… (protected engine) | symbol stream |
+| **EA second-layer text cipher (runtime key)** | âŒ **ABSENT** | readable text **not recoverable** |
+| `playernames.name` EA cipher (0xC4 fill) | âŒ key absent | names **not recoverable** |
 
-`eng_us_decrypted.db` = stages 1–2 only (still ciphered). `eng_us_decrypted2.db` = not even stage 1.
+`eng_us_decrypted.db` = stages 1â€“2 only (still ciphered). `eng_us_decrypted2.db` = not even stage 1.
 
 ---
 
-## 5. Actual authoritative name source — HONEST CONCLUSION
+## 5. Actual authoritative name source â€” HONEST CONCLUSION
 
 **The selected database folder does NOT contain recoverable plaintext player names.**
 
@@ -92,7 +92,7 @@ which is not part of the database set and is not derivable from it. Per the hone
 requirement, the app therefore **does not claim name resolution** and uses the documented fallback.
 
 A database-native resolver **is** implemented (below) so that the moment a decoded source is present
-— an EA runtime key, or a database whose `playernames.name` is literal — names resolve automatically
+â€” an EA runtime key, or a database whose `playernames.name` is literal â€” names resolve automatically
 through the same pipeline, with no external file.
 
 ---
@@ -111,7 +111,7 @@ through the same pipeline, with no external file.
 | Player-list build | ~785 ms |
 
 **UTF-8 result:** decoder accepts UTF-8/CP1252 (proven on the cipher-free `manager` table, e.g.
-"Rúben Filipe Marques Amorim"); it correctly rejects the ciphered `playernames` payloads.
+"RÃºben Filipe Marques Amorim"); it correctly rejects the ciphered `playernames` payloads.
 
 ---
 

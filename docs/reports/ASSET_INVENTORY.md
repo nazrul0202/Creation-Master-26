@@ -1,17 +1,17 @@
-# CM26 Asset Inventory
+﻿# CM26 Asset Inventory
 
 Date: 2026-07-26
 Auditor: Lead senior C# Windows desktop engineer (autonomous)
 
 This document records **only assets that physically exist on local disk** and whose
 linkage to the FC26 database was **verified against the real loaded database** (not assumed).
-An asset is *not* listed as available merely because the database contains an ID column —
+An asset is *not* listed as available merely because the database contains an ID column â€”
 each category below was cross-checked by reading actual files and, where an ID key exists,
 by confirming the ID occurs in the corresponding DB table.
 
 ## How linkage was verified
 
-The app service stack (`AppServices` → `DatabaseSession`) loads the real DB
+The app service stack (`AppServices` â†’ `DatabaseSession`) loads the real DB
 (`fifa_ng_db.db`, 360,298 rows / 279 tables). Temporary headless commands
 (`--verify-assets`, `--dump-schema`, `--distinct`) were used to:
 
@@ -25,19 +25,19 @@ All temporary commands were removed after use. Tests ran against a **scratch cop
 
 | # | Asset category | Source folder (local) | File format | Keying | Files present |
 |---|----------------|-----------------------|-------------|--------|---------------|
-| 1 | Player minifaces | `D:\FC26 FILE TOOL\miniface\**\p{playerid}.dds` / `.png` | DDS (DXT5) + PNG (32bpp ARGB) | `players.playerid` | **118 DDS + 39 PNG** |
-| 2 | Balls | `D:\FC26 FILE TOOL\FC Editor by decoruiz Alpha v21\assets\26\ballid\{ballid}.png` | PNG | `teamballs.ballid` | **294 PNG** |
-| 3 | Stadium previews | `D:\FC26 FILE TOOL\FC Editor by decoruiz Alpha v21\assets\stadiumid\{stadiumid}.png` | PNG | `stadiums.stadiumid` | **182 PNG** |
-| 4 | Boots | `D:\FC26 FILE TOOL\FC Editor by decoruiz Alpha v21\assets\26\shoetypecode\{shoetype}.png` | PNG | `playerboots.shoetype` | **256 PNG** |
-| 5 | GK gloves | `D:\FC26 FILE TOOL\FC Editor by decoruiz Alpha v21\assets\26\gkglovetypecode\{code}.png` | PNG | `players.gkglovetypecode` | **115 PNG** |
-| 6 | Country flags | `D:\FC26 FILE TOOL\FC Editor by decoruiz Alpha v21\FC Editor by decoruiz Alpha v21.exe_extracted\art\flags\{nationid}.png` | PNG | `nations.nationid` | **156 PNG** |
+| 1 | Player minifaces | `<FC26 tools>\miniface\**\p{playerid}.dds` / `.png` | DDS (DXT5) + PNG (32bpp ARGB) | `players.playerid` | **118 DDS + 39 PNG** |
+| 2 | Balls | `<FC26 tools>\FC Editor by decoruiz Alpha v21\assets\26\ballid\{ballid}.png` | PNG | `teamballs.ballid` | **294 PNG** |
+| 3 | Stadium previews | `<FC26 tools>\FC Editor by decoruiz Alpha v21\assets\stadiumid\{stadiumid}.png` | PNG | `stadiums.stadiumid` | **182 PNG** |
+| 4 | Boots | `<FC26 tools>\FC Editor by decoruiz Alpha v21\assets\26\shoetypecode\{shoetype}.png` | PNG | `playerboots.shoetype` | **256 PNG** |
+| 5 | GK gloves | `<FC26 tools>\FC Editor by decoruiz Alpha v21\assets\26\gkglovetypecode\{code}.png` | PNG | `players.gkglovetypecode` | **115 PNG** |
+| 6 | Country flags | `<FC26 tools>\FC Editor by decoruiz Alpha v21\FC Editor by decoruiz Alpha v21.exe_extracted\art\flags\{nationid}.png` | PNG | `nations.nationid` | **156 PNG** |
 
 ## Verified DB key ranges (from the live DB)
 
 | Table.Column | Distinct | Min | Max | Notes |
 |--------------|----------|-----|-----|-------|
-| `players.playerid` | 20,268 | — | — | miniface IDs keyed here |
-| `teamballs.ballid` | 149 | 0 | 199 | ballid PNG range 0–199 aligns |
+| `players.playerid` | 20,268 | â€” | â€” | miniface IDs keyed here |
+| `teamballs.ballid` | 149 | 0 | 199 | ballid PNG range 0â€“199 aligns |
 | `stadiums.stadiumid` | 180 | 1 | 534 | stadium PNG covers many but **not all** (e.g. 534 absent) |
 | `playerboots.shoetype` | 294 | 0 | 546 | shoetypecode PNG covers a subset |
 | `players.gkglovetypecode` | 107 | 0 | 146 | gkglovetypecode PNG covers most |
@@ -47,19 +47,19 @@ All temporary commands were removed after use. Tests ran against a **scratch cop
 
 25 sampled `p{id}` filenames were checked against the `players` table via `--verify-assets`:
 **25 FOUND, 0 missing.** Two deliberately fake IDs (`999999`, `123456`) correctly returned
-**NOT in players table**. The `p{playerid}` → `players.playerid` mapping is therefore real.
+**NOT in players table**. The `p{playerid}` â†’ `players.playerid` mapping is therefore real.
 
 ### Miniface DDS format proof
 
 All 118 miniface DDS headers were parsed. Distribution:
-- `81×` — 180×180, 1 mip, **DXT5** (`fourcc=DXT5`, `pfFlags=0x4`)
-- `37×` — 160×160, 1 mip, **DXT5**
+- `81Ã—` â€” 180Ã—180, 1 mip, **DXT5** (`fourcc=DXT5`, `pfFlags=0x4`)
+- `37Ã—` â€” 160Ã—160, 1 mip, **DXT5**
 
-PNG minifaces are 180×180 `Format32bppArgb` (alpha preserved). DXT5 carries an alpha channel.
+PNG minifaces are 180Ã—180 `Format32bppArgb` (alpha preserved). DXT5 carries an alpha channel.
 
 ## Asset categories that are genuinely UNAVAILABLE (empty or absent)
 
-These were checked and are **empty on disk** — they are listed honestly as unavailable,
+These were checked and are **empty on disk** â€” they are listed honestly as unavailable,
 never substituted with fabricated art:
 
 | Category | Expected folder / source | Finding |
@@ -69,7 +69,7 @@ never substituted with fabricated art:
 | Competition / league logos | no FC26-keyed folder found | absent |
 | Kit textures (full render) | no FC26-keyed folder found (`Kits Collection` = PSG PES-conversion PNG/WEBP, not DB-keyed) | absent |
 | Face 3D models / head renders | `assets\26\heads` does **not** exist (only FC25 `assets\25\heads`) | absent for FC26 |
-| EBX / RES / CHUNK archives | searched entire `D:\FC26 FILE TOOL` | **0 .ebx / .res / .chunk files** |
+| EBX / RES / CHUNK archives | searched entire `<FC26 tools>` | **0 .ebx / .res / .chunk files** |
 | Frosty/FMT game archives (`.fbmod`, `.cas`, `.toc`) | not present in a usable keyed form | absent |
 
 ## Notes on honesty / scope

@@ -6,20 +6,20 @@ namespace CM26.App.Theming;
 /// <summary>Central design system: palette, typography, spacing. Every control uses these constants.</summary>
 public static class Theme
 {
-    // Palette
-    // CM16-inspired desktop palette: a light work surface with the familiar
-    // green command strip, while retaining clear FC26 validation colours.
-    public static readonly Color Background = Color.FromArgb(245, 245, 245);
-    public static readonly Color Panel = Color.FromArgb(250, 250, 250);
-    public static readonly Color Raised = Color.FromArgb(238, 238, 238);
-    public static readonly Color Border = Color.FromArgb(190, 190, 190);
-    public static readonly Color Text = Color.FromArgb(25, 25, 25);
-    public static readonly Color Muted = Color.FromArgb(92, 92, 92);
-    public static readonly Color Accent = Color.FromArgb(0, 120, 215);
-    public static readonly Color AccentHover = Color.FromArgb(0, 102, 184);
-    public static readonly Color Danger = Color.FromArgb(196, 43, 28);
-    public static readonly Color Success = Color.FromArgb(35, 130, 65);
-    public static readonly Color Warning = Color.FromArgb(184, 116, 0);
+    // Dark CM26 desktop palette: near-black work surface, restrained green
+    // borders and a brighter green only for active or primary actions.
+    public static readonly Color Background = Color.FromArgb(7, 12, 9);
+    public static readonly Color Panel = Color.FromArgb(10, 18, 13);
+    public static readonly Color Raised = Color.FromArgb(18, 30, 22);
+    public static readonly Color Input = Color.FromArgb(14, 24, 17);
+    public static readonly Color Border = Color.FromArgb(25, 72, 43);
+    public static readonly Color Text = Color.FromArgb(224, 239, 228);
+    public static readonly Color Muted = Color.FromArgb(139, 169, 148);
+    public static readonly Color Accent = Color.FromArgb(31, 190, 99);
+    public static readonly Color AccentHover = Color.FromArgb(22, 146, 74);
+    public static readonly Color Danger = Color.FromArgb(222, 83, 68);
+    public static readonly Color Success = Color.FromArgb(50, 203, 111);
+    public static readonly Color Warning = Color.FromArgb(230, 180, 58);
 
     // Typography
     public static readonly Font Body = new("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point);
@@ -42,8 +42,8 @@ public static class Theme
         b.FlatStyle = FlatStyle.Flat;
         b.FlatAppearance.BorderSize = 1;
         b.FlatAppearance.BorderColor = primary ? Accent : Border;
-        b.BackColor = primary ? Accent : Raised;
-        b.ForeColor = primary ? Color.White : Text;
+        b.BackColor = primary ? Accent : Panel;
+        b.ForeColor = primary ? Background : Text;
         b.Font = primary ? BodyBold : Body;
         b.Height = ControlHeight;
         b.Cursor = Cursors.Hand;
@@ -55,14 +55,14 @@ public static class Theme
         }
         else
         {
-            b.FlatAppearance.MouseOverBackColor = Border;
-            b.FlatAppearance.MouseDownBackColor = Border;
+            b.FlatAppearance.MouseOverBackColor = Raised;
+            b.FlatAppearance.MouseDownBackColor = Raised;
         }
     }
 
     public static void ApplyTextBox(TextBox t)
     {
-        t.BackColor = Raised;
+        t.BackColor = Input;
         t.ForeColor = Text;
         t.BorderStyle = BorderStyle.FixedSingle;
         t.Font = Body;
@@ -70,7 +70,7 @@ public static class Theme
 
     public static void ApplyCombo(ComboBox c)
     {
-        c.BackColor = Raised;
+        c.BackColor = Input;
         c.ForeColor = Text;
         c.FlatStyle = FlatStyle.Flat;
         c.Font = Body;
@@ -78,7 +78,7 @@ public static class Theme
 
     public static void ApplyGrid(DataGridView g)
     {
-        g.BackgroundColor = Panel;
+        g.BackgroundColor = Background;
         g.BorderStyle = BorderStyle.None;
         g.EnableHeadersVisualStyles = false;
         g.ColumnHeadersDefaultCellStyle.BackColor = Raised;
@@ -87,12 +87,12 @@ public static class Theme
         g.ColumnHeadersDefaultCellStyle.SelectionBackColor = Raised;
         g.ColumnHeadersHeight = 30;
         g.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
-        g.DefaultCellStyle.BackColor = Panel;
+        g.DefaultCellStyle.BackColor = Input;
         g.DefaultCellStyle.ForeColor = Text;
         g.DefaultCellStyle.SelectionBackColor = Accent;
-        g.DefaultCellStyle.SelectionForeColor = Color.White;
+        g.DefaultCellStyle.SelectionForeColor = Background;
         g.DefaultCellStyle.Font = Body;
-        g.AlternatingRowsDefaultCellStyle.BackColor = Raised;  // subtle zebra striping for scan-ability
+        g.AlternatingRowsDefaultCellStyle.BackColor = Raised;
         g.AlternatingRowsDefaultCellStyle.ForeColor = Text;
         g.RowHeadersVisible = false;
         g.AllowUserToAddRows = false;
@@ -103,5 +103,110 @@ public static class Theme
         g.RowTemplate.Height = 26;
         g.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
         g.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
+        // Auto-generated and explicitly-added columns do not inherit the grid default
+        // styles for their header/cell rendering, so apply the palette at the column
+        // level as well whenever columns already exist.
+        foreach (DataGridViewColumn column in g.Columns)
+        {
+            column.HeaderCell.Style.BackColor = Raised;
+            column.HeaderCell.Style.ForeColor = Text;
+            column.HeaderCell.Style.Font = Label;
+            column.HeaderCell.Style.SelectionBackColor = Raised;
+            column.DefaultCellStyle.BackColor = Input;
+            column.DefaultCellStyle.ForeColor = Text;
+            column.DefaultCellStyle.SelectionBackColor = Accent;
+            column.DefaultCellStyle.SelectionForeColor = Background;
+            column.DefaultCellStyle.Font = Body;
+        }
+    }
+
+    /// <summary>Applies the public dark theme to legacy fixed-layout forms.</summary>
+    public static void ApplyControlTree(Control root)
+    {
+        foreach (Control control in root.Controls)
+        {
+            switch (control)
+            {
+                case TextBox textBox:
+                    ApplyTextBox(textBox);
+                    if (textBox.ReadOnly) textBox.BackColor = Raised;
+                    break;
+                case ComboBox comboBox:
+                    ApplyCombo(comboBox);
+                    break;
+                case Button button:
+                    ApplyButton(button);
+                    break;
+                case CheckBox checkBox:
+                    checkBox.ForeColor = Text;
+                    checkBox.BackColor = Background;
+                    checkBox.Font = Body;
+                    checkBox.FlatStyle = FlatStyle.Flat;
+                    break;
+                case RadioButton radio:
+                    radio.ForeColor = Text;
+                    radio.BackColor = Background;
+                    radio.Font = Body;
+                    radio.FlatStyle = FlatStyle.Flat;
+                    break;
+                case NumericUpDown nud:
+                    nud.BackColor = Input;
+                    nud.ForeColor = Text;
+                    nud.Font = Body;
+                    nud.BorderStyle = BorderStyle.FixedSingle;
+                    break;
+                case TrackBar trackBar:
+                    trackBar.BackColor = Background;
+                    break;
+                case RichTextBox rtb:
+                    rtb.BackColor = Input;
+                    rtb.ForeColor = Text;
+                    rtb.Font = Body;
+                    rtb.BorderStyle = BorderStyle.FixedSingle;
+                    break;
+                case DataGridView grid:
+                    ApplyGrid(grid);
+                    break;
+                case ListView list:
+                    list.BackColor = Input;
+                    list.ForeColor = Text;
+                    list.Font = Body;
+                    break;
+                case TreeView tree:
+                    tree.BackColor = Input;
+                    tree.ForeColor = Text;
+                    tree.Font = Body;
+                    tree.LineColor = Border;
+                    break;
+                case TabControl tabs:
+                    tabs.BackColor = Panel;
+                    tabs.ForeColor = Text;
+                    tabs.Font = Body;
+                    break;
+                case TabPage page:
+                    page.BackColor = Background;
+                    page.ForeColor = Text;
+                    break;
+                case GroupBox group:
+                    group.BackColor = Panel;
+                    group.ForeColor = Text;
+                    group.Font = Body;
+                    break;
+                case Label label:
+                    label.ForeColor = label.ForeColor == SystemColors.GrayText ? Muted : Text;
+                    label.BackColor = Color.Transparent;
+                    label.Font = label.Font.FontFamily.Name.Equals("Segoe UI", StringComparison.OrdinalIgnoreCase) ? Body : label.Font;
+                    break;
+                case Panel panel when control is not PictureBox:
+                    panel.BackColor = Background;
+                    panel.ForeColor = Text;
+                    break;
+                case Form form:
+                    form.BackColor = Background;
+                    form.ForeColor = Text;
+                    break;
+            }
+            if (control.HasChildren) ApplyControlTree(control);
+        }
     }
 }

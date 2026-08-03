@@ -18,7 +18,7 @@ public sealed class DiagnosticsSection : SectionBase
 
     public DiagnosticsSection(AppServices s) : base(s)
     {
-        _host = new BufferedPanel { Dock = DockStyle.Fill, BackColor = SystemColors.Control, Padding = new Padding(8), AutoScroll = true };
+        _host = new BufferedPanel { Dock = DockStyle.Fill, BackColor = Theme.Background, Padding = new Padding(8), AutoScroll = true };
         Tabs.TabPages.Add(MakeTab("Diagnostics", _host));
         Header.SetRecord("Diagnostics", "Engine and database health", IconService.Get("diagnostics", 44));
     }
@@ -63,9 +63,9 @@ public sealed class DiagnosticsSection : SectionBase
             ScrollBars = ScrollBars.Vertical,
             Text = sb.ToString(),
             Font = new Font("Consolas", 9F),
-            BackColor = SystemColors.Window,
-            ForeColor = SystemColors.WindowText,
-            BorderStyle = BorderStyle.Fixed3D,
+            BackColor = Theme.Input,
+            ForeColor = Theme.Text,
+            BorderStyle = BorderStyle.FixedSingle,
         };
         _host.Controls.Add(box);
         _host.ResumeLayout();

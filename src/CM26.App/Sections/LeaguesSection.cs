@@ -47,8 +47,8 @@ public sealed class LeaguesSection : SectionBase
         Header.Visible = false;
         Tabs.Padding = new Point(3, 1);
 
-        var page = new TabPage("General") { BackColor = SystemColors.Control, Font = LegacyFont };
-        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = SystemColors.Control };
+        var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
+        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background };
         page.Controls.Add(canvas);
         Tabs.TabPages.Add(page);
 
@@ -126,7 +126,8 @@ public sealed class LeaguesSection : SectionBase
         _logoCaption.Size = new Size(255, 16);
         _logoCaption.Font = LegacyFont;
         _logoCaption.TextAlign = ContentAlignment.MiddleCenter;
-        _logoCaption.ForeColor = SystemColors.ControlText;
+        _logoCaption.ForeColor = Theme.Muted;
+        _logoCaption.BackColor = Theme.Panel;
         logos.Controls.Add(_logoCaption);
         canvas.Controls.Add(logos);
 
@@ -145,14 +146,16 @@ public sealed class LeaguesSection : SectionBase
 
         // FC26 has these real league presentation/competition fields; CM16's
         // objective threshold boxes are not part of the FC26 leagues schema.
-        var fc26 = Group("League Settings", new Point(3, 671), new Size(531, 116));
+        // Use the empty lower-right workspace instead of creating a sparse
+        // vertical form below the league details.
+        var fc26 = Group("League Settings", new Point(540, 463), new Size(468, 116));
         AddLeagueFlag(fc26, "Women's competition", "iswomencompetition", new Point(12, 20));
         AddLeagueFlag(fc26, "International league", "isinternationalleague", new Point(12, 44));
         AddLeagueFlag(fc26, "Competition pole flags", "iscompetitionpoleflagenabled", new Point(12, 68));
-        AddLeagueFlag(fc26, "Within transfer window", "iswithintransferwindow", new Point(250, 20));
-        AddLeagueFlag(fc26, "Competition scarves", "iscompetitionscarfenabled", new Point(250, 44));
-        AddLeagueFlag(fc26, "Crowd cards", "iscompetitioncrowdcardsenabled", new Point(250, 68));
-        AddLeagueFlag(fc26, "Banner enabled", "isbannerenabled", new Point(250, 92));
+        AddLeagueFlag(fc26, "Within transfer window", "iswithintransferwindow", new Point(230, 20));
+        AddLeagueFlag(fc26, "Competition scarves", "iscompetitionscarfenabled", new Point(230, 44));
+        AddLeagueFlag(fc26, "Crowd cards", "iscompetitioncrowdcardsenabled", new Point(230, 68));
+        AddLeagueFlag(fc26, "Banner enabled", "isbannerenabled", new Point(230, 92));
         canvas.Controls.Add(fc26);
     }
 
@@ -263,18 +266,18 @@ public sealed class LeaguesSection : SectionBase
     private static GroupBox Group(string text, Point location, Size size) => new()
     {
         Text = text, Location = location, Size = size, Font = LegacyFont,
-        BackColor = SystemColors.Control, ForeColor = SystemColors.ControlText
+        BackColor = Theme.Panel, ForeColor = Theme.Text
     };
 
     private Panel Viewer(Point location, Size size, string caption, out PictureBox picture)
     {
-        var holder = new Panel { Location = location, Size = new Size(size.Width, size.Height + 21), BackColor = SystemColors.Control };
+        var holder = new Panel { Location = location, Size = new Size(size.Width, size.Height + 21), BackColor = Theme.Panel };
         picture = new PictureBox { Location = Point.Empty, Size = size, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
         var targetPicture = picture;
         holder.Controls.Add(picture);
-        var view = new LinkLabel { Text = "view", Location = new Point(0, size.Height + 2), AutoSize = true, Font = LegacyFont };
-        var import = new LinkLabel { Text = "import", Location = new Point(35, size.Height + 2), AutoSize = true, Font = LegacyFont };
-        var remove = new LinkLabel { Text = "remove", Location = new Point(82, size.Height + 2), AutoSize = true, Font = LegacyFont };
+        var view = new LinkLabel { Text = "view", Location = new Point(0, size.Height + 2), AutoSize = true, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Accent };
+        var import = new LinkLabel { Text = "import", Location = new Point(35, size.Height + 2), AutoSize = true, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Accent };
+        var remove = new LinkLabel { Text = "remove", Location = new Point(82, size.Height + 2), AutoSize = true, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Danger };
         view.LinkClicked += (_, _) => ViewAsset(targetPicture);
         import.LinkClicked += (_, _) => ImportAsset(targetPicture);
         remove.LinkClicked += (_, _) => RemoveAsset(targetPicture);
@@ -285,7 +288,7 @@ public sealed class LeaguesSection : SectionBase
         {
             Text = caption, Location = new Point(135, size.Height + 2),
             Size = new Size(Math.Max(30, size.Width - 135), 18), Font = LegacyFont,
-            TextAlign = ContentAlignment.TopRight, ForeColor = SystemColors.GrayText
+            TextAlign = ContentAlignment.TopRight, ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         return holder;
     }
@@ -450,18 +453,20 @@ public sealed class LeaguesSection : SectionBase
             {
                 editor.Text = Services.Resolver?.NationName(nationId) ?? field.Value;
                 editor.ReadOnly = true;
-                editor.BackColor = SystemColors.Control;
+                editor.BackColor = Theme.Raised;
+                editor.ForeColor = Theme.Muted;
                 ToolTip.SetToolTip(editor, $"countryid = {field.RawValue} (resolved from nations)");
                 return;
             }
             editor.Text = field.Value;
             editor.ReadOnly = !field.IsWritable;
-            editor.BackColor = field.IsWritable ? Color.White : SystemColors.Control;
+            editor.BackColor = field.IsWritable ? Theme.Input : Theme.Raised;
+            editor.ForeColor = Theme.Text;
             ToolTip.SetToolTip(editor, field.IsWritable ? field.FieldName : field.FieldName + " (read-only)");
         }
         else
         {
-            editor.Text = string.Empty; editor.ReadOnly = true; editor.BackColor = SystemColors.Control;
+            editor.Text = string.Empty; editor.ReadOnly = true; editor.BackColor = Theme.Raised; editor.ForeColor = Theme.Muted;
             ToolTip.SetToolTip(editor, key + " is not present in this database");
         }
     }
@@ -707,11 +712,11 @@ public sealed class LeaguesSection : SectionBase
     {
         var image = new Bitmap(56, 56);
         using var graphics = Graphics.FromImage(image);
-        graphics.Clear(SystemColors.Window);
-        using var pen = new Pen(SystemColors.ControlDark, 1);
+        graphics.Clear(Theme.Raised);
+        using var pen = new Pen(Theme.Border, 1);
         graphics.DrawRectangle(pen, 3, 3, 49, 49);
         using var font = new Font("Segoe UI", 14, FontStyle.Bold);
-        TextRenderer.DrawText(graphics, "?", font, new Rectangle(3, 3, 49, 49), SystemColors.GrayText, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        TextRenderer.DrawText(graphics, "?", font, new Rectangle(3, 3, 49, 49), Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         return image;
     }
 }

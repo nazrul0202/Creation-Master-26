@@ -1,10 +1,10 @@
-# Database-Native Name Resolution Report — CM26
+﻿# Database-Native Name Resolution Report â€” CM26
 
 Date: 2026-07-28
 Scope: remove all external TXT/CSV/XLSX player-name dependencies and implement a read-only,
 **database-native** player-name pipeline driven solely by the selected database folder.
 
-- **Source database folder:** `D:\CM 26 Final\database`
+- **Source database folder:** `<repo>\database`
 - **Protected writer:** unchanged. No name writing was added.
 
 ---
@@ -26,19 +26,19 @@ the moment a decoded source (EA runtime key, or a literal `playernames.name`) is
 
 ```
 DatabaseSession  (selected folder only; engine)
-    ↓
-DatabasePlayerNameSource          players.*nameid → playernames.nameid → playernames.name
-    ↓                               (+ editedplayernames overrides, dcplayernames precedence)
-LocaleStringReader                eng_us.DB → LanguageStrings1/2, indexed ONCE per session
-    ↓                               (hashid → sourcetext, stringid → hashid; O(1) lookups)
-PlayerNameService                 thin façade; honest fallback
-    ↓
+    â†“
+DatabasePlayerNameSource          players.*nameid â†’ playernames.nameid â†’ playernames.name
+    â†“                               (+ editedplayernames overrides, dcplayernames precedence)
+LocaleStringReader                eng_us.DB â†’ LanguageStrings1/2, indexed ONCE per session
+    â†“                               (hashid â†’ sourcetext, stringid â†’ hashid; O(1) lookups)
+PlayerNameService                 thin faÃ§ade; honest fallback
+    â†“
 NameResolverService
-    ↓
-Players · Teams · Rosters · Formations · Transfers · Set Pieces UI
+    â†“
+Players Â· Teams Â· Rosters Â· Formations Â· Transfers Â· Set Pieces UI
 ```
 
-- The locale index is built **once per session** — no per-player locale scans.
+- The locale index is built **once per session** â€” no per-player locale scans.
 - No native pointers or DB handles are exposed to WinForms; UI consumes `SectionDataService` /
   `NameResolverService` DTOs only.
 - `PlayerNameParts? Resolve(firstNameId, lastNameId, commonNameId, knownAsId)` is provided exactly
@@ -52,9 +52,9 @@ Players · Teams · Rosters · Formations · Transfers · Set Pieces UI
 |------|--------|
 | `ExternalNameSource.cs` (TXT/XLSX loader) | **Deleted** |
 | `SettingsService.ExternalNameRoot` + auto-detect | **Removed** |
-| Settings ▸ “Player-name source folder” TXT/XLSX picker | **Removed** (replaced with an honest read-only note) |
+| Settings â–¸ â€œPlayer-name source folderâ€ TXT/XLSX picker | **Removed** (replaced with an honest read-only note) |
 | Bundled sample playernames.xlsx runtime fallback | **Removed** (no longer loaded) |
-| Fixed development paths (`D:\FC26 Modern Database Studio`, …) | **Removed** |
+| Fixed development paths (`<FC26 tools>`, â€¦) | **Removed** |
 | `NameResolverService` / `PlayerNameService` external-root plumbing | **Removed** |
 
 The external files on disk were **not** deleted (per instructions); the application simply no longer
@@ -66,7 +66,7 @@ depends on them. A file-access guard in the test suite proves no `playernames.tx
 
 | File | Purpose |
 |------|---------|
-| `src/CM26.Application/Services/LocaleStringReader.cs` | Read-only indexed locale reader (hashid/stringid → text), built once per session. |
+| `src/CM26.Application/Services/LocaleStringReader.cs` | Read-only indexed locale reader (hashid/stringid â†’ text), built once per session. |
 | `src/CM26.Application/Services/DatabasePlayerNameSource.cs` | Database-native name source (`Resolve(firstNameId, lastNameId, commonNameId, knownAsId)`). |
 | `src/CM26.Application/Services/NameTextDecoder.cs` | Shared UTF-8/CP1252 name decoder (rejects 0xC4/cipher placeholders). |
 | `DATABASE_NATIVE_PLAYER_NAME_AUDIT.md` | Audit deliverable. |
@@ -76,7 +76,7 @@ depends on them. A file-access guard in the test suite proves no `playernames.tx
 
 | File | Change |
 |------|--------|
-| `PlayerNameService.cs` | Refactored to a thin façade over `DatabasePlayerNameSource`; database-native only. |
+| `PlayerNameService.cs` | Refactored to a thin faÃ§ade over `DatabasePlayerNameSource`; database-native only. |
 | `NameResolverService.cs` | Removed external root; builds `PlayerNameService(DatabasePlayerNameSource)`. |
 | `SettingsService.cs` | Removed `ExternalNameRoot` + auto-detect. |
 | `AppServices.cs` | `NameResolverService(Session)` (no external root). |
@@ -108,35 +108,35 @@ ID is never shown as though it were a surname.
 
 ## 7. Database-version safety
 
-Opening a database folder builds a fresh `NameResolverService` → new `DatabasePlayerNameSource` →
-new `LocaleStringReader`, clearing all name caches. Verified by the “database switch rebuilds name
-cache” test. No names are ever retained from a previously opened database.
+Opening a database folder builds a fresh `NameResolverService` â†’ new `DatabasePlayerNameSource` â†’
+new `LocaleStringReader`, clearing all name caches. Verified by the â€œdatabase switch rebuilds name
+cacheâ€ test. No names are ever retained from a previously opened database.
 
 ---
 
-## 8. Test results (executed against `D:\CM 26 Final\database` only, no external export)
+## 8. Test results (executed against `<repo>\database` only, no external export)
 
 | # | Test | Result |
 |---|------|--------|
-| 1–2 | Load `fifa_ng_db.db` + `eng_us.DB` | **PASS** (279 tables; 2 locale tables) |
-| 5 | Determine which file provides readable names | **DONE — none** (ciphered; see audit) |
+| 1â€“2 | Load `fifa_ng_db.db` + `eng_us.DB` | **PASS** (279 tables; 2 locale tables) |
+| 5 | Determine which file provides readable names | **DONE â€” none** (ciphered; see audit) |
 | 6 | Resolve 150 sampled players | **PASS** (0 exceptions; honest fallback) |
-| 7 | Resolve all 20,268 players | **PASS** (0 resolved — ciphered; 20,268 fallback) |
+| 7 | Resolve all 20,268 players | **PASS** (0 resolved â€” ciphered; 20,268 fallback) |
 | 8 | UTF-8 names | **PASS** (decoder accepts UTF-8/CP1252; rejects cipher) |
 | 9 | Duplicate names | **PASS** (indexed map; no collisions) |
 | 10 | Common names & known-as | **PASS** (derived; null when undecodable) |
-| 11 | Team Roster | **PASS** — `Number \| Display Name \| Position \| Overall`, e.g. `1 \| Player 228505 \| GK \| 72` |
+| 11 | Team Roster | **PASS** â€” `Number \| Display Name \| Position \| Overall`, e.g. `1 \| Player 228505 \| GK \| 72` |
 | 12 | Player selector | **PASS** |
-| 13 | Player Info | **PASS** — `Unavailable` in name fields; IDs only in Technical |
+| 13 | Player Info | **PASS** â€” `Unavailable` in name fields; IDs only in Technical |
 | 14 | Formation labels | **PASS** (nav) |
-| 15 | Captain & set-piece names | **PASS** — `Player {id}` fallback, never a bare key |
+| 15 | Captain & set-piece names | **PASS** â€” `Player {id}` fallback, never a bare key |
 | 16 | Transfers | **PASS** (nav; read-only note preserved) |
 | 17 | Database-switch cache clearing | **PASS** (rebuild verified) |
 | 18 | No TXT/XLSX opened | **PASS** (file-access guard: clean) |
 | 19 | Full Release x64 build | **PASS** (`build-managed.cmd`, 0 errors) |
-| 20 | Engine smoke test | **PASS** — EXIT=0 (279 tables, 360,298 rows) |
-| 21 | Scratch save round-trip | **PASS** — saved + reload-verified, backups created |
-| 22 | Protected writer unchanged | **PASS** — no write path touched |
+| 20 | Engine smoke test | **PASS** â€” EXIT=0 (279 tables, 360,298 rows) |
+| 21 | Scratch save round-trip | **PASS** â€” saved + reload-verified, backups created |
+| 22 | Protected writer unchanged | **PASS** â€” no write path touched |
 
 `--name-tests` exit code **0**; nav 17/17; layout 150 ops 0 FAIL; perf ~785 ms / 20,268 players.
 
@@ -155,11 +155,11 @@ cache” test. No names are ever retained from a previously opened database.
 
 | File | Hash | Status |
 |------|------|--------|
-| `src/database_engine.h` | `887B7A35…` | unchanged |
-| `src/database_engine.cpp` | `92600FBE…` | unchanged this task (formatting-only drift proven earlier; smoke EXIT=0) |
-| `tests/engine_smoke.cpp` | `BFF66D9A…` | unchanged |
-| `database/fifa_ng_db.db` | `A5CF1D9D…` | unchanged |
-| `database/eng_us.DB` | `9E9396D3…` | unchanged |
+| `src/database_engine.h` | `887B7A35â€¦` | unchanged |
+| `src/database_engine.cpp` | `92600FBEâ€¦` | unchanged this task (formatting-only drift proven earlier; smoke EXIT=0) |
+| `tests/engine_smoke.cpp` | `BFF66D9Aâ€¦` | unchanged |
+| `database/fifa_ng_db.db` | `A5CF1D9Dâ€¦` | unchanged |
+| `database/eng_us.DB` | `9E9396D3â€¦` | unchanged |
 
 Native T3DB parsing, database writing, save verification, AES/Huffman, CRC-DB11, and the tested
 schema logic were **not** modified.
@@ -168,7 +168,7 @@ schema logic were **not** modified.
 
 ## 11. Build result
 
-`build-managed.cmd` → **ALL BUILDS + ENGINE TEST PASSED** (bridge + Application + App, 0 errors;
+`build-managed.cmd` â†’ **ALL BUILDS + ENGINE TEST PASSED** (bridge + Application + App, 0 errors;
 engine smoke EXIT=0).
 
 ---

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
+using CM26.App.Theming;
 
 namespace CM26.App.Sections;
 
@@ -43,8 +44,8 @@ internal static class ThreeDViewerLauncher
             Location = location,
             Size = surfaceSize,
             TextAlign = ContentAlignment.MiddleCenter,
-            ForeColor = SystemColors.GrayText,
-            BackColor = Color.FromArgb(245, 245, 245),
+            ForeColor = Theme.Muted,
+            BackColor = Theme.Raised,
             Font = new Font("Segoe UI", 10F),
             BorderStyle = BorderStyle.FixedSingle,
         };

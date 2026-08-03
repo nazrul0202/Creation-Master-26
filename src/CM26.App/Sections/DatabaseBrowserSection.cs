@@ -33,8 +33,8 @@ public sealed class DatabaseBrowserSection : SectionBase
         _grid = new DataGridView
         {
             Dock = DockStyle.Fill, ReadOnly = false, AllowUserToOrderColumns = true,
-            BackgroundColor = SystemColors.Window, BorderStyle = BorderStyle.Fixed3D,
-            EnableHeadersVisualStyles = true, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
+            BackgroundColor = Theme.Background, BorderStyle = BorderStyle.None,
+            EnableHeadersVisualStyles = false, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
             Font = Theme.Body,
         };
         _grid.CellBeginEdit += (_, e) =>
@@ -61,7 +61,7 @@ public sealed class DatabaseBrowserSection : SectionBase
         pager.Controls.Add(_previousPage);
         pager.Controls.Add(_deleteRow);
         pager.Controls.Add(_duplicateRow);
-        var host = new BufferedPanel { Dock = DockStyle.Fill, BackColor = SystemColors.Control };
+        var host = new BufferedPanel { Dock = DockStyle.Fill, BackColor = Theme.Background };
         host.Controls.Add(_grid);
         host.Controls.Add(pager);
         Tabs.TabPages.Add(MakeTab("Records", host));
@@ -108,7 +108,18 @@ public sealed class DatabaseBrowserSection : SectionBase
             column.ToolTipText = c.IsWritable
                 ? "Editable: staged and validated before Save."
                 : "Read-only: unsupported by the validated database writer.";
+            column.HeaderCell.Style.BackColor = Theme.Raised;
+            column.HeaderCell.Style.ForeColor = Theme.Text;
+            column.HeaderCell.Style.Font = Theme.Label;
+            column.HeaderCell.Style.SelectionBackColor = Theme.Raised;
+            column.DefaultCellStyle.BackColor = Theme.Input;
+            column.DefaultCellStyle.ForeColor = Theme.Text;
+            column.DefaultCellStyle.SelectionBackColor = Theme.Accent;
+            column.DefaultCellStyle.SelectionForeColor = Theme.Background;
+            column.DefaultCellStyle.Font = Theme.Body;
         }
+        _grid.BackgroundColor = Theme.Background;
+        _grid.EnableHeadersVisualStyles = false;
         int rows = Math.Min(table.RowCount - _pageStart, PageSize);
         for (int offset = 0; offset < rows; offset++)
         {

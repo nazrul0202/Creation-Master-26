@@ -56,9 +56,9 @@ public sealed class TeamsSection : SectionBase
     public override string SectionKey => "teams";
     public override string SectionTitle => "Teams";
     protected override string TableName => "teams";
-    // Club creation is intentionally owned by Leagues, where it can be linked
-    // to a competition in the same operation. This page is for editing teams.
-    protected override bool SupportsCreate => false;
+    // A standalone team starts unlinked. League editors can link it later, while
+    // this command always creates a valid editable squad for the new record.
+    protected override bool SupportsCreate => true;
     protected override string RecordSearchPlaceholder => "Search teams…";
 
     public TeamsSection(AppServices services) : base(services)
@@ -81,6 +81,8 @@ public sealed class TeamsSection : SectionBase
             return;
         try
         {
+            if (GetRecords().Any(item => string.Equals(item.Title.Trim(), values[0], StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("A team with that name already exists. Choose a distinct public team name.");
             var id = CreateRecordFromTemplate(TableName, "teamid", new Dictionary<string, string>
             {
                 ["teamname"] = values[0],
@@ -92,8 +94,23 @@ public sealed class TeamsSection : SectionBase
                 ["freekicktakerid"] = "-1",
                 ["leftcornerkicktakerid"] = "-1",
                 ["rightcornerkicktakerid"] = "-1",
+                ["overallrating"] = "0",
+                ["attackrating"] = "0",
+                ["midfieldrating"] = "0",
+                ["defenserating"] = "0",
+                ["domesticprestige"] = "0",
+                ["internationalprestige"] = "0",
+                ["clubworth"] = "0",
             });
-            MessageBox.Show(this, $"Team created with ID {id}. Assign its league, players, kits and artwork before Save.",
+            var squad = FillTeamSquad(id);
+            Services.Session.RefreshSchema();
+            Services.RefreshDatabaseIndexes();
+            LoadData();
+            var created = GetRecords().FirstOrDefault(item =>
+                Parse(Services.Session.GetCell(TableName, item.RecordIndex, "teamid")) == id);
+            if (created != null) GoToRecord(created.RecordIndex);
+            MessageBox.Show(this,
+                $"{values[0]} was created with ID {id} and {squad} editable placeholder players. Assign the club to a league, then review kits and artwork before Save.",
                 "Create Team", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
@@ -313,8 +330,8 @@ public sealed class TeamsSection : SectionBase
 
     private TabPage Page(string text)
     {
-        var page = new TabPage(text) { BackColor = SystemColors.Control, Font = LegacyFont };
-        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = SystemColors.Control });
+        var page = new TabPage(text) { BackColor = Theme.Background, Font = LegacyFont };
+        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background });
         Tabs.TabPages.Add(page);
         return page;
     }
@@ -324,7 +341,7 @@ public sealed class TeamsSection : SectionBase
     private static GroupBox Group(string text, Point location, Size size) => new()
     {
         Text = text, Location = location, Size = size, Font = LegacyFont,
-        BackColor = SystemColors.Control, ForeColor = SystemColors.ControlText
+        BackColor = Theme.Panel, ForeColor = Theme.Text
     };
 
     private static PictureBox Viewer(Point location, Size size) => new()
@@ -360,8 +377,9 @@ public sealed class TeamsSection : SectionBase
         _crestCaption.Location = new Point(8, 270);
         _crestCaption.Size = new Size(252, 32);
         _crestCaption.TextAlign = ContentAlignment.MiddleCenter;
-        _crestCaption.ForeColor = SystemColors.GrayText;
+        _crestCaption.ForeColor = Theme.Muted;
         _crestCaption.Font = LegacyFont;
+        _crestCaption.BackColor = Theme.Panel;
         logos.Controls.Add(_crestCaption);
         canvas.Controls.Add(logos);
 
@@ -502,7 +520,7 @@ public sealed class TeamsSection : SectionBase
         {
             Text = "Match presentation settings for the selected team.",
             Location = new Point(15, 202), Size = new Size(430, 24),
-            Font = LegacyFont, ForeColor = SystemColors.GrayText
+            Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         canvas.Controls.Add(presentation);
 
@@ -555,7 +573,7 @@ public sealed class TeamsSection : SectionBase
         _selectedPlayerFace = Viewer(new Point(10, 20), new Size(128, 128));
         players.Controls.Add(_selectedPlayerFace);
         _selectedPlayerName = new Label { Location = new Point(10, 151), Size = new Size(295, 18), Font = LegacyFont, Text = "Select a player" };
-        _selectedPlayerDetails = new Label { Location = new Point(148, 22), Size = new Size(160, 150), Font = LegacyFont, ForeColor = SystemColors.ControlText, Text = "Select a roster player\nto view details." };
+        _selectedPlayerDetails = new Label { Location = new Point(148, 22), Size = new Size(160, 150), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, Text = "Select a roster player\nto view details." };
         players.Controls.Add(_selectedPlayerName);
         players.Controls.Add(_selectedPlayerDetails);
         var transfer = LegacyButton("Transfer", new Point(315, 22), new Size(60, 24));
@@ -614,7 +632,7 @@ public sealed class TeamsSection : SectionBase
         {
             Text = "Matchday substitutes · double-click to open player",
             Location = new Point(12, 20), Size = new Size(276, 18), Font = LegacyFont,
-            ForeColor = SystemColors.GrayText
+            ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         _matchdayBench.Location = new Point(12, 42);
         _matchdayBench.Size = new Size(276, 443);
@@ -647,7 +665,7 @@ public sealed class TeamsSection : SectionBase
                 SelectTeamFormation(choice);
         };
         pitch.Controls.Add(_formationView);
-        _formationStatus = new Label { Location = new Point(355, 535), Size = new Size(610, 20), Font = LegacyFont, ForeColor = SystemColors.GrayText, Visible = false };
+        _formationStatus = new Label { Location = new Point(355, 535), Size = new Size(610, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, Visible = false };
         pitch.Controls.Add(_formationStatus);
         ToolTip.SetToolTip(_formationView, "Choose a formation template for this team.");
         AddPlayerReferencePickers(pitch, new[] { ("Captain", "captainid"), ("Left Corner", "leftcornerkicktakerid"), ("Right Corner", "rightcornerkicktakerid"), ("Penalty", "penaltytakerid"), ("Free Kicks", "freekicktakerid") }, 15, 565);
@@ -674,9 +692,9 @@ public sealed class TeamsSection : SectionBase
         {
             var label = new Label
             {
-                Size = new Size(128, 48), BackColor = Color.FromArgb(17, 38, 56),
+                Size = new Size(112, 42), BackColor = Color.FromArgb(17, 38, 56),
                 BorderStyle = BorderStyle.FixedSingle, TextAlign = ContentAlignment.MiddleRight,
-                Font = new Font("Segoe UI", 7.1F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 6.6F, FontStyle.Bold),
                 ForeColor = Color.White, AllowDrop = true, Tag = _lineupSlots.Count,
                 ImageAlign = ContentAlignment.MiddleLeft,
                 Padding = new Padding(4, 1, 4, 1)
@@ -897,7 +915,7 @@ public sealed class TeamsSection : SectionBase
         {
             var desired = slot.Label.Location;
             var candidates =
-                from radius in Enumerable.Range(0, 22).Select(value => value * 6)
+                 from radius in Enumerable.Range(0, Math.Max(_formationBoard.Width, _formationBoard.Height) / 6).Select(value => value * 6)
                 from dy in Enumerable.Range(-radius / 6, (radius * 2 / 6) + 1).Select(value => value * 6)
                 let dxMagnitude = radius - Math.Abs(dy)
                 from dx in dxMagnitude == 0 ? new[] { 0 } : new[] { -dxMagnitude, dxMagnitude }
@@ -914,7 +932,22 @@ public sealed class TeamsSection : SectionBase
                 return placed.All(existing => !padded.IntersectsWith(existing));
             });
             if (selected.Width == 0)
-                selected = new Rectangle(desired, slot.Label.Size);
+            {
+                // Malformed or unusually dense formations must still render a
+                // readable XI. Choose the least-overlapping board position.
+                selected = Enumerable.Range(1, Math.Max(1, (_formationBoard.Width - slot.Label.Width - 16) / 8) + 1)
+                    .SelectMany(x => Enumerable.Range(1, Math.Max(1, (_formationBoard.Height - slot.Label.Height - 16) / 8) + 1)
+                        .Select(y => new Rectangle(x * 8, y * 8, slot.Label.Width, slot.Label.Height)))
+                    .OrderBy(candidate => placed.Count(existing =>
+                    {
+                        var padded = candidate;
+                        padded.Inflate(5, 5);
+                        return padded.IntersectsWith(existing);
+                    }))
+                    .ThenBy(candidate => (candidate.X - desired.X) * (candidate.X - desired.X) +
+                                         (candidate.Y - desired.Y) * (candidate.Y - desired.Y))
+                    .First();
+            }
             slot.Label.Location = selected.Location;
             selected.Inflate(5, 5);
             placed.Add(selected);
@@ -1046,9 +1079,9 @@ public sealed class TeamsSection : SectionBase
 
     private static string DisplayLineupName(string name)
     {
-        if (name.Length <= 16) return name;
+        if (name.Length <= 13) return name;
         var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length >= 2 ? $"{parts[0][0]}. {parts[^1]}" : name[..16];
+        return parts.Length >= 2 ? $"{parts[0][0]}. {parts[^1]}" : name[..13];
     }
 
     private int FindTableRow(string tableName, string fieldName, int value)
@@ -1142,7 +1175,7 @@ public sealed class TeamsSection : SectionBase
             Text = "Adboard content is driven by teamsponsorlinks and its dynamicimageid. " +
                    "This view shows the exact database links and resolves the corresponding installed artwork when available.",
             Location = new Point(14, 25), Size = new Size(590, 95), Font = LegacyFont,
-            ForeColor = SystemColors.ControlText
+            ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         canvas.Controls.Add(note);
     }
@@ -1180,7 +1213,7 @@ public sealed class TeamsSection : SectionBase
         links.Controls.Add(new Label
         {
             Text = "Select a sponsor relationship to preview its linked dynamic image.",
-            Location = new Point(12, 595), Size = new Size(1075, 28), Font = LegacyFont, ForeColor = SystemColors.GrayText
+            Location = new Point(12, 595), Size = new Size(1075, 28), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         canvas.Controls.Add(links);
     }
@@ -1318,7 +1351,8 @@ public sealed class TeamsSection : SectionBase
             {
                 editor.Text = Services.Resolver?.PlayerNameByPlayerId(refPlayerId) ?? $"Player {refPlayerId}";
                 editor.ReadOnly = true;
-                editor.BackColor = SystemColors.Control;
+                editor.BackColor = Theme.Raised;
+                editor.ForeColor = Theme.Muted;
                 ToolTip.SetToolTip(editor, $"{key} = {pref.RawValue} (player id)");
             }
             else if (IsLinkedDisplayField(key))
@@ -1327,20 +1361,23 @@ public sealed class TeamsSection : SectionBase
                 // resolved name in the CM16-style form instead of an empty/-1 raw FK.
                 editor.Text = ResolveLinkedValue(key, int.TryParse(id, out var linkedTeamId) ? linkedTeamId : 0);
                 editor.ReadOnly = true;
-                editor.BackColor = SystemColors.Control;
+                editor.BackColor = Theme.Raised;
+                editor.ForeColor = Theme.Muted;
                 ToolTip.SetToolTip(editor, $"Resolved {key}; select the linked player or roster control to change it.");
             }
             else if (_fields.TryGetValue(key, out var value))
             {
                 editor.Text = value.Value;
                 editor.ReadOnly = !value.IsWritable;
-                editor.BackColor = value.IsWritable ? Color.White : SystemColors.Control;
+                editor.BackColor = value.IsWritable ? Theme.Input : Theme.Raised;
+                editor.ForeColor = Theme.Text;
             }
             else
             {
                 editor.Text = ResolveLinkedValue(key, int.TryParse(id, out var linkedTeamId) ? linkedTeamId : 0);
                 editor.ReadOnly = true;
-                editor.BackColor = SystemColors.Control;
+                editor.BackColor = Theme.Raised;
+                editor.ForeColor = Theme.Muted;
             }
         }
 
@@ -1490,6 +1527,7 @@ public sealed class TeamsSection : SectionBase
         var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(238, 184), Size = new Size(88, 28) };
         var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(337, 184), Size = new Size(88, 28) };
         dialog.Controls.AddRange([ok, cancel]);
+        Theme.ApplyControlTree(dialog);
         dialog.AcceptButton = ok;
         dialog.CancelButton = cancel;
         var accepted = dialog.ShowDialog(this) == DialogResult.OK;
@@ -1785,6 +1823,7 @@ public sealed class TeamsSection : SectionBase
         var stage = new Button { Text = "Stage Transfer", DialogResult = DialogResult.OK, Location = new Point(210, 150), Size = new Size(100, 28) };
         dialog.Controls.Add(stage);
         dialog.Controls.Add(new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(320, 150), Size = new Size(80, 28) });
+        Theme.ApplyControlTree(dialog);
         dialog.AcceptButton = stage;
         if (dialog.ShowDialog(this) != DialogResult.OK || destination.SelectedItem is not TeamChoice target || position.SelectedItem is not PositionChoice role) return;
 
@@ -1896,6 +1935,7 @@ public sealed class TeamsSection : SectionBase
         dialog.Controls.Add(remove);
         dialog.Controls.Add(stage);
         dialog.Controls.Add(cancel);
+        Theme.ApplyControlTree(dialog);
         dialog.AcceptButton = stage;
         dialog.CancelButton = cancel;
 

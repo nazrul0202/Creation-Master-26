@@ -21,6 +21,11 @@ internal static class ExternalToolLocator
         var bundled = Path.Combine(AppContext.BaseDirectory, "Tools", "CM26 Scraper", "CM26 Scraper.exe");
         if (File.Exists(bundled)) return bundled;
 
+        // This is the established public installation location. Check it before
+        // enumerating every removable/network drive, which can delay Data Sync.
+        var fc26Tool = @"D:\FC26 FILE TOOL\CM26 SCRAPER\CM26 Scraper.exe";
+        if (File.Exists(fc26Tool)) return fc26Tool;
+
         return FindFile(
             Path.Combine("CM26 Scraper", "CM26 Scraper.exe"),
             Path.Combine("CM26 SCRAPER", "CM26 Scraper.exe"));

@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Data;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Theming;
 using CM26.Application.Models;
 
 namespace CM26.App.Sections;
@@ -98,9 +99,21 @@ public sealed class CompetitionsSection : ClassicEntitySection
         _compdataGrid.AllowUserToAddRows = false;
         _compdataGrid.AllowUserToDeleteRows = true;
         _compdataGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells;
-        _compdataGrid.BackgroundColor = SystemColors.Window;
-        _compdataGrid.BorderStyle = BorderStyle.Fixed3D;
+        _compdataGrid.BackgroundColor = Theme.Background;
+        _compdataGrid.BorderStyle = BorderStyle.None;
+        _compdataGrid.EnableHeadersVisualStyles = false;
         _compdataGrid.ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableAlwaysIncludeHeaderText;
+        _compdataGrid.ColumnHeadersDefaultCellStyle.BackColor = Theme.Raised;
+        _compdataGrid.ColumnHeadersDefaultCellStyle.ForeColor = Theme.Text;
+        _compdataGrid.ColumnHeadersDefaultCellStyle.Font = Theme.Label;
+        _compdataGrid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Theme.Raised;
+        _compdataGrid.ColumnHeadersHeight = 30;
+        _compdataGrid.DefaultCellStyle.BackColor = Theme.Input;
+        _compdataGrid.DefaultCellStyle.ForeColor = Theme.Text;
+        _compdataGrid.DefaultCellStyle.SelectionBackColor = Theme.Accent;
+        _compdataGrid.DefaultCellStyle.SelectionForeColor = Theme.Background;
+        _compdataGrid.DefaultCellStyle.Font = Theme.Body;
+        _compdataGrid.GridColor = Theme.Border;
         workspace.Controls.Add(_compdataGrid);
         canvas.Controls.Add(workspace);
 
@@ -270,6 +283,19 @@ public sealed class CompetitionsSection : ClassicEntitySection
                 _compdataTables[sheetName] = table;
             }
             _compdataGrid.DataSource = table;
+            _compdataGrid.EnableHeadersVisualStyles = false;
+            foreach (DataGridViewColumn column in _compdataGrid.Columns)
+            {
+                column.HeaderCell.Style.BackColor = Theme.Raised;
+                column.HeaderCell.Style.ForeColor = Theme.Text;
+                column.HeaderCell.Style.Font = Theme.Label;
+                column.HeaderCell.Style.SelectionBackColor = Theme.Raised;
+                column.DefaultCellStyle.BackColor = Theme.Input;
+                column.DefaultCellStyle.ForeColor = Theme.Text;
+                column.DefaultCellStyle.SelectionBackColor = Theme.Accent;
+                column.DefaultCellStyle.SelectionForeColor = Theme.Background;
+                column.DefaultCellStyle.Font = Theme.Body;
+            }
             var limit = CompdataSchema.GetRowLimit(sheetName);
             _compdataStatus.Text = CompdataSchema.CanCreateStandaloneRow(sheetName)
                 ? $"{sheetName} · {table.Rows.Count:N0}/{limit?.ToString("N0") ?? "—"} objects · IDs are allocated automatically."

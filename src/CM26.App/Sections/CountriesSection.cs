@@ -38,8 +38,8 @@ public sealed class CountriesSection : SectionBase
         Header.Visible = false;
         Tabs.Padding = new Point(3, 1);
 
-        var page = new TabPage("General") { BackColor = SystemColors.Control, Font = LegacyFont };
-        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = SystemColors.Control };
+        var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
+        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background };
         page.Controls.Add(canvas);
         Tabs.TabPages.Add(page);
 
@@ -96,14 +96,15 @@ public sealed class CountriesSection : SectionBase
         country.Controls.Add(_openNationalTeam);
         country.Controls.Add(new Label
         {
-            Text = "Create a country ID, then add its national team, domestic\nleague, clubs and Compdata before starting a new Career save.",
+            Text = "Create a country ID, then add its national team, domestic league,\nclubs and Compdata before starting a new Career save.",
             Location = new Point(16, 416),
-            Size = new Size(215, 38),
+            Size = new Size(215, 32),
             Font = LegacyFont,
-            ForeColor = SystemColors.GrayText,
+            ForeColor = Theme.Muted,
+            BackColor = Theme.Panel,
         });
         _showAllDatabaseCountries.Text = "Show countries awaiting setup";
-        _showAllDatabaseCountries.Location = new Point(16, 424);
+        _showAllDatabaseCountries.Location = new Point(16, 454);
         _showAllDatabaseCountries.Size = new Size(210, 23);
         _showAllDatabaseCountries.Font = LegacyFont;
         _showAllDatabaseCountries.CheckedChanged += (_, _) => LoadData();
@@ -339,14 +340,16 @@ public sealed class CountriesSection : SectionBase
             {
                 editor.Text = field.Value;
                 editor.ReadOnly = !field.IsWritable;
-                editor.BackColor = field.IsWritable ? Color.White : SystemColors.Control;
+                editor.BackColor = field.IsWritable ? Theme.Input : Theme.Raised;
+                editor.ForeColor = Theme.Text;
                 ToolTip.SetToolTip(editor, field.IsWritable ? field.FieldName : $"{field.FieldName} (read-only)");
             }
             else
             {
                 editor.Text = string.Empty;
                 editor.ReadOnly = true;
-                editor.BackColor = SystemColors.Control;
+                editor.BackColor = Theme.Raised;
+                editor.ForeColor = Theme.Muted;
                 ToolTip.SetToolTip(editor, $"{fieldName} is not present in this database");
             }
         }
@@ -445,11 +448,11 @@ public sealed class CountriesSection : SectionBase
     {
         var page = new TabPage("National Team Audio")
         {
-            BackColor = SystemColors.Control, Font = LegacyFont
+            BackColor = Theme.Background, Font = LegacyFont
         };
         var canvas = new Panel
         {
-            Dock = DockStyle.Fill, AutoScroll = true, BackColor = SystemColors.Control
+            Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background
         };
         page.Controls.Add(canvas);
         Tabs.TabPages.Add(page);
@@ -492,7 +495,7 @@ public sealed class CountriesSection : SectionBase
         {
             Text = "Audio mappings for the selected country. They control regional commentary and crowd banks.",
             Location = new Point(16, 303), Size = new Size(660, 45),
-            Font = LegacyFont, ForeColor = SystemColors.GrayText
+            Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         canvas.Controls.Add(box);
     }
@@ -507,14 +510,16 @@ public sealed class CountriesSection : SectionBase
             {
                 editor.Text = string.Empty;
                 editor.ReadOnly = true;
-                editor.BackColor = SystemColors.Control;
+                editor.BackColor = Theme.Raised;
+                editor.ForeColor = Theme.Muted;
                 continue;
             }
             editor.Text = Services.Session.GetCell("audionation", row, field);
             var column = Services.Session.GetTable("audionation")?.Columns
                 .FirstOrDefault(x => x.Name.Equals(field, StringComparison.OrdinalIgnoreCase));
             editor.ReadOnly = column?.IsWritable != true;
-            editor.BackColor = editor.ReadOnly ? SystemColors.Control : Color.White;
+            editor.BackColor = editor.ReadOnly ? Theme.Raised : Theme.Input;
+            editor.ForeColor = Theme.Text;
         }
     }
 
@@ -540,12 +545,12 @@ public sealed class CountriesSection : SectionBase
     private GroupBox LegacyGroup(string text, Point location, Size size) => new()
     {
         Text = text, Location = location, Size = size, Font = LegacyFont,
-        BackColor = SystemColors.Control, ForeColor = SystemColors.ControlText
+        BackColor = Theme.Panel, ForeColor = Theme.Text
     };
 
     private void AddField(Control parent, string fieldName, string label, Point location, int width)
     {
-        parent.Controls.Add(new Label { Text = label, Location = new Point(11, location.Y + 3), Size = new Size(location.X - 16, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft });
+        parent.Controls.Add(new Label { Text = label, Location = new Point(11, location.Y + 3), Size = new Size(location.X - 16, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft, ForeColor = Theme.Text, BackColor = Theme.Panel });
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, BorderStyle = BorderStyle.FixedSingle };
         editor.Leave += (_, _) => Commit(editor);
         parent.Controls.Add(editor);
@@ -554,9 +559,9 @@ public sealed class CountriesSection : SectionBase
 
     private static Panel CreateViewer(Point location, Size imageSize, string resolution, out PictureBox picture, out Label caption)
     {
-        var holder = new Panel { Location = location, Size = new Size(imageSize.Width, imageSize.Height + 23), BackColor = SystemColors.Control };
+        var holder = new Panel { Location = location, Size = new Size(imageSize.Width, imageSize.Height + 23), BackColor = Theme.Panel };
         picture = new PictureBox { Location = Point.Empty, Size = imageSize, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
-        caption = new Label { Text = "◉   ◧  ◨   " + resolution, Location = new Point(0, imageSize.Height + 2), Size = new Size(imageSize.Width, 18), Font = LegacyFont, ForeColor = SystemColors.ControlText };
+        caption = new Label { Text = "◉   ◧  ◨   " + resolution, Location = new Point(0, imageSize.Height + 2), Size = new Size(imageSize.Width, 18), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel };
         holder.Controls.Add(picture);
         holder.Controls.Add(caption);
         return holder;

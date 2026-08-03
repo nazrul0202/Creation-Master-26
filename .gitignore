@@ -37,3 +37,9 @@ artifacts/
 _audit_backup_*/
 _structural_writer_backup_*/
 LocaleDiagnosticsOutput/
+
+# Local tooling, nested clones and reference projects (not part of the release source)
+GitHub_CM26/
+References/
+sample db extracted/
+cfc.json

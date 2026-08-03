@@ -43,7 +43,7 @@ public sealed class MainForm : Form
         _services.ScraperSquadImportRequested += ImportScraperSquad;
 
         // ---- CM16-style application menu ----
-        _menu = new MenuStrip { Dock = DockStyle.Top, BackColor = Theme.Panel, ForeColor = Theme.Text, Font = Theme.Body };
+        _menu = new MenuStrip { Dock = DockStyle.Top, BackColor = Theme.Background, ForeColor = Theme.Text, Font = Theme.Body };
         var fileMenu = new ToolStripMenuItem("File");
         fileMenu.DropDownItems.Add("Open Game", null, async (_, _) => await OpenFc26Async());
         fileMenu.DropDownItems.Add("Save", null, async (_, _) => await SaveAsync());
@@ -58,7 +58,7 @@ public sealed class MainForm : Form
         var helpMenu = new ToolStripMenuItem("Help");
         helpMenu.DropDownItems.Add("Settings", null, (_, _) => NavigateTo("settings"));
         helpMenu.DropDownItems.Add("About", null, (_, _) => MessageBox.Show(this,
-            "Creation Master 26\nVersion 1.0.17\n\nDatabase, competition data and legacy asset editor.\nCommunity tool by Rizco98.",
+            $"Creation Master 26\nVersion {Program.ProductVersion}\n\nDatabase, competition data and legacy asset editor.\nCommunity tool by Rizco98.",
             "About Creation Master 26", MessageBoxButtons.OK, MessageBoxIcon.Information));
         _menu.Items.AddRange(new ToolStripItem[] { fileMenu, toolsMenu, patchMenu, helpMenu });
 
@@ -71,7 +71,7 @@ public sealed class MainForm : Form
             GripStyle = ToolStripGripStyle.Hidden,
             Padding = new Padding(Theme.Space, 6, Theme.Space, 6),
             ImageScalingSize = new Size(36, 36),
-            RenderMode = ToolStripRenderMode.System,
+            RenderMode = ToolStripRenderMode.Professional,
         };
         _openBtn = MakeToolButton("📂 Open Game", "Detect the game and load its database and assets automatically (Ctrl+O)");
         _saveBtn = MakeToolButton("💾 Save", "Save staged changes (Ctrl+S)", primary: true);
@@ -216,6 +216,7 @@ public sealed class MainForm : Form
             if (reg.factory == null) return;
             section = reg.factory(_services);
             section.Dock = DockStyle.Fill;
+            Theme.ApplyControlTree(section);
             _sections[key] = section;
         }
 
@@ -262,8 +263,13 @@ public sealed class MainForm : Form
             var phase = new Progress<string>(SetStatus);
             var backupProgress = new Progress<GameBackupService.RestoreProgress>(item =>
             {
-                var percent = item.Total <= 0 ? 0 : (item.Completed * 100 / item.Total);
-                SetStatus($"{item.Phase}: {percent}% · {item.CurrentFile}");
+                var percent = item.TotalBytes > 0
+                    ? (int)Math.Clamp(item.CompletedBytes * 100 / item.TotalBytes, 0, 100)
+                    : item.Total <= 0 ? 0 : item.Completed * 100 / item.Total;
+                var progress = item.TotalBytes > 0
+                    ? $"{FormatBytes(item.CompletedBytes)} / {FormatBytes(item.TotalBytes)}"
+                    : $"{item.Completed}/{item.Total} files";
+                SetStatus($"{item.Phase}: {percent}% · {progress} · {item.CurrentFile}");
             });
             var workspace = await Task.Run(() => _services.OpenFc26(backupProgress, phase));
             NavigateTo("dashboard");
@@ -545,6 +551,19 @@ public sealed class MainForm : Form
     }
 
     private void SetStatus(string text) => _statusText.Text = text;
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        var value = (double)Math.Max(0, bytes);
+        var unit = 0;
+        while (value >= 1024 && unit < units.Length - 1)
+        {
+            value /= 1024;
+            unit++;
+        }
+        return unit == 0 ? $"{value} {units[unit]}" : $"{value:N1} {units[unit]}";
+    }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {

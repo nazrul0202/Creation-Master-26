@@ -127,12 +127,12 @@ public abstract class SectionBase : UserControl
             PlaceholderText = RecordSearchPlaceholder,
         };
         Theme.ApplyTextBox(_recordSearch);
-        var find = new Button { Text = "Find", Width = 46, Dock = DockStyle.Left, TabStop = false };
-        var refresh = new Button { Text = "↻", Width = 30, Dock = DockStyle.Left, TabStop = false };
+        var find = new Button { Text = "Find", Width = 52, Dock = DockStyle.Left, TabStop = false };
+        var refresh = new Button { Text = "Refresh", Width = 70, Dock = DockStyle.Left, TabStop = false };
         var create = new Button
         {
             Text = "New",
-            Width = 58,
+            Width = 76,
             Dock = DockStyle.Left,
             TabStop = false,
             Visible = SupportsCreate,
@@ -259,6 +259,15 @@ public abstract class SectionBase : UserControl
 
     public void LoadData()
     {
+        // Workflow-only pages such as Data Sync do not have records to select.
+        // Their controls must remain visible instead of being covered by the
+        // generic record empty state.
+        if (!ShowRecordCommandStrip)
+        {
+            EmptyState.Visible = false;
+            Tabs.BringToFront();
+            return;
+        }
         if (!Services.Session.IsLoaded)
         {
             Browser.SetItems(Array.Empty<RecordListItem>());
@@ -682,7 +691,7 @@ public abstract class SectionBase : UserControl
 
     protected static TabPage MakeTab(string title, Control content)
     {
-        var page = new TabPage(title) { BackColor = SystemColors.Control, Padding = new Padding(0) };
+        var page = new TabPage(title) { BackColor = Theme.Background, Padding = new Padding(0) };
         content.Dock = DockStyle.Fill;
         page.Controls.Add(content);
         return page;

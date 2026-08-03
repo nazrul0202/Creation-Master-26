@@ -1,8 +1,8 @@
-# CM16 parity audit — FC26 adapters
+﻿# CM16 parity audit â€” FC26 adapters
 
 Updated 2026-07-28.  Compared against the original CM16 form sources in
-`D:\FC26 FILE TOOL\cm16 source code\CreationMaster` and the FC26 schema
-(`database\fifa_ng_db-meta.XML`).  “Same” means the FC26 equivalent exists,
+`<FC26 tools>\cm16 source code\CreationMaster` and the FC26 schema
+(`database\fifa_ng_db-meta.XML`).  â€œSameâ€ means the FC26 equivalent exists,
 is shown, and is connected to the FC26 engine; it does **not** mean an absent
 FIFA 16 field is invented in FC26.
 
@@ -24,7 +24,7 @@ FIFA 16 field is invented in FC26.
 | Sponsors / Adboards | No CM16 FC26 equivalent | FC26 extension | FC26-only sponsor and mode-adboard links are shown as fixed CM16-style forms. |
 | Audio / Stadium Audio | No CM16 FC26 equivalent | FC26 extension | Nation and stadium audio controls are shown as fixed forms. |
 | TV Broadcast / Game Graphics / News Stories | No CM16 FC26 equivalent | FC26 extension | FC26-only database tables are placed in dedicated fixed-layout modules. |
-| Database Browser | — | FC26-specific | Browses all FC26 tables; not a CM16 equivalent. |
+| Database Browser | â€” | FC26-specific | Browses all FC26 tables; not a CM16 equivalent. |
 | Dashboard / Diagnostics / Settings | MainForm | FC26-specific | Application-level functions; no CM16 database-form counterpart. |
 
 ## Rules used by the audit

@@ -1,16 +1,16 @@
-# CM26 — Complete Fix Task (Screenshot Audit 2026-08-02)
+﻿# CM26 â€” Complete Fix Task (Screenshot Audit 2026-08-02)
 
 ## Context
 
 CM26 (Creation Master 26) is a WinForms C# database editor for EA Sports FC 26.
-Project root: `D:\CM 26 Final`
+Project root: `<repo>`
 Main project: `src\CM26.App\CM26.App.csproj`
 
 A screenshot audit of the running application identified 3 issues to fix.
 
 ---
 
-## PROTECTED FILES — NEVER MODIFY
+## PROTECTED FILES â€” NEVER MODIFY
 
 - `src/database_engine.h`
 - `src/database_engine.cpp`
@@ -27,19 +27,19 @@ When creating a new team via LeaguesSection (e.g. "PDRM FC" in Malaysia Super Le
 the new team's league-list tile shows Bayern Munich's crest instead of a blank/default logo.
 
 ### Code Location
-`src\CM26.App\Sections\LeaguesSection.cs` — `CreateAndLinkTeam()` method (~line 540).
+`src\CM26.App\Sections\LeaguesSection.cs` â€” `CreateAndLinkTeam()` method (~line 540).
 
 ### How team logos are displayed
 Team crests are loaded by team ID:
-1. `Services.Assets.GetTeamLogo(teamId)` → looks for cached file
+1. `Services.Assets.GetTeamLogo(teamId)` â†’ looks for cached file
 2. Fallback: `Services.FrostbiteAssets.ExportLegacyAsset($"data/ui/imgAssets/crest/light/l{teamId}.dds")`
 3. Fallback: `SearchAssets` for `logo_*_color` or `crest_{teamId}_` with `ResType == 0x6BDE20BA`
 4. Final: `MissingCrest()` draws a gray `?` placeholder
 
-The crest path is `data/ui/imgAssets/crest/light/l{teamId}.dds` — based on the TEAM ID, not a field in the record.
+The crest path is `data/ui/imgAssets/crest/light/l{teamId}.dds` â€” based on the TEAM ID, not a field in the record.
 
 ### What CreateAndLinkTeam does now
-1. `DuplicateRow("teams", 0)` — copies template row 0 (a historic club like Bayern Munich)
+1. `DuplicateRow("teams", 0)` â€” copies template row 0 (a historic club like Bayern Munich)
 2. Overrides specific fields: teamid, teamname, countryid, leagueid, assetid, presassetone, presassettwo, captainid, penaltytakerid, freekicktakerid, left/right corner kick takers, stadiumid, managerid, kitids, formationid, prestige, ratings, clubworth, ballid
 3. Links team to league via leagueteamlinks
 
@@ -51,13 +51,13 @@ However, the screenshot shows Bayern Munich's crest for PDRM FC. This means eith
 - OR the league team list is showing the wrong team's logo (display bug in the team picker)
 
 ### Task
-1. Read `LeaguesSection.cs` fully — find how the league's team picker loads and displays team crests (the `PopulateTeamPicker` method and related logo loading code around lines 600-700)
+1. Read `LeaguesSection.cs` fully â€” find how the league's team picker loads and displays team crests (the `PopulateTeamPicker` method and related logo loading code around lines 600-700)
 2. Identify why PDRM FC shows Bayern Munich's crest
 3. Fix the bug so newly created teams show either their own crest (if it exists) or a blank/placeholder
 4. Apply the same fix to `CountriesSection.CreateNationalTeam()` (same issue may exist there)
 
 ### Similar code in CountriesSection
-`src\CM26.App\Sections\CountriesSection.cs` — `CreateNationalTeam()` method (~line 192) uses `CreateRecordFromTemplate("teams", "teamid", ...)` with templateRow: 0. Same template inheritance issue.
+`src\CM26.App\Sections\CountriesSection.cs` â€” `CreateNationalTeam()` method (~line 192) uses `CreateRecordFromTemplate("teams", "teamid", ...)` with templateRow: 0. Same template inheritance issue.
 
 ---
 
@@ -66,55 +66,55 @@ However, the screenshot shows Bayern Munich's crest for PDRM FC. This means eith
 ### Evidence
 The "Open from Game Folder" button fails because compdata TXT files are NOT loose files on disk.
 They are packed inside Frostbite CAS archives at:
-- `dlc/FootballCompEng/data/compdata/careermode_closedbeta/` — 13 TXT files
-- `dlc/FootballCompEng/data/compdata/schedules/` — 25 TXT files
+- `dlc/FootballCompEng/data/compdata/careermode_closedbeta/` â€” 13 TXT files
+- `dlc/FootballCompEng/data/compdata/schedules/` â€” 25 TXT files
 
 Verified via FIFA Editor Tool Legacy Explorer:
 ```
 dlc/FootballCompEng/data/compdata/
-├── careermode_closedbeta/
-│   ├── activeteams.txt
-│   ├── advancement.txt
-│   ├── compids.txt
-│   ├── compobj.txt
-│   ├── dataver.txt
-│   ├── debug_database.txt
-│   ├── initteams.txt
-│   ├── objectives.txt
-│   ├── schedule.txt
-│   ├── settings.txt
-│   ├── standings.txt
-│   ├── tasks.txt
-│   └── weather.txt
-├── schedules/
-│   ├── C17_S1_2025.txt
-│   ├── C19_S1_2025.txt
-│   ├── C20_S1_2025.txt
-│   ├── C31_S1_2025.txt
-│   ├── C32_S1_2025.txt
-│   ├── C39_S1_0.txt
-│   ├── C53_S1_2025.txt
-│   ├── C54_S1_2025.txt
-│   ├── C60_S1_2025.txt
-│   ├── C61_S1_2025.txt
-│   ├── C66_S1_2025.txt
-│   ├── C68_S1_2025.txt
-│   ├── C152_S1_0.txt
-│   ├── C153_S1_0.txt
-│   ├── C308_S1_2025.txt
-│   ├── C2076_S1_2025.txt
-│   ├── C2215_S1_2025.txt
-│   ├── C2216_S1_2025.txt
-│   ├── C2218_S1_2025.txt
-│   └── C2222_S1_2025.txt
-├── Finance/
-├── Negotiation/
-├── Objectives/
-└── OpponentAnalysis/
+â”œâ”€â”€ careermode_closedbeta/
+â”‚   â”œâ”€â”€ activeteams.txt
+â”‚   â”œâ”€â”€ advancement.txt
+â”‚   â”œâ”€â”€ compids.txt
+â”‚   â”œâ”€â”€ compobj.txt
+â”‚   â”œâ”€â”€ dataver.txt
+â”‚   â”œâ”€â”€ debug_database.txt
+â”‚   â”œâ”€â”€ initteams.txt
+â”‚   â”œâ”€â”€ objectives.txt
+â”‚   â”œâ”€â”€ schedule.txt
+â”‚   â”œâ”€â”€ settings.txt
+â”‚   â”œâ”€â”€ standings.txt
+â”‚   â”œâ”€â”€ tasks.txt
+â”‚   â””â”€â”€ weather.txt
+â”œâ”€â”€ schedules/
+â”‚   â”œâ”€â”€ C17_S1_2025.txt
+â”‚   â”œâ”€â”€ C19_S1_2025.txt
+â”‚   â”œâ”€â”€ C20_S1_2025.txt
+â”‚   â”œâ”€â”€ C31_S1_2025.txt
+â”‚   â”œâ”€â”€ C32_S1_2025.txt
+â”‚   â”œâ”€â”€ C39_S1_0.txt
+â”‚   â”œâ”€â”€ C53_S1_2025.txt
+â”‚   â”œâ”€â”€ C54_S1_2025.txt
+â”‚   â”œâ”€â”€ C60_S1_2025.txt
+â”‚   â”œâ”€â”€ C61_S1_2025.txt
+â”‚   â”œâ”€â”€ C66_S1_2025.txt
+â”‚   â”œâ”€â”€ C68_S1_2025.txt
+â”‚   â”œâ”€â”€ C152_S1_0.txt
+â”‚   â”œâ”€â”€ C153_S1_0.txt
+â”‚   â”œâ”€â”€ C308_S1_2025.txt
+â”‚   â”œâ”€â”€ C2076_S1_2025.txt
+â”‚   â”œâ”€â”€ C2215_S1_2025.txt
+â”‚   â”œâ”€â”€ C2216_S1_2025.txt
+â”‚   â”œâ”€â”€ C2218_S1_2025.txt
+â”‚   â””â”€â”€ C2222_S1_2025.txt
+â”œâ”€â”€ Finance/
+â”œâ”€â”€ Negotiation/
+â”œâ”€â”€ Objectives/
+â””â”€â”€ OpponentAnalysis/
 ```
 
 ### Current Code
-`src\CM26.App\Sections\ClassicUtilitySections.cs` — `OpenCompdataFromGameFolder()` (~line 169):
+`src\CM26.App\Sections\ClassicUtilitySections.cs` â€” `OpenCompdataFromGameFolder()` (~line 169):
 ```csharp
 private void OpenCompdataFromGameFolder()
 {
@@ -135,17 +135,17 @@ This reads from loose files. But compdata is inside CAS archives, not loose file
 
 ### Available API
 `FrostbiteAssetSession` has these methods:
-- `SearchAssets(string query, string? assetType = null, int maximum = 100)` — search for assets
-- `ExportLegacyAsset(string legacyPath)` — export a legacy UI asset by path
-- `ExtractAsset(string name, string assetType)` — extract any named asset by type
+- `SearchAssets(string query, string? assetType = null, int maximum = 100)` â€” search for assets
+- `ExportLegacyAsset(string legacyPath)` â€” export a legacy UI asset by path
+- `ExtractAsset(string name, string assetType)` â€” extract any named asset by type
 
 The legacy asset path for compdata TXT files would be something like:
 - `dlc/FootballCompEng/data/compdata/careermode_closedbeta/activeteams.txt`
 - `dlc/FootballCompEng/data/compdata/schedules/C17_S1_2025.txt`
 
 ### Task
-1. Read `CompdataWorkbookService.cs` fully — understand `OpenFromGameFolder` and `ReadTxtSheet` methods
-2. Read `FrostbiteAssetSession.cs` — understand `ExportLegacyAsset` and `SearchAssets` methods
+1. Read `CompdataWorkbookService.cs` fully â€” understand `OpenFromGameFolder` and `ReadTxtSheet` methods
+2. Read `FrostbiteAssetSession.cs` â€” understand `ExportLegacyAsset` and `SearchAssets` methods
 3. Modify `OpenCompdataFromGameFolder()` in `ClassicUtilitySections.cs` to:
    a. First try loose files (current behavior)
    b. If loose files not found, try extracting from CAS archives using `FrostbiteAssetSession`
@@ -193,10 +193,10 @@ _services.RecordNavigationRequested += NavigateToRecord;
 `NavigateToRecord` calls `NavigateTo(key)` then `section.GoToRecord(recordIndex)`.
 
 ### Task
-1. Read `CountriesSection.cs` fully — find the "Create National Team" button and `CreateNationalTeam()` method
+1. Read `CountriesSection.cs` fully â€” find the "Create National Team" button and `CreateNationalTeam()` method
 2. After successful national team creation, add a button or modify the message box to include "Open Team" option
 3. When clicked, navigate to Teams section: `Services.RequestRecordNavigation("teams", newTeamRecordIndex)`
-4. The Teams section already handles any team record — it will display the national team's details, roster, formation, etc.
+4. The Teams section already handles any team record â€” it will display the national team's details, roster, formation, etc.
 5. Also add an "Open Team" button for EXISTING national teams (if a country already has a linked national team, show a button to navigate to it)
 
 ### Implementation Approach
@@ -239,9 +239,9 @@ dotnet run --project src\CM26.App\CM26.App.csproj -- --layout-test
 
 - NEVER modify protected files
 - Do NOT add comments unless asked
-- Use `Theme.Body` (Segoe UI 9f) for fonts — NOT "Microsoft Sans Serif"
+- Use `Theme.Body` (Segoe UI 9f) for fonts â€” NOT "Microsoft Sans Serif"
 - Use `Theme.Panel` for panel backgrounds
 - Use `Theme.Accent` for primary buttons
 - Follow existing code patterns in each file
-- Keep changes minimal — fix the bug, don't refactor
+- Keep changes minimal â€” fix the bug, don't refactor
 - All WinForms controls must be created on the UI thread

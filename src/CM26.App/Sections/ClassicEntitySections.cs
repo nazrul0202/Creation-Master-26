@@ -38,8 +38,8 @@ public abstract class ClassicEntitySection : SectionBase
 
     protected TabPage AddCanvasTab(string title)
     {
-        var page = new TabPage(title) { BackColor = SystemColors.Control, Font = LegacyFont };
-        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = SystemColors.Control });
+        var page = new TabPage(title) { BackColor = Theme.Background, Font = LegacyFont };
+        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background });
         Tabs.TabPages.Add(page);
         return page;
     }
@@ -48,7 +48,7 @@ public abstract class ClassicEntitySection : SectionBase
 
     protected GroupBox Group(string text, Point point, Size size)
     {
-        return new GroupBox { Text = text, Location = point, Size = size, Font = LegacyFont, BackColor = SystemColors.Control };
+        return new GroupBox { Text = text, Location = point, Size = size, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text };
     }
 
     protected void AddField(Control parent, string field, string caption, Point point, int width = 150)
@@ -64,7 +64,8 @@ public abstract class ClassicEntitySection : SectionBase
             Size = new Size(captionWidth, 18),
             Font = LegacyFont,
             TextAlign = ContentAlignment.MiddleRight,
-            BackColor = SystemColors.Control,
+            BackColor = Theme.Panel,
+            ForeColor = Theme.Text,
         });
         var box = new TextBox { Location = point, Size = new Size(width, 20), Tag = field, Font = LegacyFont, BorderStyle = BorderStyle.FixedSingle };
         box.Leave += (_, _) => Commit(box);
@@ -74,7 +75,7 @@ public abstract class ClassicEntitySection : SectionBase
 
     protected PictureBox ImageSurface(Control parent, Point point, Size size, string caption)
     {
-        var holder = new Panel { Location = point, Size = new Size(size.Width, size.Height + 21), BackColor = SystemColors.Control };
+        var holder = new Panel { Location = point, Size = new Size(size.Width, size.Height + 21), BackColor = Theme.Panel };
         var pic = new PictureBox { Size = size, BackColor = Color.FromArgb(128, 128, 128), BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
         holder.Controls.Add(pic);
         holder.Controls.Add(new Label { Text = "◉  ◧  ◨   " + caption, Location = new Point(0, size.Height + 2), Size = new Size(size.Width, 18), Font = LegacyFont });
@@ -84,7 +85,7 @@ public abstract class ClassicEntitySection : SectionBase
 
     protected void AddReadonlyNote(Control parent, string text, Point point, Size size)
     {
-        parent.Controls.Add(new Label { Text = text, Location = point, Size = size, Font = LegacyFont, ForeColor = SystemColors.GrayText, TextAlign = ContentAlignment.MiddleCenter });
+        parent.Controls.Add(new Label { Text = text, Location = point, Size = size, Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, TextAlign = ContentAlignment.MiddleCenter });
     }
 
     /// <summary>Loads a local image (including DDS) without locking its source file.</summary>
@@ -126,14 +127,16 @@ public abstract class ClassicEntitySection : SectionBase
             {
                 box.Text = value.Value;
                 box.ReadOnly = !value.IsWritable;
-                box.BackColor = value.IsWritable ? Color.White : SystemColors.Control;
+                box.BackColor = value.IsWritable ? Theme.Input : Theme.Raised;
+                box.ForeColor = Theme.Text;
                 ToolTip.SetToolTip(box, value.IsWritable ? value.FieldName : value.FieldName + " (read-only)");
             }
             else
             {
                 box.Text = "";
                 box.ReadOnly = true;
-                box.BackColor = SystemColors.Control;
+                box.BackColor = Theme.Raised;
+                box.ForeColor = Theme.Muted;
                 ToolTip.SetToolTip(box, name + " is not present in this database");
             }
         }
@@ -165,7 +168,9 @@ public sealed class ManagersSection : ClassicEntitySection
         AddField(identity, "commonname", "Common Name", new Point(254, 98), 130);
         AddField(identity, "nationality", "Country", new Point(254, 124), 130);
         AddField(identity, "birthdate", "Birthdate", new Point(254, 150), 130);
-        AddField(identity, "teamid", "Playing for", new Point(254, 190), 130);
+        // Keep the team relationship below the portrait action buttons. The
+        // previous y=190 placed its caption over the Import/Remove/Export row.
+        AddField(identity, "teamid", "Playing for", new Point(254, 222), 130);
         c.Controls.Add(identity);
 
         var body = Group("Body and Look", new Point(4, 280), new Size(510, 235));
@@ -397,17 +402,20 @@ public sealed class FormationsSection : ClassicEntitySection
 {
     private readonly Panel _pitch;
     private readonly Label _pitchStatus;
+    private readonly GroupBox _pitchGroup;
 
     public FormationsSection(AppServices s) : base(s, "formations", "Formations", "formations", () => s.RequireData().GetFormations(), LabelMaps.Formations)
     {
         var general = AddCanvasTab("Position"); var c = Canvas(general);
-        var pitch = Group("Formation Preview", new Point(3, 3), new Size(575, 490));
-        _pitch = new Panel { Location = new Point(8, 20), Size = new Size(558, 430), BackColor = Color.FromArgb(43, 132, 82), BorderStyle = BorderStyle.FixedSingle };
+        _pitchGroup = Group("Formation Preview", new Point(3, 3), new Size(575, 490));
+        _pitch = new Panel { Location = new Point(8, 20), Size = new Size(558, 430), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom, BackColor = Color.FromArgb(43, 132, 82), BorderStyle = BorderStyle.FixedSingle };
         _pitch.Paint += DrawFormationPitch;
-        pitch.Controls.Add(_pitch);
-        _pitchStatus = new Label { Location = new Point(12, 455), Size = new Size(550, 20), Font = LegacyFont, ForeColor = SystemColors.GrayText };
-        pitch.Controls.Add(_pitchStatus);
-        c.Controls.Add(pitch);
+        _pitchGroup.Controls.Add(_pitch);
+        _pitchStatus = new Label { Location = new Point(12, 455), Size = new Size(550, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel };
+        _pitchStatus.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+        _pitchGroup.Controls.Add(_pitchStatus);
+        _pitchGroup.SizeChanged += (_, _) => ResizePitchPreview();
+        c.Controls.Add(_pitchGroup);
 
         var info = Group("Formation", new Point(584, 3), new Size(370, 190));
         AddField(info, "formationid", "Formation Id", new Point(150, 22), 160);
@@ -448,7 +456,23 @@ public sealed class FormationsSection : ClassicEntitySection
     protected override void OnRecordShown()
     {
         var name = Value("formationname");
-        _pitchStatus.Text = string.IsNullOrWhiteSpace(name) ? "Select a formation." : $"{name} · 11 positions";
+        var validSlots = Enumerable.Range(0, 11).Count(i =>
+            TryCoordinate(Value($"offset{i}x"), out _) && TryCoordinate(Value($"offset{i}y"), out _));
+        _pitchStatus.Text = string.IsNullOrWhiteSpace(name)
+            ? "Select a formation."
+            : $"{name} · {validSlots}/11 positions mapped";
+        ResizePitchPreview();
+        _pitch.Invalidate();
+    }
+
+    private void ResizePitchPreview()
+    {
+        if (_pitchGroup.Width <= 0 || _pitchGroup.Height <= 0) return;
+        var width = Math.Max(260, _pitchGroup.ClientSize.Width - 16);
+        var statusHeight = 22;
+        var height = Math.Max(190, _pitchGroup.ClientSize.Height - 20 - statusHeight - 8);
+        _pitch.Bounds = new Rectangle(8, 20, width, height);
+        _pitchStatus.Bounds = new Rectangle(12, _pitch.Bottom + 4, Math.Max(100, _pitchGroup.ClientSize.Width - 24), statusHeight);
         _pitch.Invalidate();
     }
 
@@ -457,7 +481,8 @@ public sealed class FormationsSection : ClassicEntitySection
         var g = e.Graphics;
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         g.Clear(Color.FromArgb(43, 132, 82));
-        var field = new Rectangle(9, 9, _pitch.Width - 19, _pitch.Height - 19);
+        if (_pitch.ClientSize.Width < 100 || _pitch.ClientSize.Height < 100) return;
+        var field = new Rectangle(9, 9, Math.Max(1, _pitch.Width - 19), Math.Max(1, _pitch.Height - 19));
         using (var stripe = new SolidBrush(Color.FromArgb(18, 255, 255, 255)))
         {
             var stripeHeight = Math.Max(1, field.Height / 8);
@@ -481,13 +506,16 @@ public sealed class FormationsSection : ClassicEntitySection
         for (var i = 0; i < 11; i++)
         {
             if (!TryCoordinate(Value($"offset{i}x"), out var x) || !TryCoordinate(Value($"offset{i}y"), out var y)) continue;
-            var position = NameResolverService.PositionLabel(Parse(Value($"position{i}")));
+            var rawPosition = Value($"position{i}");
+            var position = int.TryParse(rawPosition, out var positionCode)
+                ? NameResolverService.PositionLabel(positionCode)
+                : "—";
             const int boxWidth = 88, boxHeight = 48;
             // Stored offsets describe the centre of a player marker.  Using
             // them as the top-left corner pushed GK/CB labels into each other
             // at the upper boundary.
-            var centreX = 12 + (int)Math.Round(x * (_pitch.Width - 48));
-            var centreY = 12 + (int)Math.Round(y * (_pitch.Height - 40));
+            var centreX = 12 + (int)Math.Round(x * Math.Max(1, _pitch.Width - 48));
+            var centreY = 12 + (int)Math.Round(y * Math.Max(1, _pitch.Height - 40));
             var left = Math.Clamp(centreX - (boxWidth / 2), 12, _pitch.Width - boxWidth - 12);
             var top = Math.Clamp(centreY - (boxHeight / 2), 12, _pitch.Height - boxHeight - 12);
             var box = FindFreeFormationBox(left, top, boxWidth, boxHeight, occupied);
@@ -565,7 +593,8 @@ public sealed class KitsSection : ClassicEntitySection
             Location = new Point(142, 531),
             Size = new Size(560, 18),
             Font = LegacyFont,
-            ForeColor = SystemColors.GrayText,
+            ForeColor = Theme.Muted,
+            BackColor = Theme.Panel,
         };
         texture.Controls.Add(_assetStatus);
         c.Controls.Add(texture);
@@ -745,7 +774,7 @@ public sealed class KitsSection : ClassicEntitySection
     {
         if (IsDisposed) return;
         _assetStatus.Text = text;
-        _assetStatus.ForeColor = isError ? Color.DarkGoldenrod : SystemColors.GrayText;
+        _assetStatus.ForeColor = isError ? Theme.Warning : Theme.Muted;
         ToolTip.SetToolTip(_assetStatus, text);
     }
 }

@@ -1,24 +1,24 @@
-# Engine Data Integrity Audit — CM26
+﻿# Engine Data Integrity Audit â€” CM26
 
 Date: 2026-07-28
-Database folder: `D:\CM 26 Final\database` (read-only)
+Database folder: `<repo>\database` (read-only)
 
-## 1. Phase 1 — Engine baseline
+## 1. Phase 1 â€” Engine baseline
 
 | Item | Value |
 |------|-------|
-| Protected `database_engine.h` SHA-256 | `887B7A35…` MATCH |
-| Protected `database_engine.cpp` SHA-256 | `92600FBE…` (formatting-only drift from `92600FBE…`, proven behaviour-neutral) |
-| Protected `engine_smoke.cpp` SHA-256 | `BFF66D9A…` MATCH |
-| `fifa_ng_db.db` SHA-256 | `A5CF1D9D…` MATCH |
-| `eng_us.DB` SHA-256 | `9E9396D3…` MATCH |
+| Protected `database_engine.h` SHA-256 | `887B7A35â€¦` MATCH |
+| Protected `database_engine.cpp` SHA-256 | `92600FBEâ€¦` (formatting-only drift from `92600FBEâ€¦`, proven behaviour-neutral) |
+| Protected `engine_smoke.cpp` SHA-256 | `BFF66D9Aâ€¦` MATCH |
+| `fifa_ng_db.db` SHA-256 | `A5CF1D9Dâ€¦` MATCH |
+| `eng_us.DB` SHA-256 | `9E9396D3â€¦` MATCH |
 | Build command | `build-managed.cmd` (MSBuild Release\|x64 + native cl + EngineSmokeTest) |
 | Build result | PASS, 0 errors |
 | Engine smoke result | EXIT=0 (279 tables, 360,298 rows, locale round-trip + edits verified) |
 
-## 2. Phase 2 — Diagnostic harness
+## 2. Phase 2 â€” Diagnostic harness
 
-`tools\EngineDiagnostics\CM26.EngineDiagnostics.exe` — read-only, no WinForms. Commands:
+`tools\EngineDiagnostics\CM26.EngineDiagnostics.exe` â€” read-only, no WinForms. Commands:
 `--show-loaded-files`, `--list-tables`, `--describe-table`, `--dump-country`, `--dump-player`,
 `--trace-country-confederation`, `--trace-player-name`, `--compare-bridge`, `--cache-switch-test`,
 `--full-integrity-test`.
@@ -27,18 +27,18 @@ Database folder: `D:\CM 26 Final\database` (read-only)
 
 | File | Resolved path | SHA-256 (prefix) |
 |------|---------------|------------------|
-| meta | `D:\CM 26 Final\database\fifa_ng_db-meta.XML` | `38D5B4B5…` |
-| database | `D:\CM 26 Final\database\fifa_ng_db.db` | `A5CF1D9D…` |
-| locale | `D:\CM 26 Final\database\eng_us.DB` | `9E9396D3…` |
+| meta | `<repo>\database\fifa_ng_db-meta.XML` | `38D5B4B5â€¦` |
+| database | `<repo>\database\fifa_ng_db.db` | `A5CF1D9Dâ€¦` |
+| locale | `<repo>\database\eng_us.DB` | `9E9396D3â€¦` |
 
 No `sample db extracted`, no `FC26 Modern Database Studio`, no TXT/XLSX export is opened (verified by
 harness output + `--name-tests` file-access guard = clean).
 
-## 4. Phase 3–6 — Schema, country, player, bridge
+## 4. Phase 3â€“6 â€” Schema, country, player, bridge
 
 - **Schema (Phase 3):** engine field order/offset/width/type match meta XML. PASS. (See
   `RAW_SCHEMA_COMPARISON.md`.)
-- **Country/confederation (Phase 4):** Afghanistan raw code = 5; current mapping `5→AFC` correct;
+- **Country/confederation (Phase 4):** Afghanistan raw code = 5; current mapping `5â†’AFC` correct;
   13/13 ground-truth PASS. The "CAF" symptom comes from stale binaries. (See
   `COUNTRY_CONFEDERATION_AUDIT.md`.)
 - **Player names (Phase 5):** `playernames.name` is EA-ciphered `0xC4` placeholder; engine/bridge
@@ -46,18 +46,18 @@ harness output + `--name-tests` file-access guard = clean).
 - **Engine vs bridge (Phase 6):** integers, strings, byte arrays all transfer faithfully. PASS. (See
   `ENGINE_BRIDGE_COMPARISON.md`.)
 
-## 5. Phase 7 — Service/resolver/cache
+## 5. Phase 7 â€” Service/resolver/cache
 
 - `NameResolverService.ConfederationLabel`: correct (derived from DB).
 - `PlayerNameService`/`DatabasePlayerNameSource`: correct, honest fallback.
 - Cache-switch test: reloading the folder clears and rebuilds caches. PASS.
 - No values retained across sessions; no hard-coded dev paths; no external-export dependency.
 
-## 6. Phase 8 — Root-cause classification
+## 6. Phase 8 â€” Root-cause classification
 
 | Issue | Class | First incorrect layer | Evidence |
 |-------|-------|------------------------|---------|
-| Afghanistan shown as CAF | H (UI/binary) | stale binary only | current source `5→AFC` PASS; old binary `5→CAF` |
+| Afghanistan shown as CAF | H (UI/binary) | stale binary only | current source `5â†’AFC` PASS; old binary `5â†’CAF` |
 | Player names numeric | A (physical DB) | `playernames.name` cipher | bytes `[C4 C4 C4 44 C4]`; 0 decodable |
 | (earlier) numeric as surname | H (UI) | `TeamsSection.ShowRecord` split | already fixed; `bareNumeric=0` |
 
@@ -65,7 +65,7 @@ harness output + `--name-tests` file-access guard = clean).
 
 | Layer | Verdict |
 |-------|---------|
-| Physical DB | PASS (confederation correct; names ciphered by design — not a corruption) |
+| Physical DB | PASS (confederation correct; names ciphered by design â€” not a corruption) |
 | Metadata/schema | PASS |
 | Native engine | PASS |
 | C++/CLI bridge | PASS |
@@ -82,7 +82,7 @@ harness output + `--name-tests` file-access guard = clean).
 | 2 | DB-file SHA-256 | PASS |
 | 3 | Schema comparison | PASS |
 | 4 | Country raw-row | PASS |
-| 5 | Afghanistan trace | PASS (code 5 → AFC) |
+| 5 | Afghanistan trace | PASS (code 5 â†’ AFC) |
 | 6 | All-country confederation | PASS (13/13; 218 total) |
 | 7 | Player raw-row | PASS |
 | 8 | 150-player sample | PASS (honest fallback) |
@@ -101,13 +101,13 @@ harness output + `--name-tests` file-access guard = clean).
 | 21 | Managed tests (`--name-tests`) | PASS (EXIT=0) |
 | 22 | Scratch save round-trip | PASS (VERIFIED) |
 | 23 | Protected-file SHA-256 | PASS (all MATCH) |
-| 24 | Original DB SHA-256 | PASS (A5CF1D9D…, 9E9396D3…) |
+| 24 | Original DB SHA-256 | PASS (A5CF1D9Dâ€¦, 9E9396D3â€¦) |
 
 ## 9. Remaining risk
 
 - **Stale binaries** in `build_updated\`, `publish\`, `publish_fdd\`, `Release\CM26\` still contain the
   old confederation mapping. Users must run the 28-July packages (`Release\CM26_v1.0_*`) or rebuild.
-- **Player names** remain `Player {id}` until EA's cipher key or a decoded source is available — by
+- **Player names** remain `Player {id}` until EA's cipher key or a decoded source is available â€” by
   design, no fabrication.
 
 ## 10. Files created/modified this phase

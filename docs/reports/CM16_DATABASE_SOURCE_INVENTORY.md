@@ -1,6 +1,6 @@
-# CM16 database source inventory
+﻿# CM16 database source inventory
 
-Located under `D:\FC26 FILE TOOL\cm16 source code\FifaLibrary16.dll\FifaLibrary`:
+Located under `<FC26 tools>\cm16 source code\FifaLibrary16.dll\FifaLibrary`:
 
 - `DbFile.cs` (15,523 B), `DbReader.cs` (3,895 B), `DbWriter.cs` (5,117 B)
 - `Table.cs` (13,885 B), `Record.cs` (22,608 B), `TableDescriptor.cs` (8,213 B), `FieldDescriptor.cs` (3,781 B)

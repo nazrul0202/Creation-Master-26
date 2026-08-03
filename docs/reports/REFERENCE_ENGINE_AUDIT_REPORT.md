@@ -1,11 +1,11 @@
-# Reference Engine Audit Report — CM26
+﻿# Reference Engine Audit Report â€” CM26
 
 Date: 2026-07-28
-Scope: full audit of `D:\Creation Master 26` (reference project) against `D:\CM 26 Final`.
+Scope: full audit of `<FC26 tools>` (reference project) against `<repo>`.
 
 ## 1. Executive summary
 
-The reference project (`D:\Creation Master 26`) was audited to determine whether it contains a more
+The reference project (`<FC26 tools>`) was audited to determine whether it contains a more
 complete database-reading or name-resolution engine. After exhaustive source-code analysis, the
 conclusion is:
 
@@ -23,12 +23,12 @@ No component was adapted. No files were modified. The current project is more ca
 
 | Layer | Reference | Current | Notes |
 |-------|-----------|---------|-------|
-| Physical DB | **different version** | PASS | Reference bundles different DB (BC537D5B… vs A5CF1D9D…) |
+| Physical DB | **different version** | PASS | Reference bundles different DB (BC537D5Bâ€¦ vs A5CF1D9Dâ€¦) |
 | Metadata | PASS | PASS | Both read meta XML correctly |
 | Reference native reader (C#) | **FAIL** for locale | PASS (C++) | Reference admits it cannot decrypt eng_us.DB |
 | Current native reader (C++) | N/A | PASS | AES + Huffman work (smoke EXIT=0) |
 | Reference locale decoder | **FAIL** | PASS | Reference: "cannot parse losslessly without EA key" |
-| Current locale decoder | N/A | PASS (AES+Huffman) | Cipher remains — same blocker as reference |
+| Current locale decoder | N/A | PASS (AES+Huffman) | Cipher remains â€” same blocker as reference |
 | Reference name resolver | **external overlay** | DB-native + honest | Reference uses CSV; current uses DB directly |
 | Current name resolver | N/A | PASS | Honest `Player {id}` fallback |
 | C++/CLI bridge | N/A (none) | PASS | Current has validated bridge |
@@ -49,7 +49,7 @@ Its `LanguageDbResolver` admits: "Without the EA key the binary cannot be parsed
 `assets/database/player_name_map.csv` (a manual CSV with hard-coded `playerid,displayname` pairs).
 
 ### Q4: Which tables/fields are used?
-Same tables as current: `players.firstnameid/lastnameid/commonnameid → playernames.nameid`. But the
+Same tables as current: `players.firstnameid/lastnameid/commonnameid â†’ playernames.nameid`. But the
 reference resolves them through CSV, not through `playernames.name` (which is ciphered).
 
 ### Q5: Does it contain a locale/cipher decoder?
@@ -77,15 +77,15 @@ It cannot decrypt the locale. It uses external files for names. It bundles a dif
 
 ## 5. Protected files status
 
-All protected files in `D:\CM 26 Final` remain **unchanged** (no modifications were made):
+All protected files in `<repo>` remain **unchanged** (no modifications were made):
 
 | File | SHA-256 | Status |
 |------|---------|--------|
-| `src/database_engine.h` | `887B7A35…` | unchanged |
-| `src/database_engine.cpp` | `92600FBE…` | unchanged |
-| `tests/engine_smoke.cpp` | `BFF66D9A…` | unchanged |
-| `database/fifa_ng_db.db` | `A5CF1D9D…` | unchanged |
-| `database/eng_us.DB` | `9E9396D3…` | unchanged |
+| `src/database_engine.h` | `887B7A35â€¦` | unchanged |
+| `src/database_engine.cpp` | `92600FBEâ€¦` | unchanged |
+| `tests/engine_smoke.cpp` | `BFF66D9Aâ€¦` | unchanged |
+| `database/fifa_ng_db.db` | `A5CF1D9Dâ€¦` | unchanged |
+| `database/eng_us.DB` | `9E9396D3â€¦` | unchanged |
 
 ## 6. Test results
 
@@ -101,7 +101,7 @@ stand (all PASS from the prior phases).
 ## 8. Exact next action
 
 1. **Do not adapt any reference component.** It is less capable and depends on external files.
-2. For real player names: either re-allow a local readable export (CSV/TXT/XLSX) — the user's
-   choice — or keep the honest `Player {id}` fallback.
+2. For real player names: either re-allow a local readable export (CSV/TXT/XLSX) â€” the user's
+   choice â€” or keep the honest `Player {id}` fallback.
 3. The current confederation mapping is verified correct (13/13 PASS). Ensure only the 28-July
    rebuilt binaries are used (stale binaries were the cause of the "Afghanistan in CAF" report).
