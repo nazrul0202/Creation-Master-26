@@ -178,6 +178,14 @@ public static class Theme
                     tree.Font = Body;
                     tree.LineColor = Border;
                     break;
+                case SplitContainer split:
+                    split.BackColor = Background;
+                    split.ForeColor = Text;
+                    break;
+                case SplitterPanel splitPanel:
+                    splitPanel.BackColor = Background;
+                    splitPanel.ForeColor = Text;
+                    break;
                 case TabControl tabs:
                     tabs.BackColor = Panel;
                     tabs.ForeColor = Text;
