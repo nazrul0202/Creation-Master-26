@@ -437,6 +437,7 @@ public sealed class LeaguesSection : SectionBase
     {
         parent.Controls.Add(new Label { Text = label, Location = new Point(10, location.Y + 3), Size = new Size(Math.Max(72, location.X - 15), 18), Font = LegacyFont });
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, BorderStyle = BorderStyle.FixedSingle };
+        Theme.ApplyTextBox(editor);
         editor.Leave += (_, _) => Commit(editor);
         parent.Controls.Add(editor);
         _editors.Add(editor);

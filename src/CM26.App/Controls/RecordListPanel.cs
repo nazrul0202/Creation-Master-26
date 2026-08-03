@@ -32,10 +32,10 @@ public sealed class RecordListPanel : UserControl
 
         _search = new SearchBar { Dock = DockStyle.Top };
         _grid = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, VirtualMode = false };
-        Theme.ApplyGrid(_grid);
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Title", HeaderText = "Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Sub", HeaderText = "", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, FillWeight = 60 });
         _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Det", HeaderText = "", Width = 92 });
+        Theme.ApplyGrid(_grid);
 
         var footer = new BufferedPanel { Dock = DockStyle.Bottom, Height = Theme.ControlHeight + 12, Padding = new Padding(Theme.Space, 6, Theme.Space, 4) };
         _prev = MakeBtn("◀ Prev"); _next = MakeBtn("Next ▶"); _refresh = MakeBtn("⟳");

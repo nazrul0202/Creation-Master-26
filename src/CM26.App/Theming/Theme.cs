@@ -76,6 +76,40 @@ public static class Theme
         c.Font = Body;
     }
 
+    /// <summary>
+    /// Themes a Details-view ListView. WinForms does not expose header colours, so
+    /// the column header background/text are set through the standard header control
+    /// messages (HDM_SETBKCOLOR / HDM_SETTEXTCOLOR).
+    /// </summary>
+    public static void ApplyListView(ListView list)
+    {
+        list.BackColor = Input;
+        list.ForeColor = Text;
+        list.Font = Body;
+        list.FullRowSelect = true;
+        if (!list.IsHandleCreated) list.HandleCreated += (_, _) => SetListHeader(list);
+        else SetListHeader(list);
+    }
+
+    private static void SetListHeader(ListView list)
+    {
+        if (list.View != View.Details || list.Handle == IntPtr.Zero) return;
+        IntPtr header = NativeMethods.SendMessage(list.Handle, NativeMethods.LVM_GETHEADER, IntPtr.Zero, IntPtr.Zero);
+        if (header == IntPtr.Zero) return;
+        NativeMethods.SendMessage(header, NativeMethods.HDM_SETTEXTCOLOR, IntPtr.Zero, (IntPtr)ColorTranslator.ToWin32(Text));
+        NativeMethods.SendMessage(header, NativeMethods.HDM_SETBKCOLOR, IntPtr.Zero, (IntPtr)ColorTranslator.ToWin32(Raised));
+    }
+
+    private static class NativeMethods
+    {
+        internal const int LVM_GETHEADER = 0x101F;
+        internal const int HDM_SETTEXTCOLOR = 0x1204;
+        internal const int HDM_SETBKCOLOR = 0x1202;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        internal static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+    }
+
     public static void ApplyGrid(DataGridView g)
     {
         g.BackgroundColor = Background;
@@ -168,9 +202,7 @@ public static class Theme
                     ApplyGrid(grid);
                     break;
                 case ListView list:
-                    list.BackColor = Input;
-                    list.ForeColor = Text;
-                    list.Font = Body;
+                    ApplyListView(list);
                     break;
                 case TreeView tree:
                     tree.BackColor = Input;

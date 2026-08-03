@@ -479,6 +479,7 @@ public sealed class PlayersSection : SectionBase
             var y = top + (row++ * rowHeight);
             parent.Controls.Add(new Label { Text = label, Location = new Point(labelX, y + 4), AutoSize = true, Font = LegacyFont });
             var edit = new TextBox { Location = new Point(editorX, y), Size = new Size(width, 20), Font = LegacyFont, Tag = field };
+            Theme.ApplyTextBox(edit);
             edit.Leave += (_, _) => StageEdit(edit);
             _editors.Add(edit);
             parent.Controls.Add(edit);
@@ -491,7 +492,7 @@ public sealed class PlayersSection : SectionBase
         var value = new TextBox
         {
             Location = new Point(location.X + 125, location.Y), Size = new Size(115, 20),
-            BorderStyle = BorderStyle.FixedSingle, BackColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle, BackColor = Theme.Input, ForeColor = Theme.Text,
             TextAlign = HorizontalAlignment.Center, Font = new Font(LegacyFont, FontStyle.Bold), Tag = field
         };
         value.Leave += (_, _) => StageSummary(value);
@@ -791,6 +792,7 @@ public sealed class PlayersSection : SectionBase
             var y = 24 + ((index / 2) * 30);
             _traitsPanel.Controls.Add(new Label { Text = FieldLabel(field), Location = new Point(x, y + 4), Size = new Size(160, 18), Font = LegacyFont, ForeColor = Theme.Text });
             var editor = new TextBox { Location = new Point(x + 165, y), Size = new Size(105, 20), Font = LegacyFont, Tag = field };
+            Theme.ApplyTextBox(editor);
             editor.Leave += (_, _) => StageEdit(editor);
             _editors.Add(editor);
             _traitEditors.Add(editor);

@@ -487,6 +487,7 @@ public sealed class CountriesSection : SectionBase
                 Location = new Point(x + 170, y), Size = new Size(145, 20),
                 Font = LegacyFont, Tag = fields[index].Item2
             };
+            Theme.ApplyTextBox(editor);
             editor.Leave += (_, _) => CommitNationalAudio(editor);
             _audioEditors.Add(editor);
             box.Controls.Add(editor);
@@ -552,6 +553,7 @@ public sealed class CountriesSection : SectionBase
     {
         parent.Controls.Add(new Label { Text = label, Location = new Point(11, location.Y + 3), Size = new Size(location.X - 16, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft, ForeColor = Theme.Text, BackColor = Theme.Panel });
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, BorderStyle = BorderStyle.FixedSingle };
+        Theme.ApplyTextBox(editor);
         editor.Leave += (_, _) => Commit(editor);
         parent.Controls.Add(editor);
         _editors.Add(editor);

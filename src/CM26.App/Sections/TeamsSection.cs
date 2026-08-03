@@ -416,6 +416,7 @@ public sealed class TeamsSection : SectionBase
             ("Defence Rating", "defenserating"), ("Ball Number", "ballid")
         }, 10, 40, 98, 158, 26);
         var search = new TextBox { Location = new Point(105, 340), Size = new Size(84, 21), Font = LegacyFont };
+        Theme.ApplyTextBox(search);
         var find = LegacyButton("Find", new Point(195, 338), new Size(58, 24));
         find.Click += (_, _) => FindTeam(search.Text);
         search.KeyDown += (_, eventArgs) => { if (eventArgs.KeyCode == Keys.Enter) { FindTeam(search.Text); eventArgs.SuppressKeyPress = true; } };
@@ -1265,6 +1266,7 @@ public sealed class TeamsSection : SectionBase
             var y = top + (row++ * rowHeight);
             parent.Controls.Add(new Label { Text = label, Location = new Point(labelX, y + 4), AutoSize = true, Font = LegacyFont });
             var editor = new TextBox { Location = new Point(editorX, y), Size = new Size(editorWidth, 20), Font = LegacyFont, Tag = field };
+            Theme.ApplyTextBox(editor);
             editor.Leave += (_, _) => StageEditor(editor);
             _editors.Add(editor);
             parent.Controls.Add(editor);

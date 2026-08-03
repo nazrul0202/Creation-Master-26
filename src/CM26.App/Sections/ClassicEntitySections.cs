@@ -68,6 +68,7 @@ public abstract class ClassicEntitySection : SectionBase
             ForeColor = Theme.Text,
         });
         var box = new TextBox { Location = point, Size = new Size(width, 20), Tag = field, Font = LegacyFont, BorderStyle = BorderStyle.FixedSingle };
+        Theme.ApplyTextBox(box);
         box.Leave += (_, _) => Commit(box);
         parent.Controls.Add(box);
         _editors.Add(box);
