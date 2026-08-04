@@ -1,0 +1,28 @@
+<Project>
+
+  <!-- Single source of truth for the public release version.
+       Every managed project inherits these values, so a release bump happens
+       here only. Release\assemble_packages.ps1 and the CI workflow read the
+       same number back out of version.json and fail if the two disagree. -->
+  <PropertyGroup>
+    <CM26Version>1.0.25</CM26Version>
+
+    <Version>$(CM26Version)</Version>
+    <AssemblyVersion>$(CM26Version).0</AssemblyVersion>
+    <FileVersion>$(CM26Version).0</FileVersion>
+    <InformationalVersion>$(CM26Version)</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+
+    <Company>Rizco98</Company>
+    <Product>Creation Master 26</Product>
+    <Copyright>Community tool by Rizco98 — not affiliated with or endorsed by EA SPORTS</Copyright>
+  </PropertyGroup>
+
+  <!-- Release output ships without PDBs and without embedded absolute build paths. -->
+  <PropertyGroup>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
+    <PathMap>$(MSBuildProjectDirectory)\=cm26\,$(MSBuildThisFileDirectory)=cm26\</PathMap>
+  </PropertyGroup>
+
+</Project>

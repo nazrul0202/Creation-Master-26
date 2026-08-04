@@ -1,5 +1,54 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.25 - release integrity and portability (2026-08-05)
+
+This release fixes issues found in a full pre-distribution audit. Most are
+invisible in normal use, but two of them affected every user.
+
+- **Fixed: the tool looked for the scraper on the developer's own drive.** Data
+  Sync probed a hardcoded `D:\FC26 FILE TOOL\...` path that only existed on the
+  author's PC. Detection is now fully portable: the folder you set in Settings,
+  a `CM26 Scraper` folder next to CM26, or a drive-root copy. Pointing Settings
+  directly at `CM26 Scraper.exe` now works too, instead of silently finding
+  nothing.
+- **Fixed: a disconnected network drive could freeze the app.** Tool and asset
+  detection enumerated *every* drive, so a dead mapped drive stalled Data Sync,
+  the 3D viewer search and asset-pack detection for the full network timeout.
+  Only local fixed and removable drives are scanned now.
+- **Fixed: a malformed folder path could crash tool detection.** A pasted path
+  containing invalid characters threw instead of being rejected.
+- **Removed the bundled CM26 Scraper.** Its data set contained game database
+  content, which contradicted this project's own licence promise not to
+  redistribute EA content. The scraper is now an **optional separate download**;
+  Data Sync explains how to add it and works exactly as before once you point
+  CM26 at your copy. Everything else is unaffected, and the Lite package is
+  substantially smaller. The Transfermarkt preview still needs no scraper.
+- **Fixed: the 3D viewer could ship a stale or missing component.** `CM26.MeshKit`
+  was not part of the solution, so a Release build produced it into a Debug
+  folder while packaging copied an older Release copy. It is now built and
+  packaged from one place, and a publish **fails** instead of quietly producing a
+  package with an empty `Tools` folder.
+- **Fixed: diagnostic output was invisible.** The `--smoke`, `--nav-test` and
+  other command-line diagnostics printed nothing in a terminal because the app is
+  a windowed executable. They now attach to the calling console.
+- **Fixed: the licence agreement showed the wrong version** (1.0.23 in the 1.0.24
+  release) and its no-game-content statement is now precise and verifiable.
+- **The build now works on any Visual Studio edition.** All six build scripts
+  hardcoded a *VS2022 Enterprise* path, so nobody with Community, Build Tools or a
+  non-default install could compile the project. They now locate the toolchain
+  with `vswhere`, and report a clear message when the C++ workload is missing.
+- **Reproducible, self-verifying release process.** One version number drives every
+  assembly (`Directory.Build.props`); packaging now *fails* rather than warns on a
+  missing file, a stale build, a leftover debug symbol, a version mismatch, or any
+  game content in the package — and produces the zips and SHA-256 checksums itself.
+- **Added automated tests and CI.** A new `--release-selftest` mode runs 7 checks
+  that need no game installation, and a GitHub Actions workflow builds the project,
+  runs the native engine test and the self-test, and blocks game content from ever
+  being committed. Previously nothing was verified automatically.
+- **Added `docs/BUILDING.md`** documenting prerequisites, build order, every test
+  and the full release procedure, so the project can actually be built by someone
+  else.
+
 ## Version 1.0.24 - processing exception fixes across every editor section (2026-08-04)
 
 - **Fixed: "3D Face Viewer" button could crash the app.** The player face-viewer

@@ -1,0 +1,89 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    # windows-latest ships the .NET 8 SDK and Visual Studio with the C++ workload,
+    # which is everything the build needs. vsenv.cmd finds VS via vswhere, so no
+    # edition or install path is assumed.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Show toolchain
+        shell: cmd
+        run: |
+          call vsenv.cmd || exit /b 1
+          where cl.exe
+          where msbuild.exe
+          dotnet --version
+
+      - name: Build engine bridge, solution and native engine
+        shell: cmd
+        run: build-managed.cmd
+
+      # build-managed.cmd already runs EngineSmokeTest.exe and fails on non-zero,
+      # but assert the artifact exists so a silent skip cannot pass as success.
+      - name: Verify native engine test artifact
+        shell: pwsh
+        run: |
+          if (-not (Test-Path 'EngineSmokeTest.exe')) {
+            throw 'EngineSmokeTest.exe was not produced.'
+          }
+
+      - name: Build native regression probes
+        shell: cmd
+        run: |
+          call build-cascade-smoke.cmd || exit /b 1
+          call build-structural-read.cmd || exit /b 1
+          call build-structural-smoke.cmd || exit /b 1
+
+      - name: Release self-test (no game installation required)
+        shell: pwsh
+        run: |
+          $exe = 'src\CM26.App\bin\Release\net8.0-windows\CM26_by_Rizco98.exe'
+          if (-not (Test-Path $exe)) { throw "Build output not found: $exe" }
+          & $exe --release-selftest
+          if ($LASTEXITCODE -ne 0) { throw "Release self-test failed (exit $LASTEXITCODE)." }
+
+      - name: Verify version consistency
+        shell: pwsh
+        run: |
+          $manifest = (Get-Content version.json -Raw | ConvertFrom-Json).version
+          $node = ([xml](Get-Content Directory.Build.props -Raw)).SelectSingleNode('//CM26Version')
+          if (-not $node) { throw 'Directory.Build.props does not define CM26Version.' }
+          $props = $node.InnerText.Trim()
+          if ($props -ne $manifest) {
+            throw "version.json='$manifest' but Directory.Build.props='$props'."
+          }
+          $exeVersion = (Get-Item 'src\CM26.App\bin\Release\net8.0-windows\CM26_by_Rizco98.exe').VersionInfo.FileVersion
+          if ($exeVersion -notmatch [regex]::Escape($manifest)) {
+            throw "Built exe FileVersion '$exeVersion' does not match version.json '$manifest'."
+          }
+          Write-Host "Version consistent: $manifest (exe $exeVersion)"
+
+      # EULA.md promises the distribution contains no EA game content. Fail the
+      # build if any such file is ever committed to the repository.
+      - name: Verify no EA game content is committed
+        shell: pwsh
+        run: |
+          $blocked = '*.fcepatch','*.dbc','*.dbp','*.db','*.sqlite','*.big','*.ebx','*.res','*.chunk'
+          $tracked = git ls-files
+          $hits = foreach ($pattern in $blocked) { $tracked | Where-Object { $_ -like $pattern } }
+          if ($hits) {
+            $hits | ForEach-Object { Write-Host "::error file=$_::EA game content must not be committed" }
+            throw "$($hits.Count) EA game-content file(s) are tracked in git."
+          }
+          Write-Host 'No EA game content is tracked.'

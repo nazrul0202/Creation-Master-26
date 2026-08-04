@@ -7,10 +7,7 @@
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RootNamespace>CM26.Application</RootNamespace>
-    <!-- Release ships without PDBs and without embedded absolute build/source paths. -->
-    <DebugSymbols>false</DebugSymbols>
-    <DebugType>none</DebugType>
-    <PathMap>$(MSBuildProjectDirectory)\=cm26\,$(SolutionDir)\=cm26\</PathMap>
+    <!-- Version and release debug/PathMap settings are inherited from Directory.Build.props. -->
   </PropertyGroup>
 
   <ItemGroup>

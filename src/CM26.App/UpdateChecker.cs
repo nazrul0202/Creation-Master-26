@@ -38,7 +38,11 @@ public static class UpdateChecker
             var json = await client.GetStringAsync(ManifestUrl, cancellationToken);
             var latest = ParseLatestVersion(json);
             if (latest == null) return null;
-            var newer = latest > LocalVersion;
+            // Compare on MAJOR.MINOR.PATCH only. The assembly carries a 4-part
+            // version (1.0.25.0) while the manifest publishes 3 parts (1.0.25);
+            // an unspecified component sorts as -1, so comparing them directly
+            // would make an equal release look older or newer than it is.
+            var newer = Normalize(latest) > Normalize(LocalVersion);
             SettingsService.LastUpdateCheckTicks = DateTime.UtcNow.Ticks.ToString();
             return new CheckResult(newer, latest.ToString(3), newer
                 ? Localization.T("Update.Available") : Localization.T("Update.Current"));
@@ -49,8 +53,11 @@ public static class UpdateChecker
         }
     }
 
-    private static bool HasCheckedRecently()
-    {
+    /// <summary>Reduces a version to MAJOR.MINOR.PATCH with no unspecified components.</summary>
+    private static Version Normalize(Version version) =>
+        new(version.Major, version.Minor, Math.Max(version.Build, 0));
+
+    private static bool HasCheckedRecently()    {
         if (!long.TryParse(SettingsService.LastUpdateCheckTicks, out var ticks)) return false;
         var last = new DateTime(ticks, DateTimeKind.Utc);
         return (DateTime.UtcNow - last).TotalHours < 24;

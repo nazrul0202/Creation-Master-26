@@ -9,8 +9,7 @@
     <AppendPlatformToOutputPath>false</AppendPlatformToOutputPath>
     <AssemblyName>CM26.AssetBridge</AssemblyName>
     <RootNamespace>CM26.AssetBridge</RootNamespace>
-    <DebugSymbols>false</DebugSymbols>
-    <DebugType>none</DebugType>
+    <!-- Version and release debug settings are inherited from Directory.Build.props. -->
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\CM26.MeshKit\CM26.MeshKit.csproj" />

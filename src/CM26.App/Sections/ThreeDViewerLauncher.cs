@@ -157,8 +157,7 @@ internal static class ThreeDViewerLauncher
         if (!string.IsNullOrWhiteSpace(SettingsService.AssetRoot))
             roots.Add(SettingsService.AssetRoot);
         roots.Add(Path.Combine(AppContext.BaseDirectory, "ExportedAssets", "Models"));
-        foreach (var drive in DriveInfo.GetDrives().Where(d => d.IsReady))
-            roots.Add(Path.Combine(drive.RootDirectory.FullName, "FC26 FILE TOOL"));
+        roots.AddRange(ExternalToolLocator.DriveRootFolders("FC26 FILE TOOL"));
         return roots.Where(Directory.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 }

@@ -1,6 +1,6 @@
 # End User License Agreement — Creation Master 26
 
-**Version 1.0.23 · © 2026 Rizco98**
+**Version 1.0.25 · © 2026 Rizco98**
 
 This software is **licensed, not sold**. By installing or using Creation Master 26
 you agree to the full terms in the [`LICENSE`](LICENSE) file. A plain-language
@@ -25,7 +25,17 @@ or deleted original.
 ## Unofficial, independent tool
 Creation Master 26 is an **unofficial, independent community tool**. It is **not
 affiliated with, endorsed by, or sponsored by EA SPORTS or Electronic Arts**.
-It does not bundle or redistribute EA game content.
+
+The distributed package contains no EA game content: no database tables, no
+schema files, no audio, textures, meshes or name lists are bundled or
+redistributed. Creation Master 26 reads and writes only the files already present
+in the copy of the game **you** have installed and are licensed to use. The
+release build is checked automatically before packaging and will not be produced
+if EA-derived data is present.
+
+Optional third-party helpers (such as the separately downloaded CM26 Scraper)
+are not part of this Software and are governed by their own terms; you are
+responsible for how you obtain and use them.
 
 ## Agreement
 Using the Software constitutes acceptance of these terms. If you do not agree,

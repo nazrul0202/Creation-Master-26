@@ -1,10 +1,17 @@
 @echo off
 REM Build the full CM26 solution (native bridge + managed app) and the native engine test.
 setlocal
-set MSBUILD="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
+call "%~dp0vsenv.cmd" || exit /b 1
+
+echo === Building native engine bridge (Release ^| x64) ===
+REM The managed app references CM26.EngineBridge.dll by HintPath, so the bridge
+REM must exist before the solution build runs. Building it explicitly first makes
+REM a fresh clone work without relying on MSBuild project scheduling.
+call "%~dp0build-bridge.cmd"
+if errorlevel 1 ( echo BRIDGE BUILD FAILED & exit /b 1 )
 
 echo === Building full solution (Release ^| x64) ===
-%MSBUILD% "%~dp0CM26.slnx" /p:Configuration=Release /p:Platform=x64 /v:m /nologo
+msbuild "%~dp0CM26.slnx" /p:Configuration=Release /p:Platform=x64 /v:m /nologo
 if errorlevel 1 ( echo SOLUTION BUILD FAILED & exit /b 1 )
 
 echo === Building native engine + smoke test ===

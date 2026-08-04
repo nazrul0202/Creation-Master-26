@@ -1,6 +1,6 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.24, 2026-08-04.
+Status: Version 1.0.25, 2026-08-05.
 
 ## Direct editing
 
@@ -67,15 +67,22 @@ FBX itself, so a face with no extracted FBX cannot be rendered in 3D.
 
 ## Transfermarkt and local scraper
 
-The Data Sync page opens the bundled CM26 Scraper (`Tools\CM26 Scraper\` in the
-package, or a detected external copy), discovers its latest `squad_*.xlsx`
-output, previews it and imports a confirmed squad to the selected team. The
-import creates players and team-player links, but it does not overwrite
+The CM26 Scraper is **not included** in the CM26 package. Its data set contains
+EA-derived database content (database tables, schema and name lists) that this
+project does not redistribute, so it must be downloaded separately. Data Sync is
+fully functional once you point CM26 at your own copy using **Set folder...**, or
+keep a `CM26 Scraper` folder beside CM26. When no copy is installed, Data Sync
+explains how to add one instead of failing silently; every other section works
+without it.
+
+With a scraper present, the Data Sync page opens it, discovers its latest
+`squad_*.xlsx` output, previews it and imports a confirmed squad to the selected
+team. The import creates players and team-player links, but it does not overwrite
 existing CM26 records or silently write data without confirmation.
 
-The optional Transfermarkt URL preview/CSV view is a research aid only.
-Transfermarkt may change its HTML or block automated requests; in that case the
-page can load with zero recognised rows.
+The optional Transfermarkt URL preview/CSV view needs no scraper and is a
+research aid only. Transfermarkt may change its HTML or block automated requests;
+in that case the page can load with zero recognised rows.
 
 ## Compdata
 

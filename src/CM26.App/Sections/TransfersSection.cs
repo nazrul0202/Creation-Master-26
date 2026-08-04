@@ -187,7 +187,7 @@ public sealed class TransfersSection : SectionBase
     {
         var exe = ExternalToolLocator.FindScraperExecutable();
         var root = exe == null ? null : Path.GetDirectoryName(exe);
-        ToolTip.SetToolTip(_scraper, exe ?? "CM26 Scraper was not found. Use Set folder... or keep a copy next to CM26.");
+        ToolTip.SetToolTip(_scraper, exe ?? "CM26 Scraper is not installed. It is a separate optional download — use Set folder... to point CM26 at it.");
         var candidates = root == null ? [] : new[]
         {
             Path.Combine(root, "Scraped teams"),
@@ -365,11 +365,19 @@ public sealed class TransfersSection : SectionBase
         if (executable == null)
         {
             MessageBox.Show(this,
-                "CM26 Scraper was not found.\n\n" +
-                "The package ships it under Tools\\CM26 Scraper. You can also keep it in a " +
-                "\"CM26 Scraper\" or \"CM26 SCRAPER\" folder next to CM26, or use Set folder... " +
-                "to point to an existing copy, then run a squad scrape and click Refresh output.",
-                "Data Sync", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                "CM26 Scraper was not found on this PC.\n\n" +
+                "The scraper is a separate, optional download — it is not included in " +
+                "the Creation Master 26 package, because its data set contains game " +
+                "database content that this tool does not redistribute.\n\n" +
+                "To enable Data Sync:\n" +
+                "  1. Download the CM26 Scraper separately.\n" +
+                "  2. Either click \"Set folder...\" and point CM26 at the folder that " +
+                "contains \"CM26 Scraper.exe\", or place that folder next to CM26 and " +
+                "name it \"CM26 Scraper\".\n" +
+                "  3. Run a squad scrape, then click \"Refresh output\".\n\n" +
+                "Everything else in Creation Master 26 works without the scraper. The " +
+                "Transfermarkt URL preview on this page also works without it.",
+                "Data Sync — scraper not installed", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
         try

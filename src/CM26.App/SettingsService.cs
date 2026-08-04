@@ -91,11 +91,7 @@ public static class SettingsService
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "FC26 Assets"),
         };
         // Common portable pack names, checked only at a drive root (never a broad scan).
-        foreach (var drive in DriveInfo.GetDrives().Where(d => d.IsReady))
-        {
-            candidates.Add(Path.Combine(drive.RootDirectory.FullName, "FC26 FILE TOOL"));
-            candidates.Add(Path.Combine(drive.RootDirectory.FullName, "FC26 Assets"));
-        }
+        candidates.AddRange(ExternalToolLocator.DriveRootFolders("FC26 FILE TOOL", "FC26 Assets"));
         foreach (var root in candidates)
         {
             try

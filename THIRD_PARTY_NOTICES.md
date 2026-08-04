@@ -29,6 +29,7 @@ code into its own codebase; dependencies are used as compiled libraries or read-
 | **Open XML SDK / DocumentFormat.OpenXml** | .NET Foundation / Microsoft | MIT | Reads and writes Compdata `.xlsx` workbooks. | NuGet package; MIT. |
 | **AssimpNet / assimp** | Assimp project | BSD-3-Clause | Imported FBX scene loading in the separately packaged CM26 3D viewer. | Bundled with the 3D viewer under its licence. |
 | **HelixToolkit.SharpDX / SharpDX** | Helix Toolkit / SharpDX projects | MIT | WPF/Direct3D rendering in the separately packaged CM26 3D viewer. | Bundled with the 3D viewer under their licences. |
+| **Cyotek.Drawing.BitmapFont** | [Cyotek](https://github.com/cyotek/Cyotek.Drawing.BitmapFont) | MIT | Bitmap-font parsing used for on-screen text in the separately packaged CM26 3D viewer. | Bundled with the 3D viewer under its licence. |
 
 ## 2. DDS texture decoding — self-contained (no external library)
 

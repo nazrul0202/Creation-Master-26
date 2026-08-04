@@ -1,7 +1,7 @@
 # Build outputs
 bin/
 obj/
-publish_*/
+publish_*
 Release/
 
 # IDE / OS
@@ -25,6 +25,9 @@ database/
 database_scratch/
 *.dbc
 *.dbp
+*.db
+*.sqlite
+*.fcepatch
 *.big
 *.ebx
 *.res

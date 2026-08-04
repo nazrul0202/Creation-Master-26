@@ -1,6 +1,6 @@
 {
-  "version": "1.0.24",
+  "version": "1.0.25",
   "name": "Creation Master 26",
-  "notes": "v1.0.24 - processing exception fixes across all editor sections.",
+  "notes": "v1.0.25 - release hygiene: no bundled EA content, portable tool detection, reproducible build.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

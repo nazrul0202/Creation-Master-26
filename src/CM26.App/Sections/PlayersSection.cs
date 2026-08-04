@@ -467,12 +467,7 @@ public sealed class PlayersSection : SectionBase
         if (!string.IsNullOrWhiteSpace(SettingsService.AssetRoot))
             roots.Add(SettingsService.AssetRoot);
         roots.Add(Path.Combine(AppContext.BaseDirectory, "ExportedAssets", "Faces"));
-        try
-        {
-            foreach (var drive in DriveInfo.GetDrives().Where(d => d.IsReady))
-                roots.Add(Path.Combine(drive.RootDirectory.FullName, "FC26 FILE TOOL"));
-        }
-        catch { /* A transiently unavailable drive is skipped. */ }
+        roots.AddRange(ExternalToolLocator.DriveRootFolders("FC26 FILE TOOL"));
 
         foreach (var root in roots.Distinct(StringComparer.OrdinalIgnoreCase))
         {

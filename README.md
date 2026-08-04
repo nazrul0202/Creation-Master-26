@@ -1,6 +1,6 @@
 # Creation Master 26
 
-**Version 1.0.24** · Windows x64 · by Rizco98
+**Version 1.0.25** · Windows x64 · by Rizco98
 
 Creation Master 26 is a direct EA SPORTS FC 26 database and legacy-asset editor.
 It does not build a separate mod package. Saving writes the selected, validated
@@ -53,12 +53,14 @@ The application contains 23 navigable public modules. The requested editors incl
   object IDs, linked-row validation, safe Save Copy and UTF-8 TXT export.
 - Balls, boots and goalkeeper gloves with installed-game texture preview.
 - Sponsors, adboards, flags, audio and presentation data.
-- Data Sync workspace that opens the local CM26 Scraper, detects and previews
-  its latest squad output, then imports the confirmed squad directly to a
-  selected team with generated player IDs and team-player links. The scraper
-  ships inside the package under `Tools\CM26 Scraper\`; an existing copy next
-  to CM26, at a drive root, or configured in Settings is used automatically.
-  Transfermarkt URL preview/CSV remains available as a non-writing research tool.
+- Data Sync workspace that works with the optional CM26 Scraper. The scraper is a
+  **separate download and is not bundled**, because its data set contains game
+  database content this project does not redistribute. Point CM26 at your copy
+  with **Set folder...** (or keep a `CM26 Scraper` folder next to CM26) and Data
+  Sync will detect and preview its latest squad output, then import the confirmed
+  squad to a selected team with generated player IDs and team-player links.
+  Transfermarkt URL preview/CSV works without the scraper as a non-writing
+  research tool.
 - Database Browser, Diagnostics and Settings.
 
 The public editor uses named CM16-style controls. It does not expose **All FC26
@@ -92,9 +94,23 @@ Native Frostbite mesh-to-FBX export is not yet performed inside CM26.
   `%LOCALAPPDATA%\Creation Master 26\`
 - Original game backup:
   `<FC26>\CmModData\`
-- Full Portable includes .NET 8, the separate asset bridge and the CM26 Scraper
-  under `Tools\CM26 Scraper\`.
+- Full Portable includes .NET 8 and the separate asset bridge.
 - Lite requires Microsoft .NET 8 Desktop Runtime x64.
+- The CM26 Scraper is an optional separate download (see Data Sync above).
+
+No EA game content is bundled in either package: no database tables, schema
+files, audio, textures, meshes or name lists. CM26 reads and writes only the
+files already present in your own installed copy of the game. The release script
+verifies this automatically and refuses to build a package that violates it.
+
+## Building from source
+
+See [`docs/BUILDING.md`](docs/BUILDING.md). Requirements are Windows x64, the
+.NET 8 SDK and Visual Studio 2022 or newer with the **Desktop development with
+C++** workload (any edition — the build scripts locate it with `vswhere`).
+
+    build-managed.cmd          :: bridge + solution + native engine smoke test
+    CM26_by_Rizco98.exe --release-selftest   :: release checks, no game needed
 
 See `KNOWN_LIMITATIONS.md`, `ASSET_SUPPORT_MATRIX.md` and
 `FROSTBITE_ASSET_BRIDGE_STATUS.md` for exact boundaries.

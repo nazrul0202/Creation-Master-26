@@ -21,6 +21,19 @@ internal static class Program
         if (!AppDependencyCheck.EnsureDesktopRuntime())
             return;
 
+        // Every "--" argument is a headless console diagnostic. Attach to the parent
+        // console first so results are visible in the terminal and in CI logs.
+        if (args.Length >= 1 && args[0].StartsWith("--", StringComparison.Ordinal))
+            ConsoleAttach.EnsureConsole();
+
+        // Self-contained release checks: no game install, no database, no UI.
+        // This is the gate CI runs on a clean machine.
+        if (args.Length >= 1 && args[0] == "--release-selftest")
+        {
+            Environment.ExitCode = ReleaseSelfTest.Run();
+            return;
+        }
+
         // Headless smoke: "--smoke <dbFolder>" loads via the real services and exits. No UI.
         if (args.Length >= 2 && args[0] == "--smoke")
         {

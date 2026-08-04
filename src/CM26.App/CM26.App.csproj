@@ -10,23 +10,13 @@
     <PlatformTarget>x64</PlatformTarget>
     <RootNamespace>CM26.App</RootNamespace>
     <AssemblyName>CM26_by_Rizco98</AssemblyName>
-    <Product>Creation Master 26</Product>
     <AssemblyTitle>Creation Master 26</AssemblyTitle>
-    <Version>1.0.24</Version>
-    <AssemblyVersion>1.0.24.0</AssemblyVersion>
-    <FileVersion>1.0.24.0</FileVersion>
-    <InformationalVersion>1.0.24</InformationalVersion>
-    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <Company>Rizco98</Company>
     <Description>Creation Master 26 — database, competition data and legacy asset editor</Description>
-    <Copyright>Community tool by Rizco98 — not affiliated with or endorsed by EA SPORTS</Copyright>
     <ApplicationIcon>Assets\Logo\Creation Master 26.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <HighDpiAwareness>PerMonitorV2</HighDpiAwareness>
-    <!-- Release ships without PDBs and without embedded absolute build/source paths. -->
-    <DebugSymbols>false</DebugSymbols>
-    <DebugType>none</DebugType>
-    <PathMap>$(MSBuildProjectDirectory)\=cm26\,$(SolutionDir)\=cm26\</PathMap>
+    <!-- Version, Company, Product, Copyright and release debug/PathMap settings
+         are inherited from Directory.Build.props (single source of truth). -->
   </PropertyGroup>
 
   <ItemGroup>
@@ -44,13 +34,21 @@
     </None>
   </ItemGroup>
 
+  <!-- The asset bridge runs as a separate process next to the app. It carries its
+       own MeshKit copy via ProjectReference, so both are taken from the bridge
+       output directory. Using the bridge's own output avoids the stale-DLL trap
+       of globbing a hardcoded Debug/Release path that the solution may not build. -->
   <Target Name="CopyAssetBridge" AfterTargets="Build">
+    <PropertyGroup>
+      <AssetBridgeOutDir>..\CM26.AssetBridge\bin\$(Configuration)\net8.0-windows\</AssetBridgeOutDir>
+    </PropertyGroup>
     <ItemGroup>
-      <AssetBridgeFiles Include="..\CM26.AssetBridge\bin\$(Configuration)\net8.0-windows\CM26.AssetBridge.*" />
-      <MeshKitFiles Include="..\CM26.MeshKit\bin\$(Configuration)\net8.0\CM26.MeshKit.*" />
+      <AssetBridgeFiles Include="$(AssetBridgeOutDir)CM26.AssetBridge.*" />
+      <AssetBridgeFiles Include="$(AssetBridgeOutDir)CM26.MeshKit.dll" />
     </ItemGroup>
+    <Error Condition="'@(AssetBridgeFiles)' == ''"
+           Text="Asset bridge output not found in $(AssetBridgeOutDir). Build CM26.AssetBridge first (it is part of CM26.slnx)." />
     <Copy SourceFiles="@(AssetBridgeFiles)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(MeshKitFiles)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
 
   <!-- Publish the helper with the same runtime model as the main application.
@@ -66,10 +64,14 @@
              Condition="'$(PublishDir)' != ''" />
   </Target>
 
+  <!-- The packaged 3D FBX viewer. Its payload is a prebuilt drop; warn loudly when
+       it is absent so a package is never shipped with an empty Tools folder. -->
   <Target Name="CopyThreeDViewer" AfterTargets="Build">
     <ItemGroup>
       <ThreeDViewerFiles Include="..\..\publish_3d_viewer\**\*" />
     </ItemGroup>
+    <Warning Condition="'@(ThreeDViewerFiles)' == ''"
+             Text="publish_3d_viewer is empty or missing: this build will have no bundled 3D viewer under Tools\CM26.3DViewer." />
     <Copy SourceFiles="@(ThreeDViewerFiles)"
           DestinationFiles="@(ThreeDViewerFiles->'$(OutDir)Tools\CM26.3DViewer\%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
@@ -79,32 +81,18 @@
     <ItemGroup>
       <ThreeDViewerPublishFiles Include="..\..\publish_3d_viewer\**\*" />
     </ItemGroup>
+    <Error Condition="'@(ThreeDViewerPublishFiles)' == '' And '$(PublishDir)' != ''"
+           Text="publish_3d_viewer is empty or missing. A published release package must contain the 3D viewer; restore publish_3d_viewer before publishing." />
     <Copy SourceFiles="@(ThreeDViewerPublishFiles)"
           DestinationFiles="@(ThreeDViewerPublishFiles->'$(PublishDir)Tools\CM26.3DViewer\%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true"
           Condition="'$(PublishDir)' != ''" />
   </Target>
 
-  <!-- The CM26 Scraper ships inside the package under Tools\CM26 Scraper so the
-       Data Sync page can open it and detect its squad output directly. -->
-  <Target Name="CopyScraper" AfterTargets="Build">
-    <ItemGroup>
-      <ScraperFiles Include="..\..\publish_scraper\**\*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(ScraperFiles)"
-          DestinationFiles="@(ScraperFiles->'$(OutDir)Tools\CM26 Scraper\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
-  </Target>
-
-  <Target Name="CopyScraperToPublish" AfterTargets="Publish">
-    <ItemGroup>
-      <ScraperPublishFiles Include="..\..\publish_scraper\**\*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(ScraperPublishFiles)"
-          DestinationFiles="@(ScraperPublishFiles->'$(PublishDir)Tools\CM26 Scraper\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true"
-          Condition="'$(PublishDir)' != ''" />
-  </Target>
+  <!-- The CM26 Scraper is an optional separate download and is deliberately NOT
+       bundled: its data set contains EA-derived database content that this project
+       does not redistribute (see EULA.md and KNOWN_LIMITATIONS.md). Data Sync
+       locates a user-installed copy at runtime via ExternalToolLocator. -->
 
   <Target Name="CopyCommercialDocs" AfterTargets="Build">
     <Copy SourceFiles="..\..\LICENSE;..\..\EULA.md;..\..\version.json"
