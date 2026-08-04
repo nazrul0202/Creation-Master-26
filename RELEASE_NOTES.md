@@ -1,5 +1,20 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.26 - critical fix: launch/UI crash 0xc0000005 (2026-08-05)
+
+**This release fixes a crash that terminated the app in Windows Error Reporting.**
+
+- **Fixed: the app could crash with "Exception Processing Message 0xc0000005 -
+  Unexpected parameters".** ListView column headers were themed by sending native
+  HDM_SETTEXTCOLOR / HDM_SETBKCOLOR messages to the ListView header control. The
+  fault happened inside the native header window procedure — during control
+  creation in some window themes and layouts — where .NET exception handling
+  cannot intercept it, so the process died with an access violation and no crash
+  dialog. Header colour theming is removed; the list body still uses the dark
+  palette. A regression test now creates themed ListViews through the exact
+  handle-creation path and fails the build if the crash ever returns.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.26.
+
 ## Version 1.0.25 - release integrity and portability (2026-08-05)
 
 This release fixes issues found in a full pre-distribution audit. Most are

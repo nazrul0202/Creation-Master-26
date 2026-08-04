@@ -1,6 +1,6 @@
 {
-  "version": "1.0.25",
+  "version": "1.0.26",
   "name": "Creation Master 26",
-  "notes": "v1.0.25 - release hygiene: no bundled EA content, portable tool detection, reproducible build.",
+  "notes": "v1.0.26 - fix launch crash on listview header theming (0xc0000005).",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

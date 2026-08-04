@@ -79,9 +79,18 @@ public static class Theme
     }
 
     /// <summary>
-    /// Themes a Details-view ListView. WinForms does not expose header colours, so
-    /// the column header background/text are set through the standard header control
-    /// messages (HDM_SETBKCOLOR / HDM_SETTEXTCOLOR).
+    /// Themes a Details-view ListView. The native column header of a WinForms
+    /// ListView cannot be styled through managed APIs.
+    ///
+    /// NOTE: header colours were previously set with HDM_SETTEXTCOLOR /
+    /// HDM_SETBKCOLOR. Those messages crashed the process with a fatal
+    /// AccessViolationException (Windows "Exception Processing Message
+    /// 0xc0000005 - Unexpected parameters") in every timing we tried: from the
+    /// HandleCreated callback, from a deferred BeginInvoke, and from the normal
+    /// message loop. The fault happens inside the native header control's own
+    /// window procedure, which .NET cannot catch — so this styling is removed
+    /// rather than risk a launch-time crash. Header theming is cosmetic only;
+    /// the list body keeps the dark palette.
     /// </summary>
     public static void ApplyListView(ListView list)
     {
@@ -89,31 +98,6 @@ public static class Theme
         list.ForeColor = Text;
         list.Font = Body;
         list.FullRowSelect = true;
-        if (!list.IsHandleCreated) list.HandleCreated += (_, _) => SetListHeader(list);
-        else SetListHeader(list);
-    }
-
-    private static void SetListHeader(ListView list)
-    {
-        try
-        {
-            if (list.View != View.Details || list.Handle == IntPtr.Zero || list.IsDisposed) return;
-            IntPtr header = NativeMethods.SendMessage(list.Handle, NativeMethods.LVM_GETHEADER, IntPtr.Zero, IntPtr.Zero);
-            if (header == IntPtr.Zero) return;
-            NativeMethods.SendMessage(header, NativeMethods.HDM_SETTEXTCOLOR, IntPtr.Zero, (IntPtr)ColorTranslator.ToWin32(Text));
-            NativeMethods.SendMessage(header, NativeMethods.HDM_SETBKCOLOR, IntPtr.Zero, (IntPtr)ColorTranslator.ToWin32(Raised));
-        }
-        catch { /* header theming is cosmetic; never crash */ }
-    }
-
-    private static class NativeMethods
-    {
-        internal const int LVM_GETHEADER = 0x101F;
-        internal const int HDM_SETTEXTCOLOR = 0x1204;
-        internal const int HDM_SETBKCOLOR = 0x1202;
-
-        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
-        internal static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
     }
 
     public static void ApplyGrid(DataGridView g)

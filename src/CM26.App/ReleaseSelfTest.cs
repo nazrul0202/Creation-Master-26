@@ -1,4 +1,5 @@
 using System.Text;
+using CM26.App.Theming;
 
 namespace CM26.App;
 
@@ -163,6 +164,48 @@ internal static class ReleaseSelfTest
             return text.Contains("no EA game content", StringComparison.OrdinalIgnoreCase)
                 ? null
                 : "EULA.md no longer contains the no-game-content statement";
+        });
+
+        // --- Regression: ListView theming must not crash on creation ------
+        // The app crashed on the real FC26 database with Windows "Exception
+        // Processing Message 0xc0000005 - Unexpected parameters": the header
+        // styling sent native HDM_* messages to the ListView header control,
+        // and the fault happened inside the native window procedure where no
+        // try/catch can intercept it. This test exercises the exact creation
+        // path (HandleCreated fires inside WM_CREATE) with the theming applied.
+        Check("ListView theming survives handle creation", () =>
+        {
+            using var form = new System.Windows.Forms.Form { ShowInTaskbar = false };
+            var list = new System.Windows.Forms.ListView { View = System.Windows.Forms.View.Details };
+            list.Columns.Add("Column A");
+            list.Columns.Add("Column B");
+            form.Controls.Add(list);
+            Theme.ApplyListView(list);
+            form.Show(); // forces handle creation -> HandleCreated fires
+            System.Windows.Forms.Application.DoEvents();
+            System.Windows.Forms.Application.DoEvents();
+            var alive = !list.IsDisposed && list.IsHandleCreated;
+            form.Close();
+            return alive ? null : "listview handle was not created";
+        });
+
+        Check("ListView theming survives re-entrant handle creation", () =>
+        {
+            // Same path with a shown form and a freshly created control on the
+            // same thread, which is how the record browsers build their lists.
+            using var form = new System.Windows.Forms.Form { ShowInTaskbar = false };
+            var list = new System.Windows.Forms.ListView { View = System.Windows.Forms.View.Details };
+            list.Columns.Add("A");
+            list.Columns.Add("B");
+            list.Columns.Add("C");
+            form.Controls.Add(list);
+            Theme.ApplyListView(list);
+            form.Show();
+            System.Windows.Forms.Application.DoEvents();
+            System.Windows.Forms.Application.DoEvents();
+            var alive = !list.IsDisposed && list.IsHandleCreated;
+            form.Close();
+            return alive ? null : "listview handle was not created";
         });
 
         Console.WriteLine();
