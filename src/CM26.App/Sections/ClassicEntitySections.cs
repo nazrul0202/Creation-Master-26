@@ -77,9 +77,9 @@ public abstract class ClassicEntitySection : SectionBase
     protected PictureBox ImageSurface(Control parent, Point point, Size size, string caption)
     {
         var holder = new Panel { Location = point, Size = new Size(size.Width, size.Height + 21), BackColor = Theme.Panel };
-        var pic = new PictureBox { Size = size, BackColor = Color.FromArgb(128, 128, 128), BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
+        var pic = new PictureBox { Size = size, BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
         holder.Controls.Add(pic);
-        holder.Controls.Add(new Label { Text = "◉  ◧  ◨   " + caption, Location = new Point(0, size.Height + 2), Size = new Size(size.Width, 18), Font = LegacyFont });
+        holder.Controls.Add(new Label { Text = caption, Location = new Point(0, size.Height + 2), Size = new Size(size.Width, 18), Font = LegacyFont, ForeColor = Theme.Muted, TextAlign = ContentAlignment.MiddleCenter });
         parent.Controls.Add(holder);
         return pic;
     }
@@ -95,8 +95,12 @@ public abstract class ClassicEntitySection : SectionBase
         viewer.Image?.Dispose();
         viewer.Image = null;
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return;
-        try { viewer.Image = Services.Textures.CreatePreview(path, viewer.Width, viewer.Height); }
-        catch { /* Empty means unavailable or corrupt. */ }
+        try
+        {
+            viewer.Image = Services.Textures.CreatePreview(path, viewer.Width, viewer.Height);
+        }
+        catch (System.AccessViolationException) { /* empty means unavailable */ }
+        catch { /* empty means unavailable */ }
     }
 
     /// <summary>Prefer a loose preview, then resolve an equivalent read-only texture from FC26.</summary>

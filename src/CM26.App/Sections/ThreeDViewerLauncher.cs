@@ -20,6 +20,7 @@ internal static class ThreeDViewerLauncher
             Location = location,
             Size = new Size(175, 28)
         };
+        Theme.ApplyButton(button);
         button.Click += async (_, _) => await OpenAsync(parent, assetKind, tokens?.Invoke(), meshExporter);
         parent.Controls.Add(button);
     }
@@ -46,7 +47,7 @@ internal static class ThreeDViewerLauncher
             TextAlign = ContentAlignment.MiddleCenter,
             ForeColor = Theme.Muted,
             BackColor = Theme.Raised,
-            Font = new Font("Segoe UI", 10F),
+            Font = Theme.Body,
             BorderStyle = BorderStyle.FixedSingle,
         };
         parent.Controls.Add(note);

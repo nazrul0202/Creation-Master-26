@@ -60,6 +60,9 @@ public sealed class CountriesSection : SectionBase
         _topTier.Location = new Point(11, 282);
         _topTier.Size = new Size(100, 22);
         _topTier.Font = LegacyFont;
+        _topTier.BackColor = Theme.Panel;
+        _topTier.ForeColor = Theme.Text;
+        _topTier.FlatStyle = FlatStyle.Flat;
         _topTier.Tag = "top_tier";
         _topTier.CheckedChanged += (_, _) =>
         {
@@ -76,6 +79,7 @@ public sealed class CountriesSection : SectionBase
             Size = new Size(194, 29),
             Font = LegacyFont,
         };
+        Theme.ApplyButton(addCountry);
         addCountry.Click += (_, _) => CreateNewRecord();
         country.Controls.Add(addCountry);
         var createNationalTeam = new Button
@@ -85,6 +89,7 @@ public sealed class CountriesSection : SectionBase
             Size = new Size(194, 29),
             Font = LegacyFont,
         };
+        Theme.ApplyButton(createNationalTeam);
         createNationalTeam.Click += (_, _) => CreateNationalTeam();
         country.Controls.Add(createNationalTeam);
         _openNationalTeam.Text = "Open National Team";
@@ -92,6 +97,7 @@ public sealed class CountriesSection : SectionBase
         _openNationalTeam.Size = new Size(194, 29);
         _openNationalTeam.Font = LegacyFont;
         _openNationalTeam.Enabled = false;
+        Theme.ApplyButton(_openNationalTeam);
         _openNationalTeam.Click += (_, _) => OpenLinkedNationalTeam();
         country.Controls.Add(_openNationalTeam);
         country.Controls.Add(new Label
@@ -107,6 +113,9 @@ public sealed class CountriesSection : SectionBase
         _showAllDatabaseCountries.Location = new Point(16, 454);
         _showAllDatabaseCountries.Size = new Size(210, 23);
         _showAllDatabaseCountries.Font = LegacyFont;
+        _showAllDatabaseCountries.BackColor = Theme.Panel;
+        _showAllDatabaseCountries.ForeColor = Theme.Text;
+        _showAllDatabaseCountries.FlatStyle = FlatStyle.Flat;
         _showAllDatabaseCountries.CheckedChanged += (_, _) => LoadData();
         ToolTip.SetToolTip(_showAllDatabaseCountries,
             "Off: show only playable countries. On: also show database countries that still need a league, clubs and Compdata.");
@@ -562,7 +571,7 @@ public sealed class CountriesSection : SectionBase
     private static Panel CreateViewer(Point location, Size imageSize, string resolution, out PictureBox picture, out Label caption)
     {
         var holder = new Panel { Location = location, Size = new Size(imageSize.Width, imageSize.Height + 23), BackColor = Theme.Panel };
-        picture = new PictureBox { Location = Point.Empty, Size = imageSize, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
+        picture = new PictureBox { Location = Point.Empty, Size = imageSize, BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
         caption = new Label { Text = "◉   ◧  ◨   " + resolution, Location = new Point(0, imageSize.Height + 2), Size = new Size(imageSize.Width, 18), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel };
         holder.Controls.Add(picture);
         holder.Controls.Add(caption);
@@ -588,8 +597,10 @@ public sealed class CountriesSection : SectionBase
             for (var index = 0; index < _flagViewers.Count; index++)
             {
                 var viewer = _flagViewers[index];
-                viewer.Image?.Dispose();
-                viewer.Image = index == 0 ? image : image == null ? null : new Bitmap(image);
+                var next = index == 0 ? image : image == null ? null : new Bitmap(image);
+                var old = viewer.Image;
+                viewer.Image = next;
+                old?.Dispose();
             }
             if (image != null)
             {

@@ -167,7 +167,7 @@ internal sealed class SponsorsSection : Fc26ExtensionSection
         };
         _preview.Location = new Point(12, 24);
         _preview.Size = new Size(825, 410);
-        _preview.BackColor = Color.White;
+        _preview.BackColor = Theme.Input;
         _preview.BorderStyle = BorderStyle.FixedSingle;
         _preview.SizeMode = PictureBoxSizeMode.Zoom;
         box.Controls.Add(_preview);
@@ -253,6 +253,7 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
         {
             Text = "Search Banks", Location = new Point(510, 24), Size = new Size(105, 25)
         };
+        Theme.ApplyButton(search);
         search.Click += async (_, _) => await SearchBanksAsync(search);
         box.Controls.Add(search);
 
@@ -261,6 +262,9 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
         _banks.View = View.Details;
         _banks.FullRowSelect = true;
         _banks.HideSelection = false;
+        _banks.BackColor = Theme.Input;
+        _banks.ForeColor = Theme.Text;
+        _banks.Font = Theme.Body;
         _banks.Columns.Add("NewWave resource", 445);
         _banks.Columns.Add("Size", 90, HorizontalAlignment.Right);
         _banks.SelectedIndexChanged += (_, _) => SelectBank();
@@ -277,22 +281,26 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
         _inspect.Location = new Point(618, 132);
         _inspect.Size = new Size(105, 26);
         _inspect.Enabled = false;
+        Theme.ApplyButton(_inspect);
         _inspect.Click += async (_, _) => await InspectBankAsync();
         box.Controls.Add(_inspect);
         _export.Text = "Export Raw Bank";
         _export.Location = new Point(731, 132);
         _export.Size = new Size(120, 26);
         _export.Enabled = false;
+        Theme.ApplyButton(_export);
         _export.Click += (_, _) => ExportBank();
         box.Controls.Add(_export);
         _previewAudio.Text = "Play Local File…";
         _previewAudio.Location = new Point(859, 132);
         _previewAudio.Size = new Size(116, 26);
+        Theme.ApplyButton(_previewAudio);
         _previewAudio.Click += (_, _) => PreviewLocalAudio();
         box.Controls.Add(_previewAudio);
         _stopAudio.Text = "Stop";
         _stopAudio.Location = new Point(983, 132);
         _stopAudio.Size = new Size(70, 26);
+        Theme.ApplyButton(_stopAudio);
         _stopAudio.Click += (_, _) => AudioPreviewService.Stop();
         box.Controls.Add(_stopAudio);
 
@@ -300,6 +308,9 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
         _dataSets.Size = new Size(482, 435);
         _dataSets.View = View.Details;
         _dataSets.FullRowSelect = true;
+        _dataSets.BackColor = Theme.Input;
+        _dataSets.ForeColor = Theme.Text;
+        _dataSets.Font = Theme.Body;
         _dataSets.Columns.Add("Dataset", 130);
         _dataSets.Columns.Add("Rows", 65, HorizontalAlignment.Right);
         _dataSets.Columns.Add("Fields", 65, HorizontalAlignment.Right);
@@ -450,7 +461,7 @@ internal sealed class AdboardsSection : Fc26ExtensionSection
         };
         _preview.Location = new Point(12, 24);
         _preview.Size = new Size(825, 410);
-        _preview.BackColor = Color.White;
+        _preview.BackColor = Theme.Input;
         _preview.BorderStyle = BorderStyle.FixedSingle;
         _preview.SizeMode = PictureBoxSizeMode.Zoom;
         box.Controls.Add(_preview);

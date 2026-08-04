@@ -346,7 +346,7 @@ public sealed class TeamsSection : SectionBase
 
     private static PictureBox Viewer(Point location, Size size) => new()
     {
-        Location = location, Size = size, BackColor = Color.White,
+        Location = location, Size = size, BackColor = Theme.Input,
         BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom
     };
 
@@ -588,6 +588,9 @@ public sealed class TeamsSection : SectionBase
         _teamPlayers.View = View.Details;
         _teamPlayers.FullRowSelect = true;
         _teamPlayers.GridLines = true;
+        _teamPlayers.BackColor = Theme.Input;
+        _teamPlayers.ForeColor = Theme.Text;
+        _teamPlayers.Font = Theme.Body;
         _teamPlayers.Columns.Add("Number", 50);
         _teamPlayers.Columns.Add("Display Name", 175);
         _teamPlayers.Columns.Add("Position", 60);
@@ -614,6 +617,9 @@ public sealed class TeamsSection : SectionBase
         _availablePlayers.View = View.Details;
         _availablePlayers.FullRowSelect = true;
         _availablePlayers.GridLines = true;
+        _availablePlayers.BackColor = Theme.Input;
+        _availablePlayers.ForeColor = Theme.Text;
+        _availablePlayers.Font = Theme.Body;
         _availablePlayers.Columns.Add("Display Name", 165);
         _availablePlayers.Columns.Add("Position", 60);
         _availablePlayers.Columns.Add("Overall", 60);
@@ -642,6 +648,8 @@ public sealed class TeamsSection : SectionBase
         _matchdayBench.FullRowSelect = true;
         _matchdayBench.GridLines = true;
         _matchdayBench.HideSelection = false;
+        _matchdayBench.BackColor = Theme.Input;
+        _matchdayBench.ForeColor = Theme.Text;
         _matchdayBench.Columns.Add("No.", 42);
         _matchdayBench.Columns.Add("Player", 166);
         _matchdayBench.Columns.Add("Pos.", 55);
@@ -1152,6 +1160,8 @@ public sealed class TeamsSection : SectionBase
         _adboardSources.FullRowSelect = true;
         _adboardSources.GridLines = true;
         _adboardSources.Font = LegacyFont;
+        _adboardSources.BackColor = Theme.Input;
+        _adboardSources.ForeColor = Theme.Text;
         _adboardSources.Columns.Add("Sponsor", 235);
         _adboardSources.Columns.Add("Sponsor ID", 90);
         _adboardSources.Columns.Add("Dynamic Image", 115);
@@ -1163,7 +1173,7 @@ public sealed class TeamsSection : SectionBase
         var preview = Group("Adboard / Dynamic Sponsor Preview", new Point(610, 3), new Size(620, 420));
         _adboardPreview.Location = new Point(10, 23);
         _adboardPreview.Size = new Size(600, 320);
-        _adboardPreview.BackColor = Color.White;
+        _adboardPreview.BackColor = Theme.Input;
         _adboardPreview.BorderStyle = BorderStyle.FixedSingle;
         _adboardPreview.SizeMode = PictureBoxSizeMode.Zoom;
         preview.Controls.Add(_adboardPreview);
@@ -1198,6 +1208,8 @@ public sealed class TeamsSection : SectionBase
         _teamSponsors.FullRowSelect = true;
         _teamSponsors.GridLines = true;
         _teamSponsors.Font = LegacyFont;
+        _teamSponsors.BackColor = Theme.Input;
+        _teamSponsors.ForeColor = Theme.Text;
         _teamSponsors.Columns.Add("Sponsor", 255);
         _teamSponsors.Columns.Add("Approved", 90);
         _teamSponsors.Columns.Add("Dynamic Image", 130);
@@ -1206,7 +1218,7 @@ public sealed class TeamsSection : SectionBase
         links.Controls.Add(_teamSponsors);
         _sponsorPreview.Location = new Point(690, 35);
         _sponsorPreview.Size = new Size(400, 250);
-        _sponsorPreview.BackColor = Color.White;
+        _sponsorPreview.BackColor = Theme.Input;
         _sponsorPreview.BorderStyle = BorderStyle.FixedSingle;
         _sponsorPreview.SizeMode = PictureBoxSizeMode.Zoom;
         links.Controls.Add(_sponsorPreview);
@@ -1232,7 +1244,7 @@ public sealed class TeamsSection : SectionBase
         var texture = Group("Team Flags", new Point(3, 3), new Size(525, 420));
         _teamFlagPreview.Location = new Point(10, 24);
         _teamFlagPreview.Size = new Size(512, 256);
-        _teamFlagPreview.BackColor = Color.White;
+        _teamFlagPreview.BackColor = Theme.Input;
         _teamFlagPreview.BorderStyle = BorderStyle.FixedSingle;
         _teamFlagPreview.SizeMode = PictureBoxSizeMode.Zoom;
         texture.Controls.Add(_teamFlagPreview);
@@ -1246,7 +1258,7 @@ public sealed class TeamsSection : SectionBase
         var flag = Group("Flags", new Point(534, 3), new Size(525, 420));
         _nationFlagPreview.Location = new Point(10, 24);
         _nationFlagPreview.Size = new Size(512, 256);
-        _nationFlagPreview.BackColor = Color.White;
+        _nationFlagPreview.BackColor = Theme.Input;
         _nationFlagPreview.BorderStyle = BorderStyle.FixedSingle;
         _nationFlagPreview.SizeMode = PictureBoxSizeMode.Zoom;
         flag.Controls.Add(_nationFlagPreview);
@@ -1288,6 +1300,7 @@ public sealed class TeamsSection : SectionBase
             var y = top + (row++ * 25);
             parent.Controls.Add(new Label { Text = label, Location = new Point(labelX, y + 4), AutoSize = true, Font = LegacyFont });
             var picker = new ComboBox { Location = new Point(90, y), Size = new Size(372, 21), Font = LegacyFont, DropDownStyle = ComboBoxStyle.DropDownList, Tag = field };
+            Theme.ApplyCombo(picker);
             picker.SelectedIndexChanged += (_, _) => CommitPlayerReference(picker);
             _playerReferencePickers[field] = picker;
             parent.Controls.Add(picker);

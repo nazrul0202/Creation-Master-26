@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
+using CM26.App.Theming;
 
 namespace CM26.App.Sections;
 
@@ -35,6 +36,9 @@ internal static class LegacyAssetActions
         var import = new Button { Text = importText, Location = location, Size = new Size(72, 25) };
         var remove = new Button { Text = removeText, Location = new Point(location.X + 78, location.Y), Size = new Size(72, 25) };
         var export = new Button { Text = "Export", Location = new Point(location.X + 156, location.Y), Size = new Size(60, 25) };
+        Theme.ApplyButton(import);
+        Theme.ApplyButton(remove);
+        Theme.ApplyButton(export);
         import.Click += (_, _) => Import(services, picture);
         remove.Click += (_, _) =>
         {

@@ -19,6 +19,7 @@ public sealed class MainForm : Form
     private readonly ToolStripProgressBar _progress;
 
     private readonly Dictionary<string, SectionBase> _sections = new();
+    private readonly Dictionary<string, ToolStripButton> _moduleButtons = new(StringComparer.OrdinalIgnoreCase);
     private readonly WelcomePanel _welcome;
     private string? _activeKey;
 
@@ -43,7 +44,7 @@ public sealed class MainForm : Form
         _services.ScraperSquadImportRequested += ImportScraperSquad;
 
         // ---- CM16-style application menu ----
-        _menu = new MenuStrip { Dock = DockStyle.Top, BackColor = Theme.Background, ForeColor = Theme.Text, Font = Theme.Body };
+        _menu = new MenuStrip { Dock = DockStyle.Top, BackColor = Theme.Background, ForeColor = Theme.Text, Font = Theme.Body, Renderer = new DarkToolStripRenderer() };
         var fileMenu = new ToolStripMenuItem("File");
         fileMenu.DropDownItems.Add("Open Game", null, async (_, _) => await OpenFc26Async());
         fileMenu.DropDownItems.Add("Save", null, async (_, _) => await SaveAsync());
@@ -72,6 +73,7 @@ public sealed class MainForm : Form
             Padding = new Padding(Theme.Space, 6, Theme.Space, 6),
             ImageScalingSize = new Size(36, 36),
             RenderMode = ToolStripRenderMode.Professional,
+            Renderer = new DarkToolStripRenderer(),
         };
         _openBtn = MakeToolButton("📂 Open Game", "Detect the game and load its database and assets automatically (Ctrl+O)");
         _saveBtn = MakeToolButton("💾 Save", "Save staged changes (Ctrl+S)", primary: true);
@@ -110,7 +112,7 @@ public sealed class MainForm : Form
         _toolbar.Items.Add(titleLabel);
 
         // ---- Status bar ----
-        _status = new StatusStrip { BackColor = Theme.Panel, ForeColor = Theme.Muted, SizingGrip = true };
+        _status = new StatusStrip { BackColor = Theme.Panel, ForeColor = Theme.Muted, SizingGrip = true, Renderer = new DarkToolStripRenderer() };
         _statusText = new ToolStripStatusLabel("Ready — open game data") { ForeColor = Theme.Muted, Spring = true, TextAlign = ContentAlignment.MiddleLeft };
         _pendingLabel = new ToolStripStatusLabel("") { ForeColor = Theme.Warning, Font = Theme.BodyBold };
         _assetStatus = new ToolStripStatusLabel("Assets: not loaded") { ForeColor = Theme.Muted };
@@ -178,7 +180,7 @@ public sealed class MainForm : Form
         return new ToolStripButton(text)
         {
             ToolTipText = tooltip,
-            ForeColor = primary ? Color.White : Theme.Text,
+            ForeColor = primary ? Theme.Background : Theme.Text,
             BackColor = primary ? Theme.Accent : Theme.Raised,
             Font = primary ? Theme.BodyBold : Theme.Body,
             Margin = new Padding(2, 2, 2, 2),
@@ -200,6 +202,7 @@ public sealed class MainForm : Form
             Margin = new Padding(1, 0, 1, 0),
         };
         button.Click += (_, _) => NavigateTo(key);
+        _moduleButtons[key] = button;
         return button;
     }
 
@@ -226,6 +229,8 @@ public sealed class MainForm : Form
         _workspace.ResumeLayout();
 
         _activeKey = key;
+        foreach (var kvp in _moduleButtons)
+            kvp.Value.Checked = kvp.Key.Equals(key, StringComparison.OrdinalIgnoreCase);
         section.ActivateSection();
         SetStatus($"{section.SectionTitle} — {_services.Session.Tables.Count} tables loaded.");
     }

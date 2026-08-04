@@ -62,6 +62,7 @@ public sealed class TransfersSection : SectionBase
         destination.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         destination.Controls.Add(new Label { Text = "Destination team", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft }, 0, 0);
         _destinationTeam.Dock = DockStyle.Fill;
+        Theme.ApplyCombo(_destinationTeam);
         destination.Controls.Add(_destinationTeam, 1, 0);
 
         var scraperActions = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 5 };
@@ -72,19 +73,24 @@ public sealed class TransfersSection : SectionBase
         scraperActions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         _scraper.Text = "Open CM26 Scraper";
         _scraper.Dock = DockStyle.Fill;
+        Theme.ApplyButton(_scraper);
         _scraper.Click += (_, _) => OpenLocalScraper();
         _refreshOutput.Text = "Refresh output";
         _refreshOutput.Dock = DockStyle.Fill;
+        Theme.ApplyButton(_refreshOutput);
         _refreshOutput.Click += (_, _) => DetectScraperOutput(showMissingMessage: true);
         _chooseOutput.Text = "Choose output...";
         _chooseOutput.Dock = DockStyle.Fill;
+        Theme.ApplyButton(_chooseOutput);
         _chooseOutput.Click += (_, _) => ChooseScraperOutput();
         _setFolder.Text = "Set folder...";
         _setFolder.Dock = DockStyle.Fill;
+        Theme.ApplyButton(_setFolder);
         _setFolder.Click += (_, _) => ChooseScraperFolder();
         _importToTeam.Text = "Import to selected team";
         _importToTeam.Dock = DockStyle.Fill;
         _importToTeam.Enabled = false;
+        Theme.ApplyButton(_importToTeam, primary: true);
         _importToTeam.Click += (_, _) => ImportDetectedSquad();
         scraperActions.Controls.Add(_scraper, 0, 0);
         scraperActions.Controls.Add(_refreshOutput, 1, 0);
@@ -101,10 +107,12 @@ public sealed class TransfersSection : SectionBase
         _url.PlaceholderText = "Paste a Transfermarkt club squad URL";
         _fetch.Text = "Load Squad";
         _fetch.Dock = DockStyle.Fill;
+        Theme.ApplyButton(_fetch);
         _fetch.Click += async (_, _) => await FetchAsync();
         _export.Text = "Export CSV";
         _export.Dock = DockStyle.Fill;
         _export.Enabled = false;
+        Theme.ApplyButton(_export);
         _export.Click += (_, _) => ExportCsv();
         address.Controls.Add(_url, 0, 0);
         address.Controls.Add(_fetch, 1, 0);
@@ -121,6 +129,9 @@ public sealed class TransfersSection : SectionBase
         _squad.FullRowSelect = true;
         _squad.GridLines = true;
         _squad.HideSelection = false;
+        _squad.BackColor = Theme.Input;
+        _squad.ForeColor = Theme.Text;
+        _squad.Font = Theme.Body;
         _squad.Columns.Add("#", 48);
         _squad.Columns.Add("Player", 240);
         _squad.Columns.Add("Position", 175);

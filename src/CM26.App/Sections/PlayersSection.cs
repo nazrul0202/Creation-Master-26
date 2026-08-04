@@ -135,7 +135,7 @@ public sealed class PlayersSection : SectionBase
 
     private static Panel Canvas(TabPage p) => (Panel)p.Controls[0];
     private static GroupBox Box(string name, Point point, Size size) => new() { Text = name, Location = point, Size = size, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text };
-    private static PictureBox Viewer(Point point, Size size) => new() { Location = point, Size = size, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
+    private static PictureBox Viewer(Point point, Size size) => new() { Location = point, Size = size, BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
 
     private void AddInfoTab()
     {
@@ -145,7 +145,7 @@ public sealed class PlayersSection : SectionBase
         var identity = Box("Identity Card", new Point(3, 3), new Size(390, 220));
         _miniface.Location = new Point(12, 20);
         _miniface.Size = new Size(128, 128);
-        _miniface.BackColor = Color.White;
+        _miniface.BackColor = Theme.Input;
         _miniface.BorderStyle = BorderStyle.FixedSingle;
         _miniface.SizeMode = PictureBoxSizeMode.Zoom;
         identity.Controls.Add(_miniface);
@@ -186,7 +186,7 @@ public sealed class PlayersSection : SectionBase
         var shoes = Box("Boots", new Point(399, 229), new Size(245, 170));
         _shoePreview.Location = new Point(112, 30);
         _shoePreview.Size = new Size(118, 118);
-        _shoePreview.BackColor = Color.White;
+        _shoePreview.BackColor = Theme.Input;
         _shoePreview.BorderStyle = BorderStyle.FixedSingle;
         _shoePreview.SizeMode = PictureBoxSizeMode.Zoom;
         shoes.Controls.Add(_shoePreview);
@@ -268,7 +268,7 @@ public sealed class PlayersSection : SectionBase
                 var label = new Label { Location = new Point(10, y), Size = new Size(116, 18), TextAlign = ContentAlignment.MiddleCenter, BackColor = Theme.Accent, ForeColor = Theme.Background, Font = Theme.BodyBold };
                 _skillValues[field] = label;
                 group.Controls.Add(label);
-                var slider = new TrackBar { Location = new Point(9, y + 19), Size = new Size(118, 28), Minimum = 1, Maximum = 99, TickStyle = TickStyle.None, Tag = field };
+                var slider = new TrackBar { Location = new Point(9, y + 19), Size = new Size(118, 28), Minimum = 1, Maximum = 99, TickStyle = TickStyle.None, Tag = field, BackColor = Theme.Panel };
                 slider.ValueChanged += (_, _) => StageSkill(slider);
                 _skillSliders[field] = slider;
                 group.Controls.Add(slider);
@@ -302,6 +302,7 @@ public sealed class PlayersSection : SectionBase
             Text = "Open 3D Face Viewer…", Location = new Point(12, 417),
             Size = new Size(165, 28), Font = LegacyFont
         };
+        Theme.ApplyButton(open3d);
         open3d.Click += async (_, _) => await Open3DFaceViewerAsync();
         preview.Controls.Add(open3d);
         // The visible player face is a real legacy UI texture.  Keep its
@@ -340,6 +341,7 @@ public sealed class PlayersSection : SectionBase
             Text = "Assign Callname", Location = new Point(291, 27),
             Size = new Size(125, 27), Font = LegacyFont
         };
+        Theme.ApplyButton(assign);
         assign.Click += (_, _) => AssignPlayerCallname();
         assignment.Controls.Add(assign);
         var remove = new Button
@@ -347,6 +349,7 @@ public sealed class PlayersSection : SectionBase
             Text = "Remove Mapping", Location = new Point(423, 27),
             Size = new Size(125, 27), Font = LegacyFont
         };
+        Theme.ApplyButton(remove);
         remove.Click += (_, _) => RemovePlayerCallname();
         assignment.Controls.Add(remove);
         _callnameStatus.Location = new Point(16, 68);
@@ -365,6 +368,7 @@ public sealed class PlayersSection : SectionBase
             Text = "Open Callname TTS Tool…", Location = new Point(16, 181),
             Size = new Size(180, 28), Font = LegacyFont
         };
+        Theme.ApplyButton(generator);
         generator.Click += (_, _) => OpenCallnameGenerator();
         assignment.Controls.Add(generator);
         canvas.Controls.Add(assignment);

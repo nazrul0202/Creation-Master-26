@@ -70,6 +70,14 @@ public sealed class CompetitionsSection : ClassicEntitySection
         var validate = new Button { Text = "Validate", Location = new Point(952, 24), Size = new Size(82, 28), Enabled = false };
         var export = new Button { Text = "Export TXT", Location = new Point(1042, 24), Size = new Size(88, 28), Enabled = false };
         var save = new Button { Text = "Save Copy…", Location = new Point(1138, 24), Size = new Size(100, 28), Enabled = false };
+        Theme.ApplyButton(open);
+        Theme.ApplyButton(openGame);
+        Theme.ApplyButton(add);
+        Theme.ApplyButton(build);
+        Theme.ApplyButton(advancement);
+        Theme.ApplyButton(validate);
+        Theme.ApplyButton(export);
+        Theme.ApplyButton(save);
         workspace.Controls.Add(new Label
         {
             Text = "Worksheet", Location = new Point(147, 30), Size = new Size(72, 20),
@@ -77,6 +85,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
         });
         _compdataSheets.Location = new Point(225, 27);
         _compdataSheets.Size = new Size(275, 24);
+        Theme.ApplyCombo(_compdataSheets);
         workspace.Controls.Add(open);
         workspace.Controls.Add(openGame);
         workspace.Controls.Add(_compdataSheets);

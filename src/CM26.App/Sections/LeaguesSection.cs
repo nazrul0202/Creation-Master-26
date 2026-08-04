@@ -54,7 +54,7 @@ public sealed class LeaguesSection : SectionBase
 
         // LeagueForm.cs: the team selector (3,3,467,454).
         var teamBox = Group("Teams", new Point(3, 3), new Size(467, 454));
-        var teamTools = new ToolStrip { Location = new Point(4, 17), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont };
+        var teamTools = new ToolStrip { Location = new Point(4, 17), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = Theme.Panel, Renderer = new DarkToolStripRenderer() };
         teamTools.Items.Add(_teamPicker);
         teamTools.Items.Add(_addTeam);
         teamTools.Items.Add(_removeTeam);
@@ -70,7 +70,7 @@ public sealed class LeaguesSection : SectionBase
         teamTools.Items.Add(addNewLeague);
         _addTeam.Click += (_, _) => AddSelectedTeam();
         _removeTeam.Click += (_, _) => RemoveSelectedTeam();
-        var teamActions = new ToolStrip { Location = new Point(4, 43), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont };
+        var teamActions = new ToolStrip { Location = new Point(4, 43), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = Theme.Panel, Renderer = new DarkToolStripRenderer() };
         teamActions.Items.Add(new ToolStripLabel("Find club to add"));
         teamActions.Items.Add(_teamSearch);
         var findTeam = new ToolStripButton("Find");
@@ -89,6 +89,8 @@ public sealed class LeaguesSection : SectionBase
         _teams.MultiSelect = false;
         _teams.GridLines = true;
         _teams.Font = LegacyFont;
+        _teams.BackColor = Theme.Input;
+        _teams.ForeColor = Theme.Text;
         _teams.SelectedIndexChanged += (_, _) => _removeTeam.Enabled = _teams.SelectedItems.Count > 0;
         _teams.DoubleClick += (_, _) => OpenSelectedTeam();
         _teams.MouseUp += (_, e) =>
@@ -98,7 +100,7 @@ public sealed class LeaguesSection : SectionBase
             if (hit.Item != null) _teams.SelectedIndices.Clear();
             if (hit.Item != null) hit.Item.Selected = true;
         };
-        var teamMenu = new ContextMenuStrip();
+        var teamMenu = new ContextMenuStrip { Renderer = new DarkToolStripRenderer(), BackColor = Theme.Panel, ForeColor = Theme.Text };
         teamMenu.Items.Add("Add New Team", null, (_, _) => CreateAndLinkTeam());
         teamMenu.Items.Add("Add Existing Team", null, (_, _) => _teamSearch.Focus());
         teamMenu.Items.Add(new ToolStripSeparator());
@@ -272,7 +274,7 @@ public sealed class LeaguesSection : SectionBase
     private Panel Viewer(Point location, Size size, string caption, out PictureBox picture)
     {
         var holder = new Panel { Location = location, Size = new Size(size.Width, size.Height + 21), BackColor = Theme.Panel };
-        picture = new PictureBox { Location = Point.Empty, Size = size, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
+        picture = new PictureBox { Location = Point.Empty, Size = size, BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
         var targetPicture = picture;
         holder.Controls.Add(picture);
         var view = new LinkLabel { Text = "view", Location = new Point(0, size.Height + 2), AutoSize = true, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Accent };
@@ -388,6 +390,7 @@ public sealed class LeaguesSection : SectionBase
         _countryPicker.Location = location;
         _countryPicker.Size = new Size(181, 21);
         _countryPicker.Font = LegacyFont;
+        Theme.ApplyCombo(_countryPicker);
         _countryPicker.SelectedIndexChanged += (_, _) =>
         {
             if (_syncCountryPicker || CurrentRecordIndex < 0 || _countryPicker.SelectedItem is not CountryItem item || !_fields.TryGetValue("countryid", out var value) || !value.IsWritable) return;
