@@ -1,10 +1,15 @@
 # Creation Master 26
 
-**Version 1.0.21** · Windows x64 · by Rizco98
+**Version 1.0.23** · Windows x64 · by Rizco98
 
 Creation Master 26 is a direct EA SPORTS FC 26 database and legacy-asset editor.
 It does not build a separate mod package. Saving writes the selected, validated
 changes into the installed game's `Data` and `Patch` containers.
+
+> **License**: this is commercial-licensed software, not open source. By
+> installing or using it you agree to the [`EULA`](EULA.md) and
+> [`LICENSE`](LICENSE). It is an **unofficial, independent community tool** and is
+> **not affiliated with or endorsed by EA SPORTS**.
 
 ## Safety model
 

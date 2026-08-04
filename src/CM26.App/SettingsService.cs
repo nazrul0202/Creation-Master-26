@@ -51,6 +51,31 @@ public static class SettingsService
         set { _values["AssetRoot"] = value; Save(); }
     }
 
+    /// <summary>True once the user has accepted the End User License Agreement.</summary>
+    public static bool EulaAccepted
+    {
+        get
+        {
+            _values.TryGetValue("EulaAccepted", out var v);
+            return v == "1";
+        }
+        set { _values["EulaAccepted"] = value ? "1" : "0"; Save(); }
+    }
+
+    /// <summary>Application UI language (BCP-47 tag, e.g. "en", "es", "pt"). Empty = default.</summary>
+    public static string Language
+    {
+        get => _values.TryGetValue("Language", out var v) ? v : string.Empty;
+        set { _values["Language"] = value; Save(); }
+    }
+
+    /// <summary>Last time "Check for updates" was performed, for throttling checks.</summary>
+    public static string LastUpdateCheckTicks
+    {
+        get => _values.TryGetValue("LastUpdateCheckTicks", out var v) ? v : string.Empty;
+        set { _values["LastUpdateCheckTicks"] = value; Save(); }
+    }
+
     /// <summary>
     /// Best-effort detection of a local FC26 asset pack (the layout discovered in the asset
     /// inventory). Returns null when none is present; the user can always set AssetRoot manually.

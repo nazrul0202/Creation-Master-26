@@ -106,9 +106,23 @@
           Condition="'$(PublishDir)' != ''" />
   </Target>
 
+  <Target Name="CopyCommercialDocs" AfterTargets="Build">
+    <Copy SourceFiles="..\..\LICENSE;..\..\EULA.md;..\..\version.json"
+          DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyCommercialDocsToPublish" AfterTargets="Publish" Condition="'$(PublishDir)' != ''">
+    <Copy SourceFiles="..\..\LICENSE;..\..\EULA.md;..\..\version.json"
+          DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
+
   <ItemGroup>
     <EmbeddedResource Include="Assets\Icons\*.png" />
     <EmbeddedResource Include="Assets\Logo\*.png" />
+    <EmbeddedResource Update="Resources\Strings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Strings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Strings.es.resx" />
   </ItemGroup>
 
   <!-- Copy the app icon + brand PNGs next to the exe so MainForm can load the window icon at runtime. -->

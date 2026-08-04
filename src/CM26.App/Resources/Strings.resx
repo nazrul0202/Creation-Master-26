@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="App.Title" xml:space="preserve">
+    <value>Creation Master 26</value>
+  </data>
+  <data name="App.Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="App.About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="App.OpenGame" xml:space="preserve">
+    <value>Open Game</value>
+  </data>
+  <data name="App.Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="App.Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="App.Validate" xml:space="preserve">
+    <value>Validate</value>
+  </data>
+  <data name="App.CheckForUpdates" xml:space="preserve">
+    <value>Check for Updates</value>
+  </data>
+  <data name="App.Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="File.Menu" xml:space="preserve">
+    <value>&amp;File</value>
+  </data>
+  <data name="Tools.Menu" xml:space="preserve">
+    <value>&amp;Tools</value>
+  </data>
+  <data name="Help.Menu" xml:space="preserve">
+    <value>&amp;Help</value>
+  </data>
+  <data name="Eula.Accept" xml:space="preserve">
+    <value>I Accept</value>
+  </data>
+  <data name="Eula.Decline" xml:space="preserve">
+    <value>Decline</value>
+  </data>
+  <data name="Eula.Title" xml:space="preserve">
+    <value>End User License Agreement</value>
+  </data>
+  <data name="Update.Current" xml:space="preserve">
+    <value>You have the latest version.</value>
+  </data>
+  <data name="Update.Available" xml:space="preserve">
+    <value>A new version is available.</value>
+  </data>
+  <data name="Update.Failed" xml:space="preserve">
+    <value>Could not check for updates.</value>
+  </data>
+</root>

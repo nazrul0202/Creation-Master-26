@@ -1,5 +1,20 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.23 - commercial readiness: EULA, localization, updates (2026-08-04)
+
+- **Commercial license.** Replaced the MIT open-source licence with a proprietary
+  **End User License Agreement** (`LICENSE` + `EULA.md`). A first-run EULA dialog
+  must be accepted before the app opens; acceptance is remembered.
+- **Check for Updates** under the **Help** menu reads a version manifest and
+  reports a newer public release. Throttled to once per day; fails gracefully
+  when offline.
+- **Localization framework.** Added a culture-based resource system
+  (`Resources\Strings.resx`). Ships with English and a Spanish example set; new
+  languages are added by dropping a `Strings.{culture}.resx` file. The saved
+  language in Settings is applied at startup.
+- **Improved About dialog** with clear version and unofficial-tool notice.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.23.
+
 ## Version 1.0.21 - finish dark theme for remaining white controls (2026-08-04)
 
 - **Fixed: white text boxes before a record is selected.** Editors in the

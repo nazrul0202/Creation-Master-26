@@ -224,6 +224,21 @@ internal static class Program
         Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
         Log("=== Creation Master 26 starting ===");
 
+        // Apply the saved UI language (defaults to the OS UI culture).
+        Localization.SetCulture(SettingsService.Language);
+
+        // First-run End User License Agreement. If the user declines, do not continue.
+        if (!SettingsService.EulaAccepted)
+        {
+            var accepted = CM26.App.Controls.EulaDialog.Show(null);
+            if (!accepted)
+            {
+                Log("User declined the EULA; exiting.");
+                return;
+            }
+            SettingsService.EulaAccepted = true;
+        }
+
         WinApp.ThreadException += (_, e) => HandleFatal("UI thread", e.Exception);
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             HandleFatal("background", e.ExceptionObject as Exception);

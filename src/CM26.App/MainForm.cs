@@ -58,9 +58,9 @@ public sealed class MainForm : Form
         patchMenu.DropDownItems.Add("Validate staged changes", null, (_, _) => ValidateAll());
         var helpMenu = new ToolStripMenuItem("Help");
         helpMenu.DropDownItems.Add("Settings", null, (_, _) => NavigateTo("settings"));
-        helpMenu.DropDownItems.Add("About", null, (_, _) => MessageBox.Show(this,
-            $"Creation Master 26\nVersion {Program.ProductVersion}\n\nDatabase, competition data and legacy asset editor.\nCommunity tool by Rizco98.",
-            "About Creation Master 26", MessageBoxButtons.OK, MessageBoxIcon.Information));
+        helpMenu.DropDownItems.Add("Check for Updates…", null, async (_, _) => await CheckForUpdatesAsync());
+        helpMenu.DropDownItems.Add(new ToolStripSeparator());
+        helpMenu.DropDownItems.Add("About", null, (_, _) => ShowAbout());
         _menu.Items.AddRange(new ToolStripItem[] { fileMenu, toolsMenu, patchMenu, helpMenu });
 
         // ---- Toolbar (two rows via ToolStripPanel so modules never overflow) ----
@@ -569,6 +569,53 @@ public sealed class MainForm : Form
         _pendingLabel.Text = count > 0 ? $"● {count} unsaved change(s)" : "";
         _saveBtn.Enabled = count > 0;
         _undoBtn.Enabled = _services.Pending.CanUndo;
+    }
+
+    private void ShowAbout()
+    {
+        var text =
+            $"Creation Master 26\nVersion {Program.ProductVersion}\n\n" +
+            "Database, competition data and legacy asset editor for EA SPORTS FC 26.\n" +
+            "Unofficial, independent community tool by Rizco98.\n\n" +
+            "Use File > Open Game to begin. See the LICENSE file for terms.";
+        var result = MessageBox.Show(this, text, "About Creation Master 26",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
+        _ = result;
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        if (UpdateChecker.CheckedRecently)
+        {
+            SetStatus("Update check already performed recently.");
+        }
+        else
+        {
+            SetStatus("Checking for updates…");
+            var result = await UpdateChecker.CheckAsync();
+            if (result == null)
+            {
+                MessageBox.Show(this, Localization.T("Update.Failed"), "Check for Updates",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                SetStatus("Could not check for updates.");
+            }
+            else if (result.IsNewerAvailable)
+            {
+                var answer = MessageBox.Show(this,
+                    $"{Localization.T("Update.Available")}\n\nLatest: v{result.LatestVersion}",
+                    "Check for Updates", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                if (answer == DialogResult.Yes)
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(UpdateChecker.ManifestUrl) { UseShellExecute = true }); }
+                    catch { /* cannot open browser */ }
+                SetStatus($"Update v{result.LatestVersion} available.");
+            }
+            else
+            {
+                MessageBox.Show(this, result.Message, "Check for Updates",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                SetStatus("You have the latest version.");
+            }
+        }
     }
 
     private void SetBusy(bool busy, string? message)

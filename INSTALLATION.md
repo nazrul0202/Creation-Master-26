@@ -1,7 +1,11 @@
-# Installation — Creation Master 26 1.0.21
+# Installation — Creation Master 26 1.0.23
 
 Use the Full Portable package on Windows 10/11 x64, or install Microsoft .NET 8
 Desktop Runtime x64 for the Lite package.
+
+On first run, an **End User License Agreement** is shown. You must accept it to
+continue. The full terms are in the `LICENSE` and `EULA.md` files inside the
+package.
 
 Close FC26, run `CM26_by_Rizco98.exe`, then choose **File > Open FC26**. On the
 first open CM26 creates the complete immutable original backup at
