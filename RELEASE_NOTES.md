@@ -1,5 +1,30 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.24 - processing exception fixes across every editor section (2026-08-04)
+
+- **Fixed: "3D Face Viewer" button could crash the app.** The player face-viewer
+  workflow ran its mesh export and folder search on a background task from an
+  async event handler; any asset/archive error escaped as an unobserved
+  exception and closed the program. It now surfaces errors in a dialog and
+  ignores the result if you have navigated away.
+- **Fixed: file-processing errors crashed silently.** Exporting a Transfermarkt
+  squad to a locked path, scanning a scraper output folder that is not readable,
+  and exporting a NewWave bank to an unwritable destination all throw
+  unguarded; each now shows a clear error instead of failing.
+- **Fixed: database/asset errors while showing records.** Synchronous crest
+  extraction, sponsor/adboard columns missing from a variant schema, a missing
+  `audionation` table, and header/preview field providers that fail on an
+  unexpected database now report a friendly message instead of throwing.
+- **Fixed: stale preview threads could crash after navigating away.** When a
+  background texture decode completed after you changed records or closed a
+  section, several preview callbacks updated controls that were already
+  disposed. Callbacks across Players, Countries, Teams, Leagues, Sponsors,
+  Adboards, Managers, Stadiums, Balls, Boots and Gloves now guard against a
+  disposed section and safely discard the orphaned image.
+- **Hardened staging.** A single engine `Stage` failure is caught and shown as
+  a validation message instead of propagating through the editor.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.24.
+
 ## Version 1.0.23 - commercial readiness: EULA, localization, updates (2026-08-04)
 
 - **Commercial license.** Replaced the MIT open-source licence with a proprietary
@@ -16,7 +41,6 @@
 - Full Portable and Lite packages are assembled to `Release\` as v1.0.23.
 
 ## Version 1.0.21 - finish dark theme for remaining white controls (2026-08-04)
-
 - **Fixed: white text boxes before a record is selected.** Editors in the
   classic/entity and FC26 extension forms (Managers, Stadiums, Competitions,
   Balls, Boots, Gloves, Sponsors, Adboards, Audio, Scoreboard, Referees,

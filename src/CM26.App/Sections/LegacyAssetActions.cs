@@ -42,8 +42,16 @@ internal static class LegacyAssetActions
         import.Click += (_, _) => Import(services, picture);
         remove.Click += (_, _) =>
         {
-            if (GetTarget(picture) is { } target && services.LegacyMods.Remove(target.LegacyPath))
-                refresh();
+            try
+            {
+                if (GetTarget(picture) is { } target && services.LegacyMods.Remove(target.LegacyPath))
+                    refresh();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(picture.FindForm(), ex.Message, "Remove asset",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         };
         export.Click += (_, _) => Export(services, picture);
         parent.Controls.Add(import);

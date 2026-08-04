@@ -386,24 +386,37 @@ public sealed class PlayersSection : SectionBase
                 "3D Face Viewer", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
-        _facePreviewCaption.Text = "Searching for the selected player's head mesh…";
-        var exported = await Task.Run(() => Services.FrostbiteAssets.ExportMeshForQuery(
-            new[] { $"head_{_currentHeadAssetId}", $"head_{_currentPlayerId}" }));
-        if (!string.IsNullOrWhiteSpace(exported))
+        try
         {
-            _facePreviewCaption.Text = "3D head mesh exported · opening viewer…";
-            Launch3DViewer(executable, exported);
+            _facePreviewCaption.Text = "Searching for the selected player's head mesh…";
+            var exported = await Task.Run(() => Services.FrostbiteAssets.ExportMeshForQuery(
+                new[] { $"head_{_currentHeadAssetId}", $"head_{_currentPlayerId}" }));
+            if (IsDisposed) return;
+            if (!string.IsNullOrWhiteSpace(exported))
+            {
+                _facePreviewCaption.Text = "3D head mesh exported · opening viewer…";
+                Launch3DViewer(executable, exported);
+                return;
+            }
+            _facePreviewCaption.Text = "Searching for the selected player's extracted 3D face…";
+            var detected = await Task.Run(FindExtractedFaceFolder);
+            if (IsDisposed) return;
+            if (!string.IsNullOrWhiteSpace(detected))
+            {
+                _facePreviewCaption.Text = $"3D face assets found · {detected}";
+                Launch3DViewer(executable, detected);
+                return;
+            }
+            _facePreviewCaption.Text = "No head mesh or extracted face found; select an export folder.";
+        }
+        catch (Exception ex)
+        {
+            if (IsDisposed) return;
+            _facePreviewCaption.Text = "3D face export failed.";
+            MessageBox.Show(this, ex.Message, "3D Face Viewer",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
-        _facePreviewCaption.Text = "Searching for the selected player's extracted 3D face…";
-        var detected = await Task.Run(FindExtractedFaceFolder);
-        if (!string.IsNullOrWhiteSpace(detected))
-        {
-            _facePreviewCaption.Text = $"3D face assets found · {detected}";
-            Launch3DViewer(executable, detected);
-            return;
-        }
-        _facePreviewCaption.Text = "No head mesh or extracted face found; select an export folder.";
 
         using var dialog = new FolderBrowserDialog
         {
@@ -441,6 +454,7 @@ public sealed class PlayersSection : SectionBase
         FrostbitePreviewLoader.LoadLegacyUiAsset(_facePreview, Services, image,
             $"data/ui/imgAssets/heads/p{_currentPlayerId}.dds", (preview, source) =>
         {
+            if (IsDisposed) { preview?.Dispose(); return; }
             _facePreview.Image?.Dispose();
             _facePreview.Image = preview;
             _facePreviewCaption.Text = $"Face preview · {source}";
@@ -453,8 +467,12 @@ public sealed class PlayersSection : SectionBase
         if (!string.IsNullOrWhiteSpace(SettingsService.AssetRoot))
             roots.Add(SettingsService.AssetRoot);
         roots.Add(Path.Combine(AppContext.BaseDirectory, "ExportedAssets", "Faces"));
-        foreach (var drive in DriveInfo.GetDrives().Where(d => d.IsReady))
-            roots.Add(Path.Combine(drive.RootDirectory.FullName, "FC26 FILE TOOL"));
+        try
+        {
+            foreach (var drive in DriveInfo.GetDrives().Where(d => d.IsReady))
+                roots.Add(Path.Combine(drive.RootDirectory.FullName, "FC26 FILE TOOL"));
+        }
+        catch { /* A transiently unavailable drive is skipped. */ }
 
         foreach (var root in roots.Distinct(StringComparer.OrdinalIgnoreCase))
         {
@@ -552,6 +570,7 @@ public sealed class PlayersSection : SectionBase
         FrostbitePreviewLoader.LoadLegacyUiAsset(_miniface, Services, image,
             $"data/ui/imgAssets/heads/p{playerId}.dds", (preview, _) =>
         {
+            if (IsDisposed) { preview?.Dispose(); return; }
             _miniface.Image?.Dispose();
             _miniface.Image = preview;
         });
@@ -562,6 +581,7 @@ public sealed class PlayersSection : SectionBase
         FrostbitePreviewLoader.LoadLegacyUiAsset(_facePreview, Services, image,
             $"data/ui/imgAssets/heads/p{playerId}.dds", (preview, source) =>
         {
+            if (IsDisposed) { preview?.Dispose(); return; }
             _facePreview.Image?.Dispose();
             _facePreview.Image = preview;
             _facePreviewCaption.Text = $"Face preview · {source}";

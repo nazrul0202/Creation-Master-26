@@ -193,9 +193,17 @@ public sealed class TransfersSection : SectionBase
             Path.Combine(root, "Scraped teams"),
             Path.Combine(root, "Batch Results", "Teams"),
         };
-        var workbooks = candidates.Where(Directory.Exists)
-            .SelectMany(folder => Directory.EnumerateFiles(folder, "*.xlsx", SearchOption.TopDirectoryOnly))
-            .ToArray();
+        string[] workbooks;
+        try
+        {
+            workbooks = candidates.Where(Directory.Exists)
+                .SelectMany(folder => Directory.EnumerateFiles(folder, "*.xlsx", SearchOption.TopDirectoryOnly))
+                .ToArray();
+        }
+        catch
+        {
+            workbooks = Array.Empty<string>();
+        }
         var squadOutputs = workbooks.Where(file => Path.GetFileName(file)
             .StartsWith("squad_", StringComparison.OrdinalIgnoreCase)).ToArray();
         _scraperWorkbookPath = (squadOutputs.Length > 0 ? squadOutputs : workbooks)
@@ -339,7 +347,15 @@ public sealed class TransfersSection : SectionBase
         {
             p.Number, p.Name, p.Position, p.BirthDate, p.Nationality, p.MarketValue, p.Id
         }.Select(Csv))));
-        File.WriteAllLines(dialog.FileName, lines, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+        try
+        {
+            File.WriteAllLines(dialog.FileName, lines, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Export CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
         _status.Text = $"Exported {_players.Count} players to {dialog.FileName}";
     }
 

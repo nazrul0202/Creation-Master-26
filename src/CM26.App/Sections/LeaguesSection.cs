@@ -310,6 +310,7 @@ public sealed class LeaguesSection : SectionBase
         FrostbitePreviewLoader.LoadLegacyUiAsset(_mainLogo, Services,
             Services.LegacyMods.GetReplacement(mainPath) ?? path, mainPath, (image, source) =>
         {
+            if (IsDisposed) { image?.Dispose(); return; }
             _mainLogo.Image?.Dispose();
             _mainLogo.Image = image;
             if (image != null) _logoCaption.Text = $"{name} · {source}";
@@ -317,12 +318,14 @@ public sealed class LeaguesSection : SectionBase
         FrostbitePreviewLoader.LoadLegacyUiAsset(_bannerLogo, Services,
             Services.LegacyMods.GetReplacement(bannerPath), bannerPath, (image, _) =>
         {
+            if (IsDisposed) { image?.Dispose(); return; }
             _bannerLogo.Image?.Dispose();
             _bannerLogo.Image = image;
         });
         FrostbitePreviewLoader.LoadLegacyUiAsset(_wideLogo, Services,
             Services.LegacyMods.GetReplacement(widePath), widePath, (image, _) =>
         {
+            if (IsDisposed) { image?.Dispose(); return; }
             _wideLogo.Image?.Dispose();
             _wideLogo.Image = image;
         });

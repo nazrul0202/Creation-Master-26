@@ -5,6 +5,7 @@ using CM26.App.Controls;
 using CM26.App.Theming;
 using CM26.Application.Models;
 using CM26.Application.Services;
+using CM26.EngineBridge;
 
 namespace CM26.App.Sections;
 
@@ -399,7 +400,16 @@ public abstract class SectionBase : UserControl
     /// <summary>Stage one field edit; surface engine errors; reflect modified state.</summary>
     protected bool StageField(string tableName, int rowIndex, string fieldName, string value, FieldEditorGrid grid)
     {
-        var outcome = Services.Pending.Stage(tableName, rowIndex, fieldName, value);
+        EditOutcome outcome;
+        try
+        {
+            outcome = Services.Pending.Stage(tableName, rowIndex, fieldName, value);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Invalid value", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
         if (!outcome.Success)
         {
             MessageBox.Show(this, outcome.Message, "Invalid value", MessageBoxButtons.OK, MessageBoxIcon.Warning);

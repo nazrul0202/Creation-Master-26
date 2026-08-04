@@ -557,6 +557,7 @@ public sealed class BallsSection : ClassicEntitySection
             legacyPath,
             (image, _) =>
             {
+                if (IsDisposed) { image?.Dispose(); return; }
                 _texture.Image?.Dispose();
                 _texture.Image = image;
             });
@@ -636,6 +637,7 @@ public sealed class BootsSection : ClassicEntitySection
             legacyPath,
             (image, _) =>
             {
+                if (IsDisposed) { image?.Dispose(); return; }
                 _texture.Image?.Dispose();
                 _texture.Image = image;
             });
@@ -713,6 +715,7 @@ internal sealed class GlovesSection : ClassicEntitySection
             candidates,
             (image, source) =>
             {
+                if (IsDisposed) { image?.Dispose(); return; }
                 _texture.Image?.Dispose();
                 _texture.Image = image;
                 _caption.Text = image == null

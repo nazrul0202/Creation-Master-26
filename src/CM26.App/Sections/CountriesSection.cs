@@ -525,8 +525,8 @@ public sealed class CountriesSection : SectionBase
                 continue;
             }
             editor.Text = Services.Session.GetCell("audionation", row, field);
-            var column = Services.Session.GetTable("audionation")?.Columns
-                .FirstOrDefault(x => x.Name.Equals(field, StringComparison.OrdinalIgnoreCase));
+            var table = Services.Session.GetTable("audionation");
+            var column = table?.Columns?.FirstOrDefault(x => x.Name.Equals(field, StringComparison.OrdinalIgnoreCase));
             editor.ReadOnly = column?.IsWritable != true;
             editor.BackColor = editor.ReadOnly ? Theme.Raised : Theme.Input;
             editor.ForeColor = Theme.Text;
@@ -594,9 +594,11 @@ public sealed class CountriesSection : SectionBase
             _flagViewers[0], Services, LegacyAssetActions.Replacement(Services, flagPath) ?? path,
             flagPath, (image, source) =>
         {
+            if (IsDisposed) { image?.Dispose(); return; }
             for (var index = 0; index < _flagViewers.Count; index++)
             {
                 var viewer = _flagViewers[index];
+                if (viewer.IsDisposed) continue;
                 var next = index == 0 ? image : image == null ? null : new Bitmap(image);
                 var old = viewer.Image;
                 viewer.Image = next;
@@ -604,9 +606,17 @@ public sealed class CountriesSection : SectionBase
             }
             if (image != null)
             {
-                foreach (var label in _flagCaptions) label.Text = source ?? "Flag preview";
+                foreach (var label in _flagCaptions)
+                {
+                    if (label.IsDisposed) continue;
+                    label.Text = source ?? "Flag preview";
+                }
             }
-            else foreach (var label in _flagCaptions) label.Text = $"No flag available ({nationId})";
+            else foreach (var label in _flagCaptions)
+            {
+                if (label.IsDisposed) continue;
+                label.Text = $"No flag available ({nationId})";
+            }
         });
 
         var mapPath = $"data/ui/imgAssets/countryShapes/c{nationId}.dds";
@@ -614,10 +624,11 @@ public sealed class CountriesSection : SectionBase
         FrostbitePreviewLoader.LoadLegacyUiAsset(
             _mapViewer, Services, LegacyAssetActions.Replacement(Services, mapPath),
             mapPath, (image, _) =>
-            {
-                _mapViewer.Image?.Dispose();
-                _mapViewer.Image = image;
-            });
+        {
+            if (IsDisposed) { image?.Dispose(); return; }
+            _mapViewer.Image?.Dispose();
+            _mapViewer.Image = image;
+        });
     }
 
     private void RefreshCurrentRecord()

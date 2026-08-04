@@ -94,27 +94,36 @@ public class GenericTableSection : SectionBase
 
     protected override void ShowRecord(int recordIndex)
     {
-        var (title, subtitle) = _headerProvider(recordIndex);
-        Header.SetRecord(title, subtitle, IconService.Get(SectionKey, 44));
-
-        // Asset preview (real file when present, honest state otherwise).
-        if (_previewProvider != null)
+        try
         {
-            var (path, caption) = _previewProvider(recordIndex);
-            ShowPreview(path, string.IsNullOrEmpty(path) ? null : caption);
+            var (title, subtitle) = _headerProvider(recordIndex);
+            Header.SetRecord(title, subtitle, IconService.Get(SectionKey, 44));
+
+            // Asset preview (real file when present, honest state otherwise).
+            if (_previewProvider != null)
+            {
+                var (path, caption) = _previewProvider(recordIndex);
+                ShowPreview(path, string.IsNullOrEmpty(path) ? null : caption);
+            }
+
+            var fields = Services.RequireData().GetFields(TableName, recordIndex, _labelMap, _valueFormatter);
+
+            int gi = 0;
+            foreach (var kv in _tabGroups)
+            {
+                var wanted = new HashSet<string>(kv.Value, StringComparer.OrdinalIgnoreCase);
+                var subset = wanted.Count == 0
+                    ? fields
+                    : fields.Where(f => wanted.Contains(f.FieldName)).ToList();
+                _grids[gi].SetFields(subset, ToolTip);
+                gi++;
+            }
         }
-
-        var fields = Services.RequireData().GetFields(TableName, recordIndex, _labelMap, _valueFormatter);
-
-        int gi = 0;
-        foreach (var kv in _tabGroups)
+        catch (Exception ex)
         {
-            var wanted = new HashSet<string>(kv.Value, StringComparer.OrdinalIgnoreCase);
-            var subset = wanted.Count == 0
-                ? fields
-                : fields.Where(f => wanted.Contains(f.FieldName)).ToList();
-            _grids[gi].SetFields(subset, ToolTip);
-            gi++;
+            Header.Clear("Record unavailable");
+            Header.SetRecord(SectionTitle, "This record could not be loaded.", IconService.Get(SectionKey, 44));
+            MessageBox.Show(this, ex.Message, SectionTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
 }

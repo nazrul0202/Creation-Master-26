@@ -198,6 +198,7 @@ internal sealed class SponsorsSection : Fc26ExtensionSection
             candidates,
             (image, source) =>
             {
+                if (IsDisposed) { image?.Dispose(); return; }
                 _preview.Image?.Dispose();
                 _preview.Image = image;
                 _caption.Text = image == null
@@ -409,7 +410,16 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
             FileName = Path.GetFileNameWithoutExtension(_selectedBank) + ".res"
         };
         if (dialog.ShowDialog(FindForm()) != DialogResult.OK) return;
-        File.Copy(_extractedPath, dialog.FileName, overwrite: true);
+        try
+        {
+            File.Copy(_extractedPath, dialog.FileName, overwrite: true);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(FindForm(), ex.Message, "Export NewWave Bank",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
         _bankDetails.Text = $"Exported to {dialog.FileName}";
     }
 
@@ -493,6 +503,7 @@ internal sealed class AdboardsSection : Fc26ExtensionSection
             candidates,
             (image, source) =>
             {
+                if (IsDisposed) { image?.Dispose(); return; }
                 _preview.Image?.Dispose();
                 _preview.Image = image;
                 _caption.Text = image == null

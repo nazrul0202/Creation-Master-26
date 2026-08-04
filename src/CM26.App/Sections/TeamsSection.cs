@@ -1587,6 +1587,7 @@ public sealed class TeamsSection : SectionBase
                 candidates,
                 (image, source) =>
                 {
+                    if (IsDisposed) { image?.Dispose(); return; }
                     var old = _teamFlagPreview.Image;
                     _teamFlagPreview.Image = image;
                     old?.Dispose();
@@ -1606,6 +1607,7 @@ public sealed class TeamsSection : SectionBase
             nationPath,
             (image, source) =>
             {
+                if (IsDisposed) { image?.Dispose(); return; }
                 var old = _nationFlagPreview.Image;
                 _nationFlagPreview.Image = image;
                 old?.Dispose();
@@ -1633,10 +1635,13 @@ public sealed class TeamsSection : SectionBase
         var sponsorNames = new Dictionary<int, string>();
         var sponsorIdColumn = Col(sponsors, "adsponserid");
         var sponsorNameColumn = Col(sponsors, "name");
-        for (var row = 0; row < sponsors.RowCount; row++)
+        if (sponsorIdColumn >= 0 && sponsorNameColumn >= 0)
         {
-            var sponsor = Services.Session.GetRecord("sponsors", row);
-            if (sponsor != null) sponsorNames[Parse(sponsor.Get(sponsorIdColumn))] = sponsor.Get(sponsorNameColumn);
+            for (var row = 0; row < sponsors.RowCount; row++)
+            {
+                var sponsor = Services.Session.GetRecord("sponsors", row);
+                if (sponsor != null) sponsorNames[Parse(sponsor.Get(sponsorIdColumn))] = sponsor.Get(sponsorNameColumn);
+            }
         }
         var teamColumn = Col(links, "teamid");
         var linkSponsorColumn = Col(links, "adsponserid");
@@ -1646,13 +1651,13 @@ public sealed class TeamsSection : SectionBase
         for (var row = 0; row < links.RowCount; row++)
         {
             var link = Services.Session.GetRecord("teamsponsorlinks", row);
-            if (link == null || Parse(link.Get(teamColumn)) != teamId) continue;
-            var sponsorId = Parse(link.Get(linkSponsorColumn));
-            var dynamicImageId = Parse(link.Get(imageColumn));
-            var approved = link.Get(approvedColumn);
+            if (link == null || teamColumn < 0 || Parse(link.Get(teamColumn)) != teamId) continue;
+            var sponsorId = linkSponsorColumn >= 0 ? Parse(link.Get(linkSponsorColumn)) : 0;
+            var dynamicImageId = imageColumn >= 0 ? Parse(link.Get(imageColumn)) : 0;
+            var approved = approvedColumn >= 0 ? link.Get(approvedColumn) : string.Empty;
             var name = sponsorNames.TryGetValue(sponsorId, out var resolved) ? resolved : $"Sponsor {sponsorId}";
             var asset = new TeamSponsorAsset(sponsorId, dynamicImageId, name);
-            _teamSponsors.Items.Add(new ListViewItem(new[] { name, approved, dynamicImageId.ToString(), link.Get(keyColumn) }) { Tag = asset });
+            _teamSponsors.Items.Add(new ListViewItem(new[] { name, approved, dynamicImageId.ToString(), keyColumn >= 0 ? link.Get(keyColumn) : string.Empty }) { Tag = asset });
             _adboardSources.Items.Add(new ListViewItem(new[] { name, sponsorId.ToString(), dynamicImageId.ToString(), approved }) { Tag = asset });
         }
         if (_teamSponsors.Items.Count == 0)
@@ -1679,6 +1684,7 @@ public sealed class TeamsSection : SectionBase
             legacyPath,
             (image, source) =>
         {
+            if (IsDisposed) { image?.Dispose(); return; }
             var old = _sponsorPreview.Image;
             _sponsorPreview.Image = image;
             old?.Dispose();
@@ -1707,6 +1713,7 @@ public sealed class TeamsSection : SectionBase
             candidates,
             (image, source) =>
             {
+                if (IsDisposed) { image?.Dispose(); return; }
                 var old = _adboardPreview.Image;
                 _adboardPreview.Image = image;
                 old?.Dispose();
@@ -2046,13 +2053,21 @@ public sealed class TeamsSection : SectionBase
 
     private void ShowCrest(string path, string teamName, int teamId)
     {
-        var legacyPath = teamId > 0
-            ? Services.FrostbiteAssets.ExportLegacyAsset(
-                $"data/ui/imgAssets/crest/dark/l{teamId}.dds")
-            : null;
-        if (string.IsNullOrWhiteSpace(legacyPath) && teamId > 0)
-            legacyPath = Services.FrostbiteAssets.ExportLegacyAsset(
-                $"data/ui/imgAssets/crest/light/l{teamId}.dds");
+        var legacyPath = string.Empty;
+        if (teamId > 0)
+        {
+            try
+            {
+                legacyPath = Services.FrostbiteAssets.ExportLegacyAsset(
+                        $"data/ui/imgAssets/crest/dark/l{teamId}.dds")
+                    ?? Services.FrostbiteAssets.ExportLegacyAsset(
+                        $"data/ui/imgAssets/crest/light/l{teamId}.dds");
+            }
+            catch
+            {
+                legacyPath = string.Empty;
+            }
+        }
         if (!string.IsNullOrWhiteSpace(legacyPath)) path = legacyPath;
         if (teamId > 0)
         {

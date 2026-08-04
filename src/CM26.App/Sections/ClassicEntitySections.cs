@@ -108,6 +108,7 @@ public abstract class ClassicEntitySection : SectionBase
     {
         FrostbitePreviewLoader.Load(viewer, Services, localPath, queries, (image, _) =>
         {
+            if (IsDisposed) { image?.Dispose(); return; }
             viewer.Image?.Dispose();
             viewer.Image = image;
         });
@@ -248,6 +249,7 @@ public sealed class ManagersSection : ClassicEntitySection
             LegacyAssetActions.Replacement(Services, legacyPath) ?? localPath,
             legacyPath, (image, _) =>
         {
+            if (IsDisposed) { image?.Dispose(); return; }
             _face.Image?.Dispose();
             _face.Image = image;
         });
@@ -359,6 +361,7 @@ ThreeDViewerLauncher.AttachPlaceholder(model, new Point(10, 22), new Size(1024, 
             $"data/ui/imgAssets/clubtifo/tifo_{tifoId}.dds",
             (image, _) =>
             {
+                if (IsDisposed) { image?.Dispose(); return; }
                 _tifoPreview.Image?.Dispose();
                 _tifoPreview.Image = image;
             });
@@ -372,6 +375,7 @@ ThreeDViewerLauncher.AttachPlaceholder(model, new Point(10, 22), new Size(1024, 
             legacyPaths,
             (image, _) =>
             {
+                if (IsDisposed) { image?.Dispose(); return; }
                 viewer.Image?.Dispose();
                 viewer.Image = image;
             });
