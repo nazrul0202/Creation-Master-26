@@ -3,7 +3,7 @@
 $ErrorActionPreference = 'Stop'
 $root   = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $sys32  = Join-Path $env:SystemRoot 'System32'
-$version = '1.0.22'
+$version = '1.0.23'
 $publishVersion = $version.Replace('.', '_')
 
 # VC++ CRT DLLs to bundle app-locally (refresh from this machine's System32).
