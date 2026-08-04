@@ -418,7 +418,15 @@ public sealed class FormationsSection : ClassicEntitySection
         var general = AddCanvasTab("Position"); var c = Canvas(general);
         _pitchGroup = Group("Formation Preview", new Point(3, 3), new Size(575, 490));
         _pitch = new Panel { Location = new Point(8, 20), Size = new Size(558, 430), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom, BackColor = Color.FromArgb(43, 132, 82), BorderStyle = BorderStyle.FixedSingle };
-        _pitch.Paint += DrawFormationPitch;
+        _pitch.Paint += (_, e) =>
+        {
+            // GDI+ drawing runs inside the WinForms message pump. A native fault
+            // here (which .NET's ThreadException handler cannot intercept) would
+            // surface as the Windows "Exception Processing Message 0xc0000005"
+            // dialog, so paint defensively and never let it escape the WndProc.
+            try { if (e.Graphics != null) DrawFormationPitch(null, e); }
+            catch { /* A pitch redraw fault must never take down the message loop. */ }
+        };
         _pitchGroup.Controls.Add(_pitch);
         _pitchStatus = new Label { Location = new Point(12, 455), Size = new Size(550, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel };
         _pitchStatus.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;

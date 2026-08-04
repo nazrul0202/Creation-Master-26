@@ -390,7 +390,7 @@ public sealed class TeamsSection : SectionBase
         {
             ("Database Name", "teamname"), ("Full Name", "teamname"), ("Name (15 chars)", "teamname"),
             ("Name (10 chars)", "teamname"), ("Name (7 chars)", "teamname"), ("Score Board", "teamname")
-        }, 10, 18, 88, 158, 23);
+        }, 10, 18, 88, 158, 24);
         canvas.Controls.Add(name);
 
         var stadium = Group("Stadium", new Point(3, 620), new Size(270, 67));
@@ -414,7 +414,7 @@ public sealed class TeamsSection : SectionBase
             ("Domestic", "domesticprestige"), ("International", "internationalprestige"), ("Budget", "clubworth"),
             ("Overall Rating", "overallrating"), ("Attack Rating", "attackrating"), ("Midfield Rating", "midfieldrating"),
             ("Defence Rating", "defenserating"), ("Ball Number", "ballid")
-        }, 10, 40, 98, 158, 26);
+        }, 10, 40, 98, 158, 24);
         var search = new TextBox { Location = new Point(105, 340), Size = new Size(84, 21), Font = LegacyFont };
         Theme.ApplyTextBox(search);
         var find = LegacyButton("Find", new Point(195, 338), new Size(58, 24));
@@ -433,11 +433,11 @@ public sealed class TeamsSection : SectionBase
         canvas.Controls.Add(lastYear);
 
         var location = Group("Location", new Point(279, 612), new Size(270, 99));
-        AddBoundFields(location, new[] { ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Time", "utctime") }, 10, 18, 98, 86, 24);
+        AddBoundFields(location, new[] { ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Time", "utctime") }, 10, 18, 98, 150, 24);
         canvas.Controls.Add(location);
 
         var traits = Group("Opponent Behaviour", new Point(555, 3), new Size(276, 126));
-        AddBoundFields(traits, new[] { ("Vs. weaker teams", "trait1vweak"), ("Vs. stronger teams", "trait1vstrong"), ("Vs. equal teams", "trait1vequal") }, 10, 20, 118, 145, 27);
+        AddBoundFields(traits, new[] { ("Vs. weaker teams", "trait1vweak"), ("Vs. stronger teams", "trait1vstrong"), ("Vs. equal teams", "trait1vequal") }, 10, 20, 118, 150, 24);
         ToolTip.SetToolTip(traits,
             "Internal behaviour bitmasks used to vary team tendencies against weaker, stronger, or evenly matched opponents.");
         canvas.Controls.Add(traits);
@@ -455,7 +455,7 @@ public sealed class TeamsSection : SectionBase
             ("Founded", "foundationyear"), ("City", "cityid"), ("Gender", "gender"),
             ("Stadium Capacity", "teamstadiumcapacity"), ("Training Stadium", "trainingstadium"),
             ("Youth Development", "youthdevelopment"), ("Popularity", "popularity"), ("Profitability", "profitability")
-        }, 10, 20, 160, 180, 22);
+        }, 10, 20, 160, 150, 24);
         canvas.Controls.Add(club);
 
         var history = Group("Club History", new Point(555, 502), new Size(360, 115));
@@ -463,7 +463,7 @@ public sealed class TeamsSection : SectionBase
         {
             ("League Titles", "leaguetitles"), ("Domestic Cups", "domesticcups"),
             ("UEFA Champions League", "uefa_cl_wins"), ("UEFA Europa League", "uefa_el_wins")
-        }, 10, 20, 145, 180, 21);
+        }, 10, 20, 145, 150, 24);
         canvas.Controls.Add(history);
 
         var ratings = Group("Matchday Ratings", new Point(921, 3), new Size(290, 155));
@@ -472,7 +472,7 @@ public sealed class TeamsSection : SectionBase
             ("Overall", "matchdayoverallrating"), ("Attack", "matchdayattackrating"),
             ("Midfield", "matchdaymidfieldrating"), ("Defence", "matchdaydefenserating"),
             ("Current Form", "form")
-        }, 15, 22, 116, 128, 24);
+        }, 15, 22, 116, 150, 24);
         canvas.Controls.Add(ratings);
 
         var tactics = Group("Team Tendency", new Point(921, 164), new Size(290, 105));
@@ -480,7 +480,7 @@ public sealed class TeamsSection : SectionBase
         {
             ("Build Up Play", "buildupplay"), ("Defensive Depth", "defensivedepth"),
             ("Opponent Weak Threshold", "opponentweakthreshold"), ("Opponent Strong Threshold", "opponentstrongthreshold")
-        }, 14, 22, 154, 116, 20);
+        }, 14, 22, 154, 150, 24);
         canvas.Controls.Add(tactics);
 
         var presentation = Group("Matchday Presentation", new Point(921, 275), new Size(390, 267));
@@ -491,7 +491,7 @@ public sealed class TeamsSection : SectionBase
             ("Substitution Board", "hassubstitutionboard"), ("Competition Banner", "isbannerenabled"),
             ("Competition Crowd Cards", "iscompetitioncrowdcardsenabled"), ("Competition Pole Flags", "iscompetitionpoleflagenabled"),
             ("Competition Scarves", "iscompetitionscarfenabled")
-        }, 15, 22, 190, 150, 22);
+        }, 15, 22, 190, 150, 24);
         canvas.Controls.Add(presentation);
 
         var pitchDetails = Group("Team Pitch and Goal Net", new Point(1217, 3), new Size(310, 220));
@@ -500,7 +500,7 @@ public sealed class TeamsSection : SectionBase
             ("Pitch Surface", "playsurfacetype"), ("Pitch Colour", "pitchcolor"), ("Pitch Wear", "pitchwear"),
             ("Pitch Line Colour", "pitchlinecolor"), ("Mowing Pattern", "stadiummowpattern_code"),
             ("Goal Net Style", "stadiumgoalnetstyle"), ("Goal Net Pattern", "stadiumgoalnetpattern")
-        }, 15, 22, 132, 148, 24);
+        }, 15, 22, 132, 150, 24);
         canvas.Controls.Add(pitchDetails);
     }
 
@@ -516,7 +516,7 @@ public sealed class TeamsSection : SectionBase
             ("Viking Clap", "hasvikingclap"),
             ("Team Personality", "personalityid"),
             ("Tifo Enabled", "hastifo")
-        }, 15, 25, 175, 135, 34);
+        }, 15, 25, 175, 150, 28);
         presentation.Controls.Add(new Label
         {
             Text = "Match presentation settings for the selected team.",
@@ -628,7 +628,19 @@ public sealed class TeamsSection : SectionBase
 
         var pitch = Group("Starting Lineup", new Point(731, 3), new Size(990, 795));
         var board = new Panel { Location = new Point(8, 20), Size = new Size(650, 500), BackColor = Color.FromArgb(106, 190, 87), BorderStyle = BorderStyle.FixedSingle, AllowDrop = true };
-        board.Paint += (_, e) => DrawPitch(e.Graphics, board.ClientRectangle);
+        board.Paint += (_, e) =>
+        {
+            // GDI+ drawing runs inside the WinForms message pump. A native fault
+            // here (which .NET's ThreadException handler cannot intercept) would
+            // surface as the Windows "Exception Processing Message 0xc0000005"
+            // dialog, so paint defensively and never let it escape the WndProc.
+            try
+            {
+                if (e.Graphics != null && board.ClientSize.Width > 0 && board.ClientSize.Height > 0)
+                    DrawPitch(e.Graphics, board.ClientRectangle);
+            }
+            catch { /* A pitch redraw fault must never take down the message loop. */ }
+        };
         board.DragEnter += (_, e) => e.Effect = e.Data?.GetDataPresent(typeof(int)) == true ? DragDropEffects.Copy : DragDropEffects.None;
         board.DragDrop += (_, e) => AssignDroppedPlayer(e, board);
         _formationBoard = board;
@@ -1354,13 +1366,22 @@ public sealed class TeamsSection : SectionBase
         var record = Services.Session.GetRecord(TableName, recordIndex)!;
         var name = record.Get(Col(table, "teamname"));
         var id = record.Get(Col(table, "teamid"));
-        ShowCrest(Services.Assets.GetTeamLogo(int.TryParse(id, out var crestTeamId) ? crestTeamId : 0), name, crestTeamId);
+        int.TryParse(id, out var crestTeamId);
+        try
+        {
+            ShowCrest(Services.Assets.GetTeamLogo(crestTeamId), name, crestTeamId);
+        }
+        catch { /* Crest preview failure must not prevent the record from loading. */ }
         _fields.Clear();
         foreach (var field in Services.RequireData().GetFields(TableName, recordIndex, LabelMaps.Teams))
             _fields[field.FieldName] = field;
         UpdateTeamColours();
         var countryColumn = Col(table, "countryid");
-        ShowTeamFlags(crestTeamId, countryColumn >= 0 ? Parse(record.Get(countryColumn)) : 0);
+        try
+        {
+            ShowTeamFlags(crestTeamId, countryColumn >= 0 ? Parse(record.Get(countryColumn)) : 0);
+        }
+        catch { /* Flag preview failure must not prevent the record from loading. */ }
 
         foreach (var editor in _editors)
         {
@@ -1404,27 +1425,31 @@ public sealed class TeamsSection : SectionBase
 
         _teamPlayers.Items.Clear();
         _availablePlayers.Items.Clear();
-        var roster = Services.RequireData().GetTeamRoster(int.TryParse(id, out var teamId) ? teamId : 0);
-        foreach (var player in roster)
+        try
         {
-            // Display Name is a verified real name, or the documented "Player {id}" fallback.
-            // It is NEVER split into a first/surname pair and NEVER a bare numeric key.
-            _teamPlayers.Items.Add(new ListViewItem(new[]
+            var roster = Services.RequireData().GetTeamRoster(int.TryParse(id, out var teamId) ? teamId : 0);
+            foreach (var player in roster)
             {
-                player.JerseyNumber > 0 ? player.JerseyNumber.ToString() : "",
-                player.Name,
-                player.Position,
-                player.Overall,
-            }) { Tag = player.PlayerId });
+                // Display Name is a verified real name, or the documented "Player {id}" fallback.
+                // It is NEVER split into a first/surname pair and NEVER a bare numeric key.
+                _teamPlayers.Items.Add(new ListViewItem(new[]
+                {
+                    player.JerseyNumber > 0 ? player.JerseyNumber.ToString() : "",
+                    player.Name,
+                    player.Position,
+                    player.Overall,
+                }) { Tag = player.PlayerId });
+            }
+            if (roster.Count == 0)
+                _teamPlayers.Items.Add(new ListViewItem(new[] { "", "No players linked to this team", "", "" }));
+            SelectFormationLayout(teamId);
+            LoadLineup(teamId, roster);
+            PopulatePlayerReferencePickers(roster);
+            _availablePlayers.Items.Add(new ListViewItem(new[] { "Use Transfers to move or release players through teamplayerlinks", "", "" }));
+            LoadSponsors(teamId);
+            LoadAudioCatalogs();
         }
-        if (roster.Count == 0)
-            _teamPlayers.Items.Add(new ListViewItem(new[] { "", "No players linked to this team", "", "" }));
-        SelectFormationLayout(teamId);
-        LoadLineup(teamId, roster);
-        PopulatePlayerReferencePickers(roster);
-        _availablePlayers.Items.Add(new ListViewItem(new[] { "Use Transfers to move or release players through teamplayerlinks", "", "" }));
-        LoadSponsors(teamId);
-        LoadAudioCatalogs();
+        catch { /* Roster/sponsor loading failure must not prevent the record from loading. */ }
     }
 
     private void LoadAudioCatalogs()
@@ -2059,9 +2084,7 @@ public sealed class TeamsSection : SectionBase
             try
             {
                 legacyPath = Services.FrostbiteAssets.ExportLegacyAsset(
-                        $"data/ui/imgAssets/crest/dark/l{teamId}.dds")
-                    ?? Services.FrostbiteAssets.ExportLegacyAsset(
-                        $"data/ui/imgAssets/crest/light/l{teamId}.dds");
+                    $"data/ui/imgAssets/crest/dark/l{teamId}.dds");
             }
             catch
             {
@@ -2071,9 +2094,7 @@ public sealed class TeamsSection : SectionBase
         if (!string.IsNullOrWhiteSpace(legacyPath)) path = legacyPath;
         if (teamId > 0)
         {
-            var crestPath = !string.IsNullOrWhiteSpace(legacyPath) && legacyPath.Contains("crest/dark")
-                ? $"data/ui/imgAssets/crest/dark/l{teamId}.dds"
-                : $"data/ui/imgAssets/crest/light/l{teamId}.dds";
+            var crestPath = $"data/ui/imgAssets/crest/dark/l{teamId}.dds";
             var target = new LegacyAssetEditTarget(crestPath, 256, 256);
             LegacyAssetActions.SetTarget(_crestViewers[0], target);
             if (_crestViewers.Count > 1)
