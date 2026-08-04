@@ -12,7 +12,7 @@ public sealed class MainForm : Form
 
     private readonly Panel _workspace;
     private readonly MenuStrip _menu;
-    private readonly ToolStrip _toolbar;
+    private readonly ToolStripPanel _toolbar;
     private readonly StatusStrip _status;
     private readonly ToolStripStatusLabel _statusText, _dbPath, _assetStatus, _pendingLabel;
     private readonly ToolStripButton _openBtn, _saveBtn, _undoBtn, _validateBtn;
@@ -63,53 +63,78 @@ public sealed class MainForm : Form
             "About Creation Master 26", MessageBoxButtons.OK, MessageBoxIcon.Information));
         _menu.Items.AddRange(new ToolStripItem[] { fileMenu, toolsMenu, patchMenu, helpMenu });
 
-        // ---- Toolbar ----
-        _toolbar = new ToolStrip
+        // ---- Toolbar (two rows via ToolStripPanel so modules never overflow) ----
+        _toolbar = new ToolStripPanel
         {
             Dock = DockStyle.Top,
-            Height = Theme.ToolbarHeight,
             BackColor = Theme.Panel,
-            GripStyle = ToolStripGripStyle.Hidden,
-            Padding = new Padding(Theme.Space, 6, Theme.Space, 6),
-            ImageScalingSize = new Size(36, 36),
-            RenderMode = ToolStripRenderMode.Professional,
             Renderer = new DarkToolStripRenderer(),
         };
-        _openBtn = MakeToolButton("📂 Open Game", "Detect the game and load its database and assets automatically (Ctrl+O)");
-        _saveBtn = MakeToolButton("💾 Save", "Save staged changes (Ctrl+S)", primary: true);
-        _undoBtn = MakeToolButton("↶ Undo", "Undo last change (Ctrl+Z)");
-        _validateBtn = MakeToolButton("✔ Validate", "Validate staged changes");
+
+        // Row 1: primary actions + progress + app title.
+        var actions = new ToolStrip
+        {
+            BackColor = Theme.Panel,
+            GripStyle = ToolStripGripStyle.Hidden,
+            Padding = new Padding(Theme.Space, 2, Theme.Space, 2),
+            RenderMode = ToolStripRenderMode.Professional,
+            Renderer = new DarkToolStripRenderer(),
+            AutoSize = true,
+        };
+        _openBtn = MakeToolButton("Open Game", "Detect the game and load its database and assets automatically (Ctrl+O)");
+        _saveBtn = MakeToolButton("Save", "Save staged changes (Ctrl+S)", primary: true);
+        _undoBtn = MakeToolButton("Undo", "Undo last change (Ctrl+Z)");
+        _validateBtn = MakeToolButton("Validate", "Validate staged changes");
         _progress = new ToolStripProgressBar { Visible = false, Width = 180, Style = ProgressBarStyle.Marquee };
         var titleLabel = new ToolStripLabel("  Creation Master 26")
         { ForeColor = Theme.Text, Font = Theme.SectionTitle, Alignment = ToolStripItemAlignment.Right };
-        _toolbar.Items.Add(_openBtn);
-        _toolbar.Items.Add(new ToolStripSeparator());
-        _toolbar.Items.Add(_saveBtn);
-        _toolbar.Items.Add(_undoBtn);
-        _toolbar.Items.Add(_validateBtn);
-        _toolbar.Items.Add(new ToolStripSeparator());
-        // CM16 navigates modules from its icon toolbar, not from a modern left sidebar.
-        // Group modules into logical categories with separators, like CM16's tab strip.
-        var categories = new[]
+        actions.Items.Add(_openBtn);
+        actions.Items.Add(new ToolStripSeparator());
+        actions.Items.Add(_saveBtn);
+        actions.Items.Add(_undoBtn);
+        actions.Items.Add(_validateBtn);
+        actions.Items.Add(new ToolStripSeparator());
+        actions.Items.Add(_progress);
+        actions.Items.Add(titleLabel);
+        _toolbar.Join(actions, 0);
+
+        // Row 2: module navigation grouped into labelled categories.
+        var modules = new ToolStrip
         {
-            new[] { "dashboard" },
-            new[] { "countries", "leagues", "teams", "players", "managers" },
-            new[] { "stadiums", "stadiumaudio" },
-            new[] { "kits", "competitions", "formations" },
-            new[] { "transfers" },
-            new[] { "balls", "boots", "gloves", "sponsors", "adboards" },
-            new[] { "audio", "scoreboard" },
-            new[] { "referees" },
+            BackColor = Theme.Panel,
+            GripStyle = ToolStripGripStyle.Hidden,
+            Padding = new Padding(Theme.Space, 0, Theme.Space, 0),
+            RenderMode = ToolStripRenderMode.Professional,
+            Renderer = new DarkToolStripRenderer(),
+            AutoSize = true,
         };
-        foreach (var group in categories)
+        var categories = new (string Label, string[] Keys)[]
         {
-            _toolbar.Items.Add(new ToolStripSeparator());
-            foreach (var key in group)
-                _toolbar.Items.Add(MakeModuleButton(key, _registry.First(r => r.key == key).title));
+            ("", new[] { "dashboard" }),
+            ("World", new[] { "countries", "leagues", "teams", "players", "managers" }),
+            ("Venue", new[] { "stadiums", "stadiumaudio" }),
+            ("Team", new[] { "kits", "competitions", "formations" }),
+            ("Data", new[] { "transfers" }),
+            ("Brands", new[] { "balls", "boots", "gloves", "sponsors", "adboards" }),
+            ("Audio", new[] { "audio", "scoreboard" }),
+            ("Officials", new[] { "referees" }),
+        };
+        foreach (var (label, keys) in categories)
+        {
+            if (!string.IsNullOrWhiteSpace(label))
+            {
+                modules.Items.Add(new ToolStripSeparator());
+                modules.Items.Add(new ToolStripLabel(label)
+                {
+                    ForeColor = Theme.Muted,
+                    Font = Theme.Label,
+                    Margin = new Padding(6, 0, 2, 0),
+                });
+            }
+            foreach (var key in keys)
+                modules.Items.Add(MakeModuleButton(key, _registry.First(r => r.key == key).title));
         }
-        _toolbar.Items.Add(new ToolStripSeparator());
-        _toolbar.Items.Add(_progress);
-        _toolbar.Items.Add(titleLabel);
+        _toolbar.Join(modules, 1);
 
         // ---- Status bar ----
         _status = new StatusStrip { BackColor = Theme.Panel, ForeColor = Theme.Muted, SizingGrip = true, Renderer = new DarkToolStripRenderer() };
