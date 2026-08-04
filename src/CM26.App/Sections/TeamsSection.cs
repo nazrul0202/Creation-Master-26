@@ -1115,9 +1115,13 @@ public sealed class TeamsSection : SectionBase
         }).ContinueWith(task =>
         {
             var image = task.Status == TaskStatus.RanToCompletion ? task.Result : null;
-            if (IsDisposed || image is null || slot.LoadedMinifacePlayerId != playerId)
+            if (image is null) return;
+            if (IsDisposed || slot.LoadedMinifacePlayerId != playerId)
+            {
+                image.Dispose();
                 return;
-            SetLineupMiniface(slot, image!);
+            }
+            SetLineupMiniface(slot, image);
         }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 

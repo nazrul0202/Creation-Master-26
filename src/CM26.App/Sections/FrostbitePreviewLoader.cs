@@ -40,9 +40,14 @@ internal static class FrostbitePreviewLoader
         _ = Task.Run(() => FindTexture(services, queries, accept))
             .ContinueWith(task =>
             {
-                if (viewer.IsDisposed || viewer.Tag is not Guid current || current != request) return;
                 var path = task.Status == TaskStatus.RanToCompletion ? task.Result : null;
-                apply(CreatePreview(services, path, viewer, linearColor), path == null ? null : "Installed game asset");
+                var preview = CreatePreview(services, path, viewer, linearColor);
+                if (viewer.IsDisposed || viewer.Tag is not Guid current || current != request)
+                {
+                    preview?.Dispose();
+                    return;
+                }
+                apply(preview, path == null ? null : "Installed game asset");
             }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
@@ -94,13 +99,17 @@ internal static class FrostbitePreviewLoader
         })
             .ContinueWith(task =>
             {
-                if (viewer.IsDisposed || viewer.Tag is not Guid current || current != request) return;
                 var result = task.Status == TaskStatus.RanToCompletion
                     ? task.Result : (FilePath: (string?)null, LegacyPath: (string?)null);
+                var preview = CreatePreview(services, result.FilePath, viewer, linearColor: false);
+                if (viewer.IsDisposed || viewer.Tag is not Guid current || current != request)
+                {
+                    preview?.Dispose();
+                    return;
+                }
                 if (!string.IsNullOrWhiteSpace(result.LegacyPath))
                     resolvedLegacyPath?.Invoke(result.LegacyPath);
-                apply(CreatePreview(services, result.FilePath, viewer, linearColor: false),
-                    result.FilePath == null ? null : "Installed UI asset");
+                apply(preview, result.FilePath == null ? null : "Installed UI asset");
             }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 

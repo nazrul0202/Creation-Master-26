@@ -46,8 +46,11 @@ public sealed class EditorHeader : UserControl
     {
         _title.Text = title;
         _subtitle.Text = subtitle;
+        // IconService.Get returns a shared cached Image that must never be disposed
+        // here. Clone so this control owns a private copy it can release safely.
+        var owned = icon == null ? null : new Bitmap(icon);
         var old = _icon.Image;
-        _icon.Image = icon;
+        _icon.Image = owned;
         old?.Dispose();
         _badge.Visible = !string.IsNullOrEmpty(badge);
         _badge.Text = badge ?? string.Empty;

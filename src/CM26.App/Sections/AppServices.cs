@@ -1,3 +1,4 @@
+using System.Threading;
 using CM26.Application.Services;
 
 namespace CM26.App.Sections;
@@ -126,12 +127,18 @@ public sealed class AppServices : IDisposable
             FrostbiteAssetsReady?.Invoke(this, EventArgs.Empty);
             return;
         }
+        // Capture the caller's sync context (UI thread) so the completion event
+        // is marshaled back instead of raised from the background thread.
+        var uiContext = SynchronizationContext.Current;
         _ = Task.Run(() =>
         {
             RefreshFrostbiteAssets(gameRoot);
             if (FrostbiteAssets.IsAvailable)
                 LegacyMods.Open(FrostbiteAssets.Fingerprint);
-            FrostbiteAssetsReady?.Invoke(this, EventArgs.Empty);
+            if (uiContext != null && uiContext is WindowsFormsSynchronizationContext)
+                uiContext.Post(_ => FrostbiteAssetsReady?.Invoke(this, EventArgs.Empty), null);
+            else
+                FrostbiteAssetsReady?.Invoke(this, EventArgs.Empty);
         });
     }
 

@@ -141,9 +141,17 @@ public sealed class SettingsSection : SectionBase
                 compressionStatus.Text = result.Message;
                 compressionStatus.ForeColor = result.Success ? Theme.Success : Theme.Warning;
             }
+            catch (Exception ex)
+            {
+                if (!IsDisposed)
+                {
+                    compressionStatus.Text = "Compression failed: " + ex.Message;
+                    compressionStatus.ForeColor = Theme.Danger;
+                }
+            }
             finally
             {
-                compressBackup.Enabled = true;
+                if (!IsDisposed) compressBackup.Enabled = true;
             }
         };
         backupRow.Controls.Add(compressionStatus);

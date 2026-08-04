@@ -51,7 +51,15 @@ public static class IconService
             using var stream = _asm.GetManifestResourceStream(file);
             if (stream != null) src = Image.FromStream(stream);
         }
-        var result = src != null ? ScaleToFit(src, size) : DrawFallback(key, size);
+        Image result;
+        try
+        {
+            result = src != null ? ScaleToFit(src, size) : DrawFallback(key, size);
+        }
+        finally
+        {
+            src?.Dispose();
+        }
         _cache[cacheKey] = result;
         return result;
     }
