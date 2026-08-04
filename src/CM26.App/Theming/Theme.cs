@@ -27,6 +27,8 @@ public static class Theme
     public static readonly Font Label = new("Segoe UI Semibold", 9f, FontStyle.Regular, GraphicsUnit.Point);
     public static readonly Font SectionTitle = new("Segoe UI Semibold", 12f, FontStyle.Regular, GraphicsUnit.Point);
     public static readonly Font RecordTitle = new("Segoe UI Semibold", 15f, FontStyle.Regular, GraphicsUnit.Point);
+    public static readonly Font AppTitle = new("Segoe UI Semibold", 26f, FontStyle.Regular, GraphicsUnit.Point);
+    public static readonly Font ButtonLarge = new("Segoe UI Semibold", 11f, FontStyle.Regular, GraphicsUnit.Point);
     public static readonly Font Muted9 = new("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point);
     public static readonly Font Mono = new("Consolas", 9f, FontStyle.Regular, GraphicsUnit.Point);
 
@@ -93,11 +95,15 @@ public static class Theme
 
     private static void SetListHeader(ListView list)
     {
-        if (list.View != View.Details || list.Handle == IntPtr.Zero) return;
-        IntPtr header = NativeMethods.SendMessage(list.Handle, NativeMethods.LVM_GETHEADER, IntPtr.Zero, IntPtr.Zero);
-        if (header == IntPtr.Zero) return;
-        NativeMethods.SendMessage(header, NativeMethods.HDM_SETTEXTCOLOR, IntPtr.Zero, (IntPtr)ColorTranslator.ToWin32(Text));
-        NativeMethods.SendMessage(header, NativeMethods.HDM_SETBKCOLOR, IntPtr.Zero, (IntPtr)ColorTranslator.ToWin32(Raised));
+        try
+        {
+            if (list.View != View.Details || list.Handle == IntPtr.Zero || list.IsDisposed) return;
+            IntPtr header = NativeMethods.SendMessage(list.Handle, NativeMethods.LVM_GETHEADER, IntPtr.Zero, IntPtr.Zero);
+            if (header == IntPtr.Zero) return;
+            NativeMethods.SendMessage(header, NativeMethods.HDM_SETTEXTCOLOR, IntPtr.Zero, (IntPtr)ColorTranslator.ToWin32(Text));
+            NativeMethods.SendMessage(header, NativeMethods.HDM_SETBKCOLOR, IntPtr.Zero, (IntPtr)ColorTranslator.ToWin32(Raised));
+        }
+        catch { /* header theming is cosmetic; never crash */ }
     }
 
     private static class NativeMethods

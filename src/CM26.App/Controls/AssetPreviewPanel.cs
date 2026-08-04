@@ -128,10 +128,13 @@ public sealed class AssetPreviewPanel : UserControl
                 if (img == null) error = "Unsupported or corrupt image";
             }
             catch (OperationCanceledException) { return; }
+            catch (OutOfMemoryException) { error = "Image file may be corrupt"; }
             catch { error = "Could not read image"; }
 
             if (cts.IsCancellationRequested) { img?.Dispose(); return; }
-            var meta = _textures.ReadMetadata(filePath);
+            TextureMetadata meta = new();
+            try { meta = _textures.ReadMetadata(filePath); }
+            catch { /* metadata is optional */ }
             BeginInvoke(() =>
             {
                 if (serial != _requestSerial || IsDisposed) { img?.Dispose(); return; }

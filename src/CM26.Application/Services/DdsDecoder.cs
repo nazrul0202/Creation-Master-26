@@ -78,25 +78,34 @@ internal static class DdsDecoder
     {
         if (!info.IsSupported) return null;
         int w = info.Width, h = info.Height;
+        if (w <= 0 || h <= 0 || w > 8192 || h > 8192) return null;
         var bmp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
         var rect = new Rectangle(0, 0, w, h);
         var data = bmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+        bool unlocked = false;
         try
         {
             int stride = data.Stride;
+            if (stride <= 0) { bmp.UnlockBits(data); unlocked = true; bmp.Dispose(); return null; }
             byte[] dest = new byte[stride * h];
             switch (info.Format)
             {
                 case "DXT5": DecodeBc3(bytes, info.DataOffset, w, h, dest, stride, ct); break;
                 case "DXT1": DecodeBc1(bytes, info.DataOffset, w, h, dest, stride, ct); break;
                 case "A8R8G8B8": CopyBgra32(bytes, info.DataOffset, w, h, dest, stride); break;
-                default: return null;
+                default: bmp.UnlockBits(data); unlocked = true; bmp.Dispose(); return null;
             }
             Marshal.Copy(dest, 0, data.Scan0, dest.Length);
         }
+        catch (System.AccessViolationException)
+        {
+            if (!unlocked) { try { bmp.UnlockBits(data); } catch { } }
+            bmp.Dispose();
+            return null;
+        }
         finally
         {
-            bmp.UnlockBits(data);
+            if (!unlocked) bmp.UnlockBits(data);
         }
         return bmp;
     }

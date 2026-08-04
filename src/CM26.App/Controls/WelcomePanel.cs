@@ -22,7 +22,7 @@ public sealed class WelcomePanel : UserControl
         var title = new Label
         {
             Text = "Creation Master 26",
-            Font = new Font("Segoe UI Semibold", 26f),
+            Font = Theme.AppTitle,
             ForeColor = Theme.Text,
             TextAlign = ContentAlignment.MiddleCenter,
             Dock = DockStyle.Fill,
@@ -38,7 +38,7 @@ public sealed class WelcomePanel : UserControl
         };
         var open = new Button { Text = "📂  Open FC26", AutoSize = true, Anchor = AnchorStyles.None, Padding = new Padding(18, 10, 18, 10) };
         Theme.ApplyButton(open, primary: true);
-        open.Font = new Font("Segoe UI Semibold", 11f);
+        open.Font = Theme.ButtonLarge;
         open.Click += (_, _) => OpenRequested?.Invoke(this, EventArgs.Empty);
         var hint = new Label
         {

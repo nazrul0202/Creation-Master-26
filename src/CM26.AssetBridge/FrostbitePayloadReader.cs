@@ -174,10 +174,13 @@ internal static class FrostbitePayloadReader
             if (!File.Exists(libraryPath))
                 throw new FileNotFoundException(
                     "FC26 Oodle decoder was not found in the game installation.", libraryPath);
-            var library = NativeLibrary.Load(libraryPath);
+            nint library = 0;
             try
             {
+                library = NativeLibrary.Load(libraryPath);
                 var export = NativeLibrary.GetExport(library, "OodleLZ_Decompress");
+                if (export == 0)
+                    throw new EntryPointNotFoundException("OodleLZ_Decompress export not found in oo2core_9_win64.dll");
                 var decode = Marshal.GetDelegateForFunctionPointer<OodleDecompress>(export);
                 var source = compressed.ToArray();
                 var destination = new byte[rawSize];
@@ -201,9 +204,21 @@ internal static class FrostbitePayloadReader
                     sourceHandle.Free();
                 }
             }
+            catch (AccessViolationException)
+            {
+                throw new InvalidOperationException(
+                    "Oodle decompression failed — the oo2core_9_win64.dll in the game installation " +
+                    "may be corrupted or incompatible. Verify your FC 26 installation.");
+            }
+            catch (BadImageFormatException)
+            {
+                throw new InvalidOperationException(
+                    "The oo2core_9_win64.dll is not a valid 64-bit library. " +
+                    "Verify your FC 26 installation.");
+            }
             finally
             {
-                NativeLibrary.Free(library);
+                if (library != 0) NativeLibrary.Free(library);
             }
         }
     }

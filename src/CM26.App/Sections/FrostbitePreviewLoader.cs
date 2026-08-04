@@ -141,18 +141,17 @@ internal static class FrostbitePreviewLoader
         {
             var image = services.Textures.CreatePreview(path, width, height);
             if (image == null || !linearColor) return image;
+            if (image.Width <= 0 || image.Height <= 0) { image.Dispose(); return null; }
             var corrected = new Bitmap(image.Width, image.Height);
             using var graphics = Graphics.FromImage(corrected);
             using var attributes = new System.Drawing.Imaging.ImageAttributes();
-            // Frostbite diffuse/crest textures are stored in linear colour space.
-            // Convert to sRGB for a normal WinForms viewer (otherwise City blue
-            // and other bright colours appear markedly too dark/grey).
             attributes.SetGamma(1F / 2.2F);
             graphics.DrawImage(image, new Rectangle(0, 0, corrected.Width, corrected.Height),
                 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
             image.Dispose();
             return corrected;
         }
+        catch (System.AccessViolationException) { return null; }
         catch { return null; }
     }
 

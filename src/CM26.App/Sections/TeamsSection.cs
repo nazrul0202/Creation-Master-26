@@ -404,7 +404,7 @@ public sealed class TeamsSection : SectionBase
         var info = Group("Info", new Point(279, 3), new Size(270, 496));
         for (var i = 0; i < 3; i++)
         {
-            var chip = new Panel { Location = new Point(98 + (i * 37), 13), Size = new Size(23, 23), BackColor = SystemColors.Control, BorderStyle = BorderStyle.FixedSingle };
+            var chip = new Panel { Location = new Point(98 + (i * 37), 13), Size = new Size(23, 23), BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle };
             _teamColorChips.Add(chip);
             info.Controls.Add(chip);
         }
@@ -1124,14 +1124,16 @@ public sealed class TeamsSection : SectionBase
     private static void ClearLineupMiniface(LineupSlot slot)
     {
         slot.LoadedMinifacePlayerId = 0;
-        slot.Label.Image?.Dispose();
+        var old = slot.Label.Image;
         slot.Label.Image = null;
+        old?.Dispose();
     }
 
     private static void SetLineupMiniface(LineupSlot slot, Image image)
     {
-        slot.Label.Image?.Dispose();
+        var old = slot.Label.Image;
         slot.Label.Image = image;
+        old?.Dispose();
         slot.Label.Invalidate();
     }
 
@@ -1545,8 +1547,9 @@ public sealed class TeamsSection : SectionBase
     {
         if (teamId <= 0)
         {
-            _teamFlagPreview.Image?.Dispose();
+            var old = _teamFlagPreview.Image;
             _teamFlagPreview.Image = null;
+            old?.Dispose();
             _teamFlagCaption.Text = "No team flag is linked";
         }
         else
@@ -1567,8 +1570,9 @@ public sealed class TeamsSection : SectionBase
                 candidates,
                 (image, source) =>
                 {
-                    _teamFlagPreview.Image?.Dispose();
+                    var old = _teamFlagPreview.Image;
                     _teamFlagPreview.Image = image;
+                    old?.Dispose();
                     _teamFlagCaption.Text = image == null
                         ? $"No dedicated team flag ({teamId})"
                         : $"Team flag · {source}";
@@ -1585,8 +1589,9 @@ public sealed class TeamsSection : SectionBase
             nationPath,
             (image, source) =>
             {
-                _nationFlagPreview.Image?.Dispose();
+                var old = _nationFlagPreview.Image;
                 _nationFlagPreview.Image = image;
+                old?.Dispose();
                 _nationFlagCaption.Text = image == null
                     ? $"No nation flag ({nationId})"
                     : $"Nation flag · {source}";
@@ -1597,8 +1602,9 @@ public sealed class TeamsSection : SectionBase
     {
         _teamSponsors.Items.Clear();
         _adboardSources.Items.Clear();
-        _adboardPreview.Image?.Dispose();
+        var oldAdboard = _adboardPreview.Image;
         _adboardPreview.Image = null;
+        oldAdboard?.Dispose();
         _adboardCaption.Text = "Select a linked sponsor or adboard source";
         var links = Services.Session.GetTable("teamsponsorlinks");
         var sponsors = Services.Session.GetTable("sponsors");
@@ -1656,8 +1662,9 @@ public sealed class TeamsSection : SectionBase
             legacyPath,
             (image, source) =>
         {
-            _sponsorPreview.Image?.Dispose();
+            var old = _sponsorPreview.Image;
             _sponsorPreview.Image = image;
+            old?.Dispose();
             _sponsorPreviewCaption.Text = image == null
                 ? $"{asset.Name}: sponsor artwork is unavailable"
                 : $"{asset.Name} · {source}";
@@ -1683,8 +1690,9 @@ public sealed class TeamsSection : SectionBase
             candidates,
             (image, source) =>
             {
-                _adboardPreview.Image?.Dispose();
+                var old = _adboardPreview.Image;
                 _adboardPreview.Image = image;
+                old?.Dispose();
                 _adboardCaption.Text = image == null
                     ? $"{asset.Name}: link found, but matching artwork is unavailable"
                     : $"{asset.Name} · sponsor {asset.SponsorId} · dynamic image {asset.DynamicImageId} · {source}";
@@ -1807,7 +1815,7 @@ public sealed class TeamsSection : SectionBase
             FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false,
             ClientSize = new Size(420, 205), Font = LegacyFont
         };
-        dialog.Controls.Add(new Label { Text = $"{player.Name}  ({player.Position}, OVR {player.Overall})", Location = new Point(15, 16), Size = new Size(390, 22), Font = new Font(LegacyFont, FontStyle.Bold) });
+        dialog.Controls.Add(new Label { Text = $"{player.Name}  ({player.Position}, OVR {player.Overall})", Location = new Point(15, 16), Size = new Size(390, 22), Font = Theme.BodyBold });
         dialog.Controls.Add(new Label { Text = "Destination team", Location = new Point(15, 54), AutoSize = true });
         var destination = new ComboBox { Location = new Point(130, 50), Size = new Size(270, 22), DropDownStyle = ComboBoxStyle.DropDownList };
         destination.Items.AddRange(choices.OrderBy(choice => choice.Name, StringComparer.CurrentCultureIgnoreCase).Cast<object>().ToArray());
@@ -1900,7 +1908,7 @@ public sealed class TeamsSection : SectionBase
         dialog.Controls.Add(new Label
         {
             Text = $"{player.Name}  ({player.Position}, OVR {player.Overall})",
-            Location = new Point(15, 16), Size = new Size(420, 22), Font = new Font(LegacyFont, FontStyle.Bold)
+            Location = new Point(15, 16), Size = new Size(420, 22), Font = Theme.BodyBold
         });
         dialog.Controls.Add(new Label { Text = "Loaned from", Location = new Point(15, 57), AutoSize = true });
         var source = new ComboBox
@@ -1929,7 +1937,7 @@ public sealed class TeamsSection : SectionBase
         dialog.Controls.Add(new Label
         {
             Text = loanRow >= 0 ? "Existing loan record" : "No current loan record — a new relationship will be created",
-            Location = new Point(15, 130), Size = new Size(420, 22), ForeColor = SystemColors.GrayText
+            Location = new Point(15, 130), Size = new Size(420, 22), ForeColor = Theme.Muted
         });
         var stage = new Button { Text = loanRow >= 0 ? "Stage Changes" : "Create Loan", DialogResult = DialogResult.OK, Location = new Point(185, 185), Size = new Size(105, 28) };
         var remove = new Button { Text = "Remove Loan", DialogResult = DialogResult.Yes, Location = new Point(70, 185), Size = new Size(105, 28), Enabled = loanRow >= 0 };
@@ -1983,15 +1991,17 @@ public sealed class TeamsSection : SectionBase
     {
         if (playerId <= 0)
         {
-            viewer.Image?.Dispose();
+            var old = viewer.Image;
             viewer.Image = null;
+            old?.Dispose();
             return;
         }
         FrostbitePreviewLoader.LoadLegacyUiAsset(viewer, Services, path,
             $"data/ui/imgAssets/heads/p{playerId}.dds", (image, _) =>
         {
-            viewer.Image?.Dispose();
+            var old = viewer.Image;
             viewer.Image = image;
+            old?.Dispose();
         });
     }
 
@@ -2040,15 +2050,22 @@ public sealed class TeamsSection : SectionBase
         FrostbitePreviewLoader.Load(_crestViewers[0], Services, path,
             [string.Concat(teamName.ToLowerInvariant().Where(char.IsLetterOrDigit)), $"crest_{teamId}_"], (image, source) =>
         {
-            for (var index = 0; index < _crestViewers.Count; index++)
+            try
             {
-                var viewer = _crestViewers[index];
-                viewer.Image?.Dispose();
-                viewer.Image = index == 0 ? image : image == null ? null : new Bitmap(image);
+                for (var index = 0; index < _crestViewers.Count; index++)
+                {
+                    var viewer = _crestViewers[index];
+                    if (viewer.IsDisposed) continue;
+                    var old = viewer.Image;
+                    viewer.Image = index == 0 ? image : image == null ? null : new Bitmap(image);
+                    old?.Dispose();
+                }
+                _crestCaption.Text = image == null
+                    ? $"{teamName}\r\nNo crest available"
+                    : $"{teamName}\r\n{source}";
             }
-            _crestCaption.Text = image == null
-                ? $"{teamName}\r\nNo crest available"
-                : $"{teamName}\r\n{source}";
+            catch (System.AccessViolationException) { }
+            catch { }
         }, asset => asset.Name.Contains("/textures/logo/logo_", StringComparison.OrdinalIgnoreCase) ||
                     asset.Name.Contains("/crest_", StringComparison.OrdinalIgnoreCase), linearColor: true);
     }

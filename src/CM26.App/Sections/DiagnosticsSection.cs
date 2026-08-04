@@ -62,7 +62,7 @@ public sealed class DiagnosticsSection : SectionBase
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
             Text = sb.ToString(),
-            Font = new Font("Consolas", 9F),
+            Font = Theme.Mono,
             BackColor = Theme.Input,
             ForeColor = Theme.Text,
             BorderStyle = BorderStyle.FixedSingle,

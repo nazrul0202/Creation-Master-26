@@ -22,7 +22,7 @@ public sealed class EditorHeader : UserControl
         _badge = new Label
         {
             Dock = DockStyle.Right, AutoSize = false, Width = 90, TextAlign = ContentAlignment.MiddleCenter,
-            ForeColor = Color.White, BackColor = Theme.Accent, Font = Theme.BodyBold, Visible = false,
+            ForeColor = Theme.Background, BackColor = Theme.Accent, Font = Theme.BodyBold, Visible = false,
         };
         var textPanel = new BufferedPanel { Dock = DockStyle.Fill, Padding = new Padding(Theme.Space, 0, 0, 0) };
         _title = new Label { Dock = DockStyle.Top, Height = 28, Font = Theme.RecordTitle, ForeColor = Theme.Text, AutoEllipsis = true };
@@ -46,7 +46,9 @@ public sealed class EditorHeader : UserControl
     {
         _title.Text = title;
         _subtitle.Text = subtitle;
+        var old = _icon.Image;
         _icon.Image = icon;
+        old?.Dispose();
         _badge.Visible = !string.IsNullOrEmpty(badge);
         _badge.Text = badge ?? string.Empty;
     }
@@ -55,7 +57,9 @@ public sealed class EditorHeader : UserControl
     {
         _title.Text = emptyMessage;
         _subtitle.Text = string.Empty;
+        var old = _icon.Image;
         _icon.Image = null;
+        old?.Dispose();
         _badge.Visible = false;
     }
 }

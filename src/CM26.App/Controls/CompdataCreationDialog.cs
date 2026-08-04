@@ -10,7 +10,7 @@ internal static class CompdataCreationDialog
     {
         using var dialog = new Form { Text = "Build League / Cup Compdata", FormBorderStyle = FormBorderStyle.FixedDialog,
             StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false, ShowInTaskbar = false,
-            ClientSize = new Size(470, 244), Font = new Font("Segoe UI", 9F) };
+            ClientSize = new Size(470, 244), Font = Theme.Body };
         var name = Add(dialog, "Competition name", "New Competition", 16);
         var databaseId = Add(dialog, "Database Competition ID", "0", 50);
         var stages = Add(dialog, "Stages", "1", 84);
@@ -32,7 +32,7 @@ internal static class CompdataCreationDialog
     {
         using var dialog = new Form { Text = "Add Promotion / Relegation", FormBorderStyle = FormBorderStyle.FixedDialog,
             StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false, ShowInTaskbar = false,
-            ClientSize = new Size(430, 210), Font = new Font("Segoe UI", 9F) };
+            ClientSize = new Size(430, 210), Font = Theme.Body };
         var source = Add(dialog, "Source group ID", "", 16); var rank = Add(dialog, "Source rank", "0", 50);
         var destination = Add(dialog, "Destination group ID", "", 84); var destinationRank = Add(dialog, "Destination rank", "0", 118);
         var create = new Button { Text = "Add Link", DialogResult = DialogResult.OK, Location = new Point(240, 166), Size = new Size(84, 28) };

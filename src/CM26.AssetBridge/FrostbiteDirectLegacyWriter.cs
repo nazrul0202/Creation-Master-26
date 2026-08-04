@@ -450,13 +450,16 @@ internal static class FrostbiteDirectLegacyWriter
         var libraryPath = Path.Combine(root, "oo2core_9_win64.dll");
         if (!File.Exists(libraryPath))
             throw new FileNotFoundException("FC26 Oodle library was not found.", libraryPath);
-        var library = NativeLibrary.Load(libraryPath);
+        nint library = 0;
         try
         {
-            var compress = Marshal.GetDelegateForFunctionPointer<OodleCompress>(
-                NativeLibrary.GetExport(library, "OodleLZ_Compress"));
-            var bound = Marshal.GetDelegateForFunctionPointer<OodleBound>(
-                NativeLibrary.GetExport(library, "OodleLZ_GetCompressedBufferSizeNeeded"));
+            library = NativeLibrary.Load(libraryPath);
+            var compressExport = NativeLibrary.GetExport(library, "OodleLZ_Compress");
+            var boundExport = NativeLibrary.GetExport(library, "OodleLZ_GetCompressedBufferSizeNeeded");
+            if (compressExport == 0 || boundExport == 0)
+                throw new EntryPointNotFoundException("Oodle exports not found in oo2core_9_win64.dll");
+            var compress = Marshal.GetDelegateForFunctionPointer<OodleCompress>(compressExport);
+            var bound = Marshal.GetDelegateForFunctionPointer<OodleBound>(boundExport);
             for (var offset = 0; offset < input.Length; offset += FrostbiteBlockSize)
             {
                 var count = Math.Min(FrostbiteBlockSize, input.Length - offset);
@@ -485,7 +488,17 @@ internal static class FrostbiteDirectLegacyWriter
                 output.Write(useCompressed ? destination.AsSpan(0, packed) : source);
             }
         }
-        finally { NativeLibrary.Free(library); }
+        catch (AccessViolationException)
+        {
+            throw new InvalidOperationException(
+                "Oodle compression failed — the oo2core_9_win64.dll may be corrupted or incompatible.");
+        }
+        catch (BadImageFormatException)
+        {
+            throw new InvalidOperationException(
+                "The oo2core_9_win64.dll is not a valid 64-bit library.");
+        }
+        finally { if (library != 0) NativeLibrary.Free(library); }
         return output.ToArray();
     }
 

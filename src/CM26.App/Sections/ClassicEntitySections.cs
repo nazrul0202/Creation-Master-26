@@ -528,7 +528,7 @@ public sealed class FormationsSection : ClassicEntitySection
             g.FillEllipse(fill, marker);
             using var markerPen = new Pen(Color.White, 2);
             g.DrawEllipse(markerPen, marker);
-            using var markerFont = new Font(LegacyFont, FontStyle.Bold);
+            using var markerFont = Theme.BodyBold;
             TextRenderer.DrawText(g, (i + 1).ToString(), markerFont, marker,
                 Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             var caption = new Rectangle(box.Left, box.Top + 32, box.Width, 16);

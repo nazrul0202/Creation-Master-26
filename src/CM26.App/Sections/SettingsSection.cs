@@ -139,7 +139,7 @@ public sealed class SettingsSection : SectionBase
                 var result = await Task.Run(() =>
                     GameBackupService.EnableNtfsCompression(_gameFolderBox.Text.Trim()));
                 compressionStatus.Text = result.Message;
-                compressionStatus.ForeColor = result.Success ? Color.DarkGreen : Color.DarkGoldenrod;
+                compressionStatus.ForeColor = result.Success ? Theme.Success : Theme.Warning;
             }
             finally
             {
@@ -212,21 +212,21 @@ public sealed class SettingsSection : SectionBase
         var path = _gameFolderBox.Text.Trim();
         SettingsService.FC26GameFolder = path;
         _frostbiteStatus.Text = "Indexing installed assets (first run may take about a minute)…";
-        _frostbiteStatus.ForeColor = Color.DarkGoldenrod;
+        _frostbiteStatus.ForeColor = Theme.Warning;
         try
         {
             await Task.Run(() => Services.RefreshFrostbiteAssets());
             if (IsDisposed) return;
             _frostbiteStatus.Text = Services.FrostbiteAssets.Status;
             _frostbiteStatus.ForeColor = Services.FrostbiteAssets.IsAvailable
-                ? Color.DarkGreen : Color.DarkGoldenrod;
+                ? Theme.Success : Theme.Warning;
         }
         catch (Exception ex)
         {
             if (!IsDisposed)
             {
                 _frostbiteStatus.Text = ex.Message;
-                _frostbiteStatus.ForeColor = Color.DarkGoldenrod;
+                _frostbiteStatus.ForeColor = Theme.Warning;
             }
         }
         finally

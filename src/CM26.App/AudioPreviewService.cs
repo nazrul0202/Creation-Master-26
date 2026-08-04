@@ -17,22 +17,25 @@ internal static class AudioPreviewService
             throw new FileNotFoundException("Audio file was not found.", filePath);
         Stop();
         var escaped = filePath.Replace("\"", "\"\"");
-        Check(mciSendString($"open \"{escaped}\" alias {Alias}", null, 0, IntPtr.Zero),
-            "The selected audio format is not supported by Windows Media Control.");
-        Check(mciSendString($"play {Alias}", null, 0, IntPtr.Zero),
-            "Audio playback could not be started.");
+        var result = mciSendString($"open \"{escaped}\" type mpegvideo alias {Alias}", null, 0, IntPtr.Zero);
+        if (result != 0)
+            result = mciSendString($"open \"{escaped}\" alias {Alias}", null, 0, IntPtr.Zero);
+        if (result != 0)
+        {
+            Stop();
+            throw new InvalidOperationException($"The selected audio format is not supported by Windows Media Control. (MCI {result})");
+        }
+        result = mciSendString($"play {Alias}", null, 0, IntPtr.Zero);
+        if (result != 0)
+        {
+            Stop();
+            throw new InvalidOperationException($"Audio playback could not be started. (MCI {result})");
+        }
     }
 
     public static void Stop()
     {
-        mciSendString($"stop {Alias}", null, 0, IntPtr.Zero);
-        mciSendString($"close {Alias}", null, 0, IntPtr.Zero);
-    }
-
-    private static void Check(int result, string message)
-    {
-        if (result == 0) return;
-        Stop();
-        throw new InvalidOperationException(message + $" (MCI {result})");
+        try { mciSendString($"stop {Alias}", null, 0, IntPtr.Zero); } catch { }
+        try { mciSendString($"close {Alias}", null, 0, IntPtr.Zero); } catch { }
     }
 }

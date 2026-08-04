@@ -112,7 +112,7 @@ public sealed class TransfersSection : SectionBase
         address.Controls.Add(new Label { Text = "URL preview only", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter }, 3, 0);
 
         _team.Dock = DockStyle.Fill;
-        _team.Font = new Font("Segoe UI Semibold", 15f);
+        _team.Font = Theme.RecordTitle;
         _team.Text = "CM26 Scraper import";
         _team.TextAlign = ContentAlignment.MiddleLeft;
 

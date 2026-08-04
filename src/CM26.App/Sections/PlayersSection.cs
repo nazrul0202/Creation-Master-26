@@ -265,7 +265,7 @@ public sealed class PlayersSection : SectionBase
             var y = 25;
             foreach (var field in columns[c].Item2)
             {
-                var label = new Label { Location = new Point(10, y), Size = new Size(116, 18), TextAlign = ContentAlignment.MiddleCenter, BackColor = Color.Green, ForeColor = Color.Yellow, Font = new Font(LegacyFont, FontStyle.Bold) };
+                var label = new Label { Location = new Point(10, y), Size = new Size(116, 18), TextAlign = ContentAlignment.MiddleCenter, BackColor = Theme.Accent, ForeColor = Theme.Background, Font = Theme.BodyBold };
                 _skillValues[field] = label;
                 group.Controls.Add(label);
                 var slider = new TrackBar { Location = new Point(9, y + 19), Size = new Size(118, 28), Minimum = 1, Maximum = 99, TickStyle = TickStyle.None, Tag = field };
@@ -293,7 +293,7 @@ public sealed class PlayersSection : SectionBase
         var preview = Box("Face Preview", new Point(3, 3), new Size(745, 470));
         _facePreview.Location = new Point(8, 20);
         _facePreview.Size = new Size(728, 390);
-        _facePreview.BackColor = Color.DimGray;
+        _facePreview.BackColor = Theme.Raised;
         _facePreview.BorderStyle = BorderStyle.FixedSingle;
         _facePreview.SizeMode = PictureBoxSizeMode.Zoom;
         preview.Controls.Add(_facePreview);
@@ -493,7 +493,7 @@ public sealed class PlayersSection : SectionBase
         {
             Location = new Point(location.X + 125, location.Y), Size = new Size(115, 20),
             BorderStyle = BorderStyle.FixedSingle, BackColor = Theme.Input, ForeColor = Theme.Text,
-            TextAlign = HorizontalAlignment.Center, Font = new Font(LegacyFont, FontStyle.Bold), Tag = field
+            TextAlign = HorizontalAlignment.Center, Font = Theme.BodyBold, Tag = field
         };
         value.Leave += (_, _) => StageSummary(value);
         if (!_summaryValues.TryGetValue(field, out var values)) _summaryValues[field] = values = [];

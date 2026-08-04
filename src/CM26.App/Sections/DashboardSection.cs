@@ -89,7 +89,7 @@ public sealed class DashboardSection : SectionBase
     private static Control StatCard(string label, string value)
     {
         var card = new BufferedPanel { Size = new Size(150, 72), BackColor = Theme.Raised, Margin = new Padding(4), BorderStyle = BorderStyle.FixedSingle };
-        var v = new Label { Text = value, Dock = DockStyle.Top, Height = 39, Font = new Font("Segoe UI Semibold", 15f), ForeColor = Theme.Text, TextAlign = ContentAlignment.MiddleCenter };
+        var v = new Label { Text = value, Dock = DockStyle.Top, Height = 39, Font = Theme.RecordTitle, ForeColor = Theme.Text, TextAlign = ContentAlignment.MiddleCenter };
         var l = new Label { Text = label, Dock = DockStyle.Fill, Font = Theme.Label, ForeColor = Theme.Muted, TextAlign = ContentAlignment.TopCenter };
         card.Controls.Add(l);
         card.Controls.Add(v);

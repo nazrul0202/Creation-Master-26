@@ -22,8 +22,8 @@ public sealed class ValidationSummary : UserControl
         _list = new ListBox
         {
             Dock = DockStyle.Fill,
-            BackColor = Color.FromArgb(52, 36, 36),
-            ForeColor = Color.FromArgb(240, 200, 200),
+            BackColor = Color.FromArgb(40, 28, 28),
+            ForeColor = Color.FromArgb(220, 190, 190),
             BorderStyle = BorderStyle.None,
             Font = Theme.Muted9,
         };
