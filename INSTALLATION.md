@@ -1,4 +1,4 @@
-# Installation — Creation Master 26 1.0.20
+# Installation — Creation Master 26 1.0.21
 
 Use the Full Portable package on Windows 10/11 x64, or install Microsoft .NET 8
 Desktop Runtime x64 for the Lite package.

@@ -1,5 +1,22 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.21 - finish dark theme for remaining white controls (2026-08-04)
+
+- **Fixed: white text boxes before a record is selected.** Editors in the
+  classic/entity and FC26 extension forms (Managers, Stadiums, Competitions,
+  Balls, Boots, Gloves, Sponsors, Adboards, Audio, Scoreboard, Referees,
+  Countries, Leagues, Teams, Players) are now themed dark at creation time, so
+  they no longer flash white until the first record is opened.
+- **Fixed: white record-browser columns.** The left record list added its
+  columns after the grid was themed, so the columns kept the light default
+  header/cell colours. Columns are now themed with the dark palette.
+- **Fixed: player summary value box.** The Players overview used an explicit
+  `Color.White` back colour; it now uses the dark input palette.
+- **Fixed: light ListView column headers.** Details-view lists (Team Roster and
+  Bench, Sponsors, Adboards, Audio banks/datasets, Data Sync squad) now render
+  dark column headers instead of the system light header.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.21.
+
 ## Version 1.0.20 - full dark theme across every section (2026-08-04)
 
 - **Fixed: dark theme reached every control.** `Theme.ApplyControlTree` now styles
