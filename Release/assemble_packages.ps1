@@ -126,6 +126,28 @@ function Assemble-Package {
         Write-Host "    STALE OUTPUT - $($newestSource.Name) is newer than the publish tree" -ForegroundColor Red
     }
 
+    # deps.json guard: a corrupted publish (e.g. parallel dotnet publish calls
+    # racing on the shared obj/) can produce a deps.json that omits the bundled
+    # runtime packs. The apphost then dies with "Could not resolve CoreCLR path"
+    # at launch. A self-contained package MUST reference the runtime packs.
+    $depsFile = Join-Path $PublishDir 'CM26_by_Rizco98.deps.json'
+    if (-not (Test-Path $depsFile)) {
+        $errors.Add("$Label publish output is missing CM26_by_Rizco98.deps.json.")
+    }
+    else {
+        $deps = Get-Content $depsFile -Raw
+        if ($Label -eq 'Full Portable') {
+            if ($deps -notmatch '"type"\s*:\s*"runtimepack"') {
+                $errors.Add("$Label deps.json does not reference the .NET runtime packs (corrupt publish - re-run dotnet publish sequentially, never in parallel).")
+                Write-Host "    MISSING runtime packs in deps.json - re-run publish sequentially" -ForegroundColor Red
+            }
+        }
+        elseif ($deps -notmatch 'CM26_by_Rizco98\.dll') {
+            $errors.Add("$Label deps.json does not reference the application assembly (corrupt publish).")
+            Write-Host "    deps.json does not reference the app assembly - re-run publish" -ForegroundColor Red
+        }
+    }
+
     if (Test-Path $PackageDir) { Remove-Item $PackageDir -Recurse -Force }
     New-Item -ItemType Directory -Path $PackageDir | Out-Null
 

@@ -91,6 +91,14 @@ confirmation token. Do not run it against an installation you care about.
 The release is assembled from `dotnet publish` output. Both runtime models are
 published, plus a matching asset bridge for each:
 
+> **Run the four publish commands sequentially, never in parallel.** Two of
+> them publish the same projects into the same `obj\` intermediates; parallel
+> invocations race and can produce a corrupted `CM26_by_Rizco98.deps.json`
+> that omits the bundled runtime packs. The resulting package fails to launch
+> with "Could not resolve CoreCLR path". `assemble_packages.ps1` now fails on
+> that exact corruption, but the corrupted output would still need a clean
+> sequential re-publish.
+
 ```bat
 :: version folder suffix = version.json with dots replaced by underscores
 :: e.g. 1.0.25 -> v1_0_25
