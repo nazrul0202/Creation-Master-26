@@ -105,9 +105,9 @@ public sealed class WelcomePanel : UserControl
                 LinkBehavior = LinkBehavior.HoverUnderline,
                 Font = Theme.Body,
                 ForeColor = Theme.Text,
-                ActiveLinkColor = Theme.Accent,
-                LinkColor = Theme.Accent,
-                VisitedLinkColor = Theme.Accent,
+                ActiveLinkColor = Theme.Link,
+                LinkColor = Theme.Link,
+                VisitedLinkColor = Theme.Link,
                 Margin = new Padding(0, 0, 0, 2),
             };
             var path = folder;

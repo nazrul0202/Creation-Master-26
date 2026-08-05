@@ -277,8 +277,8 @@ public sealed class LeaguesSection : SectionBase
         picture = new PictureBox { Location = Point.Empty, Size = size, BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
         var targetPicture = picture;
         holder.Controls.Add(picture);
-        var view = new LinkLabel { Text = "view", Location = new Point(0, size.Height + 2), AutoSize = true, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Accent };
-        var import = new LinkLabel { Text = "import", Location = new Point(35, size.Height + 2), AutoSize = true, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Accent };
+        var view = new LinkLabel { Text = "view", Location = new Point(0, size.Height + 2), AutoSize = true, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Link };
+        var import = new LinkLabel { Text = "import", Location = new Point(35, size.Height + 2), AutoSize = true, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Link };
         var remove = new LinkLabel { Text = "remove", Location = new Point(82, size.Height + 2), AutoSize = true, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Danger };
         view.LinkClicked += (_, _) => ViewAsset(targetPicture);
         import.LinkClicked += (_, _) => ImportAsset(targetPicture);

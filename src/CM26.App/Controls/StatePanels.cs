@@ -33,7 +33,7 @@ public sealed class EmptyStatePanel : StatePanel
 
 public sealed class LoadingStatePanel : StatePanel
 {
-    public LoadingStatePanel() { _message.Text = "Loading…"; _message.ForeColor = Theme.Accent; }
+    public LoadingStatePanel() { _message.Text = "Loading…"; _message.ForeColor = Theme.Link; }
     public void SetMessage(string m) => _message.Text = m;
 }
 

@@ -1,5 +1,18 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.31 - brighter blue theme (2026-08-05)
+
+- **The dark theme is now vividly blue, not dark.** The base surface was raised
+  from a dark navy (`#142B4D`) to a bright medium blue (`#1E4E96`), with
+  matching brighter blues for panels, raised elements, inputs and borders and
+  pure white text.
+- **Readability fixes that came with the brighter palette:** primary buttons,
+  grid selection, combo-box selection and the skill-attribute badges now use
+  white text on the deep-blue accent instead of a dark text colour that would
+  no longer be visible. Links and the loading message use a new light-blue
+  `Link` colour so they stay readable on the blue surfaces.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.31.
+
 ## Version 1.0.30 - fully blue theme with white text (2026-08-05)
 
 - **Redesigned dark theme: every surface is now a shade of blue.** The dark

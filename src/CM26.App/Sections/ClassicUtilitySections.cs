@@ -120,7 +120,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
         _compdataGrid.DefaultCellStyle.BackColor = Theme.Input;
         _compdataGrid.DefaultCellStyle.ForeColor = Theme.Text;
         _compdataGrid.DefaultCellStyle.SelectionBackColor = Theme.Accent;
-        _compdataGrid.DefaultCellStyle.SelectionForeColor = Theme.Background;
+        _compdataGrid.DefaultCellStyle.SelectionForeColor = Theme.Text;
         _compdataGrid.DefaultCellStyle.Font = Theme.Body;
         _compdataGrid.GridColor = Theme.Border;
         workspace.Controls.Add(_compdataGrid);
@@ -302,7 +302,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
                 column.DefaultCellStyle.BackColor = Theme.Input;
                 column.DefaultCellStyle.ForeColor = Theme.Text;
                 column.DefaultCellStyle.SelectionBackColor = Theme.Accent;
-                column.DefaultCellStyle.SelectionForeColor = Theme.Background;
+                column.DefaultCellStyle.SelectionForeColor = Theme.Text;
                 column.DefaultCellStyle.Font = Theme.Body;
             }
             var limit = CompdataSchema.GetRowLimit(sheetName);

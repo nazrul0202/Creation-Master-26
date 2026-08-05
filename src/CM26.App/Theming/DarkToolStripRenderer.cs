@@ -37,10 +37,10 @@ public sealed class DarkToolStripRenderer : ToolStripProfessionalRenderer
         }
         else if (button is { Checked: true })
         {
-            // Active module button highlight (bright blue, matching the CM26 Scraper theme).
-            using var brush = new SolidBrush(Color.FromArgb(20, 43, 77));
+            // Active module button highlight (deep blue fill, light blue outline).
+            using var brush = new SolidBrush(Theme.Accent);
             e.Graphics.FillRoundedRectangle(brush, rect, 4);
-            using var pen = new Pen(Theme.Accent);
+            using var pen = new Pen(Theme.Border);
             e.Graphics.DrawRectangle(pen, rect.X + 1, rect.Y + 1, rect.Width - 3, rect.Height - 3);
         }
     }

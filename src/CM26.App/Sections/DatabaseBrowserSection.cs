@@ -115,7 +115,7 @@ public sealed class DatabaseBrowserSection : SectionBase
             column.DefaultCellStyle.BackColor = Theme.Input;
             column.DefaultCellStyle.ForeColor = Theme.Text;
             column.DefaultCellStyle.SelectionBackColor = Theme.Accent;
-            column.DefaultCellStyle.SelectionForeColor = Theme.Background;
+            column.DefaultCellStyle.SelectionForeColor = Theme.Text;
             column.DefaultCellStyle.Font = Theme.Body;
         }
         _grid.BackgroundColor = Theme.Background;

@@ -22,7 +22,7 @@ public sealed class EditorHeader : UserControl
         _badge = new Label
         {
             Dock = DockStyle.Right, AutoSize = false, Width = 90, TextAlign = ContentAlignment.MiddleCenter,
-            ForeColor = Theme.Background, BackColor = Theme.Accent, Font = Theme.BodyBold, Visible = false,
+            ForeColor = Theme.Text, BackColor = Theme.Accent, Font = Theme.BodyBold, Visible = false,
         };
         var textPanel = new BufferedPanel { Dock = DockStyle.Fill, Padding = new Padding(Theme.Space, 0, 0, 0) };
         _title = new Label { Dock = DockStyle.Top, Height = 28, Font = Theme.RecordTitle, ForeColor = Theme.Text, AutoEllipsis = true };

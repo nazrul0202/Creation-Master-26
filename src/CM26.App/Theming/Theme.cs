@@ -24,23 +24,24 @@ public static class Theme
     {
         if (_dark)
         {
-            // CM26 fully-blue theme: every surface is a shade of blue,
-            // matching the CM26 Scraper tool's blue appearance.
-            _background = Color.FromArgb(20, 43, 77);     // Dark blue base
-            _panel = Color.FromArgb(26, 54, 100);          // Medium dark blue
-            _raised = Color.FromArgb(34, 74, 130);         // Medium blue
-            _input = Color.FromArgb(15, 34, 64);           // Deep blue inputs
-            _border = Color.FromArgb(59, 109, 181);        // Bright blue border
-            _text = Color.FromArgb(255, 255, 255);         // Pure white text
-            _muted = Color.FromArgb(127, 165, 214);        // Light blue-gray
-            _accent = Color.FromArgb(4, 62, 195);          // Royal blue accent
-            _accentHover = Color.FromArgb(12, 80, 214);    // Brighter blue hover
+            // CM26 fully-blue theme: bright medium-blue surfaces with white
+            // text, matching the CM26 Scraper tool's vivid blue appearance.
+            _background = Color.FromArgb(30, 78, 150);      // Vivid medium blue
+            _panel = Color.FromArgb(35, 89, 168);           // Brighter blue
+            _raised = Color.FromArgb(43, 99, 184);          // Light blue
+            _input = Color.FromArgb(23, 65, 135);           // Deep blue inputs
+            _border = Color.FromArgb(92, 147, 224);         // Light blue border
+            _text = Color.FromArgb(255, 255, 255);          // Pure white text
+            _muted = Color.FromArgb(198, 221, 247);         // Light blue-gray
+            _accent = Color.FromArgb(10, 47, 140);          // Deep royal blue accent
+            _accentHover = Color.FromArgb(15, 62, 173);     // Brighter hover
+            _link = Color.FromArgb(170, 210, 250);          // Light blue links on blue surfaces
             _danger = Color.FromArgb(224, 96, 80);
             _success = Color.FromArgb(76, 195, 138);
             _warning = Color.FromArgb(230, 180, 58);
-            _validationBackground = Color.FromArgb(26, 54, 100);
-            _validationListBackground = Color.FromArgb(20, 43, 77);
-            _validationText = Color.FromArgb(127, 165, 214);
+            _validationBackground = Color.FromArgb(30, 72, 140);
+            _validationListBackground = Color.FromArgb(24, 60, 120);
+            _validationText = Color.FromArgb(198, 221, 247);
         }
         else
         {
@@ -54,6 +55,7 @@ public static class Theme
             _muted = Color.FromArgb(96, 116, 140);
             _accent = Color.FromArgb(4, 62, 195);
             _accentHover = Color.FromArgb(12, 58, 180);
+            _link = Color.FromArgb(4, 62, 195);
             _danger = Color.FromArgb(200, 66, 50);
             _success = Color.FromArgb(40, 160, 90);
             _warning = Color.FromArgb(190, 145, 30);
@@ -63,21 +65,22 @@ public static class Theme
         }
     }
 
-    private static Color _background = Color.FromArgb(20, 43, 77);
-    private static Color _panel = Color.FromArgb(26, 54, 100);
-    private static Color _raised = Color.FromArgb(34, 74, 130);
-    private static Color _input = Color.FromArgb(15, 34, 64);
-    private static Color _border = Color.FromArgb(59, 109, 181);
+    private static Color _background = Color.FromArgb(30, 78, 150);
+    private static Color _panel = Color.FromArgb(35, 89, 168);
+    private static Color _raised = Color.FromArgb(43, 99, 184);
+    private static Color _input = Color.FromArgb(23, 65, 135);
+    private static Color _border = Color.FromArgb(92, 147, 224);
     private static Color _text = Color.FromArgb(255, 255, 255);
-    private static Color _muted = Color.FromArgb(127, 165, 214);
-    private static Color _accent = Color.FromArgb(4, 62, 195);
-    private static Color _accentHover = Color.FromArgb(12, 80, 214);
+    private static Color _muted = Color.FromArgb(198, 221, 247);
+    private static Color _accent = Color.FromArgb(10, 47, 140);
+    private static Color _accentHover = Color.FromArgb(15, 62, 173);
+    private static Color _link = Color.FromArgb(170, 210, 250);
     private static Color _danger = Color.FromArgb(224, 96, 80);
     private static Color _success = Color.FromArgb(76, 195, 138);
     private static Color _warning = Color.FromArgb(230, 180, 58);
-    private static Color _validationBackground = Color.FromArgb(26, 54, 100);
-    private static Color _validationListBackground = Color.FromArgb(20, 43, 77);
-    private static Color _validationText = Color.FromArgb(127, 165, 214);
+    private static Color _validationBackground = Color.FromArgb(30, 72, 140);
+    private static Color _validationListBackground = Color.FromArgb(24, 60, 120);
+    private static Color _validationText = Color.FromArgb(198, 221, 247);
 
     public static Color Background => _background;
     public static Color Panel => _panel;
@@ -88,6 +91,7 @@ public static class Theme
     public static Color Muted => _muted;
     public static Color Accent => _accent;
     public static Color AccentHover => _accentHover;
+    public static Color Link => _link;
     public static Color Danger => _danger;
     public static Color Success => _success;
     public static Color Warning => _warning;
@@ -119,7 +123,7 @@ public static class Theme
         b.FlatAppearance.BorderSize = 1;
         b.FlatAppearance.BorderColor = primary ? Accent : Border;
         b.BackColor = primary ? Accent : Panel;
-        b.ForeColor = primary ? Background : Text;
+        b.ForeColor = Text;
         b.Font = primary ? BodyBold : Body;
         b.Height = ControlHeight;
         b.Cursor = Cursors.Hand;
@@ -177,7 +181,7 @@ public static class Theme
         using var bg = new SolidBrush(e.State.HasFlag(DrawItemState.Selected) ? Accent : Input);
         e.Graphics.FillRectangle(bg, e.Bounds);
         var text = combo.GetItemText(combo.Items[e.Index]);
-        var color = e.State.HasFlag(DrawItemState.Selected) ? Background : Text;
+        var color = Text;
         var flags = TextFormatFlags.Left | TextFormatFlags.VerticalCenter |
                     TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding;
         TextRenderer.DrawText(e.Graphics, text, combo.Font, e.Bounds, color, flags);
@@ -220,7 +224,7 @@ public static class Theme
         g.DefaultCellStyle.BackColor = Input;
         g.DefaultCellStyle.ForeColor = Text;
         g.DefaultCellStyle.SelectionBackColor = Accent;
-        g.DefaultCellStyle.SelectionForeColor = Background;
+        g.DefaultCellStyle.SelectionForeColor = Text;
         g.DefaultCellStyle.Font = Body;
         g.AlternatingRowsDefaultCellStyle.BackColor = Raised;
         g.AlternatingRowsDefaultCellStyle.ForeColor = Text;
@@ -245,7 +249,7 @@ public static class Theme
             column.DefaultCellStyle.BackColor = Input;
             column.DefaultCellStyle.ForeColor = Text;
             column.DefaultCellStyle.SelectionBackColor = Accent;
-            column.DefaultCellStyle.SelectionForeColor = Background;
+            column.DefaultCellStyle.SelectionForeColor = Text;
             column.DefaultCellStyle.Font = Body;
         }
     }
@@ -280,7 +284,7 @@ public static class Theme
             e.Graphics.DrawLine(pen, tabRect.Left, tabRect.Top, tabRect.Right, tabRect.Top);
 
         var text = tabs.TabPages[e.Index].Text;
-        var color = selected ? Accent : Muted;
+        var color = selected ? Text : Muted;
         TextRenderer.DrawText(e.Graphics, text, tabs.Font, tabRect, color,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
     }
@@ -357,9 +361,9 @@ public static class Theme
                     mtb.Font = Body;
                     break;
                 case LinkLabel link:
-                    link.LinkColor = Accent;
+                    link.LinkColor = Link;
                     link.ActiveLinkColor = AccentHover;
-                    link.VisitedLinkColor = Accent;
+                    link.VisitedLinkColor = Link;
                     link.BackColor = Color.Transparent;
                     break;
                 case MonthCalendar cal:

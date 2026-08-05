@@ -265,7 +265,7 @@ public sealed class PlayersSection : SectionBase
             var y = 25;
             foreach (var field in columns[c].Item2)
             {
-                var label = new Label { Location = new Point(10, y), Size = new Size(116, 18), TextAlign = ContentAlignment.MiddleCenter, BackColor = Theme.Accent, ForeColor = Theme.Background, Font = Theme.BodyBold };
+                var label = new Label { Location = new Point(10, y), Size = new Size(116, 18), TextAlign = ContentAlignment.MiddleCenter, BackColor = Theme.Accent, ForeColor = Theme.Text, Font = Theme.BodyBold };
                 _skillValues[field] = label;
                 group.Controls.Add(label);
                 var slider = new TrackBar { Location = new Point(9, y + 19), Size = new Size(118, 28), Minimum = 1, Maximum = 99, TickStyle = TickStyle.None, Tag = field, BackColor = Theme.Panel };
