@@ -1,6 +1,6 @@
 {
-  "version": "1.0.28",
+  "version": "1.0.29",
   "name": "Creation Master 26",
-  "notes": "v1.0.28 - hotfix: startup crash 'String cannot have zero length' when a section icon is absent.",
+  "notes": "v1.0.29 - navy-blue theme matching the CM26 Scraper tool (blue + white text).",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

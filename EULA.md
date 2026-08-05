@@ -1,6 +1,6 @@
 # End User License Agreement — Creation Master 26
 
-**Version 1.0.28 · © 2026 Rizco98**
+**Version 1.0.29 · © 2026 Rizco98**
 
 This software is **licensed, not sold**. By installing or using Creation Master 26
 you agree to the full terms in the [`LICENSE`](LICENSE) file. A plain-language

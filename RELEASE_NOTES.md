@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.29 - navy-blue theme to match the CM26 Scraper (2026-08-05)
+
+- **New colour theme.** The interface now uses the same navy-blue palette as the
+  CM26 Scraper tool: dark charcoal surfaces (`#151515` / `#1E1E1E` / `#282828`),
+  a royal-blue accent (`#043EC3`) for buttons, active modules and highlights, and
+  white text. The light theme keeps a matching blue accent.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.29.
+
 ## Version 1.0.28 - hotfix: startup crash on launch (2026-08-05)
 
 **This release fixes a crash that stopped the app from starting at all.**
