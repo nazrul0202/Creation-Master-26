@@ -1,6 +1,6 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.26, 2026-08-05.
+Status: Version 1.0.27, 2026-08-05.
 
 ## Direct editing
 

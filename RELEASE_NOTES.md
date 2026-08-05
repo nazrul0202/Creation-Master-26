@@ -1,5 +1,35 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.27 - UI polish and workflow (2026-08-05)
+
+This release is a broad polish pass across the interface, navigation and editor
+workflow. No database or save behaviour changed.
+
+- **Dark theme completed.** Tab headers and ComboBox dropdowns are now owner-drawn
+  with the CM26 dark palette, so the whole window is consistent (previously the
+  native tab strip and dropdown list used light system colours). The window
+  chrome and scrollbars also request immersive dark mode where the OS supports it.
+- **New light theme.** A "Dark theme" toggle in Settings switches the whole
+  interface between dark and light palettes; the choice is remembered and every
+  open section re-themes instantly.
+- **Module navigation now shows labels.** Each toolbar module shows its icon and
+  name instead of an icon-only button, and sections without a dedicated icon get
+  a distinct colour-coded letter badge instead of reusing another module's icon.
+- **Quick keyboard navigation.** `Ctrl+1..0` jump straight to Dashboard, Countries,
+  Leagues, Teams, Players, Managers, Stadiums, Kits, Competitions and Data Sync.
+  A "Keyboard Shortcuts…" dialog under Help lists every shortcut.
+- **Undo/Redo.** A Redo button (`Ctrl+Y`) is added beside Undo, and multi-level
+  undo/redo works through the toolbar.
+- **Unsaved-change safety.** Switching sections now warns that staged changes are
+  still pending (they are never lost), instead of only warning at app close.
+- **Start screen recent files.** The welcome screen lists recently opened
+  database folders for one-click re-open.
+- **Editor polish.** Fields and buttons show an accent focus border for keyboard
+  navigation; invalid field values now surface in a non-blocking toast instead of
+  a modal dialog; Dashboard stat cards are clickable shortcuts; the status-bar
+  path is truncated to the last few folders.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.27.
+
 ## Version 1.0.26 - critical fix: launch/UI crash 0xc0000005 (2026-08-05)
 
 **This release fixes a crash that terminated the app in Windows Error Reporting.**
