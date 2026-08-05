@@ -1,5 +1,15 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.30 - fully blue theme with white text (2026-08-05)
+
+- **Redesigned dark theme: every surface is now a shade of blue.** The dark
+  palette no longer uses charcoal-gray surfaces. Background, panels, raised
+  elements, input fields and borders are all shades of medium/dark blue with
+  pure white text. The checked-module highlight, badge fallback colours and
+  validation panels all match. The light theme keeps its existing blue-tinted
+  off-white look.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.30.
+
 ## Version 1.0.29 - navy-blue theme to match the CM26 Scraper (2026-08-05)
 
 - **New colour theme.** The interface now uses the same navy-blue palette as the

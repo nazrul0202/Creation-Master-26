@@ -45,13 +45,13 @@ public static class IconService
     /// <summary>Distinct accent colour per section used for the letter badge fallback.</summary>
     private static readonly Dictionary<string, Color> BadgeColorByKey = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["gloves"] = Color.FromArgb(88, 110, 180),
-        ["sponsors"] = Color.FromArgb(170, 120, 60),
-        ["adboards"] = Color.FromArgb(60, 150, 170),
-        ["audio"] = Color.FromArgb(150, 90, 160),
-        ["stadiumaudio"] = Color.FromArgb(130, 70, 90),
-        ["scoreboard"] = Color.FromArgb(70, 160, 130),
-        ["referees"] = Color.FromArgb(190, 130, 50),
+        ["gloves"] = Color.FromArgb(59, 109, 181),
+        ["sponsors"] = Color.FromArgb(34, 74, 130),
+        ["adboards"] = Color.FromArgb(26, 54, 100),
+        ["audio"] = Color.FromArgb(12, 80, 214),
+        ["stadiumaudio"] = Color.FromArgb(20, 43, 77),
+        ["scoreboard"] = Color.FromArgb(4, 62, 195),
+        ["referees"] = Color.FromArgb(127, 165, 214),
     };
 
     /// <summary>Get an icon scaled to <paramref name="size"/> keeping aspect ratio; fallback drawn if missing.</summary>
