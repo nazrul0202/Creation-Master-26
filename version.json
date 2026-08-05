@@ -1,6 +1,6 @@
 {
-  "version": "1.0.31",
+  "version": "1.0.32",
   "name": "Creation Master 26",
-  "notes": "v1.0.31 - brighter blue theme: vivid medium-blue surfaces with white text.",
+  "notes": "v1.0.32 - expanded every editor with the missing FC26 fields and fixed five field bindings that left editors empty.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

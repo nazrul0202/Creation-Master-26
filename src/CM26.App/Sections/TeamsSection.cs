@@ -433,7 +433,7 @@ public sealed class TeamsSection : SectionBase
         canvas.Controls.Add(lastYear);
 
         var location = Group("Location", new Point(279, 612), new Size(270, 99));
-        AddBoundFields(location, new[] { ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Time", "utctime") }, 10, 18, 98, 150, 24);
+        AddBoundFields(location, new[] { ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Offset", "utcoffset") }, 10, 18, 98, 150, 24);
         canvas.Controls.Add(location);
 
         var traits = Group("Opponent Behaviour", new Point(555, 3), new Size(276, 126));
@@ -482,6 +482,56 @@ public sealed class TeamsSection : SectionBase
             ("Opponent Weak Threshold", "opponentweakthreshold"), ("Opponent Strong Threshold", "opponentstrongthreshold")
         }, 14, 22, 154, 150, 24);
         canvas.Controls.Add(tactics);
+
+        var setPieces = Group("Set Piece Takers", new Point(921, 548), new Size(390, 325));
+        AddBoundFields(setPieces, new[]
+        {
+            ("Captain", "captainid"), ("Free Kick", "freekicktakerid"), ("Left Free Kick", "leftfreekicktakerid"),
+            ("Right Free Kick", "rightfreekicktakerid"), ("Left Corner", "leftcornerkicktakerid"),
+            ("Right Corner", "rightcornerkicktakerid"), ("Long Kick", "longkicktakerid"),
+            ("Penalty", "penaltytakerid"), ("Left Thrower", "throwerleft"), ("Right Thrower", "throwerright")
+        }, 15, 22, 175, 190, 28);
+        canvas.Controls.Add(setPieces);
+
+        var crowd = Group("Crowd Support", new Point(921, 879), new Size(390, 325));
+        AddBoundFields(crowd, new[]
+        {
+            ("Support 1", "cksupport1"), ("Support 2", "cksupport2"), ("Support 3", "cksupport3"),
+            ("Support 4", "cksupport4"), ("Support 5", "cksupport5"), ("Support 6", "cksupport6"),
+            ("Support 7", "cksupport7"), ("Support 8", "cksupport8"), ("Support 9", "cksupport9"),
+            ("Crowd Skin Tone", "crowdskintonecode")
+        }, 15, 22, 175, 190, 28);
+        canvas.Controls.Add(crowd);
+
+        var clubColours = Group("Club Colours", new Point(1217, 229), new Size(310, 300));
+        AddBoundFields(clubColours, new[]
+        {
+            ("Colour 1 R", "teamcolor1r"), ("Colour 1 G", "teamcolor1g"), ("Colour 1 B", "teamcolor1b"),
+            ("Colour 2 R", "teamcolor2r"), ("Colour 2 G", "teamcolor2g"), ("Colour 2 B", "teamcolor2b"),
+            ("Colour 3 R", "teamcolor3r"), ("Colour 3 G", "teamcolor3g"), ("Colour 3 B", "teamcolor3b")
+        }, 15, 22, 120, 165, 28);
+        canvas.Controls.Add(clubColours);
+
+        var netColours = Group("Goal Net Colours", new Point(1217, 535), new Size(310, 240));
+        AddBoundFields(netColours, new[]
+        {
+            ("Stanchion 1 R", "goalnetstanchioncolor1r"), ("Stanchion 1 G", "goalnetstanchioncolor1g"), ("Stanchion 1 B", "goalnetstanchioncolor1b"),
+            ("Stanchion 2 R", "goalnetstanchioncolor2r"), ("Stanchion 2 G", "goalnetstanchioncolor2g"), ("Stanchion 2 B", "goalnetstanchioncolor2b"),
+            ("Corner Flag Pole", "cornerflagpolecolor")
+        }, 15, 22, 120, 165, 28);
+        canvas.Controls.Add(netColours);
+
+        var extras = Group("Flags and Extras", new Point(555, 623), new Size(360, 470));
+        AddBoundFields(extras, new[]
+        {
+            ("Jersey Type", "jerseytype"), ("Ethnicity", "ethnicity"), ("Asset Id", "assetid"),
+            ("Pres Asset One", "presassetone"), ("Pres Asset Two", "presassettwo"), ("Pow Id", "powid"),
+            ("Generic Int 1", "genericint1"), ("Generic Int 2", "genericint2"), ("Flamethrower Cannon", "flamethrowercannon"),
+            ("Stanchion Flamethrower", "stanchionflamethrower"), ("Generic Banner", "genericbanner"),
+            ("Transfers In", "numtransfersin"), ("Rival Team", "rivalteam"),
+            ("UEFA Conference League", "uefa_uecl_wins"), ("UEFA Consecutive Wins", "uefa_consecutive_wins")
+        }, 15, 22, 160, 175, 27);
+        canvas.Controls.Add(extras);
 
         var presentation = Group("Matchday Presentation", new Point(921, 275), new Size(390, 267));
         AddBoundFields(presentation, new[]

@@ -1,5 +1,36 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.32 - every editor filled with its real FC26 fields (2026-08-05)
+
+- **Fixed five field bindings that left editors empty.** The Teams Location group
+  read `utctime` instead of the real `utcoffset` column, and the Players Look/Face
+  groups bound `sleevelengthcode`, `winteraccessoriescode`, `gkglovecode` and
+  `facialhaircode`, which do not exist in FC26. They now bind
+  `jerseysleevelengthcode`, `gkglovetypecode` and `facialhairtypecode`; the
+  non-existent winter-accessories field was replaced by the real socks-length,
+  shoe-type, undershort, short-style and jersey-fit fields.
+- **Players grew from ~55 to ~145 fields.** New Details tab (tattoos, accessories,
+  preferred positions 5-7, playing roles, goalkeeper style, profile, development,
+  customisation and icon traits) plus expanded Face tab (head type/variation/asset,
+  hair type, facial-hair colour, skin type/makeup/surface/complexion, muscularity,
+  face layers) and the missing `balance` skill.
+- **Teams grew to cover its full 110-column record:** set-piece takers (captain,
+  free-kick/corner/penalty/long-kick/throwers), crowd support levels 1-9, club
+  colours 1-3 (RGB), goal-net stanchion colours, and a Flags and Extras group.
+- **Managers:** added skin/eyebrow/sideburns/lip/eye-detail fields, accessory
+  colours 3-4, personality, gender, ethnicity, licensed and rewardable flags.
+- **Stadiums:** Info now covers stadium type, licensing, DLC, availability,
+  upgrade tier/style, GM availability, generic rank and seat colour; new
+  Broadcast and Camera, Licensing, Presentation Extras, Stanchion Colours and
+  Technical Zone groups cover the rest of the 88-column record.
+- **Kits:** added jersey/shorts number colours (primary/secondary/tertiary RGB),
+  name colours and outline colours, tertiary kit colours, colour percentages,
+  and the kit record identifiers (kit id, team tech id, kit type, year, DLC).
+- **Formations:** added defenders, offensive rating, full-name id and audio id.
+- **Referees:** new Face tab (head/hair/skin/appearance) and expanded Identity
+  with gender and real-referee flag.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.32.
+
 ## Version 1.0.31 - brighter blue theme (2026-08-05)
 
 - **The dark theme is now vividly blue, not dark.** The base surface was raised

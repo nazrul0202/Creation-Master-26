@@ -45,6 +45,7 @@ public sealed class PlayersSection : SectionBase
         AddInfoTab();
         AddSkillsTab();
         AddFaceTab();
+        AddDetailsTab();
         AddCallnameTab();
     }
 
@@ -168,18 +169,19 @@ public sealed class PlayersSection : SectionBase
         _clubName.Font = LegacyFont;
         _clubName.TextAlign = ContentAlignment.MiddleCenter;
         playingFor.Controls.Add(_clubName);
-        AddFields(playingFor, new[] { ("Joining Date", "playerjointeamdate"), ("Is Loaned", "isloaned") }, 12, 122, 102, 125, 28);
+        AddFields(playingFor, new[] { ("Joining Date", "playerjointeamdate"), ("Is Retiring", "isretiring") }, 12, 122, 102, 125, 28);
         canvas.Controls.Add(playingFor);
 
         var body = Box("Body", new Point(3, 229), new Size(390, 120));
         AddFields(body, new[] { ("Height", "height"), ("Weight", "weight"), ("Body", "bodytypecode"), ("Best foot", "preferredfoot"), ("Weak foot", "weakfootabilitytypecode") }, 12, 18, 245, 120, 22);
         canvas.Controls.Add(body);
 
-        var look = Box("Look", new Point(3, 355), new Size(390, 272));
+        var look = Box("Look", new Point(3, 355), new Size(390, 300));
         AddFields(look, new[]
         {
-            ("Jersey Style", "jerseystylecode"), ("Sleeves Length", "sleevelengthcode"), ("Socks Style", "sockstylecode"),
-            ("Winter Accessories", "winteraccessoriescode"), ("GK Gloves", "gkglovecode")
+            ("Jersey Style", "jerseystylecode"), ("Sleeves Length", "jerseysleevelengthcode"), ("Socks Style", "sockstylecode"),
+            ("Socks Length", "socklengthcode"), ("GK Gloves", "gkglovetypecode"), ("Shoes Type", "shoetypecode"),
+            ("Undershort Style", "undershortstyle"), ("Short Style", "shortstyle"), ("Jersey Fit", "jerseyfit")
         }, 12, 18, 145, 240, 28);
         canvas.Controls.Add(look);
 
@@ -254,7 +256,7 @@ public sealed class PlayersSection : SectionBase
             ("Goalkeeper Skills", new[] { "gkreflexes", "gkhandling", "gkdiving", "gkpositioning", "gkkicking" }),
             ("Defensive Skills", new[] { "defensiveawareness", "standingtackle", "aggression", "slidingtackle", "interceptions" }),
             ("Midfielder Skills", new[] { "shortpassing", "longpassing", "crossing", "ballcontrol", "vision", "curve" }),
-            ("Mental Skills", new[] { "reactions", "composure", "positioning" }),
+            ("Mental Skills", new[] { "reactions", "composure", "positioning", "balance" }),
             ("Attacking Skills", new[] { "shotpower", "longshots", "dribbling", "volleys", "headingaccuracy", "finishing" }),
             ("Physical Skills", new[] { "acceleration", "sprintspeed", "stamina", "strength", "agility", "jumping" }),
             ("Free Kick Skills", new[] { "freekickaccuracy", "penalties", "skillmoves" })
@@ -317,9 +319,107 @@ public sealed class PlayersSection : SectionBase
         _facePreviewCaption.Text = "Face preview";
         preview.Controls.Add(_facePreviewCaption);
         canvas.Controls.Add(preview);
-        var modelling = Box("Face Modelling", new Point(3, 479), new Size(745, 290));
-        AddFields(modelling, new[] { ("Head Model", "headclasscode"), ("Hair Model", "hairstylecode"), ("Hair Color", "haircolorcode"), ("Skin Tone", "skintonecode"), ("Eyes Color", "eyecolorcode"), ("Facial Hair", "facialhaircode") }, 16, 25, 150, 260, 34);
+        var modelling = Box("Face Modelling", new Point(3, 479), new Size(745, 250));
+        AddFields(modelling, new[] { ("Head Model", "headclasscode"), ("Head Type", "headtypecode"), ("Head Variation", "headvariation"), ("Head Asset Id", "headassetid"), ("Hair Model", "hairstylecode"), ("Hair Type", "hairtypecode"), ("High Quality Head", "hashighqualityhead") }, 16, 22, 150, 260, 30);
         canvas.Controls.Add(modelling);
+        var appearance = Box("Appearance", new Point(3, 735), new Size(745, 300));
+        AddFields(appearance, new[]
+        {
+            ("Hair Color", "haircolorcode"), ("Facial Hair", "facialhairtypecode"), ("Facial Hair Color", "facialhaircolorcode"),
+            ("Skin Tone", "skintonecode"), ("Eyes Color", "eyecolorcode"), ("Eye Detail", "eyedetail"),
+            ("Eyebrow Code", "eyebrowcode"), ("Sideburns Code", "sideburnscode"), ("Lip Color", "lipcolor")
+        }, 16, 22, 150, 260, 30);
+        canvas.Controls.Add(appearance);
+        var skin = Box("Skin Details", new Point(3, 1041), new Size(745, 270));
+        AddFields(skin, new[]
+        {
+            ("Skin Type", "skintypecode"), ("Skin Makeup", "skinmakeup"), ("Skin Surface Pack", "skinsurfacepack"),
+            ("Skin Complexion", "skincomplexion"), ("Muscularity", "muscularitycode"), ("Face Pose Preset", "faceposerpreset"),
+            ("Face PSD Layer 0", "facepsdlayer0"), ("Face PSD Layer 1", "facepsdlayer1")
+        }, 16, 22, 150, 260, 30);
+        canvas.Controls.Add(skin);
+    }
+
+    private void AddDetailsTab()
+    {
+        var page = Page("Details");
+        var canvas = Canvas(page);
+
+        var tattoos = Box("Tattoos", new Point(3, 3), new Size(440, 300));
+        AddFields(tattoos, new[]
+        {
+            ("Head Tattoo", "tattoohead"), ("Front Tattoo", "tattoofront"), ("Back Tattoo", "tattooback"),
+            ("Left Arm", "tattooleftarm"), ("Right Arm", "tattoorightarm"),
+            ("Left Leg", "tattooleftleg"), ("Right Leg", "tattoorightleg")
+        }, 12, 25, 145, 260, 32);
+        canvas.Controls.Add(tattoos);
+
+        var accessories = Box("Accessories", new Point(449, 3), new Size(440, 330));
+        AddFields(accessories, new[]
+        {
+            ("Accessory 1", "accessorycode1"), ("Accessory 2", "accessorycode2"),
+            ("Accessory 3", "accessorycode3"), ("Accessory 4", "accessorycode4"),
+            ("Colour 1", "accessorycolourcode1"), ("Colour 2", "accessorycolourcode2"),
+            ("Colour 3", "accessorycolourcode3"), ("Colour 4", "accessorycolourcode4")
+        }, 12, 25, 145, 260, 32);
+        canvas.Controls.Add(accessories);
+
+        var positions = Box("Preferred Positions", new Point(3, 309), new Size(440, 110));
+        AddFields(positions, new[]
+        {
+            ("Preferred Position 5", "preferredposition5"), ("Preferred Position 6", "preferredposition6"),
+            ("Preferred Position 7", "preferredposition7")
+        }, 12, 22, 145, 260, 27);
+        canvas.Controls.Add(positions);
+
+        var roles = Box("Playing Roles", new Point(449, 339), new Size(440, 190));
+        AddFields(roles, new[]
+        {
+            ("Role 1", "role1"), ("Role 2", "role2"), ("Role 3", "role3"), ("Role 4", "role4"), ("Role 5", "role5"),
+            ("Finishing Code 1", "finishingcode1"), ("Finishing Code 2", "finishingcode2")
+        }, 12, 22, 145, 260, 24);
+        canvas.Controls.Add(roles);
+
+        var goalkeeper = Box("Goalkeeper Style", new Point(3, 425), new Size(440, 110));
+        AddFields(goalkeeper, new[]
+        {
+            ("Save Type", "gksavetype"), ("Kick Style", "gkkickstyle")
+        }, 12, 22, 145, 260, 27);
+        canvas.Controls.Add(goalkeeper);
+
+        var profile = Box("Player Profile", new Point(3, 541), new Size(440, 330));
+        AddFields(profile, new[]
+        {
+            ("Gender", "gender"), ("Personality", "personality"), ("Emotion", "emotion"),
+            ("Run Style", "runstylecode"), ("Running Code 1", "runningcode1"), ("Running Code 2", "runningcode2"),
+            ("Free Kick Start Pose", "animfreekickstartposcode"), ("Penalty Start Pose", "animpenaltiesstartposcode"),
+            ("Skill Moves Likelihood", "skillmoveslikelihood")
+        }, 12, 25, 145, 260, 31);
+        canvas.Controls.Add(profile);
+
+        var development = Box("Development", new Point(449, 535), new Size(440, 200));
+        AddFields(development, new[]
+        {
+            ("Pace Division", "pacdiv"), ("Dribble Reference", "driref"), ("Defence Reference", "defspe"),
+            ("Passing Reference", "paskic"), ("Physical Reference", "phypos"), ("Modifier", "modifier")
+        }, 12, 22, 145, 260, 26);
+        canvas.Controls.Add(development);
+
+        var customisation = Box("Customisation", new Point(449, 741), new Size(440, 170));
+        AddFields(customisation, new[]
+        {
+            ("User Can Edit Name", "usercaneditname"), ("Is Customized", "iscustomized"),
+            ("Avatar POM Id", "avatarpomid"), ("Shohan", "shohan"),
+            ("Jersey Name Id", "playerjerseynameid"), ("Small Sided Shoes", "smallsidedshoetypecode")
+        }, 12, 22, 145, 260, 24);
+        canvas.Controls.Add(customisation);
+
+        var iconTraits = Box("Icon Traits", new Point(3, 877), new Size(440, 100));
+        AddFields(iconTraits, new[]
+        {
+            ("Icon Trait 1", "icontrait1"), ("Icon Trait 2", "icontrait2")
+        }, 12, 22, 145, 260, 27);
+        canvas.Controls.Add(iconTraits);
     }
 
     private void AddCallnameTab()
