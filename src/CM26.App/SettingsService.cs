@@ -69,11 +69,42 @@ public static class SettingsService
         set { _values["Language"] = value; Save(); }
     }
 
+    /// <summary>Visual theme mode: true = dark (default), false = light.</summary>
+    public static bool DarkMode
+    {
+        get => !_values.TryGetValue("DarkMode", out var v) || v != "0";
+        set { _values["DarkMode"] = value ? "1" : "0"; Save(); }
+    }
+
     /// <summary>Last time "Check for updates" was performed, for throttling checks.</summary>
     public static string LastUpdateCheckTicks
     {
         get => _values.TryGetValue("LastUpdateCheckTicks", out var v) ? v : string.Empty;
         set { _values["LastUpdateCheckTicks"] = value; Save(); }
+    }
+
+    /// <summary>
+    /// Most recently opened database folders (most recent first). Used by the start
+    /// screen for one-click re-open. Persisted as a single ';'-separated setting.
+    /// </summary>
+    public static IReadOnlyList<string> RecentFolders
+    {
+        get => _values.TryGetValue("RecentFolders", out var v)
+            ? v.Split(';', StringSplitOptions.RemoveEmptyEntries)
+            : Array.Empty<string>();
+    }
+
+    /// <summary>Records a freshly opened database folder at the top of the recent list.</summary>
+    public static void PushRecentFolder(string folder)
+    {
+        if (string.IsNullOrWhiteSpace(folder)) return;
+        var list = RecentFolders
+            .Where(f => !string.Equals(f, folder, StringComparison.OrdinalIgnoreCase))
+            .Take(7)
+            .ToList();
+        list.Insert(0, folder);
+        _values["RecentFolders"] = string.Join(';', list);
+        Save();
     }
 
     /// <summary>

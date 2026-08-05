@@ -14,7 +14,7 @@ public sealed class ValidationSummary : UserControl
     public ValidationSummary()
     {
         Height = 96;
-        BackColor = Color.FromArgb(52, 36, 36);
+        BackColor = Theme.ValidationBackground;
         Visible = false;
         Padding = new Padding(Theme.Space, 4, Theme.Space, 4);
 
@@ -22,8 +22,8 @@ public sealed class ValidationSummary : UserControl
         _list = new ListBox
         {
             Dock = DockStyle.Fill,
-            BackColor = Color.FromArgb(40, 28, 28),
-            ForeColor = Color.FromArgb(220, 190, 190),
+            BackColor = Theme.ValidationListBackground,
+            ForeColor = Theme.ValidationText,
             BorderStyle = BorderStyle.None,
             Font = Theme.Muted9,
         };

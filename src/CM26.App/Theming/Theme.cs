@@ -3,23 +3,97 @@ using System.Windows.Forms;
 
 namespace CM26.App.Theming;
 
-/// <summary>Central design system: palette, typography, spacing. Every control uses these constants.</summary>
+/// <summary>Central design system: palette, typography, spacing. Every control uses these.</summary>
 public static class Theme
 {
-    // Dark CM26 desktop palette: near-black work surface, restrained green
-    // borders and a brighter green only for active or primary actions.
-    public static readonly Color Background = Color.FromArgb(7, 12, 9);
-    public static readonly Color Panel = Color.FromArgb(10, 18, 13);
-    public static readonly Color Raised = Color.FromArgb(18, 30, 22);
-    public static readonly Color Input = Color.FromArgb(14, 24, 17);
-    public static readonly Color Border = Color.FromArgb(25, 72, 43);
-    public static readonly Color Text = Color.FromArgb(224, 239, 228);
-    public static readonly Color Muted = Color.FromArgb(139, 169, 148);
-    public static readonly Color Accent = Color.FromArgb(31, 190, 99);
-    public static readonly Color AccentHover = Color.FromArgb(22, 146, 74);
-    public static readonly Color Danger = Color.FromArgb(222, 83, 68);
-    public static readonly Color Success = Color.FromArgb(50, 203, 111);
-    public static readonly Color Warning = Color.FromArgb(230, 180, 58);
+    private static bool _dark = true;
+
+    /// <summary>Current visual theme mode (true = dark). Persisted with the settings.</summary>
+    public static bool IsDark
+    {
+        get => _dark;
+        set
+        {
+            if (_dark == value) return;
+            _dark = value;
+            ApplyPalette();
+        }
+    }
+
+    private static void ApplyPalette()
+    {
+        if (_dark)
+        {
+            // Dark CM26 desktop palette: near-black work surface, restrained green
+            // borders and a brighter green only for active or primary actions.
+            _background = Color.FromArgb(7, 12, 9);
+            _panel = Color.FromArgb(10, 18, 13);
+            _raised = Color.FromArgb(18, 30, 22);
+            _input = Color.FromArgb(14, 24, 17);
+            _border = Color.FromArgb(25, 72, 43);
+            _text = Color.FromArgb(224, 239, 228);
+            _muted = Color.FromArgb(139, 169, 148);
+            _accent = Color.FromArgb(31, 190, 99);
+            _accentHover = Color.FromArgb(22, 146, 74);
+            _danger = Color.FromArgb(222, 83, 68);
+            _success = Color.FromArgb(50, 203, 111);
+            _warning = Color.FromArgb(230, 180, 58);
+            _validationBackground = Color.FromArgb(52, 36, 36);
+            _validationListBackground = Color.FromArgb(40, 28, 28);
+            _validationText = Color.FromArgb(220, 190, 190);
+        }
+        else
+        {
+            // Light CM26 palette: soft off-white surfaces, restrained green borders.
+            _background = Color.FromArgb(246, 249, 247);
+            _panel = Color.FromArgb(255, 255, 255);
+            _raised = Color.FromArgb(235, 241, 237);
+            _input = Color.FromArgb(255, 255, 255);
+            _border = Color.FromArgb(110, 170, 135);
+            _text = Color.FromArgb(24, 38, 30);
+            _muted = Color.FromArgb(92, 120, 104);
+            _accent = Color.FromArgb(18, 140, 78);
+            _accentHover = Color.FromArgb(16, 120, 66);
+            _danger = Color.FromArgb(200, 66, 50);
+            _success = Color.FromArgb(40, 160, 90);
+            _warning = Color.FromArgb(190, 145, 30);
+            _validationBackground = Color.FromArgb(250, 235, 235);
+            _validationListBackground = Color.FromArgb(255, 246, 246);
+            _validationText = Color.FromArgb(150, 60, 55);
+        }
+    }
+
+    private static Color _background = Color.FromArgb(7, 12, 9);
+    private static Color _panel = Color.FromArgb(10, 18, 13);
+    private static Color _raised = Color.FromArgb(18, 30, 22);
+    private static Color _input = Color.FromArgb(14, 24, 17);
+    private static Color _border = Color.FromArgb(25, 72, 43);
+    private static Color _text = Color.FromArgb(224, 239, 228);
+    private static Color _muted = Color.FromArgb(139, 169, 148);
+    private static Color _accent = Color.FromArgb(31, 190, 99);
+    private static Color _accentHover = Color.FromArgb(22, 146, 74);
+    private static Color _danger = Color.FromArgb(222, 83, 68);
+    private static Color _success = Color.FromArgb(50, 203, 111);
+    private static Color _warning = Color.FromArgb(230, 180, 58);
+    private static Color _validationBackground = Color.FromArgb(52, 36, 36);
+    private static Color _validationListBackground = Color.FromArgb(40, 28, 28);
+    private static Color _validationText = Color.FromArgb(220, 190, 190);
+
+    public static Color Background => _background;
+    public static Color Panel => _panel;
+    public static Color Raised => _raised;
+    public static Color Input => _input;
+    public static Color Border => _border;
+    public static Color Text => _text;
+    public static Color Muted => _muted;
+    public static Color Accent => _accent;
+    public static Color AccentHover => _accentHover;
+    public static Color Danger => _danger;
+    public static Color Success => _success;
+    public static Color Warning => _warning;
+    public static Color ValidationBackground => _validationBackground;
+    public static Color ValidationListBackground => _validationListBackground;
+    public static Color ValidationText => _validationText;
 
     // Typography
     public static readonly Font Body = new("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point);
@@ -50,6 +124,9 @@ public static class Theme
         b.Height = ControlHeight;
         b.Cursor = Cursors.Hand;
         b.UseVisualStyleBackColor = false;
+        // Visible focus border for keyboard navigation; cleared when focus leaves.
+        b.GotFocus += (_, _) => b.FlatAppearance.BorderColor = Accent;
+        b.LostFocus += (_, _) => b.FlatAppearance.BorderColor = primary ? Accent : Border;
         if (primary)
         {
             b.FlatAppearance.MouseOverBackColor = AccentHover;
@@ -68,6 +145,14 @@ public static class Theme
         t.ForeColor = Text;
         t.BorderStyle = BorderStyle.FixedSingle;
         t.Font = Body;
+        // Accent border while focused so the active field is obvious for keyboard users.
+        t.GotFocus += (_, _) => t.BorderStyle = BorderStyle.FixedSingle;
+        t.Paint += (_, e) =>
+        {
+            if (!t.Focused) return;
+            using var pen = new Pen(Accent);
+            e.Graphics.DrawRectangle(pen, 0, 0, t.Width - 1, t.Height - 1);
+        };
     }
 
     public static void ApplyCombo(ComboBox c)
@@ -76,6 +161,27 @@ public static class Theme
         c.ForeColor = Text;
         c.FlatStyle = FlatStyle.Flat;
         c.Font = Body;
+        // Owner-draw so the dropdown list uses the dark palette instead of the
+        // default light system colors (the native dropdown is otherwise unstyled).
+        c.DrawMode = DrawMode.OwnerDrawFixed;
+        c.DropDownStyle = c.DropDownStyle == ComboBoxStyle.Simple
+            ? c.DropDownStyle
+            : ComboBoxStyle.DropDownList;
+        c.DrawItem += ComboDrawItem;
+    }
+
+    private static void ComboDrawItem(object? sender, DrawItemEventArgs e)
+    {
+        if (e.Index < 0) return;
+        if (sender is not ComboBox combo) return;
+        using var bg = new SolidBrush(e.State.HasFlag(DrawItemState.Selected) ? Accent : Input);
+        e.Graphics.FillRectangle(bg, e.Bounds);
+        var text = combo.GetItemText(combo.Items[e.Index]);
+        var color = e.State.HasFlag(DrawItemState.Selected) ? Background : Text;
+        var flags = TextFormatFlags.Left | TextFormatFlags.VerticalCenter |
+                    TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding;
+        TextRenderer.DrawText(e.Graphics, text, combo.Font, e.Bounds, color, flags);
+        e.DrawFocusRectangle();
     }
 
     /// <summary>
@@ -144,6 +250,41 @@ public static class Theme
         }
     }
 
+    /// <summary>
+    /// Enables owner-drawn, dark tab headers so the native tab strip matches the
+    /// CM26 palette instead of the default light system tab header.
+    /// </summary>
+    public static void ApplyTabs(TabControl tabs)
+    {
+        if (tabs.DrawMode != TabDrawMode.OwnerDrawFixed)
+        {
+            tabs.DrawMode = TabDrawMode.OwnerDrawFixed;
+            tabs.DrawItem -= TabDrawItem;
+            tabs.DrawItem += TabDrawItem;
+        }
+        // Keep the tab page content area dark (already themed by the tree walk).
+    }
+
+    private static void TabDrawItem(object? sender, DrawItemEventArgs e)
+    {
+        if (sender is not TabControl tabs || e.Index < 0) return;
+        var selected = e.Index == tabs.SelectedIndex;
+        var tabRect = tabs.GetTabRect(e.Index);
+
+        using var bg = new SolidBrush(selected ? Background : Raised);
+        e.Graphics.FillRectangle(bg, tabRect);
+
+        using var pen = new Pen(selected ? Accent : Border);
+        // Emphasise the top/active edge of the selected tab.
+        if (selected)
+            e.Graphics.DrawLine(pen, tabRect.Left, tabRect.Top, tabRect.Right, tabRect.Top);
+
+        var text = tabs.TabPages[e.Index].Text;
+        var color = selected ? Accent : Muted;
+        TextRenderer.DrawText(e.Graphics, text, tabs.Font, tabRect, color,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+    }
+
     /// <summary>Applies the public dark theme to legacy fixed-layout forms.</summary>
     public static void ApplyControlTree(Control root)
     {
@@ -200,6 +341,34 @@ public static class Theme
                     tree.Font = Body;
                     tree.LineColor = Border;
                     break;
+                case DateTimePicker dtp:
+                    dtp.BackColor = Input;
+                    dtp.ForeColor = Text;
+                    dtp.CalendarMonthBackground = Input;
+                    dtp.CalendarForeColor = Text;
+                    dtp.CalendarTitleBackColor = Raised;
+                    dtp.CalendarTitleForeColor = Text;
+                    dtp.CalendarTrailingForeColor = Muted;
+                    break;
+                case MaskedTextBox mtb:
+                    mtb.BackColor = Input;
+                    mtb.ForeColor = Text;
+                    mtb.BorderStyle = BorderStyle.FixedSingle;
+                    mtb.Font = Body;
+                    break;
+                case LinkLabel link:
+                    link.LinkColor = Accent;
+                    link.ActiveLinkColor = AccentHover;
+                    link.VisitedLinkColor = Accent;
+                    link.BackColor = Color.Transparent;
+                    break;
+                case MonthCalendar cal:
+                    cal.BackColor = Input;
+                    cal.ForeColor = Text;
+                    cal.TitleBackColor = Raised;
+                    cal.TitleForeColor = Text;
+                    cal.TrailingForeColor = Muted;
+                    break;
                 case SplitContainer split:
                     split.BackColor = Background;
                     split.ForeColor = Text;
@@ -212,6 +381,7 @@ public static class Theme
                     tabs.BackColor = Panel;
                     tabs.ForeColor = Text;
                     tabs.Font = Body;
+                    ApplyTabs(tabs);
                     break;
                 case TabPage page:
                     page.BackColor = Background;

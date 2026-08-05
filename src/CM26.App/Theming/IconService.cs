@@ -11,7 +11,8 @@ public static class IconService
     private static readonly Assembly _asm = Assembly.GetExecutingAssembly();
 
     // Map every logical section to an embedded icon.  The supplied Icon Section
-    // assets cover the football categories; the CM26 mark is used for utility pages.
+    // assets cover the football categories; sections without a dedicated PNG use a
+    // unique letter badge so every module has a visually distinct marker.
     private static readonly Dictionary<string, string> ResourceByKey = new(StringComparer.OrdinalIgnoreCase)
     {
         ["dashboard"] = "CM26.App.Assets.Logo.brand.png",
@@ -25,18 +26,32 @@ public static class IconService
         ["competitions"] = "CM26.App.Assets.Icons.League.png",
         ["formations"] = "CM26.App.Assets.Icons.Formation.png",
         ["transfers"] = "CM26.App.Assets.Icons.TransferMarket.png",
-        ["stadiumaudio"] = "CM26.App.Assets.Icons.Audio.png",
         ["balls"] = "CM26.App.Assets.Icons.Ball.png",
         ["boots"] = "CM26.App.Assets.Icons.Boots.png",
-        ["gloves"] = "CM26.App.Assets.Icons.Gloves.png",
-        ["sponsors"] = "CM26.App.Assets.Icons.Sponsors.png",
-        ["adboards"] = "CM26.App.Assets.Icons.Adboard.png",
-        ["audio"] = "CM26.App.Assets.Icons.Audio.png",
-        ["scoreboard"] = "CM26.App.Assets.Icons.Scoreboard.png",
-        ["referees"] = "CM26.App.Assets.Icons.Manager.png",
+        // Sections without a dedicated PNG fall back to a distinct letter badge
+        // (see DrawFallback) rather than reusing another section's icon.
+        ["gloves"] = "",
+        ["sponsors"] = "",
+        ["adboards"] = "",
+        ["audio"] = "",
+        ["stadiumaudio"] = "",
+        ["scoreboard"] = "",
+        ["referees"] = "",
         ["browser"] = "CM26.App.Assets.Logo.brand.png",
         ["diagnostics"] = "CM26.App.Assets.Logo.brand.png",
         ["settings"] = "CM26.App.Assets.Logo.brand.png",
+    };
+
+    /// <summary>Distinct accent colour per section used for the letter badge fallback.</summary>
+    private static readonly Dictionary<string, Color> BadgeColorByKey = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["gloves"] = Color.FromArgb(88, 110, 180),
+        ["sponsors"] = Color.FromArgb(170, 120, 60),
+        ["adboards"] = Color.FromArgb(60, 150, 170),
+        ["audio"] = Color.FromArgb(150, 90, 160),
+        ["stadiumaudio"] = Color.FromArgb(130, 70, 90),
+        ["scoreboard"] = Color.FromArgb(70, 160, 130),
+        ["referees"] = Color.FromArgb(190, 130, 50),
     };
 
     /// <summary>Get an icon scaled to <paramref name="size"/> keeping aspect ratio; fallback drawn if missing.</summary>
@@ -86,7 +101,7 @@ public static class IconService
         using var g = Graphics.FromImage(bmp);
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.Clear(Color.Transparent);
-        using var brush = new SolidBrush(Theme.Accent);
+        using var brush = new SolidBrush(BadgeColorByKey.TryGetValue(key, out var c) ? c : Theme.Accent);
         using var font = new Font("Segoe UI Semibold", Math.Max(6, size / 2f), FontStyle.Regular, GraphicsUnit.Pixel);
         var letter = string.IsNullOrEmpty(key) ? "?" : key.Substring(0, 1).ToUpperInvariant();
         var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };

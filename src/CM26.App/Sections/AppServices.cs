@@ -35,6 +35,7 @@ public sealed class AppServices : IDisposable
     public event EventHandler? PendingChanged;
     public event EventHandler? DatabaseLoaded;
     public event EventHandler? FrostbiteAssetsReady;
+    public event EventHandler? ThemeChanged;
     public event Action<string>? NavigationRequested;
     public event Action<string, int>? RecordNavigationRequested;
     /// <summary>Imports a verified local CM26 Scraper workbook into a selected club.</summary>
@@ -149,6 +150,9 @@ public sealed class AppServices : IDisposable
     }
 
     public void NotifyPendingChanged() => PendingChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Raised after the visual theme mode changes so the host can rebuild the UI.</summary>
+    public void NotifyThemeChanged() => ThemeChanged?.Invoke(this, EventArgs.Empty);
 
     /// <summary>Lets a CM16-style child control open the matching operational module.</summary>
     public void RequestNavigation(string sectionKey) => NavigationRequested?.Invoke(sectionKey);

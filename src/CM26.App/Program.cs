@@ -240,6 +240,9 @@ internal static class Program
         // Apply the saved UI language (defaults to the OS UI culture).
         Localization.SetCulture(SettingsService.Language);
 
+        // Apply the saved visual theme (dark default) before any window is created.
+        CM26.App.Theming.Theme.IsDark = SettingsService.DarkMode;
+
         // First-run End User License Agreement. If the user declines, do not continue.
         if (!SettingsService.EulaAccepted)
         {

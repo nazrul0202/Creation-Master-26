@@ -54,16 +54,16 @@ public sealed class DashboardSection : SectionBase
 
         var flow = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = true };
 
-        flow.Controls.Add(StatCard("Tables", Services.Session.Tables.Count.ToString("N0")));
-        flow.Controls.Add(StatCard("Players", CountOf("players")));
-        flow.Controls.Add(StatCard("Teams", CountOf("teams")));
-        flow.Controls.Add(StatCard("Leagues", CountOf("leagues")));
-        flow.Controls.Add(StatCard("Nations", CountOf("nations")));
-        flow.Controls.Add(StatCard("Stadiums", CountOf("stadiums")));
-        flow.Controls.Add(StatCard("Managers", CountOf("manager")));
-        flow.Controls.Add(StatCard("Referees", CountOf("referee")));
-        flow.Controls.Add(StatCard("Kits", CountOf("teamkits")));
-        flow.Controls.Add(StatCard("Formations", CountOf("formations")));
+        flow.Controls.Add(StatCard("Tables", Services.Session.Tables.Count.ToString("N0"), null));
+        flow.Controls.Add(StatCard("Players", CountOf("players"), "players"));
+        flow.Controls.Add(StatCard("Teams", CountOf("teams"), "teams"));
+        flow.Controls.Add(StatCard("Leagues", CountOf("leagues"), "leagues"));
+        flow.Controls.Add(StatCard("Nations", CountOf("nations"), "countries"));
+        flow.Controls.Add(StatCard("Stadiums", CountOf("stadiums"), "stadiums"));
+        flow.Controls.Add(StatCard("Managers", CountOf("manager"), "managers"));
+        flow.Controls.Add(StatCard("Referees", CountOf("referee"), "referees"));
+        flow.Controls.Add(StatCard("Kits", CountOf("teamkits"), "kits"));
+        flow.Controls.Add(StatCard("Formations", CountOf("formations"), "formations"));
 
         _host.Controls.Add(flow);
         _host.Controls.Add(InfoBar($"Database: {Services.Session.LoadedFolder}"));
@@ -86,13 +86,24 @@ public sealed class DashboardSection : SectionBase
         Padding = new Padding(4, 4, 0, 0),
     };
 
-    private static Control StatCard(string label, string value)
+    private Control StatCard(string label, string value, string? navigateKey)
     {
         var card = new BufferedPanel { Size = new Size(150, 72), BackColor = Theme.Raised, Margin = new Padding(4), BorderStyle = BorderStyle.FixedSingle };
+        if (navigateKey != null)
+            card.Cursor = Cursors.Hand;
         var v = new Label { Text = value, Dock = DockStyle.Top, Height = 39, Font = Theme.RecordTitle, ForeColor = Theme.Text, TextAlign = ContentAlignment.MiddleCenter };
         var l = new Label { Text = label, Dock = DockStyle.Fill, Font = Theme.Label, ForeColor = Theme.Muted, TextAlign = ContentAlignment.TopCenter };
         card.Controls.Add(l);
         card.Controls.Add(v);
+        if (navigateKey != null)
+        {
+            var key = navigateKey;
+            card.Click += (_, _) => Services.RequestNavigation(key);
+            l.Click += (_, _) => Services.RequestNavigation(key);
+            v.Click += (_, _) => Services.RequestNavigation(key);
+            card.MouseEnter += (_, _) => card.BackColor = Theme.Panel;
+            card.MouseLeave += (_, _) => card.BackColor = Theme.Raised;
+        }
         return card;
     }
 }

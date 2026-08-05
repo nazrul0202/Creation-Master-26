@@ -24,6 +24,24 @@ public sealed class SettingsSection : SectionBase
     {
         var panel = new BufferedPanel { Dock = DockStyle.Fill, Padding = new Padding(8), BackColor = Theme.Background, AutoScroll = true };
 
+        var themeLabel = new Label { Text = "Appearance", Dock = DockStyle.Top, Height = 22, ForeColor = Theme.Text, Font = Theme.Label, Padding = new Padding(0, 10, 0, 0) };
+        var themeRow = new BufferedPanel { Dock = DockStyle.Top, Height = 32, BackColor = Theme.Background };
+        var darkMode = new CheckBox
+        {
+            Text = "Dark theme",
+            Checked = Theme.IsDark,
+            Dock = DockStyle.Left,
+            AutoSize = true,
+            Padding = new Padding(0, 6, 0, 0),
+        };
+        darkMode.CheckedChanged += (_, _) =>
+        {
+            SettingsService.DarkMode = darkMode.Checked;
+            Theme.IsDark = darkMode.Checked;
+            Services.NotifyThemeChanged();
+        };
+        themeRow.Controls.Add(darkMode);
+
         var gameFolderLabel = new Label { Text = "Game folder (Frostbite Data / Patch)", Dock = DockStyle.Top, Height = 22, ForeColor = Theme.Text, Font = Theme.Body, Padding = new Padding(0, 10, 0, 0) };
         var gameFolderRow = new BufferedPanel { Dock = DockStyle.Top, Height = 27, BackColor = Theme.Background };
         _gameFolderBox = new TextBox { Dock = DockStyle.Fill, Text = SettingsService.FC26GameFolder, BackColor = Theme.Input, ForeColor = Theme.Text, Font = Theme.Body };
@@ -200,6 +218,8 @@ public sealed class SettingsSection : SectionBase
         panel.Controls.Add(_frostbiteStatus);
         panel.Controls.Add(gameFolderRow);
         panel.Controls.Add(gameFolderLabel);
+        panel.Controls.Add(themeRow);
+        panel.Controls.Add(themeLabel);
         for (int i = 0; i < panel.Controls.Count; i++) panel.Controls[i].Dock = DockStyle.Top;
 
         Tabs.TabPages.Add(MakeTab("Settings", panel));

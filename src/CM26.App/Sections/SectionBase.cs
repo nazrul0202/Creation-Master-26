@@ -33,6 +33,7 @@ public abstract class SectionBase : UserControl
     private readonly Label _recordCount;
     private bool _syncPicker;
     protected readonly ToolTip ToolTip = new();
+    protected readonly Toast Toast = new();
 
     /// <summary>When true, an asset-preview panel is docked to the right of the editor.</summary>
     protected virtual bool HasPreview => false;
@@ -407,12 +408,12 @@ public abstract class SectionBase : UserControl
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Invalid value", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            Toast.ShowError(this, ex.Message);
             return false;
         }
         if (!outcome.Success)
         {
-            MessageBox.Show(this, outcome.Message, "Invalid value", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            Toast.ShowError(this, outcome.Message);
             return false;
         }
         grid.MarkModified(fieldName, Services.Pending.IsFieldModified(tableName, rowIndex, fieldName));

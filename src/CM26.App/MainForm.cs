@@ -15,7 +15,7 @@ public sealed class MainForm : Form
     private readonly ToolStripPanel _toolbar;
     private readonly StatusStrip _status;
     private readonly ToolStripStatusLabel _statusText, _dbPath, _assetStatus, _pendingLabel;
-    private readonly ToolStripButton _openBtn, _saveBtn, _undoBtn, _validateBtn;
+    private readonly ToolStripButton _openBtn, _saveBtn, _undoBtn, _redoBtn, _validateBtn;
     private readonly ToolStripProgressBar _progress;
 
     private readonly Dictionary<string, SectionBase> _sections = new();
@@ -38,6 +38,13 @@ public sealed class MainForm : Form
         try { Icon = new Icon(Path.Combine(AppContext.BaseDirectory, "Assets", "Logo", "Creation Master 26.ico")); }
         catch { /* icon optional at runtime */ }
 
+        // Best-effort immersive dark mode for the window chrome + scrollbars.
+        HandleCreated += (_, _) =>
+        {
+            if (IsHandleCreated)
+                NativeTheme.TryApplyImmersiveDarkMode(Handle);
+        };
+
         _registry = BuildRegistry();
         _services.NavigationRequested += NavigateTo;
         _services.RecordNavigationRequested += NavigateToRecord;
@@ -59,6 +66,7 @@ public sealed class MainForm : Form
         var helpMenu = new ToolStripMenuItem("Help");
         helpMenu.DropDownItems.Add("Settings", null, (_, _) => NavigateTo("settings"));
         helpMenu.DropDownItems.Add("Check for Updates…", null, async (_, _) => await CheckForUpdatesAsync());
+        helpMenu.DropDownItems.Add("Keyboard Shortcuts…", null, (_, _) => ShowShortcuts());
         helpMenu.DropDownItems.Add(new ToolStripSeparator());
         helpMenu.DropDownItems.Add("About", null, (_, _) => ShowAbout());
         _menu.Items.AddRange(new ToolStripItem[] { fileMenu, toolsMenu, patchMenu, helpMenu });
@@ -84,6 +92,7 @@ public sealed class MainForm : Form
         _openBtn = MakeToolButton("Open Game", "Detect the game and load its database and assets automatically (Ctrl+O)");
         _saveBtn = MakeToolButton("Save", "Save staged changes (Ctrl+S)", primary: true);
         _undoBtn = MakeToolButton("Undo", "Undo last change (Ctrl+Z)");
+        _redoBtn = MakeToolButton("Redo", "Redo the last undone change (Ctrl+Y)");
         _validateBtn = MakeToolButton("Validate", "Validate staged changes");
         _progress = new ToolStripProgressBar { Visible = false, Width = 180, Style = ProgressBarStyle.Marquee };
         var titleLabel = new ToolStripLabel("  Creation Master 26")
@@ -92,6 +101,7 @@ public sealed class MainForm : Form
         actions.Items.Add(new ToolStripSeparator());
         actions.Items.Add(_saveBtn);
         actions.Items.Add(_undoBtn);
+        actions.Items.Add(_redoBtn);
         actions.Items.Add(_validateBtn);
         actions.Items.Add(new ToolStripSeparator());
         actions.Items.Add(_progress);
@@ -151,6 +161,7 @@ public sealed class MainForm : Form
         _workspace = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Background, Padding = new Padding(0) };
         _welcome = new WelcomePanel { Dock = DockStyle.Fill };
         _welcome.OpenRequested += async (_, _) => await OpenFc26Async();
+        _welcome.FolderRequested += async (_, folder) => await LoadDatabaseFolderAsync(folder);
         ShowEmptyWorkspace();
 
         Controls.Add(_workspace);
@@ -162,10 +173,12 @@ public sealed class MainForm : Form
         _openBtn.Click += async (_, _) => await OpenFc26Async();
         _saveBtn.Click += async (_, _) => await SaveAsync();
         _undoBtn.Click += (_, _) => Undo();
+        _redoBtn.Click += (_, _) => Redo();
         _validateBtn.Click += (_, _) => ValidateAll();
         _services.PendingChanged += (_, _) => RefreshPendingState();
         _services.DatabaseLoaded += (_, _) => OnDatabaseLoaded();
         _services.FrostbiteAssetsReady += (_, _) => OnFrostbiteAssetsReady();
+        _services.ThemeChanged += (_, _) => ApplyThemeMode();
 
         if (!string.IsNullOrWhiteSpace(initialDatabaseFolder))
             Shown += async (_, _) => await LoadDatabaseFolderAsync(initialDatabaseFolder);
@@ -213,18 +226,39 @@ public sealed class MainForm : Form
         };
     }
 
+    private static readonly Dictionary<string, string> ShortcutByKey = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["dashboard"] = "Ctrl+1",
+        ["countries"] = "Ctrl+2",
+        ["leagues"] = "Ctrl+3",
+        ["teams"] = "Ctrl+4",
+        ["players"] = "Ctrl+5",
+        ["managers"] = "Ctrl+6",
+        ["stadiums"] = "Ctrl+7",
+        ["kits"] = "Ctrl+8",
+        ["competitions"] = "Ctrl+9",
+        ["transfers"] = "Ctrl+0",
+    };
+
     private ToolStripButton MakeModuleButton(string key, string title)
     {
+        var shortcut = ShortcutByKey.TryGetValue(key, out var sc) ? $" ({sc})" : string.Empty;
         var button = new ToolStripButton
         {
-            DisplayStyle = ToolStripItemDisplayStyle.Image,
-            Image = IconService.Get(key, 36),
+            DisplayStyle = ToolStripItemDisplayStyle.ImageAndText,
+            Image = IconService.Get(key, 28),
+            ImageAlign = ContentAlignment.TopCenter,
+            TextAlign = ContentAlignment.BottomCenter,
+            TextImageRelation = TextImageRelation.ImageAboveText,
             ImageTransparentColor = Color.Transparent,
-            ToolTipText = title,
+            ToolTipText = title + shortcut,
+            Text = title,
             AutoSize = false,
-            Width = 44,
-            Height = 44,
-            Margin = new Padding(1, 0, 1, 0),
+            Width = 72,
+            Height = 52,
+            Font = Theme.Muted9,
+            ForeColor = Theme.Muted,
+            Margin = new Padding(1, 2, 1, 2),
         };
         button.Click += (_, _) => NavigateTo(key);
         _moduleButtons[key] = button;
@@ -237,6 +271,19 @@ public sealed class MainForm : Form
         {
             SetStatus("Open game data first (Ctrl+O).");
             return;
+        }
+        // Warn when leaving a section with staged changes that have not been saved,
+        // unless the target is the same section (harmless re-selection).
+        if (_activeKey != null && !_activeKey.Equals(key, StringComparison.OrdinalIgnoreCase) &&
+            (_services.Pending.HasChanges || _services.LegacyMods.HasChanges))
+        {
+            var count = _services.Pending.Count + _services.LegacyMods.Count;
+            var proceed = MessageBox.Show(this,
+                $"You have {count} unsaved change(s) staged. " +
+                "They remain staged (not lost) when you switch sections.\n\n" +
+                $"Switch from {_activeKey} to {key} and continue editing?",
+                "Unsaved changes", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            if (proceed != DialogResult.Yes) return;
         }
         if (!_sections.TryGetValue(key, out var section))
         {
@@ -324,6 +371,7 @@ public sealed class MainForm : Form
         {
             await Task.Run(() => _services.LoadDatabase(folder));
             SettingsService.LastFolder = folder;
+            SettingsService.PushRecentFolder(folder);
             SetStatus($"Loaded {Path.GetFileName(folder)} - {_services.Session.Tables.Count} tables.");
             NavigateTo("dashboard");
         }
@@ -391,9 +439,11 @@ public sealed class MainForm : Form
             catch (InvalidOperationException) { /* form is closing */ }
             return;
         }
-        _dbPath.Text = string.IsNullOrWhiteSpace(_services.ActiveGameRoot)
+        var path = string.IsNullOrWhiteSpace(_services.ActiveGameRoot)
             ? (_services.Session.LoadedFolder ?? string.Empty)
             : _services.ActiveGameRoot;
+        _dbPath.Text = ShortenPath(path);
+        _dbPath.ToolTipText = path;
         _assetStatus.Text = _services.FrostbiteAssets.IsAvailable
             ? (_services.FrostbiteAssets.UniqueAssetCount > 0
                 ? "Assets: indexed" : "Assets: detected")
@@ -553,6 +603,17 @@ public sealed class MainForm : Form
         else SetStatus("Nothing to undo.");
     }
 
+    private void Redo()
+    {
+        if (_services.Pending.Redo())
+        {
+            SetStatus("Redid last change.");
+            if (_activeKey != null && _sections.TryGetValue(_activeKey, out var s))
+                s.ActivateSection();
+        }
+        else SetStatus("Nothing to redo.");
+    }
+
     private void ValidateAll()
     {
         var issues = _services.Validation.ValidateAll(_services.Pending.Changes);
@@ -569,6 +630,7 @@ public sealed class MainForm : Form
         _pendingLabel.Text = count > 0 ? $"● {count} unsaved change(s)" : "";
         _saveBtn.Enabled = count > 0;
         _undoBtn.Enabled = _services.Pending.CanUndo;
+        _redoBtn.Enabled = _services.Pending.CanRedo;
     }
 
     private void ShowAbout()
@@ -581,6 +643,31 @@ public sealed class MainForm : Form
         var result = MessageBox.Show(this, text, "About Creation Master 26",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
         _ = result;
+    }
+
+    private void ShowShortcuts()
+    {
+        var text =
+            "Keyboard shortcuts\n\n" +
+            "Ctrl+O   Open game data\n" +
+            "Ctrl+S   Save staged changes\n" +
+            "Ctrl+Z   Undo last change\n" +
+            "Ctrl+Y   Redo the last undone change\n" +
+            "Ctrl+F   Focus the record search box\n" +
+            "F5       Refresh the current section\n\n" +
+            "Quick section navigation\n" +
+            "Ctrl+1   Dashboard\n" +
+            "Ctrl+2   Countries\n" +
+            "Ctrl+3   Leagues\n" +
+            "Ctrl+4   Teams\n" +
+            "Ctrl+5   Players\n" +
+            "Ctrl+6   Managers\n" +
+            "Ctrl+7   Stadiums\n" +
+            "Ctrl+8   Kits\n" +
+            "Ctrl+9   Competitions\n" +
+            "Ctrl+0   Data Sync\n";
+        MessageBox.Show(this, text, "Keyboard Shortcuts",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task CheckForUpdatesAsync()
@@ -629,6 +716,47 @@ public sealed class MainForm : Form
 
     private void SetStatus(string text) => _statusText.Text = text;
 
+    /// <summary>
+    /// Re-applies the palette after the user toggles the theme. Cached sections are
+    /// rebuilt (they capture colours at construction), and the active section is shown
+    /// again so the new palette is immediately visible.
+    /// </summary>
+    private void ApplyThemeMode()
+    {
+        BackColor = Theme.Background;
+        ForeColor = Theme.Text;
+        _menu.BackColor = Theme.Background;
+        _menu.ForeColor = Theme.Text;
+        _toolbar.BackColor = Theme.Panel;
+        _status.BackColor = Theme.Panel;
+        _statusText.ForeColor = Theme.Muted;
+        _dbPath.ForeColor = Theme.Muted;
+        _assetStatus.ForeColor = Theme.Muted;
+        _workspace.BackColor = Theme.Background;
+        _welcome.BackColor = Theme.Background;
+        Theme.ApplyControlTree(_welcome);
+        if (_workspace.Controls.Count == 1 && _workspace.Controls[0] == _welcome)
+            _welcome.Invalidate();
+
+        // Sections captured palette colours when they were created; drop them so the
+        // next navigation rebuilds each with the new theme.
+        _sections.Clear();
+        foreach (var button in _moduleButtons.Values)
+            button.ForeColor = Theme.Muted;
+        if (_activeKey != null && _services.Session.IsLoaded)
+            NavigateTo(_activeKey);
+    }
+
+    /// <summary>Keeps a long path readable in the status bar by showing only the tail segments.</summary>
+    private static string ShortenPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+        var parts = path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
+        if (parts.Count <= 3) return path;
+        return "…" + Path.DirectorySeparatorChar + string.Join(Path.DirectorySeparatorChar, parts.TakeLast(3));
+    }
+
     private static string FormatBytes(long bytes)
     {
         string[] units = ["B", "KB", "MB", "GB", "TB"];
@@ -649,12 +777,23 @@ public sealed class MainForm : Form
             case Keys.Control | Keys.O: _ = OpenFc26Async(); return true;
             case Keys.Control | Keys.S: _ = SaveAsync(); return true;
             case Keys.Control | Keys.Z: Undo(); return true;
+            case Keys.Control | Keys.Y: Redo(); return true;
             case Keys.Control | Keys.F:
                 if (_activeKey != null && _sections.TryGetValue(_activeKey, out var s)) s.FocusSearchBox();
                 return true;
             case Keys.F5:
                 if (_activeKey != null && _sections.TryGetValue(_activeKey, out var s2)) s2.LoadData();
                 return true;
+            case Keys.Control | Keys.D1: NavigateTo("dashboard"); return true;
+            case Keys.Control | Keys.D2: NavigateTo("countries"); return true;
+            case Keys.Control | Keys.D3: NavigateTo("leagues"); return true;
+            case Keys.Control | Keys.D4: NavigateTo("teams"); return true;
+            case Keys.Control | Keys.D5: NavigateTo("players"); return true;
+            case Keys.Control | Keys.D6: NavigateTo("managers"); return true;
+            case Keys.Control | Keys.D7: NavigateTo("stadiums"); return true;
+            case Keys.Control | Keys.D8: NavigateTo("kits"); return true;
+            case Keys.Control | Keys.D9: NavigateTo("competitions"); return true;
+            case Keys.Control | Keys.D0: NavigateTo("transfers"); return true;
         }
         return base.ProcessCmdKey(ref msg, keyData);
     }
