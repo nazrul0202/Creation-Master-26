@@ -1,5 +1,20 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.28 - hotfix: startup crash on launch (2026-08-05)
+
+**This release fixes a crash that stopped the app from starting at all.**
+
+- **Fixed: the app could fail immediately on launch with "String cannot have
+  zero length".** A section icon mapped to an absent PNG was passed to the
+  resource loader with an empty name, which threw during startup before the
+  window appeared. Sections without a dedicated icon now reliably fall back to
+  their drawn letter badge instead of crashing. A regression check now resolves
+  every module icon on every release self-test and fails the build if this ever
+  returns.
+- The UI polish from v1.0.27 (dark tab headers, light theme, keyboard shortcuts,
+  undo/redo, recent files) is unchanged.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.28.
+
 ## Version 1.0.27 - UI polish and workflow (2026-08-05)
 
 This release is a broad polish pass across the interface, navigation and editor

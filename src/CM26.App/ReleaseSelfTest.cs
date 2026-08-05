@@ -208,6 +208,34 @@ internal static class ReleaseSelfTest
             return alive ? null : "listview handle was not created";
         });
 
+        // --- Regression: every module icon must resolve without throwing ---
+        // A section mapped to an absent icon must fall back to a drawn badge,
+        // never call GetManifestResourceStream with an empty name (which throws
+        // "String cannot have zero length" and aborted startup in v1.0.27).
+        Check("every module icon resolves without throwing", () =>
+        {
+            var keys = new[]
+            {
+                "dashboard", "countries", "leagues", "teams", "players", "managers",
+                "stadiums", "stadiumaudio", "kits", "competitions", "formations",
+                "transfers", "balls", "boots", "gloves", "sponsors", "adboards",
+                "audio", "scoreboard", "referees", "browser", "diagnostics", "settings",
+            };
+            foreach (var key in keys)
+            {
+                try
+                {
+                    using var img = IconService.Get(key, 28);
+                    if (img == null) return $"icon for '{key}' was null";
+                }
+                catch (Exception ex)
+                {
+                    return $"icon for '{key}' threw {ex.GetType().Name}: {ex.Message}";
+                }
+            }
+            return null;
+        });
+
         Console.WriteLine();
         if (failures.Count == 0)
         {

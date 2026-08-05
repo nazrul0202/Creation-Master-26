@@ -61,7 +61,7 @@ public static class IconService
         if (_cache.TryGetValue(cacheKey, out var cached)) return cached;
 
         Image? src = null;
-        if (ResourceByKey.TryGetValue(key, out var file))
+        if (ResourceByKey.TryGetValue(key, out var file) && !string.IsNullOrEmpty(file))
         {
             using var stream = _asm.GetManifestResourceStream(file);
             if (stream != null) src = Image.FromStream(stream);

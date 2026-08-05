@@ -1,6 +1,6 @@
 {
-  "version": "1.0.27",
+  "version": "1.0.28",
   "name": "Creation Master 26",
-  "notes": "v1.0.27 - UI polish: dark tab headers, combo theming, light theme toggle, keyboard shortcuts, undo/redo, recent files.",
+  "notes": "v1.0.28 - hotfix: startup crash 'String cannot have zero length' when a section icon is absent.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
