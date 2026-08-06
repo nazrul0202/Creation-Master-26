@@ -483,45 +483,27 @@ public sealed class TeamsSection : SectionBase
         }, 14, 22, 154, 150, 24);
         canvas.Controls.Add(tactics);
 
-        var setPieces = Group("Set Piece Takers", new Point(921, 548), new Size(390, 325));
-        AddBoundFields(setPieces, new[]
-        {
-            ("Captain", "captainid"), ("Free Kick", "freekicktakerid"), ("Left Free Kick", "leftfreekicktakerid"),
-            ("Right Free Kick", "rightfreekicktakerid"), ("Left Corner", "leftcornerkicktakerid"),
-            ("Right Corner", "rightcornerkicktakerid"), ("Long Kick", "longkicktakerid"),
-            ("Penalty", "penaltytakerid"), ("Left Thrower", "throwerleft"), ("Right Thrower", "throwerright")
-        }, 15, 22, 175, 190, 28);
-        canvas.Controls.Add(setPieces);
-
-        var crowd = Group("Crowd Support", new Point(921, 879), new Size(390, 325));
+        var crowd = Group("Crowd Support", new Point(921, 548), new Size(390, 325));
         AddBoundFields(crowd, new[]
         {
             ("Support 1", "cksupport1"), ("Support 2", "cksupport2"), ("Support 3", "cksupport3"),
             ("Support 4", "cksupport4"), ("Support 5", "cksupport5"), ("Support 6", "cksupport6"),
             ("Support 7", "cksupport7"), ("Support 8", "cksupport8"), ("Support 9", "cksupport9"),
-            ("Crowd Skin Tone", "crowdskintonecode")
-        }, 15, 22, 175, 190, 28);
+            ("Crowd Skin Tone", "crowdskintonecode"), ("Crowd Region", "crowdregion")
+        }, 15, 22, 175, 190, 26);
         canvas.Controls.Add(crowd);
 
-        var clubColours = Group("Club Colours", new Point(1217, 229), new Size(310, 300));
-        AddBoundFields(clubColours, new[]
+        var goalNetGroup = Group("Stadium", new Point(1217, 229), new Size(310, 280));
+        AddBoundFields(goalNetGroup, new[]
         {
-            ("Colour 1 R", "teamcolor1r"), ("Colour 1 G", "teamcolor1g"), ("Colour 1 B", "teamcolor1b"),
-            ("Colour 2 R", "teamcolor2r"), ("Colour 2 G", "teamcolor2g"), ("Colour 2 B", "teamcolor2b"),
-            ("Colour 3 R", "teamcolor3r"), ("Colour 3 G", "teamcolor3g"), ("Colour 3 B", "teamcolor3b")
-        }, 15, 22, 120, 165, 28);
-        canvas.Controls.Add(clubColours);
-
-        var netColours = Group("Goal Net Colours", new Point(1217, 535), new Size(310, 240));
-        AddBoundFields(netColours, new[]
-        {
-            ("Stanchion 1 R", "goalnetstanchioncolor1r"), ("Stanchion 1 G", "goalnetstanchioncolor1g"), ("Stanchion 1 B", "goalnetstanchioncolor1b"),
-            ("Stanchion 2 R", "goalnetstanchioncolor2r"), ("Stanchion 2 G", "goalnetstanchioncolor2g"), ("Stanchion 2 B", "goalnetstanchioncolor2b"),
+            ("Stadium Name", "stadiumid"), ("Stanchion 1 R", "goalnetstanchioncolor1r"), ("Stanchion 1 G", "goalnetstanchioncolor1g"),
+            ("Stanchion 1 B", "goalnetstanchioncolor1b"), ("Stanchion 2 R", "goalnetstanchioncolor2r"),
+            ("Stanchion 2 G", "goalnetstanchioncolor2g"), ("Stanchion 2 B", "goalnetstanchioncolor2b"),
             ("Corner Flag Pole", "cornerflagpolecolor")
         }, 15, 22, 120, 165, 28);
-        canvas.Controls.Add(netColours);
+        canvas.Controls.Add(goalNetGroup);
 
-        var extras = Group("Flags and Extras", new Point(555, 623), new Size(360, 470));
+        var extras = Group("Atmosphere", new Point(555, 623), new Size(360, 470));
         AddBoundFields(extras, new[]
         {
             ("Jersey Type", "jerseytype"), ("Ethnicity", "ethnicity"), ("Asset Id", "assetid"),
