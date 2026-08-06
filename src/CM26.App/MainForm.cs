@@ -206,7 +206,7 @@ public sealed class MainForm : Form
         ("sponsors", "Sponsors", s => new SponsorsSection(s)),
         ("adboards", "Adboards", s => new AdboardsSection(s)),
         ("audio", "Audio", s => new AudioNationSection(s)),
-        ("scoreboard", "Scoreboard", s => new TvSection(s)),
+        ("scoreboard", "Broadcast Links", s => new TvSection(s)),
         ("referees", "Referees", s => new RefereesSection(s)),
         ("browser", "Database Browser", s => new DatabaseBrowserSection(s)),
         ("diagnostics", "Diagnostics", s => new DiagnosticsSection(s)),
@@ -727,11 +727,17 @@ public sealed class MainForm : Form
         ForeColor = Theme.Text;
         _menu.BackColor = Theme.Background;
         _menu.ForeColor = Theme.Text;
-        _toolbar.BackColor = Theme.Panel;
+        foreach (ToolStripItem item in _menu.Items)
+        {
+            item.BackColor = Theme.Background;
+            item.ForeColor = Theme.Text;
+        }
+        ReThemeToolbar();
         _status.BackColor = Theme.Panel;
         _statusText.ForeColor = Theme.Muted;
         _dbPath.ForeColor = Theme.Muted;
         _assetStatus.ForeColor = Theme.Muted;
+        _pendingLabel.ForeColor = Theme.Warning;
         _workspace.BackColor = Theme.Background;
         _welcome.BackColor = Theme.Background;
         Theme.ApplyControlTree(_welcome);
@@ -740,11 +746,42 @@ public sealed class MainForm : Form
 
         // Sections captured palette colours when they were created; drop them so the
         // next navigation rebuilds each with the new theme.
+        foreach (var section in _sections.Values)
+            section.Dispose();
         _sections.Clear();
         foreach (var button in _moduleButtons.Values)
             button.ForeColor = Theme.Muted;
-        if (_activeKey != null && _services.Session.IsLoaded)
+        // Re-navigate to the active section (works without a database for
+        // settings/dashboard) so the new palette is immediately visible.
+        if (_activeKey != null)
             NavigateTo(_activeKey);
+    }
+
+    /// <summary>Re-colours the action/module toolbars after a theme toggle.</summary>
+    private void ReThemeToolbar()
+    {
+        _toolbar.BackColor = Theme.Panel;
+        foreach (ToolStrip strip in _toolbar.Controls.OfType<ToolStrip>())
+        {
+            strip.BackColor = Theme.Panel;
+            foreach (ToolStripItem item in strip.Items)
+            {
+                switch (item)
+                {
+                    case ToolStripButton btn:
+                        var primary = ReferenceEquals(btn, _saveBtn);
+                        btn.ForeColor = primary ? Theme.Background : Theme.Text;
+                        btn.BackColor = primary ? Theme.Accent : Theme.Raised;
+                        break;
+                    case ToolStripLabel label:
+                        // Right-aligned app title uses full text colour; category labels are muted.
+                        label.ForeColor = label.Alignment == ToolStripItemAlignment.Right ? Theme.Text : Theme.Muted;
+                        break;
+                }
+            }
+            strip.Invalidate();
+        }
+        _toolbar.Invalidate(true);
     }
 
     /// <summary>Keeps a long path readable in the status bar by showing only the tail segments.</summary>

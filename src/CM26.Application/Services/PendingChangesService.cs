@@ -86,6 +86,23 @@ public sealed class PendingChangesService
                           && c.RowIndex == rowIndex
                           && c.FieldName.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// Discards every staged edit for one row, restoring its staged values through
+    /// the engine so the section can re-read the original state ("Revert" action).
+    /// </summary>
+    public void DiscardForRow(string tableName, int rowIndex)
+    {
+        var affected = _changes
+            .Where(c => c.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase) && c.RowIndex == rowIndex)
+            .ToList();
+        if (affected.Count == 0) return;
+        foreach (var change in affected)
+            _session.StageEdit(change.TableName, change.RowIndex, change.FieldName, change.OldValue);
+        _changes.RemoveAll(c => c.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase) && c.RowIndex == rowIndex);
+        _redo.Clear();
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>Clears tracked state after a successful save (staged values remain in memory).</summary>
     public void MarkSaved()
     {

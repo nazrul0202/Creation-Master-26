@@ -70,7 +70,9 @@ internal abstract class Fc26ExtensionSection : SectionBase
         {
             var col = i % 2; var row = i / 2;
             var x = col == 0 ? 12 : 322; var y = 20 + (row * 28);
-            box.Controls.Add(new Label { Text = Label(fields[i]), Location = new Point(x, y + 3), Size = new Size(145, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, ForeColor = Theme.Text, BackColor = Theme.Panel });
+            var label = new Label { Text = Label(fields[i]), Location = new Point(x, y + 3), Size = new Size(145, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true, ForeColor = Theme.Text, BackColor = Theme.Panel };
+            box.Controls.Add(label);
+            ToolTip.SetToolTip(label, Label(fields[i]));
             var editor = new TextBox { Location = new Point(x + 151, y), Size = new Size(145, 20), Font = LegacyFont, Tag = fields[i] };
             Theme.ApplyTextBox(editor);
             editor.Leave += (_, _) => Commit(editor);

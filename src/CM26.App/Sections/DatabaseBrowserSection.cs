@@ -32,11 +32,13 @@ public sealed class DatabaseBrowserSection : SectionBase
     {
         _grid = new DataGridView
         {
-            Dock = DockStyle.Fill, ReadOnly = false, AllowUserToOrderColumns = true,
-            BackgroundColor = Theme.Background, BorderStyle = BorderStyle.None,
-            EnableHeadersVisualStyles = false, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
+            Dock = DockStyle.Fill,
+            ReadOnly = false,
+            AllowUserToOrderColumns = true,
             Font = Theme.Body,
         };
+        Theme.ApplyGrid(_grid);
+        _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells;
         _grid.CellBeginEdit += (_, e) =>
         {
             if (_binding || !CanEdit(e.ColumnIndex)) e.Cancel = true;
@@ -133,7 +135,9 @@ public sealed class DatabaseBrowserSection : SectionBase
         _nextPage.Enabled = _pageStart + rows < table.RowCount;
         _duplicateRow.Enabled = _grid.Rows.Count > 0;
         _deleteRow.Enabled = _grid.Rows.Count > 0;
-        _info.Text = $"Rows {_pageStart + 1:N0}-{_pageStart + rows:N0} of {table.RowCount:N0}. Editable cells are staged, validated, and saved with Ctrl+S.";
+        _info.Text = table.RowCount == 0
+            ? "0 rows. Editable cells are staged, validated, and saved with Ctrl+S."
+            : $"Rows {_pageStart + 1:N0}-{_pageStart + rows:N0} of {table.RowCount:N0}. Editable cells are staged, validated, and saved with Ctrl+S.";
         _grid.ResumeLayout();
         _binding = false;
     }
@@ -163,6 +167,7 @@ public sealed class DatabaseBrowserSection : SectionBase
         if (!outcome.Success)
         {
             _binding = true;
+            _grid.CancelEdit();
             _grid.Rows[gridRow].Cells[columnIndex].Value = Services.Session.GetCell(_activeTable.Name, recordIndex, field);
             _binding = false;
             MessageBox.Show(this, outcome.Message, "Invalid value", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -183,6 +188,8 @@ public sealed class DatabaseBrowserSection : SectionBase
         Services.Pending.MarkStructuralChange();
         Services.Session.RefreshSchema();
         LoadData();
+        // The base reload keeps the current table selected; this message must be
+        // set after LoadData because the reload re-renders the pager info text.
         _info.Text = "Record duplicated in memory. Change key fields before Ctrl+S; relationship cleanup is manual.";
     }
 
@@ -195,6 +202,7 @@ public sealed class DatabaseBrowserSection : SectionBase
         Services.Pending.MarkStructuralChange();
         Services.Session.RefreshSchema();
         LoadData();
+        // Keep the deletion notice visible after the reload re-renders the pager.
         _info.Text = result.Message + ". Ctrl+S creates backups, saves and reload-verifies.";
     }
 }

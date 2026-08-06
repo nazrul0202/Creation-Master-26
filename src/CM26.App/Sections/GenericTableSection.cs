@@ -56,7 +56,7 @@ public class GenericTableSection : SectionBase
         foreach (var kv in _tabGroups)
         {
             var grid = new FieldEditorGrid();
-            grid.FieldEdited += (_, e) => OnFieldEdited(e.field, e.value);
+            grid.FieldEdited += (_, e) => OnFieldEdited(grid, e.field, e.value);
             // The original CM16 forms place controls inside labelled group boxes
             // on a white canvas.  Retain the schema-driven editor, but present it
             // through that legacy form vocabulary instead of a modern property page.
@@ -84,12 +84,14 @@ public class GenericTableSection : SectionBase
 
     protected override IReadOnlyList<RecordListItem> GetRecords() => _listProvider(Services.RequireData());
 
-    private void OnFieldEdited(string field, string value)
+    private void OnFieldEdited(object? sender, string field, string value)
     {
         if (CurrentRecordIndex < 0) return;
-        foreach (var g in _grids)
-            if (StageField(TableName, CurrentRecordIndex, field, value, g))
-                break;
+        // Mark the modified state on the grid that actually owns the field;
+        // staging through the first grid would leave the marker off the editor
+        // the user is looking at.
+        var owner = sender as FieldEditorGrid ?? _grids[0];
+        StageField(TableName, CurrentRecordIndex, field, value, owner);
     }
 
     protected override void ShowRecord(int recordIndex)

@@ -123,14 +123,18 @@ public static class Theme
         b.FlatAppearance.BorderSize = 1;
         b.FlatAppearance.BorderColor = primary ? Accent : Border;
         b.BackColor = primary ? Accent : Panel;
-        b.ForeColor = Text;
+        b.ForeColor = primary ? Color.White : Text;
         b.Font = primary ? BodyBold : Body;
-        b.Height = ControlHeight;
+        // Keep explicit custom heights; only normalize the WinForms default 23px.
+        if (b.Height == 23) b.Height = ControlHeight;
         b.Cursor = Cursors.Hand;
         b.UseVisualStyleBackColor = false;
         // Visible focus border for keyboard navigation; cleared when focus leaves.
-        b.GotFocus += (_, _) => b.FlatAppearance.BorderColor = Accent;
-        b.LostFocus += (_, _) => b.FlatAppearance.BorderColor = primary ? Accent : Border;
+        // Named handlers (instead of lambdas) so re-theming never stacks duplicates.
+        b.GotFocus -= ButtonGotFocus;
+        b.LostFocus -= ButtonLostFocus;
+        b.GotFocus += ButtonGotFocus;
+        b.LostFocus += ButtonLostFocus;
         if (primary)
         {
             b.FlatAppearance.MouseOverBackColor = AccentHover;
@@ -141,6 +145,18 @@ public static class Theme
             b.FlatAppearance.MouseOverBackColor = Raised;
             b.FlatAppearance.MouseDownBackColor = Raised;
         }
+    }
+
+    private static void ButtonGotFocus(object? sender, EventArgs e)
+    {
+        if (sender is not Button b) return;
+        b.FlatAppearance.BorderColor = Accent;
+    }
+
+    private static void ButtonLostFocus(object? sender, EventArgs e)
+    {
+        if (sender is not Button b) return;
+        b.FlatAppearance.BorderColor = b.BackColor == Accent ? Accent : Border;
     }
 
     public static void ApplyTextBox(TextBox t)
@@ -307,14 +323,20 @@ public static class Theme
                     ApplyButton(button);
                     break;
                 case CheckBox checkBox:
-                    checkBox.ForeColor = Text;
-                    checkBox.BackColor = Background;
+                    // Preserve explicit styling (e.g. green validation boxes); only
+                    // map WinForms system defaults to the current palette.
+                    if (checkBox.ForeColor == SystemColors.ControlText || checkBox.ForeColor == SystemColors.WindowText)
+                        checkBox.ForeColor = Text;
+                    if (checkBox.BackColor == SystemColors.Control)
+                        checkBox.BackColor = Background;
                     checkBox.Font = Body;
                     checkBox.FlatStyle = FlatStyle.Flat;
                     break;
                 case RadioButton radio:
-                    radio.ForeColor = Text;
-                    radio.BackColor = Background;
+                    if (radio.ForeColor == SystemColors.ControlText || radio.ForeColor == SystemColors.WindowText)
+                        radio.ForeColor = Text;
+                    if (radio.BackColor == SystemColors.Control)
+                        radio.BackColor = Background;
                     radio.Font = Body;
                     radio.FlatStyle = FlatStyle.Flat;
                     break;
@@ -397,13 +419,19 @@ public static class Theme
                     group.Font = Body;
                     break;
                 case Label label:
-                    label.ForeColor = label.ForeColor == SystemColors.GrayText ? Muted : Text;
-                    label.BackColor = Color.Transparent;
+                    // Preserve explicitly-set colors (muted captions, warnings);
+                    // only remap the WinForms system defaults.
+                    if (label.ForeColor == SystemColors.ControlText || label.ForeColor == SystemColors.WindowText || label.ForeColor == SystemColors.GrayText)
+                        label.ForeColor = label.ForeColor == SystemColors.GrayText ? Muted : Text;
+                    if (label.BackColor == SystemColors.Control)
+                        label.BackColor = Color.Transparent;
                     label.Font = label.Font.FontFamily.Name.Equals("Segoe UI", StringComparison.OrdinalIgnoreCase) ? Body : label.Font;
                     break;
                 case Panel panel when control is not PictureBox:
-                    panel.BackColor = Background;
-                    panel.ForeColor = Text;
+                    if (panel.BackColor == SystemColors.Control)
+                        panel.BackColor = Background;
+                    if (panel.ForeColor == SystemColors.ControlText || panel.ForeColor == SystemColors.WindowText)
+                        panel.ForeColor = Text;
                     break;
                 case Form form:
                     form.BackColor = Background;

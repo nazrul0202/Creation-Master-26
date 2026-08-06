@@ -158,6 +158,12 @@ public abstract class SectionBase : UserControl
         commandStrip.Controls.Add(_recordSearch);
         commandStrip.Controls.Add(_recordPicker);
 
+        // Editor header docks above the command strip (later Adds are processed
+        // first, so Header added last wins the top edge). Sections that do not
+        // want it (classic fixed-layout pages) hide it in their own ctors,
+        // which run after this one, so the visibility decision is preserved.
+        editorPanel.Controls.Add(Header);
+
         editorPanel.Controls.Add(commandStrip);
         editorPanel.Controls.Add(Validation);
         editorPanel.Controls.Add(actionBar);
@@ -202,8 +208,30 @@ public abstract class SectionBase : UserControl
             e.SuppressKeyPress = true;
         };
         create.Click += (_, _) => CreateNewRecord();
-        _revertBtn.Click += (_, _) => { if (CurrentRecordIndex >= 0) ShowRecord(CurrentRecordIndex); };
+        _revertBtn.Click += (_, _) => RevertCurrentRecord();
         _validateBtn.Click += (_, _) => ValidateCurrent();
+    }
+
+    /// <summary>
+    /// "Revert" restores the selected record's staged state: every staged edit
+    /// for the current row is discarded through the engine, then the record is
+    /// re-read from the database so the fields show their original values.
+    /// </summary>
+    private void RevertCurrentRecord()
+    {
+        if (CurrentRecordIndex < 0) return;
+        var row = CurrentRecordIndex;
+        try
+        {
+            Services.Pending.DiscardForRow(TableName, row);
+        }
+        catch
+        {
+            // Workflow pages (e.g. Settings) have no real table; just re-read.
+        }
+        Services.NotifyPendingChanged();
+        ShowRecord(row);
+        Toast.ShowInfo(this, "Reverted staged edits for this record.");
     }
 
     private const int PreferredBrowserWidth = 430;
@@ -305,7 +333,20 @@ public abstract class SectionBase : UserControl
             return;
         }
         EmptyState.Visible = false;
+        // Generic header wiring for sections that do not manage the header
+        // themselves; sections with their own header calls override it in
+        // ShowRecord. Sections that hide the header keep it hidden.
+        if (Header.Visible)
+            Header.SetRecord(SectionTitle, PickerTitle(recordIndex), IconService.Get(SectionKey, 44));
         ShowRecord(recordIndex);
+    }
+
+    private string PickerTitle(int recordIndex)
+    {
+        foreach (var item in _recordPicker.Items)
+            if (item is RecordListItem li && li.RecordIndex == recordIndex)
+                return li.Title;
+        return string.Empty;
     }
 
     protected abstract void ShowRecord(int recordIndex);
@@ -319,15 +360,29 @@ public abstract class SectionBase : UserControl
         _syncPicker = true;
         try
         {
+            var previous = _recordPicker.SelectedItem as RecordListItem;
             _recordPicker.BeginUpdate();
             _recordPicker.Items.Clear();
             foreach (var record in records)
                 _recordPicker.Items.Add(record);
             _recordCount.Text = $"{records.Count:N0} records";
             if (_recordPicker.Items.Count > 0)
-                _recordPicker.SelectedIndex = 0;
+            {
+                // Keep the user's selection across a reload (refresh, duplicate,
+                // delete) whenever the same record still exists; fall back to the
+                // first record only when it no longer does.
+                var keep = previous == null
+                    ? -1
+                    : _recordPicker.Items.OfType<RecordListItem>()
+                        .Select((item, index) => (item, index))
+                        .FirstOrDefault(t => t.item.RecordIndex == previous.RecordIndex)
+                        .index;
+                _recordPicker.SelectedIndex = keep >= 0 ? keep : 0;
+            }
             else
+            {
                 CurrentRecordIndex = -1;
+            }
         }
         finally
         {
@@ -337,6 +392,8 @@ public abstract class SectionBase : UserControl
 
         if (_recordPicker.SelectedItem is RecordListItem first)
             OnRecordSelected(first.RecordIndex);
+        else
+            OnRecordSelected(-1);
     }
 
     private void SyncPicker(int recordIndex)
@@ -451,7 +508,7 @@ public abstract class SectionBase : UserControl
             if (id > max) max = id;
         }
 
-        var minimum = Math.Max(column.RangeLow, tableName.Equals("nations", StringComparison.OrdinalIgnoreCase) ? 1 : 1);
+        var minimum = Math.Max(column.RangeLow, 1);
         if (max < column.RangeHigh && !used.Contains(max + 1))
             return Math.Max(minimum, max + 1);
         for (var id = minimum; id <= column.RangeHigh; id++)

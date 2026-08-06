@@ -20,7 +20,8 @@ public abstract class ClassicEntitySection : SectionBase
     private readonly Func<IReadOnlyList<RecordListItem>> _records;
     private readonly IReadOnlyDictionary<string, string> _labels;
     private readonly Dictionary<string, FieldValue> _values = new(StringComparer.OrdinalIgnoreCase);
-    private readonly List<TextBox> _editors = [];
+    protected readonly List<TextBox> _editors = [];
+    protected readonly List<TextBox> _mirrors = [];
     private readonly FieldEditorGrid _staging = new();
 
     protected ClassicEntitySection(AppServices services, string key, string title, string table,
@@ -57,6 +58,34 @@ public abstract class ClassicEntitySection : SectionBase
         // placement put ManagerForm captions underneath the identity image panel.
         var captionWidth = Math.Min(150, Math.Max(85, point.X - 16));
         var captionX = Math.Max(10, point.X - captionWidth - 6);
+        var label = new Label
+        {
+            Text = caption,
+            Location = new Point(captionX, point.Y + 3),
+            Size = new Size(captionWidth, 18),
+            Font = LegacyFont,
+            TextAlign = ContentAlignment.MiddleRight,
+            AutoEllipsis = true,
+            BackColor = Theme.Panel,
+            ForeColor = Theme.Text,
+        };
+        parent.Controls.Add(label);
+        ToolTip.SetToolTip(label, caption);
+        var box = new TextBox { Location = point, Size = new Size(width, 20), Tag = field, Font = LegacyFont, BorderStyle = BorderStyle.FixedSingle };
+        Theme.ApplyTextBox(box);
+        box.Leave += (_, _) => Commit(box);
+        parent.Controls.Add(box);
+        _editors.Add(box);
+    }
+
+    /// <summary>
+    /// Read-only mirror of a field edited elsewhere on the form, so technical
+    /// identifiers never appear as a second writable editor for the same field.
+    /// </summary>
+    protected void AddReadonlyField(Control parent, string field, string caption, Point point, int width = 150)
+    {
+        var captionWidth = Math.Min(150, Math.Max(85, point.X - 16));
+        var captionX = Math.Max(10, point.X - captionWidth - 6);
         parent.Controls.Add(new Label
         {
             Text = caption,
@@ -64,14 +93,16 @@ public abstract class ClassicEntitySection : SectionBase
             Size = new Size(captionWidth, 18),
             Font = LegacyFont,
             TextAlign = ContentAlignment.MiddleRight,
+            AutoEllipsis = true,
             BackColor = Theme.Panel,
             ForeColor = Theme.Text,
         });
-        var box = new TextBox { Location = point, Size = new Size(width, 20), Tag = field, Font = LegacyFont, BorderStyle = BorderStyle.FixedSingle };
+        var box = new TextBox { Location = point, Size = new Size(width, 20), Tag = field, ReadOnly = true, Font = LegacyFont, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(box);
-        box.Leave += (_, _) => Commit(box);
+        box.BackColor = Theme.Raised;
+        box.ForeColor = Theme.Text;
         parent.Controls.Add(box);
-        _editors.Add(box);
+        _mirrors.Add(box);
     }
 
     protected PictureBox ImageSurface(Control parent, Point point, Size size, string caption)
@@ -146,12 +177,32 @@ public abstract class ClassicEntitySection : SectionBase
                 ToolTip.SetToolTip(box, name + " is not present in this database");
             }
         }
+        foreach (var box in _mirrors)
+        {
+            var name = box.Tag as string ?? "";
+            if (_values.TryGetValue(name, out var value))
+            {
+                box.Text = value.Value;
+                box.ReadOnly = true;
+                box.BackColor = Theme.Raised;
+                box.ForeColor = Theme.Text;
+                ToolTip.SetToolTip(box, $"Read-only mirror of {value.FieldName} — edited in its section above.");
+            }
+            else
+            {
+                box.Text = "";
+                box.ReadOnly = true;
+                box.BackColor = Theme.Raised;
+                box.ForeColor = Theme.Muted;
+                ToolTip.SetToolTip(box, name + " is not present in this database");
+            }
+        }
         OnRecordShown();
     }
 
     protected virtual void OnRecordShown() { }
 
-    private void Commit(TextBox box)
+    protected void Commit(TextBox box)
     {
         var name = box.Tag as string ?? "";
         if (CurrentRecordIndex >= 0 && !box.ReadOnly && _values.TryGetValue(name, out var old) && box.Text.Trim() != old.Value)
@@ -187,8 +238,8 @@ public sealed class ManagersSection : ClassicEntitySection
         AddReadonlyNote(body, "Manager portrait preview requires a mapped visual asset.", new Point(12, 92), new Size(480, 45));
         c.Controls.Add(body);
         var recordLinks = Group("Record Links", new Point(520, 3), new Size(390, 118));
-        AddField(recordLinks, "managerid", "Manager Id", new Point(130, 22), 210);
-        AddField(recordLinks, "teamid", "Team Id", new Point(130, 50), 210);
+        AddReadonlyField(recordLinks, "managerid", "Manager Id", new Point(130, 22), 210);
+        AddReadonlyField(recordLinks, "teamid", "Team Id", new Point(130, 50), 210);
         AddReadonlyNote(recordLinks, "Technical identifiers are kept with the General record for the CM16 workflow.", new Point(12, 78), new Size(360, 24));
         c.Controls.Add(recordLinks);
 
@@ -561,15 +612,15 @@ public sealed class FormationsSection : ClassicEntitySection
 
         var info = Group("Formation", new Point(584, 3), new Size(370, 260));
         AddField(info, "formationid", "Formation Id", new Point(150, 22), 160);
-        AddField(info, "formationname", "Database Name", new Point(150, 48), 160);
-        AddField(info, "formationfullnameid", "Full Name Id", new Point(150, 74), 160);
-        AddField(info, "formationaudioid", "Audio Id", new Point(150, 100), 160);
-        AddField(info, "teamid", "Team Id", new Point(150, 126), 160);
-        AddField(info, "relativeformationid", "Base Formation", new Point(150, 152), 160);
-        AddField(info, "attackers", "Attackers", new Point(150, 178), 160);
-        AddField(info, "midfielders", "Midfielders", new Point(150, 204), 160);
-        AddField(info, "defenders", "Defenders", new Point(150, 230), 160);
-        AddField(info, "offensiverating", "Offensive Rating", new Point(150, 256), 160);
+        AddField(info, "formationname", "Database Name", new Point(150, 46), 160);
+        AddField(info, "formationfullnameid", "Full Name Id", new Point(150, 70), 160);
+        AddField(info, "formationaudioid", "Audio Id", new Point(150, 94), 160);
+        AddField(info, "teamid", "Team Id", new Point(150, 118), 160);
+        AddField(info, "relativeformationid", "Base Formation", new Point(150, 142), 160);
+        AddField(info, "attackers", "Attackers", new Point(150, 166), 160);
+        AddField(info, "midfielders", "Midfielders", new Point(150, 190), 160);
+        AddField(info, "defenders", "Defenders", new Point(150, 214), 160);
+        AddField(info, "offensiverating", "Offensive Rating", new Point(150, 238), 160);
         c.Controls.Add(info);
 
         var roles = Group("Position Map", new Point(584, 199), new Size(720, 294));
@@ -579,8 +630,30 @@ public sealed class FormationsSection : ClassicEntitySection
             var row = i % 6;
             var x = 92 + (column * 348);
             var y = 22 + (row * 42);
-            AddField(roles, $"position{i}", $"Slot {i + 1} Position", new Point(x, y), 78);
-            AddField(roles, $"pos{i}role", "Role", new Point(x + 154, y), 78);
+            // Hand-placed captions: AddField's auto-caption would collide with
+            // the adjacent slot editor at this narrow column pitch.
+            roles.Controls.Add(new Label
+            {
+                Text = $"Slot {i + 1}",
+                Location = new Point(column == 0 ? 10 : 358, y + 3),
+                Size = new Size(74, 18),
+                Font = LegacyFont,
+                TextAlign = ContentAlignment.MiddleRight,
+                BackColor = Theme.Panel,
+                ForeColor = Theme.Text,
+            });
+            AddSlotEditor(roles, $"position{i}", new Point(x, y), 78);
+            roles.Controls.Add(new Label
+            {
+                Text = "Role",
+                Location = new Point(x + 88, y + 3),
+                Size = new Size(58, 18),
+                Font = LegacyFont,
+                TextAlign = ContentAlignment.MiddleRight,
+                BackColor = Theme.Panel,
+                ForeColor = Theme.Text,
+            });
+            AddSlotEditor(roles, $"pos{i}role", new Point(x + 154, y), 78);
         }
         c.Controls.Add(roles);
 
@@ -609,6 +682,16 @@ public sealed class FormationsSection : ClassicEntitySection
             : $"{name} · {validSlots}/11 positions mapped";
         ResizePitchPreview();
         _pitch.Invalidate();
+    }
+
+    /// <summary>Editor with the same commit wiring as AddField, minus the caption.</summary>
+    private void AddSlotEditor(Control parent, string field, Point point, int width)
+    {
+        var box = new TextBox { Location = point, Size = new Size(width, 20), Tag = field, Font = LegacyFont, BorderStyle = BorderStyle.FixedSingle };
+        Theme.ApplyTextBox(box);
+        box.Leave += (_, _) => Commit(box);
+        parent.Controls.Add(box);
+        _editors.Add(box);
     }
 
     private void ResizePitchPreview()

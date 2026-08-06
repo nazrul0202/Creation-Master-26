@@ -154,6 +154,7 @@ public sealed class PlayersSection : SectionBase
         _playerName.Location = new Point(11, 190);
         _playerName.Size = new Size(365, 20);
         _playerName.Font = LegacyFont;
+        _playerName.AutoEllipsis = true;
         identity.Controls.Add(_playerName);
         AddFields(identity, new[]
         {
@@ -172,8 +173,8 @@ public sealed class PlayersSection : SectionBase
         AddFields(playingFor, new[] { ("Joining Date", "playerjointeamdate"), ("Is Retiring", "isretiring") }, 12, 122, 102, 125, 28);
         canvas.Controls.Add(playingFor);
 
-        var body = Box("Body", new Point(3, 229), new Size(390, 120));
-        AddFields(body, new[] { ("Height", "height"), ("Weight", "weight"), ("Body", "bodytypecode"), ("Best foot", "preferredfoot"), ("Weak foot", "weakfootabilitytypecode") }, 12, 18, 245, 120, 22);
+        var body = Box("Body", new Point(3, 229), new Size(390, 126));
+        AddFields(body, new[] { ("Height", "height"), ("Weight", "weight"), ("Body", "bodytypecode"), ("Best foot", "preferredfoot"), ("Weak foot", "weakfootabilitytypecode") }, 12, 18, 245, 120, 20);
         canvas.Controls.Add(body);
 
         var look = Box("Look", new Point(3, 355), new Size(390, 300));
@@ -239,10 +240,15 @@ public sealed class PlayersSection : SectionBase
         var technical = Box("Record and Contract", new Point(650, 455), new Size(555, 178));
         AddFields(technical, new[]
         {
-            ("Player Id", "playerid"), ("First Name Id", "firstnameid"),
-            ("Last Name Id", "lastnameid"), ("Common Name Id", "commonnameid"),
-            ("Contract Valid Until", "contractvaliduntil"), ("Joining Date", "playerjointeamdate")
+            ("Contract Valid Until", "contractvaliduntil")
         }, 15, 25, 205, 285, 24);
+        technical.Controls.Add(new Label
+        {
+            Text = "Player Id, name ids and joining date are edited in the " +
+                   "Identity Card and Playing for sections above.",
+            Location = new Point(15, 60), Size = new Size(520, 40),
+            Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel
+        });
         canvas.Controls.Add(technical);
     }
 
@@ -271,7 +277,11 @@ public sealed class PlayersSection : SectionBase
                 _skillValues[field] = label;
                 group.Controls.Add(label);
                 var slider = new TrackBar { Location = new Point(9, y + 19), Size = new Size(118, 28), Minimum = 1, Maximum = 99, TickStyle = TickStyle.None, Tag = field, BackColor = Theme.Panel };
-                slider.ValueChanged += (_, _) => StageSkill(slider);
+                // TrackBar fires ValueChanged continuously while dragging; stage
+                // once per gesture (mouse release / keyboard) instead of per tick.
+                slider.ValueChanged += (_, _) => UpdateSkillLabel(slider);
+                slider.MouseUp += (_, _) => StageSkill(slider);
+                slider.KeyUp += (_, _) => StageSkill(slider);
                 _skillSliders[field] = slider;
                 group.Controls.Add(slider);
                 y += 48;
@@ -591,10 +601,25 @@ public sealed class PlayersSection : SectionBase
     private void AddFields(Control parent, IEnumerable<(string label, string field)> fields, int labelX, int top, int editorX, int width, int rowHeight)
     {
         var row = 0;
+        // Fixed-width captions (ellipsized with a tooltip when narrow) so long
+        // names such as "Preferred Position 1" never overlap their editors.
+        var labelWidth = Math.Max(70, editorX - labelX - 8);
         foreach (var (label, field) in fields)
         {
             var y = top + (row++ * rowHeight);
-            parent.Controls.Add(new Label { Text = label, Location = new Point(labelX, y + 4), AutoSize = true, Font = LegacyFont });
+            var caption = new Label
+            {
+                Text = label,
+                Location = new Point(labelX, y + 4),
+                Size = new Size(labelWidth, 18),
+                AutoSize = false,
+                AutoEllipsis = true,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = LegacyFont,
+                Tag = label,
+            };
+            parent.Controls.Add(caption);
+            ToolTip.SetToolTip(caption, label);
             var edit = new TextBox { Location = new Point(editorX, y), Size = new Size(width, 20), Font = LegacyFont, Tag = field };
             Theme.ApplyTextBox(edit);
             edit.Leave += (_, _) => StageEdit(edit);
@@ -635,21 +660,49 @@ public sealed class PlayersSection : SectionBase
                     return;
                 }
             }
-            StageField(TableName, CurrentRecordIndex, value.FieldName, candidate, _stagingGrid);
+            if (StageField(TableName, CurrentRecordIndex, value.FieldName, candidate, _stagingGrid))
+                RefreshSummaryMirrors(key);
         }
     }
 
     private void StageSummary(TextBox editor)
     {
         if (CurrentRecordIndex < 0 || editor.ReadOnly || editor.Tag is not string field || !_fields.TryGetValue(field, out var value)) return;
-        StageField(TableName, CurrentRecordIndex, value.FieldName, editor.Text.Trim(), _stagingGrid);
+        if (StageField(TableName, CurrentRecordIndex, value.FieldName, editor.Text.Trim(), _stagingGrid))
+            RefreshSummaryMirrors(field);
+    }
+
+    private void UpdateSkillLabel(TrackBar slider)
+    {
+        if (slider.Tag is not string field || !_skillValues.TryGetValue(field, out var label)) return;
+        label.Text = $"{FieldLabel(field)} {slider.Value}";
     }
 
     private void StageSkill(TrackBar slider)
     {
         if (_syncSkillSliders || CurrentRecordIndex < 0 || slider.Tag is not string field || !_fields.TryGetValue(field, out var value) || !value.IsWritable) return;
-        StageField(TableName, CurrentRecordIndex, value.FieldName, slider.Value.ToString(), _stagingGrid);
-        if (_skillValues.TryGetValue(field, out var label)) label.Text = $"{FieldLabel(field)} {slider.Value}";
+        if (StageField(TableName, CurrentRecordIndex, value.FieldName, slider.Value.ToString(), _stagingGrid))
+            RefreshSummaryMirrors(field);
+    }
+
+    /// <summary>
+    /// Keeps the "Player Summary"/"Key Attributes" mirrors in sync with the editor
+    /// that staged the change (a summary box can be edited on the Info tab while
+    /// the Skills tab or Identity Card shows the same underlying field).
+    /// </summary>
+    private void RefreshSummaryMirrors(string field)
+    {
+        if (!_summaryValues.TryGetValue(field, out var editors) || !_fields.TryGetValue(field, out var value)) return;
+        var writable = value.IsWritable && field is not "preferredposition1" and not "nationality" and not "preferredfoot";
+        var display = TryGetMappedDisplay(field, _currentPlayerId, value.RawValue, out var mapped) ? mapped : value.Value;
+        foreach (var editor in editors)
+        {
+            editor.Text = display;
+            editor.ReadOnly = !writable;
+            editor.BackColor = writable ? Theme.Input : Theme.Raised;
+            editor.ForeColor = Theme.Text;
+            ToolTip.SetToolTip(editor, writable ? field : field + " is a resolved value; edit its relationship in the appropriate picker.");
+        }
     }
 
     protected override void ShowRecord(int recordIndex)
@@ -660,6 +713,7 @@ public sealed class PlayersSection : SectionBase
         _currentPlayerId = playerId;
         var parts = Services.Resolver!.PlayerNameParts(playerId, Parse(record.Get(Col(table, "firstnameid"))), Parse(record.Get(Col(table, "lastnameid"))), Parse(record.Get(Col(table, "commonnameid"))));
         _playerName.Text = parts.KnownAs ?? $"Player {playerId}";
+        ToolTip.SetToolTip(_playerName, _playerName.Text);
         _clubName.Text = Services.Resolver.PlayerClubName(playerId);
         var image = Services.Assets.GetPlayerMiniface(playerId);
         FrostbitePreviewLoader.LoadLegacyUiAsset(_miniface, Services, image,
@@ -894,6 +948,10 @@ public sealed class PlayersSection : SectionBase
                         c.Name.Contains("speciality", StringComparison.OrdinalIgnoreCase))
             .Select(c => c.Name)
             .ToList();
+        var neededHeight = traitFields.Count == 0
+            ? 60
+            : 24 + ((traitFields.Count + 1) / 2) * 30 + 10;
+        if (_traitsPanel.Height != neededHeight) _traitsPanel.Height = neededHeight;
         if (traitFields.Count == 0)
         {
             _traitsPanel.Controls.Add(new Label

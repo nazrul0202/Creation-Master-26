@@ -59,7 +59,7 @@ public sealed class Toast : BufferedPanel
         _parent = owner;
         _label.Text = message;
         _label.ForeColor = border;
-        Width = Math.Min(owner.Width - 40, 560);
+        Width = Math.Max(160, Math.Min(owner.Width - 40, 560));
         Location = new Point((owner.Width - Width) / 2, 6);
         owner.Controls.Add(this);
         BringToFront();

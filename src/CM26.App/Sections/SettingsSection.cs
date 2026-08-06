@@ -33,6 +33,8 @@ public sealed class SettingsSection : SectionBase
             Dock = DockStyle.Left,
             AutoSize = true,
             Padding = new Padding(0, 6, 0, 0),
+            ForeColor = Theme.Text,
+            BackColor = Theme.Background,
         };
         darkMode.CheckedChanged += (_, _) =>
         {
@@ -142,6 +144,8 @@ public sealed class SettingsSection : SectionBase
             TextAlign = ContentAlignment.MiddleLeft,
             Padding = new Padding(10, 0, 0, 0),
             AutoEllipsis = true,
+            ForeColor = Theme.Text,
+            BackColor = Theme.Background,
         };
         compressBackup.Click += async (_, _) =>
         {

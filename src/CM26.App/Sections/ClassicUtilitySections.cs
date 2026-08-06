@@ -64,12 +64,12 @@ public sealed class CompetitionsSection : ClassicEntitySection
         var workspace = Group("Competition Data Workbook", new Point(3, 3), new Size(1340, 800));
         var open = new Button { Text = "Open Workbook…", Location = new Point(12, 24), Size = new Size(120, 28) };
         var openGame = new Button { Text = "Open from Game Folder…", Location = new Point(138, 24), Size = new Size(170, 28) };
-        var add = new Button { Text = "New Object + Auto ID", Location = new Point(514, 24), Size = new Size(142, 28), Enabled = false };
-        var build = new Button { Text = "Build League / Cup", Location = new Point(664, 24), Size = new Size(126, 28), Enabled = false };
-        var advancement = new Button { Text = "Promotion / Relegation", Location = new Point(798, 24), Size = new Size(146, 28), Enabled = false };
-        var validate = new Button { Text = "Validate", Location = new Point(952, 24), Size = new Size(82, 28), Enabled = false };
-        var export = new Button { Text = "Export TXT", Location = new Point(1042, 24), Size = new Size(88, 28), Enabled = false };
-        var save = new Button { Text = "Save Copy…", Location = new Point(1138, 24), Size = new Size(100, 28), Enabled = false };
+        var add = new Button { Text = "New Object + Auto ID", Location = new Point(600, 24), Size = new Size(142, 28), Enabled = false };
+        var build = new Button { Text = "Build League / Cup", Location = new Point(748, 24), Size = new Size(126, 28), Enabled = false };
+        var advancement = new Button { Text = "Promotion / Relegation", Location = new Point(880, 24), Size = new Size(146, 28), Enabled = false };
+        var validate = new Button { Text = "Validate", Location = new Point(1032, 24), Size = new Size(82, 28), Enabled = false };
+        var export = new Button { Text = "Export TXT", Location = new Point(1120, 24), Size = new Size(88, 28), Enabled = false };
+        var save = new Button { Text = "Save Copy…", Location = new Point(1214, 24), Size = new Size(100, 28), Enabled = false };
         Theme.ApplyButton(open);
         Theme.ApplyButton(openGame);
         Theme.ApplyButton(add);
@@ -78,16 +78,11 @@ public sealed class CompetitionsSection : ClassicEntitySection
         Theme.ApplyButton(validate);
         Theme.ApplyButton(export);
         Theme.ApplyButton(save);
-        workspace.Controls.Add(new Label
-        {
-            Text = "Worksheet", Location = new Point(147, 30), Size = new Size(72, 20),
-            TextAlign = ContentAlignment.MiddleRight,
-        });
-        _compdataSheets.Location = new Point(225, 27);
-        _compdataSheets.Size = new Size(275, 24);
-        Theme.ApplyCombo(_compdataSheets);
         workspace.Controls.Add(open);
         workspace.Controls.Add(openGame);
+        _compdataSheets.Location = new Point(318, 27);
+        _compdataSheets.Size = new Size(275, 24);
+        Theme.ApplyCombo(_compdataSheets);
         workspace.Controls.Add(_compdataSheets);
         workspace.Controls.Add(add);
         workspace.Controls.Add(build);
@@ -100,6 +95,8 @@ public sealed class CompetitionsSection : ClassicEntitySection
         _compdataStatus.Size = new Size(1306, 18);
         _compdataStatus.Text = "Open a Compdata workbook. Validate before saving.";
         _compdataStatus.AutoEllipsis = true;
+        _compdataStatus.ForeColor = Theme.Muted;
+        _compdataStatus.BackColor = Theme.Panel;
         workspace.Controls.Add(_compdataStatus);
 
         _compdataGrid.Location = new Point(12, 62);
@@ -107,6 +104,8 @@ public sealed class CompetitionsSection : ClassicEntitySection
         _compdataGrid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
         _compdataGrid.AllowUserToAddRows = false;
         _compdataGrid.AllowUserToDeleteRows = true;
+        _compdataGrid.RowHeadersVisible = false;
+        _compdataGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _compdataGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells;
         _compdataGrid.BackgroundColor = Theme.Background;
         _compdataGrid.BorderStyle = BorderStyle.None;
@@ -171,6 +170,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
             _compdataSheets.Items.Clear();
             _compdataSheets.Items.AddRange(_compdata.SheetNames.Cast<object>().ToArray());
             if (_compdataSheets.Items.Count > 0) _compdataSheets.SelectedIndex = 0;
+            _compdataStatus.ForeColor = Theme.Text;
             _compdataStatus.Text = $"{Path.GetFileName(dialog.FileName)} · {_compdata.SheetNames.Count} worksheets";
         }
         catch (Exception ex)
@@ -273,6 +273,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
             _compdataSheets.Items.Clear();
             _compdataSheets.Items.AddRange(_compdata.SheetNames.Cast<object>().ToArray());
             if (_compdataSheets.Items.Count > 0) _compdataSheets.SelectedIndex = 0;
+            _compdataStatus.ForeColor = Theme.Text;
             _compdataStatus.Text = $"{label} · {_compdata.SheetNames.Count} worksheets";
         }
         catch (Exception ex)
@@ -306,6 +307,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
                 column.DefaultCellStyle.Font = Theme.Body;
             }
             var limit = CompdataSchema.GetRowLimit(sheetName);
+            _compdataStatus.ForeColor = Theme.Text;
             _compdataStatus.Text = CompdataSchema.CanCreateStandaloneRow(sheetName)
                 ? $"{sheetName} · {table.Rows.Count:N0}/{limit?.ToString("N0") ?? "—"} objects · IDs are allocated automatically."
                 : $"{sheetName} · {table.Rows.Count:N0}/{limit?.ToString("N0") ?? "—"} rows · linked data must reference an existing object.";
@@ -392,6 +394,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
             if (issues.Count == 0)
             {
                 _compdataStatus.Text = "Compdata validation passed · object and linked-row references are consistent.";
+                _compdataStatus.ForeColor = Theme.Success;
                 if (showSuccess)
                     MessageBox.Show(this, _compdataStatus.Text, "Compdata Validation", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return true;
@@ -399,12 +402,15 @@ public sealed class CompetitionsSection : ClassicEntitySection
             var preview = string.Join(Environment.NewLine, issues.Take(12)
                 .Select(issue => $"{issue.Sheet}, row {issue.Row}: {issue.Message}"));
             _compdataStatus.Text = $"Compdata validation found {issues.Count} issue(s).";
+            _compdataStatus.ForeColor = Theme.Warning;
             MessageBox.Show(this, preview + (issues.Count > 12 ? Environment.NewLine + "…" : string.Empty),
                 "Compdata Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return false;
         }
         catch (Exception ex)
         {
+            _compdataStatus.Text = "Compdata validation failed: " + ex.Message;
+            _compdataStatus.ForeColor = Theme.Danger;
             MessageBox.Show(this, ex.Message, "Compdata Validation", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return false;
         }
@@ -466,6 +472,16 @@ public sealed class CompetitionsSection : ClassicEntitySection
                 _logo.Image?.Dispose();
                 _logo.Image = image;
             });
+    }
+
+    /// <summary>
+    /// Refreshes the tree on every activation: row indices captured when the
+    /// section was built become stale after staged inserts shift the table.
+    /// </summary>
+    public override void ActivateSection()
+    {
+        base.ActivateSection();
+        PopulateCompetitionTree(Services);
     }
 
     private void PopulateCompetitionTree(AppServices services)
@@ -538,10 +554,10 @@ public sealed class BallsSection : ClassicEntitySection
             () => Services.FrostbiteAssets.ExportMeshForQuery(new[] { $"ball_{Value("ballid")}" }));
         c.Controls.Add(model);
         var values = Group("Info", new Point(3, 580), new Size(720, 175));
-        AddField(values, "ballid", "Id", new Point(70, 20), 170);
-        AddField(values, "balltype", "Ball Type", new Point(70, 48), 170);
-        AddField(values, "isavailableinstore", "Game Menu", new Point(350, 20), 170);
-        AddField(values, "islicensed", "Licensed", new Point(350, 48), 170);
+        AddField(values, "ballid", "Id", new Point(110, 20), 170);
+        AddField(values, "balltype", "Ball Type", new Point(110, 48), 170);
+        AddField(values, "isavailableinstore", "Game Menu", new Point(390, 20), 170);
+        AddField(values, "islicensed", "Licensed", new Point(390, 48), 170);
         c.Controls.Add(values);
     }
 
@@ -607,9 +623,9 @@ public sealed class BootsSection : ClassicEntitySection
             () => Services.FrostbiteAssets.ExportMeshForQuery(new[] { $"boot_{Value("shoetype")}_{Value("shoedesign")}", $"item_{Value("shoetype")}" }));
         c.Controls.Add(model);
         var details = Group("Shoes", new Point(3, 570), new Size(516, 210));
-        AddField(details, "manufacturerid", "Brand", new Point(90, 20), 120);
-        AddField(details, "shoetype", "Type", new Point(90, 48), 120);
-        AddField(details, "shoedesign", "Design", new Point(90, 76), 120);
+        AddField(details, "manufacturerid", "Brand", new Point(110, 20), 120);
+        AddField(details, "shoetype", "Type", new Point(110, 48), 120);
+        AddField(details, "shoedesign", "Design", new Point(110, 76), 120);
         AddField(details, "islicensed", "Licensed", new Point(300, 20), 120);
         c.Controls.Add(details);
         var colours = AddCanvasTab("Colors"); var cc = Canvas(colours);

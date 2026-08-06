@@ -17,6 +17,7 @@ public sealed class CountriesSection : SectionBase
     private static readonly Font LegacyFont = Theme.Body;
     private readonly List<TextBox> _editors = [];
     private readonly List<TextBox> _audioEditors = [];
+    private readonly List<TextBox> _mirrors = [];
     private readonly Dictionary<string, FieldValue> _fields = new(StringComparer.OrdinalIgnoreCase);
     private readonly FieldEditorGrid _stagingGrid = new();
     private readonly List<PictureBox> _flagViewers = [];
@@ -26,6 +27,7 @@ public sealed class CountriesSection : SectionBase
     private readonly CheckBox _showAllDatabaseCountries = new();
     private readonly Button _openNationalTeam = new();
     private bool _syncTopTier;
+    private bool _suppressListReload;
 
     public override string SectionKey => "countries";
     public override string SectionTitle => "Countries";
@@ -48,11 +50,11 @@ public sealed class CountriesSection : SectionBase
         var country = LegacyGroup("Country", new Point(3, 1), new Size(767, 548));
         AddField(country, "nationname", "Database Name", new Point(101, 14), 133);
         AddField(country, "nationid", "Country Id", new Point(101, 44), 100);
-        AddField(country, "nationname", "Name", new Point(101, 74), 133);
+        AddMirrorField(country, "nationname", "Name", new Point(101, 74), 133);
         AddField(country, "nationstartingfirstletter", "Starting Letter", new Point(101, 104), 133);
         AddField(country, "isocountrycode", "Abbreviation", new Point(101, 134), 133);
         AddField(country, "confederation", "Confederation", new Point(101, 164), 133);
-        AddField(country, "isocountrycode", "ISO Country Code", new Point(117, 195), 117);
+        AddMirrorField(country, "isocountrycode", "ISO Country Code", new Point(117, 195), 117);
         AddField(country, "groupid", "Level", new Point(117, 225), 117);
         AddField(country, "streetdressing", "Street Dressing", new Point(117, 255), 117);
 
@@ -116,7 +118,11 @@ public sealed class CountriesSection : SectionBase
         _showAllDatabaseCountries.BackColor = Theme.Panel;
         _showAllDatabaseCountries.ForeColor = Theme.Text;
         _showAllDatabaseCountries.FlatStyle = FlatStyle.Flat;
-        _showAllDatabaseCountries.CheckedChanged += (_, _) => LoadData();
+        _showAllDatabaseCountries.CheckedChanged += (_, _) =>
+        {
+            if (_suppressListReload) return;
+            LoadData();
+        };
         ToolTip.SetToolTip(_showAllDatabaseCountries,
             "Off: show only playable countries. On: also show database countries that still need a league, clubs and Compdata.");
         country.Controls.Add(_showAllDatabaseCountries);
@@ -147,7 +153,11 @@ public sealed class CountriesSection : SectionBase
             return;
         // A newly created country is deliberately not Career-playable yet. Keep
         // it visible to its creator while they finish its league and Compdata.
+        // The load that follows (below) re-applies the filtered list, so the
+        // mid-creation CheckedChanged reload must be suppressed.
+        _suppressListReload = true;
         _showAllDatabaseCountries.Checked = true;
+        _suppressListReload = false;
         var iso = values[1].Trim().ToUpperInvariant();
         if (iso.Length != 2 || !iso.All(char.IsLetter))
         {
@@ -362,6 +372,7 @@ public sealed class CountriesSection : SectionBase
                 ToolTip.SetToolTip(editor, $"{fieldName} is not present in this database");
             }
         }
+        RefreshMirrors();
 
         _syncTopTier = true;
         try
@@ -486,11 +497,12 @@ public sealed class CountriesSection : SectionBase
             var row = index / 2;
             var x = 16 + (col * 340);
             var y = 28 + (row * 43);
-            box.Controls.Add(new Label
+            var label = new Label
             {
                 Text = fields[index].Item1, Location = new Point(x, y + 3),
-                Size = new Size(165, 20), Font = LegacyFont
-            });
+                Size = new Size(165, 20), Font = LegacyFont, AutoEllipsis = true
+            };
+            ToolTip.SetToolTip(label, fields[index].Item1);
             var editor = new TextBox
             {
                 Location = new Point(x + 170, y), Size = new Size(145, 20),
@@ -560,12 +572,44 @@ public sealed class CountriesSection : SectionBase
 
     private void AddField(Control parent, string fieldName, string label, Point location, int width)
     {
-        parent.Controls.Add(new Label { Text = label, Location = new Point(11, location.Y + 3), Size = new Size(location.X - 16, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft, ForeColor = Theme.Text, BackColor = Theme.Panel });
+        parent.Controls.Add(new Label { Text = label, Location = new Point(11, location.Y + 3), Size = new Size(location.X - 16, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft, AutoEllipsis = true, ForeColor = Theme.Text, BackColor = Theme.Panel });
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(editor);
         editor.Leave += (_, _) => Commit(editor);
         parent.Controls.Add(editor);
         _editors.Add(editor);
+    }
+
+    /// <summary>
+    /// Read-only mirror of a field edited elsewhere in the same group, so "Name"
+    /// never becomes a second writable editor for nationname.
+    /// </summary>
+    private void AddMirrorField(Control parent, string fieldName, string label, Point location, int width)
+    {
+        var caption = new Label { Text = label, Location = new Point(11, location.Y + 3), Size = new Size(location.X - 16, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft, AutoEllipsis = true, ForeColor = Theme.Text, BackColor = Theme.Panel };
+        parent.Controls.Add(caption);
+        ToolTip.SetToolTip(caption, label);
+        var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, ReadOnly = true, BorderStyle = BorderStyle.FixedSingle };
+        Theme.ApplyTextBox(editor);
+        editor.BackColor = Theme.Raised;
+        editor.ForeColor = Theme.Text;
+        parent.Controls.Add(editor);
+        _editors.Add(editor);
+        _mirrors.Add(editor);
+    }
+
+    private void RefreshMirrors()
+    {
+        foreach (var mirror in _mirrors)
+        {
+            var fieldName = mirror.Tag as string ?? string.Empty;
+            mirror.ReadOnly = true;
+            mirror.BackColor = Theme.Raised;
+            mirror.ForeColor = Theme.Text;
+            ToolTip.SetToolTip(mirror, $"Read-only mirror of {fieldName} — edit it in its named field above.");
+            if (_fields.TryGetValue(fieldName, out var field))
+                mirror.Text = field.Value;
+        }
     }
 
     private static Panel CreateViewer(Point location, Size imageSize, string resolution, out PictureBox picture, out Label caption)
@@ -581,7 +625,11 @@ public sealed class CountriesSection : SectionBase
     private void Commit(TextBox editor)
     {
         if (CurrentRecordIndex < 0 || editor.ReadOnly || editor.Tag is not string fieldName || !_fields.TryGetValue(fieldName, out var field)) return;
-        if (!string.Equals(editor.Text.Trim(), field.Value, StringComparison.Ordinal)) StageField(TableName, CurrentRecordIndex, fieldName, editor.Text.Trim(), _stagingGrid);
+        if (!string.Equals(editor.Text.Trim(), field.Value, StringComparison.Ordinal))
+        {
+            if (StageField(TableName, CurrentRecordIndex, fieldName, editor.Text.Trim(), _stagingGrid))
+                RefreshMirrors();
+        }
     }
 
     private void ShowFlag(string? path, int nationId, string nationName)

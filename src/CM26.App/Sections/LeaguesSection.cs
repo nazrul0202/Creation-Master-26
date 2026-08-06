@@ -15,6 +15,7 @@ public sealed class LeaguesSection : SectionBase
 {
     private static readonly Font LegacyFont = Theme.Body;
     private readonly List<TextBox> _editors = [];
+    private readonly List<TextBox> _nameMirrors = [];
     private readonly Dictionary<string, FieldValue> _fields = new(StringComparer.OrdinalIgnoreCase);
     private readonly FieldEditorGrid _stagingGrid = new();
     private readonly ListView _teams = new();
@@ -54,28 +55,38 @@ public sealed class LeaguesSection : SectionBase
 
         // LeagueForm.cs: the team selector (3,3,467,454).
         var teamBox = Group("Teams", new Point(3, 3), new Size(467, 454));
-        var teamTools = new ToolStrip { Location = new Point(4, 17), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = Theme.Panel, Renderer = new DarkToolStripRenderer() };
+        var teamTools = new ToolStrip { Location = new Point(4, 17), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text, Renderer = new DarkToolStripRenderer() };
         teamTools.Items.Add(_teamPicker);
         teamTools.Items.Add(_addTeam);
         teamTools.Items.Add(_removeTeam);
-        var showTeamLogo = new ToolStripButton("Show Team Logo") { CheckOnClick = true, Checked = true };
+        var showTeamLogo = new ToolStripButton("Show Team Logo") { CheckOnClick = true, Checked = true, ForeColor = Theme.Text };
         showTeamLogo.CheckedChanged += (_, _) =>
         {
             _showTeamLogos = showTeamLogo.Checked;
             _teams.View = _showTeamLogos ? View.LargeIcon : View.List;
         };
         teamTools.Items.Add(showTeamLogo);
-        var addNewLeague = new ToolStripButton("Add New League");
-        addNewLeague.Click += (_, _) => CreateNewRecord();
-        teamTools.Items.Add(addNewLeague);
         _addTeam.Click += (_, _) => AddSelectedTeam();
         _removeTeam.Click += (_, _) => RemoveSelectedTeam();
-        var teamActions = new ToolStrip { Location = new Point(4, 43), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = Theme.Panel, Renderer = new DarkToolStripRenderer() };
-        teamActions.Items.Add(new ToolStripLabel("Find club to add"));
+        foreach (ToolStripItem item in teamTools.Items)
+            if (item is not ToolStripComboBox && item is not ToolStripTextBox)
+                item.ForeColor = Theme.Text;
+        _teamPicker.ComboBox.BackColor = Theme.Input;
+        _teamPicker.ComboBox.ForeColor = Theme.Text;
+        var teamActions = new ToolStrip { Location = new Point(4, 43), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text, Renderer = new DarkToolStripRenderer() };
+        teamActions.Items.Add(new ToolStripLabel("Find club to add") { ForeColor = Theme.Muted });
         teamActions.Items.Add(_teamSearch);
-        var findTeam = new ToolStripButton("Find");
+        var findTeam = new ToolStripButton("Find") { ForeColor = Theme.Text };
         findTeam.Click += (_, _) => FindTeams();
         teamActions.Items.Add(findTeam);
+        var addNewLeague = new ToolStripButton("Add New League") { ForeColor = Theme.Text };
+        addNewLeague.Click += (_, _) => CreateNewRecord();
+        teamActions.Items.Add(addNewLeague);
+        foreach (ToolStripItem item in teamActions.Items)
+            if (item is not ToolStripComboBox && item is not ToolStripTextBox)
+                item.ForeColor = Theme.Text;
+        _teamSearch.TextBox.BackColor = Theme.Input;
+        _teamSearch.TextBox.ForeColor = Theme.Text;
         _teamSearch.KeyDown += (_, e) =>
         {
             if (e.KeyCode != Keys.Enter) return;
@@ -122,7 +133,7 @@ public sealed class LeaguesSection : SectionBase
         // LeagueForm.cs: 256-square, 200x64 and 512x128 image workspace.
         var logos = Group("Logos", new Point(476, 3), new Size(532, 454));
         logos.Controls.Add(Viewer(new Point(6, 18), new Size(256, 256), "256 x 256", out _mainLogo));
-        logos.Controls.Add(Viewer(new Point(268, 18), new Size(256, 64), "200 x 64", out _bannerLogo));
+        logos.Controls.Add(Viewer(new Point(268, 18), new Size(200, 64), "200 x 64", out _bannerLogo));
         logos.Controls.Add(Viewer(new Point(6, 297), new Size(512, 128), "512 x 128", out _wideLogo));
         _logoCaption.Location = new Point(7, 278);
         _logoCaption.Size = new Size(255, 16);
@@ -137,8 +148,8 @@ public sealed class LeaguesSection : SectionBase
         // they are intentionally omitted instead of showing fake disabled data.
         var names = Group("Names and Other Information", new Point(3, 463), new Size(531, 202));
         AddField(names, "leaguename", "Database Name", new Point(91, 15), 181);
-        AddField(names, "leaguename", "Name", new Point(91, 38), 181);
-        AddField(names, "leaguename", "Long Name", new Point(91, 61), 181);
+        AddMirrorField(names, "leaguename", "Name", new Point(91, 38), 181);
+        AddMirrorField(names, "leaguename", "Long Name", new Point(91, 61), 181);
         AddField(names, "leagueid", "League Id", new Point(91, 89), 122);
         AddField(names, "level", "Level", new Point(91, 115), 122);
         AddCountryPicker(names, new Point(91, 141));
@@ -231,6 +242,7 @@ public sealed class LeaguesSection : SectionBase
         _fields.Clear();
         foreach (var field in Services.RequireData().GetFields(TableName, recordIndex, LabelMaps.Leagues)) _fields[field.FieldName] = field;
         foreach (var editor in _editors) SetEditor(editor);
+        RefreshNameMirrors();
         PopulateCountryPicker();
         _syncLeagueFlags = true;
         try
@@ -420,7 +432,16 @@ public sealed class LeaguesSection : SectionBase
                 }
             }
             var selected = _fields.TryGetValue("countryid", out var value) && int.TryParse(value.RawValue, out var countryId) ? countryId : -1;
-            _countryPicker.SelectedIndex = Enumerable.Range(0, _countryPicker.Items.Count).FirstOrDefault(i => _countryPicker.Items[i] is CountryItem item && item.NationId == selected);
+            var index = -1;
+            for (var i = 0; i < _countryPicker.Items.Count; i++)
+            {
+                if (_countryPicker.Items[i] is CountryItem item && item.NationId == selected)
+                {
+                    index = i;
+                    break;
+                }
+            }
+            _countryPicker.SelectedIndex = index;
             _countryPicker.Enabled = _fields.TryGetValue("countryid", out var writable) && writable.IsWritable;
             _countryPicker.EndUpdate();
         }
@@ -447,6 +468,36 @@ public sealed class LeaguesSection : SectionBase
         editor.Leave += (_, _) => Commit(editor);
         parent.Controls.Add(editor);
         _editors.Add(editor);
+    }
+
+    /// <summary>
+    /// Read-only mirror of a field edited elsewhere in the same group ("Name" and
+    /// "Long Name" both display the single leaguename value, avoiding duplicate
+    /// editors for the same database field).
+    /// </summary>
+    private void AddMirrorField(Control parent, string fieldName, string label, Point location, int width)
+    {
+        parent.Controls.Add(new Label { Text = label, Location = new Point(10, location.Y + 3), Size = new Size(Math.Max(72, location.X - 15), 18), Font = LegacyFont });
+        var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, ReadOnly = true, BorderStyle = BorderStyle.FixedSingle };
+        Theme.ApplyTextBox(editor);
+        editor.BackColor = Theme.Raised;
+        editor.ForeColor = Theme.Text;
+        parent.Controls.Add(editor);
+        _editors.Add(editor);
+        _nameMirrors.Add(editor);
+    }
+
+    private void RefreshNameMirrors()
+    {
+        foreach (var mirror in _nameMirrors)
+        {
+            mirror.ReadOnly = true;
+            mirror.BackColor = Theme.Raised;
+            mirror.ForeColor = Theme.Text;
+            ToolTip.SetToolTip(mirror, "Read-only mirror of leaguename — edit it in the Database Name field.");
+            if (_fields.TryGetValue(mirror.Tag as string ?? string.Empty, out var field))
+                mirror.Text = field.Value;
+        }
     }
 
     private void SetEditor(TextBox editor)
@@ -481,7 +532,11 @@ public sealed class LeaguesSection : SectionBase
     private void Commit(TextBox editor)
     {
         if (CurrentRecordIndex < 0 || editor.ReadOnly || editor.Tag is not string key || !_fields.TryGetValue(key, out var field)) return;
-        if (!string.Equals(editor.Text.Trim(), field.Value, StringComparison.Ordinal)) StageField(TableName, CurrentRecordIndex, key, editor.Text.Trim(), _stagingGrid);
+        if (!string.Equals(editor.Text.Trim(), field.Value, StringComparison.Ordinal))
+        {
+            if (StageField(TableName, CurrentRecordIndex, key, editor.Text.Trim(), _stagingGrid))
+                RefreshNameMirrors();
+        }
     }
 
     private void PopulateTeamLinks()
@@ -633,7 +688,7 @@ public sealed class LeaguesSection : SectionBase
         if (!duplicate.Success) { message = duplicate.Message; return false; }
         Services.Pending.MarkStructuralChange();
         var newRow = 1;
-        var ok = Stage("artificialkey", (maxKey + 1).ToString()) & Stage("leagueid", _leagueId.ToString()) & Stage("teamid", teamId.ToString());
+        var ok = Stage("artificialkey", (maxKey + 1).ToString()) && Stage("leagueid", _leagueId.ToString()) && Stage("teamid", teamId.ToString());
         if (!ok) { message = "Could not stage the team-to-league link."; return false; }
         return true;
         bool Stage(string field, string value) => Services.Pending.Stage("leagueteamlinks", newRow, field, value).Success;
@@ -722,8 +777,7 @@ public sealed class LeaguesSection : SectionBase
         graphics.Clear(Theme.Raised);
         using var pen = new Pen(Theme.Border, 1);
         graphics.DrawRectangle(pen, 3, 3, 49, 49);
-        using var font = new Font("Segoe UI", 14, FontStyle.Bold);
-        TextRenderer.DrawText(graphics, "?", font, new Rectangle(3, 3, 49, 49), Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        TextRenderer.DrawText(graphics, "?", Theme.Body, new Rectangle(3, 3, 49, 49), Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         return image;
     }
 }
