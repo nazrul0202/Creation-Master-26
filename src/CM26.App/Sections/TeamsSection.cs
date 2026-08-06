@@ -393,11 +393,7 @@ public sealed class TeamsSection : SectionBase
         }, 10, 18, 88, 158, 24);
         canvas.Controls.Add(name);
 
-        var stadium = Group("Stadium", new Point(3, 620), new Size(270, 67));
-        AddBoundFields(stadium, new[] { ("Stadium Model", "stadiumid"), ("Stadium Name", "stadiumid") }, 10, 18, 98, 158, 24);
-        canvas.Controls.Add(stadium);
-
-        var manager = Group("Manager", new Point(3, 693), new Size(270, 67));
+        var manager = Group("Manager", new Point(3, 620), new Size(270, 67));
         AddBoundFields(manager, new[] { ("First Name", "managerid"), ("Surname", "managerid") }, 10, 18, 98, 158, 24);
         canvas.Controls.Add(manager);
 
@@ -483,57 +479,15 @@ public sealed class TeamsSection : SectionBase
         }, 14, 22, 154, 150, 24);
         canvas.Controls.Add(tactics);
 
-        var crowd = Group("Crowd Support", new Point(921, 548), new Size(390, 325));
-        AddBoundFields(crowd, new[]
-        {
-            ("Support 1", "cksupport1"), ("Support 2", "cksupport2"), ("Support 3", "cksupport3"),
-            ("Support 4", "cksupport4"), ("Support 5", "cksupport5"), ("Support 6", "cksupport6"),
-            ("Support 7", "cksupport7"), ("Support 8", "cksupport8"), ("Support 9", "cksupport9"),
-            ("Crowd Skin Tone", "crowdskintonecode"), ("Crowd Region", "crowdregion")
-        }, 15, 22, 175, 190, 26);
-        canvas.Controls.Add(crowd);
-
-        var goalNetGroup = Group("Stadium", new Point(1217, 229), new Size(310, 280));
-        AddBoundFields(goalNetGroup, new[]
+        var stadiumDetails = Group("Stadium", new Point(1217, 3), new Size(310, 280));
+        AddBoundFields(stadiumDetails, new[]
         {
             ("Stadium Name", "stadiumid"), ("Stanchion 1 R", "goalnetstanchioncolor1r"), ("Stanchion 1 G", "goalnetstanchioncolor1g"),
             ("Stanchion 1 B", "goalnetstanchioncolor1b"), ("Stanchion 2 R", "goalnetstanchioncolor2r"),
             ("Stanchion 2 G", "goalnetstanchioncolor2g"), ("Stanchion 2 B", "goalnetstanchioncolor2b"),
             ("Corner Flag Pole", "cornerflagpolecolor")
         }, 15, 22, 120, 165, 28);
-        canvas.Controls.Add(goalNetGroup);
-
-        var extras = Group("Atmosphere", new Point(555, 623), new Size(360, 470));
-        AddBoundFields(extras, new[]
-        {
-            ("Jersey Type", "jerseytype"), ("Ethnicity", "ethnicity"), ("Asset Id", "assetid"),
-            ("Pres Asset One", "presassetone"), ("Pres Asset Two", "presassettwo"), ("Pow Id", "powid"),
-            ("Generic Int 1", "genericint1"), ("Generic Int 2", "genericint2"), ("Flamethrower Cannon", "flamethrowercannon"),
-            ("Stanchion Flamethrower", "stanchionflamethrower"), ("Generic Banner", "genericbanner"),
-            ("Transfers In", "numtransfersin"), ("Rival Team", "rivalteam"),
-            ("UEFA Conference League", "uefa_uecl_wins"), ("UEFA Consecutive Wins", "uefa_consecutive_wins")
-        }, 15, 22, 160, 175, 27);
-        canvas.Controls.Add(extras);
-
-        var presentation = Group("Matchday Presentation", new Point(921, 275), new Size(390, 267));
-        AddBoundFields(presentation, new[]
-        {
-            ("Standing Crowd", "hasstandingcrowd"), ("Tifo", "hastifo"), ("Large Flag", "haslargeflag"),
-            ("Skinny Flags", "skinnyflags"), ("Sun Anthem", "hassuncanthem"), ("Viking Clap", "hasvikingclap"),
-            ("Substitution Board", "hassubstitutionboard"), ("Competition Banner", "isbannerenabled"),
-            ("Competition Crowd Cards", "iscompetitioncrowdcardsenabled"), ("Competition Pole Flags", "iscompetitionpoleflagenabled"),
-            ("Competition Scarves", "iscompetitionscarfenabled")
-        }, 15, 22, 190, 150, 24);
-        canvas.Controls.Add(presentation);
-
-        var pitchDetails = Group("Team Pitch and Goal Net", new Point(1217, 3), new Size(310, 220));
-        AddBoundFields(pitchDetails, new[]
-        {
-            ("Pitch Surface", "playsurfacetype"), ("Pitch Colour", "pitchcolor"), ("Pitch Wear", "pitchwear"),
-            ("Pitch Line Colour", "pitchlinecolor"), ("Mowing Pattern", "stadiummowpattern_code"),
-            ("Goal Net Style", "stadiumgoalnetstyle"), ("Goal Net Pattern", "stadiumgoalnetpattern")
-        }, 15, 22, 132, 150, 24);
-        canvas.Controls.Add(pitchDetails);
+        canvas.Controls.Add(stadiumDetails);
     }
 
     private void AddAudioTab()
@@ -1312,11 +1266,6 @@ public sealed class TeamsSection : SectionBase
         _nationFlagCaption.Font = LegacyFont;
         _nationFlagCaption.TextAlign = ContentAlignment.MiddleLeft;
         flag.Controls.Add(_nationFlagCaption);
-        AddBoundFields(flag, new[]
-        {
-            ("Teamcolor1r", "teamcolor1r"), ("Teamcolor1g", "teamcolor1g"), ("Teamcolor1b", "teamcolor1b"),
-            ("Teamcolor2r", "teamcolor2r"), ("Teamcolor2g", "teamcolor2g"), ("Teamcolor2b", "teamcolor2b")
-        }, 12, 320, 130, 105, 24);
         canvas.Controls.Add(flag);
     }
 
