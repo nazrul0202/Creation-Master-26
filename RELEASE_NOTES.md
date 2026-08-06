@@ -1,5 +1,24 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.34 - editor geometry standardization (2026-08-06)
+
+- **Uniform editor rows everywhere.** Every fixed editor section now uses the same
+  26px row pitch (previously mixed 26/28/43px layouts). Captions are right-aligned
+  and always end 6px before their editor, with AutoEllipsis + tooltip so no label
+  ever overlaps a text box.
+- **Snug group heights.** Legacy-style group boxes were resized to fit their
+  content exactly (no more 100-140px dead bands): Players Info/Skills/Face/Details,
+  Teams General/Audio, Leagues Names/Settings, Countries Nation/Audio, Stadiums
+  Weather/Presentation/Broadcast/Licensing, Goal Net, and the Balls/Boots/Gloves/
+  Competitions info panels.
+- **Kits editor rebuilt** into three uniform rows of aligned groups (Colours and
+  Percentages, Templates, Badges, Name Colours, Name and Numbers, Appearance,
+  Rendering, Jersey Number Colours, Shorts Number Colours, Kit Record) — all 72
+  fields preserved, no overlaps.
+- **Image + action rows no longer collide.** Gloves/Sponsors/Adboards captions and
+  Import/Remove/Export rows now stack without overlapping the preview holder.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.34.
+
 ## Version 1.0.33 - UI polish pass (2026-08-06)
 
 - **Theme system fixes.** Labels, panels, checkboxes and radio buttons only remap

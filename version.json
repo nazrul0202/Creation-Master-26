@@ -1,6 +1,6 @@
 {
-  "version": "1.0.33",
+  "version": "1.0.34",
   "name": "Creation Master 26",
-  "notes": "v1.0.33 - UI polish: theme preservation + full toolbar re-theme, real section headers, working Revert, cleaned-up Players/Leagues/Countries/Classic editors, Compdata layout, GenericTable markers.",
+  "notes": "v1.0.34 - editor geometry standardization: uniform 26px row pitch, right-aligned captions, snug group heights across Players/Teams/Leagues/Countries/Stadiums/Goal Net/Kits/Balls/Boots/Gloves/Competitions/Audio editors.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

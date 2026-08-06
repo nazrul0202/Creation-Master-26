@@ -131,7 +131,7 @@ public sealed class LeaguesSection : SectionBase
         canvas.Controls.Add(teamBox);
 
         // LeagueForm.cs: 256-square, 200x64 and 512x128 image workspace.
-        var logos = Group("Logos", new Point(476, 3), new Size(532, 454));
+        var logos = Group("Logos", new Point(476, 3), new Size(532, 431));
         logos.Controls.Add(Viewer(new Point(6, 18), new Size(256, 256), "256 x 256", out _mainLogo));
         logos.Controls.Add(Viewer(new Point(268, 18), new Size(200, 64), "200 x 64", out _bannerLogo));
         logos.Controls.Add(Viewer(new Point(6, 297), new Size(512, 128), "512 x 128", out _wideLogo));
@@ -146,14 +146,14 @@ public sealed class LeaguesSection : SectionBase
 
         // CM16 objective thresholds have no FC26 league-table counterpart, so
         // they are intentionally omitted instead of showing fake disabled data.
-        var names = Group("Names and Other Information", new Point(3, 463), new Size(531, 202));
+        var names = Group("Names and Other Information", new Point(3, 463), new Size(531, 197));
         AddField(names, "leaguename", "Database Name", new Point(91, 15), 181);
-        AddMirrorField(names, "leaguename", "Name", new Point(91, 38), 181);
-        AddMirrorField(names, "leaguename", "Long Name", new Point(91, 61), 181);
-        AddField(names, "leagueid", "League Id", new Point(91, 89), 122);
-        AddField(names, "level", "Level", new Point(91, 115), 122);
-        AddCountryPicker(names, new Point(91, 141));
-        AddField(names, "leaguetype", "Prestige", new Point(91, 168), 181);
+        AddMirrorField(names, "leaguename", "Name", new Point(91, 41), 181);
+        AddMirrorField(names, "leaguename", "Long Name", new Point(91, 67), 181);
+        AddField(names, "leagueid", "League Id", new Point(91, 93), 122);
+        AddField(names, "level", "Level", new Point(91, 119), 122);
+        AddCountryPicker(names, new Point(91, 145));
+        AddField(names, "leaguetype", "Prestige", new Point(91, 171), 181);
 
         canvas.Controls.Add(names);
 
@@ -161,14 +161,14 @@ public sealed class LeaguesSection : SectionBase
         // objective threshold boxes are not part of the FC26 leagues schema.
         // Use the empty lower-right workspace instead of creating a sparse
         // vertical form below the league details.
-        var fc26 = Group("League Settings", new Point(540, 463), new Size(468, 116));
+        var fc26 = Group("League Settings", new Point(540, 463), new Size(468, 125));
         AddLeagueFlag(fc26, "Women's competition", "iswomencompetition", new Point(12, 20));
-        AddLeagueFlag(fc26, "International league", "isinternationalleague", new Point(12, 44));
-        AddLeagueFlag(fc26, "Competition pole flags", "iscompetitionpoleflagenabled", new Point(12, 68));
+        AddLeagueFlag(fc26, "International league", "isinternationalleague", new Point(12, 46));
+        AddLeagueFlag(fc26, "Competition pole flags", "iscompetitionpoleflagenabled", new Point(12, 72));
         AddLeagueFlag(fc26, "Within transfer window", "iswithintransferwindow", new Point(230, 20));
-        AddLeagueFlag(fc26, "Competition scarves", "iscompetitionscarfenabled", new Point(230, 44));
-        AddLeagueFlag(fc26, "Crowd cards", "iscompetitioncrowdcardsenabled", new Point(230, 68));
-        AddLeagueFlag(fc26, "Banner enabled", "isbannerenabled", new Point(230, 92));
+        AddLeagueFlag(fc26, "Competition scarves", "iscompetitionscarfenabled", new Point(230, 46));
+        AddLeagueFlag(fc26, "Crowd cards", "iscompetitioncrowdcardsenabled", new Point(230, 72));
+        AddLeagueFlag(fc26, "Banner enabled", "isbannerenabled", new Point(230, 98));
         canvas.Controls.Add(fc26);
     }
 
@@ -401,7 +401,11 @@ public sealed class LeaguesSection : SectionBase
 
     private void AddCountryPicker(Control parent, Point location)
     {
-        parent.Controls.Add(new Label { Text = "Country", Location = new Point(10, location.Y + 3), Size = new Size(76, 18), Font = LegacyFont });
+        parent.Controls.Add(new Label
+        {
+            Text = "Country", Location = new Point(10, location.Y + 3), Size = new Size(Math.Max(70, location.X - 16), 18),
+            AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont
+        });
         _countryPicker.Location = location;
         _countryPicker.Size = new Size(181, 21);
         _countryPicker.Font = LegacyFont;
@@ -462,7 +466,11 @@ public sealed class LeaguesSection : SectionBase
 
     private void AddField(Control parent, string fieldName, string label, Point location, int width)
     {
-        parent.Controls.Add(new Label { Text = label, Location = new Point(10, location.Y + 3), Size = new Size(Math.Max(72, location.X - 15), 18), Font = LegacyFont });
+        parent.Controls.Add(new Label
+        {
+            Text = label, Location = new Point(10, location.Y + 3), Size = new Size(Math.Max(70, location.X - 16), 18),
+            AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont
+        });
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(editor);
         editor.Leave += (_, _) => Commit(editor);
@@ -477,7 +485,11 @@ public sealed class LeaguesSection : SectionBase
     /// </summary>
     private void AddMirrorField(Control parent, string fieldName, string label, Point location, int width)
     {
-        parent.Controls.Add(new Label { Text = label, Location = new Point(10, location.Y + 3), Size = new Size(Math.Max(72, location.X - 15), 18), Font = LegacyFont });
+        parent.Controls.Add(new Label
+        {
+            Text = label, Location = new Point(10, location.Y + 3), Size = new Size(Math.Max(70, location.X - 16), 18),
+            AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont
+        });
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, ReadOnly = true, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(editor);
         editor.BackColor = Theme.Raised;

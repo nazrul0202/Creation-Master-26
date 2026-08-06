@@ -65,11 +65,11 @@ internal abstract class Fc26ExtensionSection : SectionBase
         Header.Visible = false;
         var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
         var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background };
-        var box = new GroupBox { Text = group, Location = new Point(4, 4), Size = new Size(630, Math.Max(120, 35 + ((fields.Length + 1) / 2 * 28))), Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text };
+        var box = new GroupBox { Text = group, Location = new Point(4, 4), Size = new Size(630, Math.Max(120, 25 + ((fields.Length + 1) / 2 * 26))), Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text };
         for (var i = 0; i < fields.Length; i++)
         {
             var col = i % 2; var row = i / 2;
-            var x = col == 0 ? 12 : 322; var y = 20 + (row * 28);
+            var x = col == 0 ? 12 : 322; var y = 20 + (row * 26);
             var label = new Label { Text = Label(fields[i]), Location = new Point(x, y + 3), Size = new Size(145, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true, ForeColor = Theme.Text, BackColor = Theme.Panel };
             box.Controls.Add(label);
             ToolTip.SetToolTip(label, Label(fields[i]));
@@ -174,7 +174,7 @@ internal sealed class SponsorsSection : Fc26ExtensionSection
         _preview.SizeMode = PictureBoxSizeMode.Zoom;
         box.Controls.Add(_preview);
         _caption.Location = new Point(12, 442);
-        _caption.Size = new Size(825, 52);
+        _caption.Size = new Size(825, 40);
         _caption.Font = LegacyFont;
         _caption.TextAlign = ContentAlignment.MiddleCenter;
         box.Controls.Add(_caption);
@@ -240,7 +240,7 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
         var box = new GroupBox
         {
             Text = "NewWave Audio Banks", Location = new Point(4, 4),
-            Size = new Size(1120, 650), Font = LegacyFont,
+            Size = new Size(1120, 610), Font = LegacyFont,
             BackColor = Theme.Panel, ForeColor = Theme.Text
         };
         box.Controls.Add(new Label
@@ -478,7 +478,7 @@ internal sealed class AdboardsSection : Fc26ExtensionSection
         _preview.SizeMode = PictureBoxSizeMode.Zoom;
         box.Controls.Add(_preview);
         _caption.Location = new Point(12, 442);
-        _caption.Size = new Size(825, 52);
+        _caption.Size = new Size(825, 40);
         _caption.Font = LegacyFont;
         _caption.TextAlign = ContentAlignment.MiddleCenter;
         box.Controls.Add(_caption);

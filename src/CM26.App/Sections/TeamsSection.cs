@@ -367,15 +367,15 @@ public sealed class TeamsSection : SectionBase
         var page = Page("Generic");
         var canvas = Canvas(page);
 
-        var logos = Group("Logos", new Point(3, 3), new Size(270, 445));
+        var logos = Group("Logos", new Point(3, 3), new Size(270, 428));
         logos.Controls.Add(CrestViewer(new Point(6, 19), new Size(256, 256)));
-        LegacyAssetActions.Attach(Services, logos, _crestViewers[0], new Point(6, 279), () => ShowRecord(CurrentRecordIndex));
-        logos.Controls.Add(CrestViewer(new Point(7, 306), new Size(64, 62)));
-        logos.Controls.Add(CrestViewer(new Point(102, 306), new Size(64, 62)));
-        logos.Controls.Add(CrestViewer(new Point(194, 306), new Size(64, 62)));
-        LegacyAssetActions.Attach(Services, logos, _crestViewers[1], new Point(7, 372), () => ShowRecord(CurrentRecordIndex));
-        _crestCaption.Location = new Point(8, 270);
-        _crestCaption.Size = new Size(252, 32);
+        LegacyAssetActions.Attach(Services, logos, _crestViewers[0], new Point(6, 277), () => ShowRecord(CurrentRecordIndex));
+        logos.Controls.Add(CrestViewer(new Point(7, 308), new Size(64, 62)));
+        logos.Controls.Add(CrestViewer(new Point(102, 308), new Size(64, 62)));
+        logos.Controls.Add(CrestViewer(new Point(194, 308), new Size(64, 62)));
+        LegacyAssetActions.Attach(Services, logos, _crestViewers[1], new Point(7, 374), () => ShowRecord(CurrentRecordIndex));
+        _crestCaption.Location = new Point(8, 404);
+        _crestCaption.Size = new Size(252, 18);
         _crestCaption.TextAlign = ContentAlignment.MiddleCenter;
         _crestCaption.ForeColor = Theme.Muted;
         _crestCaption.Font = LegacyFont;
@@ -385,19 +385,19 @@ public sealed class TeamsSection : SectionBase
 
         // Preserve the original CM16 TeamForm geometry. FC26's canonical name
         // is mirrored into the legacy display-name slots by the adapter.
-        var name = Group("Name", new Point(3, 454), new Size(270, 160));
+        var name = Group("Name", new Point(3, 439), new Size(270, 174));
         AddBoundFields(name, new[]
         {
             ("Database Name", "teamname"), ("Full Name", "teamname"), ("Name (15 chars)", "teamname"),
             ("Name (10 chars)", "teamname"), ("Name (7 chars)", "teamname"), ("Score Board", "teamname")
-        }, 10, 18, 88, 158, 24);
+        }, 10, 18, 88, 158, 26);
         canvas.Controls.Add(name);
 
-        var manager = Group("Manager", new Point(3, 620), new Size(270, 67));
-        AddBoundFields(manager, new[] { ("First Name", "managerid"), ("Surname", "managerid") }, 10, 18, 98, 158, 24);
+        var manager = Group("Manager", new Point(3, 621), new Size(270, 70));
+        AddBoundFields(manager, new[] { ("First Name", "managerid"), ("Surname", "managerid") }, 10, 18, 98, 158, 26);
         canvas.Controls.Add(manager);
 
-        var info = Group("Info", new Point(279, 3), new Size(270, 496));
+        var info = Group("Info", new Point(279, 3), new Size(270, 393));
         for (var i = 0; i < 3; i++)
         {
             var chip = new Panel { Location = new Point(98 + (i * 37), 13), Size = new Size(23, 23), BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle };
@@ -410,83 +410,83 @@ public sealed class TeamsSection : SectionBase
             ("Domestic", "domesticprestige"), ("International", "internationalprestige"), ("Budget", "clubworth"),
             ("Overall Rating", "overallrating"), ("Attack Rating", "attackrating"), ("Midfield Rating", "midfieldrating"),
             ("Defence Rating", "defenserating"), ("Ball Number", "ballid")
-        }, 10, 40, 98, 158, 24);
-        var search = new TextBox { Location = new Point(105, 340), Size = new Size(84, 21), Font = LegacyFont };
+        }, 10, 44, 98, 158, 26);
+        var search = new TextBox { Location = new Point(105, 334), Size = new Size(84, 21), Font = LegacyFont };
         Theme.ApplyTextBox(search);
-        var find = LegacyButton("Find", new Point(195, 338), new Size(58, 24));
+        var find = LegacyButton("Find", new Point(195, 332), new Size(58, 24));
         find.Click += (_, _) => FindTeam(search.Text);
         search.KeyDown += (_, eventArgs) => { if (eventArgs.KeyCode == Keys.Enter) { FindTeam(search.Text); eventArgs.SuppressKeyPress = true; } };
-        info.Controls.Add(new Label { Text = "Find team record", Location = new Point(12, 342), Size = new Size(88, 20), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft });
+        info.Controls.Add(new Label { Text = "Find team record", Location = new Point(12, 336), Size = new Size(88, 20), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft });
         info.Controls.Add(search);
         info.Controls.Add(find);
-        var importSquad = LegacyButton("Import Scraper Squad", new Point(12, 409), new Size(241, 27));
+        var importSquad = LegacyButton("Import Scraper Squad", new Point(12, 360), new Size(241, 27));
         importSquad.Click += (_, _) => ImportScraperSquad();
         info.Controls.Add(importSquad);
         canvas.Controls.Add(info);
 
-        var lastYear = Group("Last Year Performance", new Point(279, 505), new Size(270, 101));
-        AddBoundFields(lastYear, new[] { ("League", "leagueid"), ("Position", "form"), ("Is Champion", "prev_el_champ") }, 10, 18, 98, 158, 24);
+        var lastYear = Group("Last Year Performance", new Point(279, 404), new Size(270, 96));
+        AddBoundFields(lastYear, new[] { ("League", "leagueid"), ("Position", "form"), ("Is Champion", "prev_el_champ") }, 10, 18, 98, 158, 26);
         canvas.Controls.Add(lastYear);
 
-        var location = Group("Location", new Point(279, 612), new Size(270, 99));
-        AddBoundFields(location, new[] { ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Offset", "utcoffset") }, 10, 18, 98, 150, 24);
+        var location = Group("Location", new Point(279, 508), new Size(270, 96));
+        AddBoundFields(location, new[] { ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Offset", "utcoffset") }, 10, 18, 98, 150, 26);
         canvas.Controls.Add(location);
 
-        var traits = Group("Opponent Behaviour", new Point(555, 3), new Size(276, 126));
-        AddBoundFields(traits, new[] { ("Vs. weaker teams", "trait1vweak"), ("Vs. stronger teams", "trait1vstrong"), ("Vs. equal teams", "trait1vequal") }, 10, 20, 118, 150, 24);
+        var traits = Group("Opponent Behaviour", new Point(555, 3), new Size(276, 98));
+        AddBoundFields(traits, new[] { ("Vs. weaker teams", "trait1vweak"), ("Vs. stronger teams", "trait1vstrong"), ("Vs. equal teams", "trait1vequal") }, 10, 20, 118, 150, 26);
         ToolTip.SetToolTip(traits,
             "Internal behaviour bitmasks used to vary team tendencies against weaker, stronger, or evenly matched opponents.");
         canvas.Controls.Add(traits);
 
-        var kitLinks = Group("Kit Links", new Point(555, 211), new Size(276, 66));
+        var kitLinks = Group("Kit Links", new Point(555, 109), new Size(276, 50));
         foreach (var link in new[] { "Home Kit", "Away Kit", "Keeper Kit", "3rd Kit" })
-            kitLinks.Controls.Add(new LinkLabel { Text = link, AutoSize = true, Location = new Point(12 + (kitLinks.Controls.Count * 68), 27), Font = LegacyFont });
+            kitLinks.Controls.Add(new LinkLabel { Text = link, AutoSize = true, Location = new Point(12 + (kitLinks.Controls.Count * 64), 27), Font = LegacyFont });
         canvas.Controls.Add(kitLinks);
 
         // CM16 keeps the day-to-day club record on one General/Generic surface.
         // These are FC26 fields; only their placement changes here.
-        var club = Group("Club Details", new Point(555, 286), new Size(360, 210));
+        var club = Group("Club Details", new Point(555, 167), new Size(360, 228));
         AddBoundFields(club, new[]
         {
             ("Founded", "foundationyear"), ("City", "cityid"), ("Gender", "gender"),
             ("Stadium Capacity", "teamstadiumcapacity"), ("Training Stadium", "trainingstadium"),
             ("Youth Development", "youthdevelopment"), ("Popularity", "popularity"), ("Profitability", "profitability")
-        }, 10, 20, 160, 150, 24);
+        }, 10, 20, 160, 150, 26);
         canvas.Controls.Add(club);
 
-        var history = Group("Club History", new Point(555, 502), new Size(360, 115));
+        var history = Group("Club History", new Point(555, 403), new Size(360, 124));
         AddBoundFields(history, new[]
         {
             ("League Titles", "leaguetitles"), ("Domestic Cups", "domesticcups"),
             ("UEFA Champions League", "uefa_cl_wins"), ("UEFA Europa League", "uefa_el_wins")
-        }, 10, 20, 145, 150, 24);
+        }, 10, 20, 145, 150, 26);
         canvas.Controls.Add(history);
 
-        var ratings = Group("Matchday Ratings", new Point(921, 3), new Size(290, 155));
+        var ratings = Group("Matchday Ratings", new Point(921, 3), new Size(290, 152));
         AddBoundFields(ratings, new[]
         {
             ("Overall", "matchdayoverallrating"), ("Attack", "matchdayattackrating"),
             ("Midfield", "matchdaymidfieldrating"), ("Defence", "matchdaydefenserating"),
             ("Current Form", "form")
-        }, 15, 22, 116, 150, 24);
+        }, 15, 22, 116, 150, 26);
         canvas.Controls.Add(ratings);
 
-        var tactics = Group("Team Tendency", new Point(921, 164), new Size(290, 105));
+        var tactics = Group("Team Tendency", new Point(921, 163), new Size(290, 126));
         AddBoundFields(tactics, new[]
         {
             ("Build Up Play", "buildupplay"), ("Defensive Depth", "defensivedepth"),
             ("Opponent Weak Threshold", "opponentweakthreshold"), ("Opponent Strong Threshold", "opponentstrongthreshold")
-        }, 14, 22, 154, 150, 24);
+        }, 14, 22, 154, 150, 26);
         canvas.Controls.Add(tactics);
 
-        var stadiumDetails = Group("Stadium", new Point(1217, 3), new Size(310, 280));
+        var stadiumDetails = Group("Stadium", new Point(1217, 3), new Size(310, 230));
         AddBoundFields(stadiumDetails, new[]
         {
             ("Stadium Name", "stadiumid"), ("Stanchion 1 R", "goalnetstanchioncolor1r"), ("Stanchion 1 G", "goalnetstanchioncolor1g"),
             ("Stanchion 1 B", "goalnetstanchioncolor1b"), ("Stanchion 2 R", "goalnetstanchioncolor2r"),
             ("Stanchion 2 G", "goalnetstanchioncolor2g"), ("Stanchion 2 B", "goalnetstanchioncolor2b"),
             ("Corner Flag Pole", "cornerflagpolecolor")
-        }, 15, 22, 120, 165, 28);
+        }, 15, 22, 120, 165, 26);
         canvas.Controls.Add(stadiumDetails);
     }
 
@@ -494,7 +494,7 @@ public sealed class TeamsSection : SectionBase
     {
         var page = Page("Audio");
         var canvas = Canvas(page);
-        var presentation = Group("Selected Team Match Audio", new Point(3, 3), new Size(475, 245));
+        var presentation = Group("Selected Team Match Audio", new Point(3, 3), new Size(475, 193));
         AddBoundFields(presentation, new[]
         {
             ("Sun Anthem Enabled", "hassuncanthem"),
@@ -502,31 +502,31 @@ public sealed class TeamsSection : SectionBase
             ("Viking Clap", "hasvikingclap"),
             ("Team Personality", "personalityid"),
             ("Tifo Enabled", "hastifo")
-        }, 15, 25, 175, 150, 28);
+        }, 15, 25, 175, 150, 26);
         presentation.Controls.Add(new Label
         {
             Text = "Match presentation settings for the selected team.",
-            Location = new Point(15, 202), Size = new Size(430, 24),
+            Location = new Point(15, 163), Size = new Size(430, 24),
             Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         canvas.Controls.Add(presentation);
 
         canvas.Controls.Add(CreateAudioCatalog(
             "Custom Team Callname Catalog", "CustomizableTeamName",
-            _teamCallnameSlots, new Point(3, 255), 1));
+            _teamCallnameSlots, new Point(3, 204), 1));
         canvas.Controls.Add(CreateAudioCatalog(
             "Custom Anthem Catalog", "CustomizableAnthemChant",
             _anthemSlots, new Point(490, 3), 1001));
         canvas.Controls.Add(CreateAudioCatalog(
             "Custom Chant / Goal Song Catalog", "CustomizableChantPackage",
-            _goalSongSlots, new Point(490, 345), 1501));
+            _goalSongSlots, new Point(490, 322), 1501));
     }
 
     private GroupBox CreateAudioCatalog(
         string title, string tableName, ListView list, Point location, int firstItemId)
     {
         var width = location.X < 100 ? 475 : 610;
-        var box = Group(title, location, new Size(width, 330));
+        var box = Group(title, location, new Size(width, 311));
         list.Location = new Point(10, 22);
         list.Size = new Size(width - 20, 245);
         list.View = View.Details;
@@ -1151,7 +1151,7 @@ public sealed class TeamsSection : SectionBase
     {
         var page = Page("Adboards");
         var canvas = Canvas(page);
-        var sources = Group("Team Adboard Sources", new Point(3, 3), new Size(600, 650));
+        var sources = Group("Team Adboard Sources", new Point(3, 3), new Size(600, 621));
         _adboardSources.Location = new Point(10, 23);
         _adboardSources.Size = new Size(580, 590);
         _adboardSources.View = View.Details;
@@ -1184,7 +1184,7 @@ public sealed class TeamsSection : SectionBase
         LegacyAssetActions.Attach(Services, preview, _adboardPreview, new Point(10, 388), ShowSelectedAdboard);
         canvas.Controls.Add(preview);
 
-        var note = Group("Asset Mapping", new Point(610, 430), new Size(620, 155));
+        var note = Group("Asset Mapping", new Point(610, 430), new Size(620, 126));
         note.Controls.Add(new Label
         {
             Text = "Adboard content is driven by teamsponsorlinks and its dynamicimageid. " +
@@ -1199,7 +1199,7 @@ public sealed class TeamsSection : SectionBase
     {
         var page = Page("Sponsors");
         var canvas = Canvas(page);
-        var links = Group("Team Sponsor Links", new Point(3, 3), new Size(1120, 650));
+        var links = Group("Team Sponsor Links", new Point(3, 3), new Size(1120, 629));
         _teamSponsors.Location = new Point(12, 23);
         _teamSponsors.Size = new Size(660, 565);
         _teamSponsors.View = View.Details;
@@ -1239,7 +1239,7 @@ public sealed class TeamsSection : SectionBase
     {
         var page = Page("Flags");
         var canvas = Canvas(page);
-        var texture = Group("Team Flags", new Point(3, 3), new Size(525, 420));
+        var texture = Group("Team Flags", new Point(3, 3), new Size(525, 346));
         _teamFlagPreview.Location = new Point(10, 24);
         _teamFlagPreview.Size = new Size(512, 256);
         _teamFlagPreview.BackColor = Theme.Input;
@@ -1253,7 +1253,7 @@ public sealed class TeamsSection : SectionBase
         _teamFlagCaption.TextAlign = ContentAlignment.MiddleCenter;
         texture.Controls.Add(_teamFlagCaption);
         canvas.Controls.Add(texture);
-        var flag = Group("Flags", new Point(534, 3), new Size(525, 420));
+        var flag = Group("Flags", new Point(534, 3), new Size(525, 346));
         _nationFlagPreview.Location = new Point(10, 24);
         _nationFlagPreview.Size = new Size(512, 256);
         _nationFlagPreview.BackColor = Theme.Input;
@@ -1272,10 +1272,17 @@ public sealed class TeamsSection : SectionBase
     private void AddBoundFields(Control parent, IEnumerable<(string label, string field)> definitions, int labelX, int top, int editorX, int editorWidth, int rowHeight)
     {
         var row = 0;
+        // Fixed-width right-aligned captions (ellipsized with a tooltip when
+        // narrow) so long names never slide under their editors.
+        var labelWidth = Math.Max(70, editorX - labelX - 6);
         foreach (var (label, field) in definitions)
         {
             var y = top + (row++ * rowHeight);
-            parent.Controls.Add(new Label { Text = label, Location = new Point(labelX, y + 4), AutoSize = true, Font = LegacyFont });
+            parent.Controls.Add(new Label
+            {
+                Text = label, Location = new Point(labelX, y + 3), Size = new Size(labelWidth, 18),
+                AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont
+            });
             var editor = new TextBox { Location = new Point(editorX, y), Size = new Size(editorWidth, 20), Font = LegacyFont, Tag = field };
             Theme.ApplyTextBox(editor);
             editor.Leave += (_, _) => StageEditor(editor);
@@ -1288,10 +1295,15 @@ public sealed class TeamsSection : SectionBase
     private void AddPlayerReferencePickers(Control parent, IEnumerable<(string label, string field)> definitions, int labelX, int top)
     {
         var row = 0;
+        var labelWidth = Math.Max(70, 90 - labelX - 6);
         foreach (var (label, field) in definitions)
         {
-            var y = top + (row++ * 25);
-            parent.Controls.Add(new Label { Text = label, Location = new Point(labelX, y + 4), AutoSize = true, Font = LegacyFont });
+            var y = top + (row++ * 26);
+            parent.Controls.Add(new Label
+            {
+                Text = label, Location = new Point(labelX, y + 3), Size = new Size(labelWidth, 18),
+                AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont
+            });
             var picker = new ComboBox { Location = new Point(90, y), Size = new Size(372, 21), Font = LegacyFont, DropDownStyle = ComboBoxStyle.DropDownList, Tag = field };
             Theme.ApplyCombo(picker);
             picker.SelectedIndexChanged += (_, _) => CommitPlayerReference(picker);

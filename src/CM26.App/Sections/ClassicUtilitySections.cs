@@ -45,12 +45,12 @@ public sealed class CompetitionsSection : ClassicEntitySection
         PopulateCompetitionTree(s);
         tree.Controls.Add(_competitionTree);
         c.Controls.Add(tree);
-        var info = Group("Competition", new Point(584, 3), new Size(790, 290));
+        var info = Group("Competition", new Point(584, 3), new Size(790, 260));
         AddField(info, "competitionid", "Id.", new Point(100, 20), 110);
-        AddField(info, "country_lock", "Nation", new Point(100, 48), 110);
-        AddField(info, "ballid", "Ball", new Point(100, 76), 110);
-        AddField(info, "competitionimportance", "Importance", new Point(100, 104), 110);
-        AddField(info, "isrealcompetition", "Licensed", new Point(100, 132), 110);
+        AddField(info, "country_lock", "Nation", new Point(100, 46), 110);
+        AddField(info, "ballid", "Ball", new Point(100, 72), 110);
+        AddField(info, "competitionimportance", "Importance", new Point(100, 98), 110);
+        AddField(info, "isrealcompetition", "Licensed", new Point(100, 124), 110);
         _logo = ImageSurface(info, new Point(260, 18), new Size(180, 180), "Competition logo");
         LegacyAssetActions.Attach(Services, info, _logo, new Point(260, 224), () => OnRecordShown());
         c.Controls.Add(info);
@@ -544,20 +544,20 @@ public sealed class BallsSection : ClassicEntitySection
     public BallsSection(AppServices s) : base(s, "balls", "Balls", "teamballs", () => Records(s), Fields)
     {
         var general = AddCanvasTab("General"); var c = Canvas(general);
-        var texture = Group("Texture", new Point(3, 3), new Size(720, 570));
+        var texture = Group("Texture", new Point(3, 3), new Size(720, 580));
         _texture = ImageSurface(texture, new Point(4, 20), new Size(700, 500), "1024 x 1024");
-        LegacyAssetActions.Attach(Services, texture, _texture, new Point(8, 535), () => OnRecordShown());
+        LegacyAssetActions.Attach(Services, texture, _texture, new Point(8, 545), () => OnRecordShown());
         c.Controls.Add(texture);
-        var model = Group("3D Model", new Point(728, 3), new Size(1165, 570));
-        ThreeDViewerLauncher.AttachPlaceholder(model, new Point(5, 20), new Size(1145, 500), "ball",
+        var model = Group("3D Model", new Point(728, 3), new Size(1165, 550));
+        ThreeDViewerLauncher.AttachPlaceholder(model, new Point(5, 20), new Size(1145, 520), "ball",
             () => new[] { Value("ballid").ToString(), "ball_" + Value("ballid") },
             () => Services.FrostbiteAssets.ExportMeshForQuery(new[] { $"ball_{Value("ballid")}" }));
         c.Controls.Add(model);
-        var values = Group("Info", new Point(3, 580), new Size(720, 175));
+        var values = Group("Info", new Point(3, 589), new Size(720, 80));
         AddField(values, "ballid", "Id", new Point(110, 20), 170);
-        AddField(values, "balltype", "Ball Type", new Point(110, 48), 170);
+        AddField(values, "balltype", "Ball Type", new Point(110, 46), 170);
         AddField(values, "isavailableinstore", "Game Menu", new Point(390, 20), 170);
-        AddField(values, "islicensed", "Licensed", new Point(390, 48), 170);
+        AddField(values, "islicensed", "Licensed", new Point(390, 46), 170);
         c.Controls.Add(values);
     }
 
@@ -609,12 +609,12 @@ public sealed class BootsSection : ClassicEntitySection
     public BootsSection(AppServices s) : base(s, "boots", "Boots", "playerboots", () => Records(s), Fields)
     {
         var general = AddCanvasTab("General"); var c = Canvas(general);
-        var texture = Group("Texture", new Point(3, 3), new Size(516, 560));
+        var texture = Group("Texture", new Point(3, 3), new Size(516, 580));
         _texture = ImageSurface(texture, new Point(4, 20), new Size(500, 500), "512 x 512");
-        LegacyAssetActions.Attach(Services, texture, _texture, new Point(8, 530), () => OnRecordShown());
+        LegacyAssetActions.Attach(Services, texture, _texture, new Point(8, 545), () => OnRecordShown());
         c.Controls.Add(texture);
-        var model = Group("3D Model", new Point(524, 3), new Size(1360, 810));
-        ThreeDViewerLauncher.AttachPlaceholder(model, new Point(5, 20), new Size(1340, 735), "boot",
+        var model = Group("3D Model", new Point(524, 3), new Size(1360, 790));
+        ThreeDViewerLauncher.AttachPlaceholder(model, new Point(5, 20), new Size(1340, 760), "boot",
             () => new[]
             {
                 Value("shoetype").ToString(), "item_" + Value("shoetype") + "_" + Value("shoedesign"),
@@ -622,16 +622,16 @@ public sealed class BootsSection : ClassicEntitySection
             },
             () => Services.FrostbiteAssets.ExportMeshForQuery(new[] { $"boot_{Value("shoetype")}_{Value("shoedesign")}", $"item_{Value("shoetype")}" }));
         c.Controls.Add(model);
-        var details = Group("Shoes", new Point(3, 570), new Size(516, 210));
+        var details = Group("Shoes", new Point(3, 589), new Size(516, 100));
         AddField(details, "manufacturerid", "Brand", new Point(110, 20), 120);
-        AddField(details, "shoetype", "Type", new Point(110, 48), 120);
-        AddField(details, "shoedesign", "Design", new Point(110, 76), 120);
+        AddField(details, "shoetype", "Type", new Point(110, 46), 120);
+        AddField(details, "shoedesign", "Design", new Point(110, 72), 120);
         AddField(details, "islicensed", "Licensed", new Point(300, 20), 120);
         c.Controls.Add(details);
         var colours = AddCanvasTab("Colors"); var cc = Canvas(colours);
-        var col = Group("Colors", new Point(3, 3), new Size(510, 180));
-        AddField(col, "shoecolor1", "Color 1", new Point(105, 22), 130);
-        AddField(col, "shoecolor2", "Color 2", new Point(105, 50), 130);
+        var col = Group("Colors", new Point(3, 3), new Size(510, 80));
+        AddField(col, "shoecolor1", "Color 1", new Point(105, 20), 130);
+        AddField(col, "shoecolor2", "Color 2", new Point(105, 46), 130);
         cc.Controls.Add(col);
     }
 
@@ -694,21 +694,21 @@ internal sealed class GlovesSection : ClassicEntitySection
     {
         var general = AddCanvasTab("General");
         var canvas = Canvas(general);
-        var texture = Group("Glove Texture", new Point(3, 3), new Size(720, 600));
+        var texture = Group("Glove Texture", new Point(3, 3), new Size(720, 632));
         _texture = ImageSurface(texture, new Point(4, 20), new Size(700, 520), "Installed texture");
-        _caption.Location = new Point(8, 545);
-        _caption.Size = new Size(695, 28);
+        _caption.Location = new Point(8, 566);
+        _caption.Size = new Size(695, 26);
         _caption.TextAlign = ContentAlignment.MiddleCenter;
         _caption.Font = LegacyFont;
         texture.Controls.Add(_caption);
-        LegacyAssetActions.Attach(Services, texture, _texture, new Point(8, 572), () => OnRecordShown());
+        LegacyAssetActions.Attach(Services, texture, _texture, new Point(8, 598), () => OnRecordShown());
         canvas.Controls.Add(texture);
 
-        var info = Group("Goalkeeper Gloves", new Point(728, 3), new Size(480, 210));
-        AddField(info, "gloveid", "Id", new Point(125, 22), 175);
-        AddField(info, "isavailableinstore", "Store", new Point(125, 50), 175);
-        AddField(info, "islicensed", "Licensed", new Point(125, 78), 175);
-        AddField(info, "isembargoed", "Embargoed", new Point(125, 106), 175);
+        var info = Group("Goalkeeper Gloves", new Point(728, 3), new Size(480, 126));
+        AddField(info, "gloveid", "Id", new Point(125, 20), 175);
+        AddField(info, "isavailableinstore", "Store", new Point(125, 46), 175);
+        AddField(info, "islicensed", "Licensed", new Point(125, 72), 175);
+        AddField(info, "isembargoed", "Embargoed", new Point(125, 98), 175);
         canvas.Controls.Add(info);
     }
 

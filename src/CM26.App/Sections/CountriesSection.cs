@@ -47,19 +47,19 @@ public sealed class CountriesSection : SectionBase
 
         // Exact CountryForm.cs grouping: identity at left; 256/512/card/mini
         // image viewers in the centre; country map at the right.
-        var country = LegacyGroup("Country", new Point(3, 1), new Size(767, 548));
+        var country = LegacyGroup("Country", new Point(3, 1), new Size(767, 533));
         AddField(country, "nationname", "Database Name", new Point(101, 14), 133);
-        AddField(country, "nationid", "Country Id", new Point(101, 44), 100);
-        AddMirrorField(country, "nationname", "Name", new Point(101, 74), 133);
-        AddField(country, "nationstartingfirstletter", "Starting Letter", new Point(101, 104), 133);
-        AddField(country, "isocountrycode", "Abbreviation", new Point(101, 134), 133);
-        AddField(country, "confederation", "Confederation", new Point(101, 164), 133);
-        AddMirrorField(country, "isocountrycode", "ISO Country Code", new Point(117, 195), 117);
-        AddField(country, "groupid", "Level", new Point(117, 225), 117);
-        AddField(country, "streetdressing", "Street Dressing", new Point(117, 255), 117);
+        AddField(country, "nationid", "Country Id", new Point(101, 40), 100);
+        AddMirrorField(country, "nationname", "Name", new Point(101, 66), 133);
+        AddField(country, "nationstartingfirstletter", "Starting Letter", new Point(101, 92), 133);
+        AddField(country, "isocountrycode", "Abbreviation", new Point(101, 118), 133);
+        AddField(country, "confederation", "Confederation", new Point(101, 144), 133);
+        AddMirrorField(country, "isocountrycode", "ISO Country Code", new Point(101, 170), 133);
+        AddField(country, "groupid", "Level", new Point(101, 196), 133);
+        AddField(country, "streetdressing", "Street Dressing", new Point(101, 222), 133);
 
         _topTier.Text = "Top tier";
-        _topTier.Location = new Point(11, 282);
+        _topTier.Location = new Point(11, 250);
         _topTier.Size = new Size(100, 22);
         _topTier.Font = LegacyFont;
         _topTier.BackColor = Theme.Panel;
@@ -77,7 +77,7 @@ public sealed class CountriesSection : SectionBase
         var addCountry = new Button
         {
             Text = "Add Country to Game",
-            Location = new Point(16, 316),
+            Location = new Point(16, 284),
             Size = new Size(194, 29),
             Font = LegacyFont,
         };
@@ -87,7 +87,7 @@ public sealed class CountriesSection : SectionBase
         var createNationalTeam = new Button
         {
             Text = "Create National Team",
-            Location = new Point(16, 350),
+            Location = new Point(16, 318),
             Size = new Size(194, 29),
             Font = LegacyFont,
         };
@@ -95,7 +95,7 @@ public sealed class CountriesSection : SectionBase
         createNationalTeam.Click += (_, _) => CreateNationalTeam();
         country.Controls.Add(createNationalTeam);
         _openNationalTeam.Text = "Open National Team";
-        _openNationalTeam.Location = new Point(16, 383);
+        _openNationalTeam.Location = new Point(16, 352);
         _openNationalTeam.Size = new Size(194, 29);
         _openNationalTeam.Font = LegacyFont;
         _openNationalTeam.Enabled = false;
@@ -105,14 +105,14 @@ public sealed class CountriesSection : SectionBase
         country.Controls.Add(new Label
         {
             Text = "Create a country ID, then add its national team, domestic league,\nclubs and Compdata before starting a new Career save.",
-            Location = new Point(16, 416),
+            Location = new Point(16, 385),
             Size = new Size(215, 32),
             Font = LegacyFont,
             ForeColor = Theme.Muted,
             BackColor = Theme.Panel,
         });
         _showAllDatabaseCountries.Text = "Show countries awaiting setup";
-        _showAllDatabaseCountries.Location = new Point(16, 454);
+        _showAllDatabaseCountries.Location = new Point(16, 423);
         _showAllDatabaseCountries.Size = new Size(210, 23);
         _showAllDatabaseCountries.Font = LegacyFont;
         _showAllDatabaseCountries.BackColor = Theme.Panel;
@@ -476,7 +476,7 @@ public sealed class CountriesSection : SectionBase
         };
         page.Controls.Add(canvas);
         Tabs.TabPages.Add(page);
-        var box = LegacyGroup("Nation and National Team Audio", new Point(3, 3), new Size(710, 390));
+        var box = LegacyGroup("Nation and National Team Audio", new Point(3, 3), new Size(710, 237));
         var fields = new[]
         {
             ("PA Language", "palanguageindex"),
@@ -496,11 +496,11 @@ public sealed class CountriesSection : SectionBase
             var col = index % 2;
             var row = index / 2;
             var x = 16 + (col * 340);
-            var y = 28 + (row * 43);
+            var y = 28 + (row * 26);
             var label = new Label
             {
                 Text = fields[index].Item1, Location = new Point(x, y + 3),
-                Size = new Size(165, 20), Font = LegacyFont, AutoEllipsis = true
+                Size = new Size(165, 18), Font = LegacyFont, AutoEllipsis = true
             };
             ToolTip.SetToolTip(label, fields[index].Item1);
             var editor = new TextBox
@@ -516,7 +516,7 @@ public sealed class CountriesSection : SectionBase
         box.Controls.Add(new Label
         {
             Text = "Audio mappings for the selected country. They control regional commentary and crowd banks.",
-            Location = new Point(16, 303), Size = new Size(660, 45),
+            Location = new Point(16, 186), Size = new Size(660, 45),
             Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         canvas.Controls.Add(box);
@@ -572,7 +572,12 @@ public sealed class CountriesSection : SectionBase
 
     private void AddField(Control parent, string fieldName, string label, Point location, int width)
     {
-        parent.Controls.Add(new Label { Text = label, Location = new Point(11, location.Y + 3), Size = new Size(location.X - 16, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft, AutoEllipsis = true, ForeColor = Theme.Text, BackColor = Theme.Panel });
+        parent.Controls.Add(new Label
+        {
+            Text = label, Location = new Point(11, location.Y + 3), Size = new Size(Math.Max(70, location.X - 17), 18),
+            Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true,
+            ForeColor = Theme.Text, BackColor = Theme.Panel
+        });
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(editor);
         editor.Leave += (_, _) => Commit(editor);
@@ -586,7 +591,12 @@ public sealed class CountriesSection : SectionBase
     /// </summary>
     private void AddMirrorField(Control parent, string fieldName, string label, Point location, int width)
     {
-        var caption = new Label { Text = label, Location = new Point(11, location.Y + 3), Size = new Size(location.X - 16, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft, AutoEllipsis = true, ForeColor = Theme.Text, BackColor = Theme.Panel };
+        var caption = new Label
+        {
+            Text = label, Location = new Point(11, location.Y + 3), Size = new Size(Math.Max(70, location.X - 17), 18),
+            Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true,
+            ForeColor = Theme.Text, BackColor = Theme.Panel
+        };
         parent.Controls.Add(caption);
         ToolTip.SetToolTip(caption, label);
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, ReadOnly = true, BorderStyle = BorderStyle.FixedSingle };

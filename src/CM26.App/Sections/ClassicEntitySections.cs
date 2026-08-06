@@ -54,10 +54,10 @@ public abstract class ClassicEntitySection : SectionBase
 
     protected void AddField(Control parent, string field, string caption, Point point, int width = 150)
     {
-        // Keep each caption immediately to the left of its editor.  The old fixed x=10
-        // placement put ManagerForm captions underneath the identity image panel.
-        var captionWidth = Math.Min(150, Math.Max(85, point.X - 16));
-        var captionX = Math.Max(10, point.X - captionWidth - 6);
+        // Uniform editor-grid geometry: the caption always ends 6 px before the
+        // editor, regardless of how narrow the group is.
+        var captionWidth = Math.Clamp(point.X - 14, 40, 150);
+        var captionX = point.X - captionWidth - 6;
         var label = new Label
         {
             Text = caption,
@@ -84,8 +84,8 @@ public abstract class ClassicEntitySection : SectionBase
     /// </summary>
     protected void AddReadonlyField(Control parent, string field, string caption, Point point, int width = 150)
     {
-        var captionWidth = Math.Min(150, Math.Max(85, point.X - 16));
-        var captionX = Math.Max(10, point.X - captionWidth - 6);
+        var captionWidth = Math.Clamp(point.X - 14, 40, 150);
+        var captionX = point.X - captionWidth - 6;
         parent.Controls.Add(new Label
         {
             Text = caption,
@@ -216,7 +216,7 @@ public sealed class ManagersSection : ClassicEntitySection
     public ManagersSection(AppServices s) : base(s, "managers", "Managers", "manager", () => s.RequireData().GetManagers(), LabelMaps.Managers)
     {
         var general = AddCanvasTab("General"); var c = Canvas(general);
-        var identity = Group("Identity", new Point(4, 3), new Size(510, 272));
+        var identity = Group("Identity", new Point(4, 3), new Size(510, 222));
         _face = ImageSurface(identity, new Point(12, 20), new Size(128, 128), "Manager face");
         LegacyAssetActions.Attach(Services, identity, _face, new Point(12, 178), () => OnRecordShown());
         AddField(identity, "managerid", "Manager Id", new Point(254, 20), 120);
@@ -227,26 +227,26 @@ public sealed class ManagersSection : ClassicEntitySection
         AddField(identity, "birthdate", "Birthdate", new Point(254, 150), 130);
         // Keep the team relationship below the portrait action buttons. The
         // previous y=190 placed its caption over the Import/Remove/Export row.
-        AddField(identity, "teamid", "Playing for", new Point(254, 222), 130);
+        AddField(identity, "teamid", "Playing for", new Point(254, 176), 130);
         c.Controls.Add(identity);
 
-        var body = Group("Body and Look", new Point(4, 280), new Size(510, 235));
+        var body = Group("Body and Look", new Point(4, 231), new Size(510, 150));
         AddField(body, "height", "Height", new Point(100, 20), 100);
         AddField(body, "weight", "Weight", new Point(300, 20), 100);
-        AddField(body, "starrating", "Star Rating", new Point(100, 48), 100);
-        AddField(body, "managerjointeamdate", "Joining Date", new Point(300, 48), 100);
+        AddField(body, "starrating", "Star Rating", new Point(100, 46), 100);
+        AddField(body, "managerjointeamdate", "Joining Date", new Point(300, 46), 100);
         AddReadonlyNote(body, "Manager portrait preview requires a mapped visual asset.", new Point(12, 92), new Size(480, 45));
         c.Controls.Add(body);
-        var recordLinks = Group("Record Links", new Point(520, 3), new Size(390, 118));
+        var recordLinks = Group("Record Links", new Point(520, 3), new Size(390, 128));
         AddReadonlyField(recordLinks, "managerid", "Manager Id", new Point(130, 22), 210);
-        AddReadonlyField(recordLinks, "teamid", "Team Id", new Point(130, 50), 210);
+        AddReadonlyField(recordLinks, "teamid", "Team Id", new Point(130, 48), 210);
         AddReadonlyNote(recordLinks, "Technical identifiers are kept with the General record for the CM16 workflow.", new Point(12, 78), new Size(360, 24));
         c.Controls.Add(recordLinks);
 
         // These are real FC26 manager columns that have no CM16 equivalent page.
         // Keep them as fixed legacy-style groups rather than exposing a raw schema grid.
         var face = AddCanvasTab("Face"); var fc = Canvas(face);
-        var model = Group("Face Modelling", new Point(4, 4), new Size(510, 278));
+        var model = Group("Face Modelling", new Point(4, 4), new Size(510, 250));
         AddField(model, "headassetid", "Head Asset", new Point(160, 22), 150);
         AddField(model, "headclasscode", "Head Class", new Point(160, 48), 150);
         AddField(model, "headtypecode", "Head Type", new Point(160, 74), 150);
@@ -256,7 +256,7 @@ public sealed class ManagersSection : ClassicEntitySection
         AddField(model, "facepsdlayer1", "Face Layer 1", new Point(160, 178), 150);
         AddField(model, "hashighqualityhead", "High Quality Head", new Point(160, 204), 150);
         fc.Controls.Add(model);
-        var hair = Group("Hair and Appearance", new Point(520, 4), new Size(510, 278));
+        var hair = Group("Hair and Appearance", new Point(520, 4), new Size(510, 250));
         AddField(hair, "hairstylecode", "Hair Style", new Point(170, 22), 150);
         AddField(hair, "hairtypecode", "Hair Type", new Point(170, 48), 150);
         AddField(hair, "haircolorcode", "Hair Color", new Point(170, 74), 150);
@@ -266,7 +266,7 @@ public sealed class ManagersSection : ClassicEntitySection
         AddField(hair, "skintonecode", "Skin Tone", new Point(170, 178), 150);
         AddField(hair, "bodytypecode", "Body Type", new Point(170, 204), 150);
         fc.Controls.Add(hair);
-        var skin = Group("Skin and Details", new Point(4, 288), new Size(510, 240));
+        var skin = Group("Skin and Details", new Point(4, 260), new Size(510, 250));
         AddField(skin, "skintypecode", "Skin Type", new Point(170, 22), 150);
         AddField(skin, "skincomplexion", "Complexion", new Point(170, 48), 150);
         AddField(skin, "skinmakeup", "Skin Makeup", new Point(170, 74), 150);
@@ -276,7 +276,7 @@ public sealed class ManagersSection : ClassicEntitySection
         AddField(skin, "lipcolor", "Lip Color", new Point(170, 178), 150);
         AddField(skin, "eyedetail", "Eye Detail", new Point(170, 204), 150);
         fc.Controls.Add(skin);
-        var record = Group("Record Details", new Point(520, 288), new Size(510, 240));
+        var record = Group("Record Details", new Point(520, 260), new Size(510, 224));
         AddField(record, "accessorycolourcode3", "Accessory Colour 3", new Point(170, 22), 150);
         AddField(record, "accessorycolourcode4", "Accessory Colour 4", new Point(170, 48), 150);
         AddField(record, "personalityid", "Personality", new Point(170, 74), 150);
@@ -287,17 +287,17 @@ public sealed class ManagersSection : ClassicEntitySection
         fc.Controls.Add(record);
 
         var appearance = AddCanvasTab("Appearance"); var ac = Canvas(appearance);
-        var outfit = Group("Outfit and Accessories", new Point(4, 4), new Size(620, 280));
+        var outfit = Group("Outfit and Accessories", new Point(4, 4), new Size(620, 250));
         AddField(outfit, "outfitid", "Outfit", new Point(180, 22), 160);
         AddField(outfit, "seasonaloutfitid", "Seasonal Outfit", new Point(180, 48), 160);
-        AddField(outfit, "accessorycode1", "Accessory 1", new Point(180, 82), 160);
-        AddField(outfit, "accessorycode2", "Accessory 2", new Point(180, 108), 160);
-        AddField(outfit, "accessorycode3", "Accessory 3", new Point(180, 134), 160);
-        AddField(outfit, "accessorycode4", "Accessory 4", new Point(180, 160), 160);
-        AddField(outfit, "accessorycolourcode1", "Accessory Colour 1", new Point(180, 194), 160);
-        AddField(outfit, "accessorycolourcode2", "Accessory Colour 2", new Point(180, 220), 160);
+        AddField(outfit, "accessorycode1", "Accessory 1", new Point(180, 74), 160);
+        AddField(outfit, "accessorycode2", "Accessory 2", new Point(180, 100), 160);
+        AddField(outfit, "accessorycode3", "Accessory 3", new Point(180, 126), 160);
+        AddField(outfit, "accessorycode4", "Accessory 4", new Point(180, 152), 160);
+        AddField(outfit, "accessorycolourcode1", "Accessory Colour 1", new Point(180, 178), 160);
+        AddField(outfit, "accessorycolourcode2", "Accessory Colour 2", new Point(180, 204), 160);
         ac.Controls.Add(outfit);
-        var traits = Group("Trait Values", new Point(630, 4), new Size(360, 150));
+        var traits = Group("Trait Values", new Point(630, 4), new Size(360, 161));
         AddField(traits, "trait1vweak", "Weak Flags", new Point(145, 22), 150);
         AddField(traits, "trait1vstrong", "Strong Flags", new Point(145, 48), 150);
         AddField(traits, "trait1vequal", "Equal Flags", new Point(145, 74), 150);
@@ -382,29 +382,29 @@ ThreeDViewerLauncher.AttachPlaceholder(model, new Point(10, 22), new Size(1024, 
         mc.Controls.Add(model);
 
         var environment = AddCanvasTab("Environment"); var ec = Canvas(environment);
-        var weather = Group("Weather and Match Setup", new Point(8, 4), new Size(410, 255));
+        var weather = Group("Weather and Match Setup", new Point(8, 4), new Size(410, 224));
         AddField(weather, "defaultweather", "Default Weather", new Point(180, 22), 150);
         AddField(weather, "defaultseason", "Default Season", new Point(180, 48), 150);
         AddField(weather, "defaulttime", "Default Time", new Point(180, 74), 150);
-        AddField(weather, "tod1weather", "TOD 1 Weather", new Point(180, 108), 150);
-        AddField(weather, "tod2weather", "TOD 2 Weather", new Point(180, 134), 150);
-        AddField(weather, "tod3weather", "TOD 3 Weather", new Point(180, 160), 150);
-        AddField(weather, "tod4weather", "TOD 4 Weather", new Point(180, 186), 150);
+        AddField(weather, "tod1weather", "TOD 1 Weather", new Point(180, 100), 150);
+        AddField(weather, "tod2weather", "TOD 2 Weather", new Point(180, 126), 150);
+        AddField(weather, "tod3weather", "TOD 3 Weather", new Point(180, 152), 150);
+        AddField(weather, "tod4weather", "TOD 4 Weather", new Point(180, 178), 150);
         ec.Controls.Add(weather);
-        var presentation = Group("Presentation", new Point(424, 4), new Size(410, 255));
+        var presentation = Group("Presentation", new Point(424, 4), new Size(410, 224));
         AddField(presentation, "adboardtype", "Adboard Type", new Point(180, 22), 150);
         AddField(presentation, "hascenteradboard", "Centre Adboard", new Point(180, 48), 150);
         AddField(presentation, "goalnetads", "Goal Net Ads", new Point(180, 74), 150);
-        AddField(presentation, "tifo", "Tifo", new Point(180, 108), 150);
-        AddField(presentation, "inflatables", "Inflatables", new Point(180, 134), 150);
-        AddField(presentation, "hasintrovideo", "Intro Video", new Point(180, 160), 150);
-        AddField(presentation, "hasdroneshots", "Drone Shots", new Point(180, 186), 150);
+        AddField(presentation, "tifo", "Tifo", new Point(180, 100), 150);
+        AddField(presentation, "inflatables", "Inflatables", new Point(180, 126), 150);
+        AddField(presentation, "hasintrovideo", "Intro Video", new Point(180, 152), 150);
+        AddField(presentation, "hasdroneshots", "Drone Shots", new Point(180, 178), 150);
         ec.Controls.Add(presentation);
         var tifo = Group("Tifo Preview", new Point(840, 4), new Size(520, 360));
         _tifoPreview = ImageSurface(tifo, new Point(10, 22), new Size(496, 312), "Club tifo");
         ec.Controls.Add(tifo);
 
-        var broadcast = Group("Broadcast and Camera", new Point(8, 264), new Size(410, 300));
+        var broadcast = Group("Broadcast and Camera", new Point(8, 234), new Size(410, 302));
         AddField(broadcast, "cameraheight", "Camera Height", new Point(180, 22), 150);
         AddField(broadcast, "camerazoom", "Camera Zoom", new Point(180, 48), 150);
         AddField(broadcast, "dronetype", "Drone Type", new Point(180, 74), 150);
@@ -416,7 +416,7 @@ ThreeDViewerLauncher.AttachPlaceholder(model, new Point(10, 22), new Size(1024, 
         AddField(broadcast, "timeofday1", "Time of Day 1", new Point(180, 230), 150);
         AddField(broadcast, "timeofday2", "Time of Day 2", new Point(180, 256), 150);
         ec.Controls.Add(broadcast);
-        var licensing = Group("Licensing", new Point(424, 264), new Size(410, 300));
+        var licensing = Group("Licensing", new Point(424, 234), new Size(410, 302));
         AddField(licensing, "hasunofficialname", "Unofficial Name", new Point(180, 22), 150);
         AddField(licensing, "supportsunlicensedbanners", "Unlicensed Banners", new Point(180, 48), 150);
         AddField(licensing, "supportsunlicensedtifos", "Unlicensed Tifos", new Point(180, 74), 150);
@@ -437,7 +437,7 @@ ThreeDViewerLauncher.AttachPlaceholder(model, new Point(10, 22), new Size(1024, 
         ec.Controls.Add(presentation2);
 
         var goals = AddCanvasTab("Goal Net"); var gc = Canvas(goals);
-        var net = Group("Goal Net and Posts", new Point(8, 4), new Size(460, 310));
+        var net = Group("Goal Net and Posts", new Point(8, 4), new Size(460, 250));
         AddField(net, "stadiumgoalnetstyle", "Net Style", new Point(190, 22), 160);
         AddField(net, "stadiumgoalnettype", "Net Type", new Point(190, 48), 160);
         AddField(net, "stadiumgoalnetpattern", "Net Pattern", new Point(190, 74), 160);
@@ -447,7 +447,7 @@ ThreeDViewerLauncher.AttachPlaceholder(model, new Point(10, 22), new Size(1024, 
         AddField(net, "stadiumgloalnetdepth", "Goal Net Depth", new Point(190, 178), 160);
         AddField(net, "supportsgoalnetshape", "Supports Net Shape", new Point(190, 204), 160);
         gc.Controls.Add(net);
-        var netColours = Group("Stanchion Colours", new Point(474, 4), new Size(460, 310));
+        var netColours = Group("Stanchion Colours", new Point(474, 4), new Size(460, 250));
         AddField(netColours, "goalnetstanchioncolor1r", "Stanchion 1 R", new Point(190, 22), 160);
         AddField(netColours, "goalnetstanchioncolor1g", "Stanchion 1 G", new Point(190, 48), 160);
         AddField(netColours, "goalnetstanchioncolor1b", "Stanchion 1 B", new Point(190, 74), 160);
@@ -455,7 +455,7 @@ ThreeDViewerLauncher.AttachPlaceholder(model, new Point(10, 22), new Size(1024, 
         AddField(netColours, "goalnetstanchioncolor2g", "Stanchion 2 G", new Point(190, 126), 160);
         AddField(netColours, "goalnetstanchioncolor2b", "Stanchion 2 B", new Point(190, 152), 160);
         gc.Controls.Add(netColours);
-        var techZone = Group("Technical Zone", new Point(8, 320), new Size(926, 220));
+        var techZone = Group("Technical Zone", new Point(8, 260), new Size(926, 94));
         AddField(techZone, "stadhometechzonemaxx", "Home Max X", new Point(140, 22), 120);
         AddField(techZone, "stadhometechzoneminx", "Home Min X", new Point(340, 22), 120);
         AddField(techZone, "stadhometechzonemaxz", "Home Max Z", new Point(540, 22), 120);
@@ -520,29 +520,29 @@ public sealed class RefereesSection : ClassicEntitySection
     public RefereesSection(AppServices s) : base(s, "referees", "Referees", "referee", () => s.RequireData().GetReferees(), LabelMaps.Referees)
     {
         var general = AddCanvasTab("General"); var c = Canvas(general);
-        var identity = Group("Identity", new Point(3, 3), new Size(512, 274));
+        var identity = Group("Identity", new Point(3, 3), new Size(512, 272));
         AddField(identity, "refereeid", "Referee Id", new Point(98, 18), 130);
         AddField(identity, "firstname", "First Name", new Point(98, 44), 130);
         AddField(identity, "surname", "Last Name", new Point(98, 70), 130);
         AddField(identity, "birthdate", "Birthdate", new Point(98, 96), 130);
         AddField(identity, "nationalitycode", "Country", new Point(98, 122), 130);
-        AddField(identity, "height", "Height", new Point(98, 164), 130);
-        AddField(identity, "weight", "Weight", new Point(98, 190), 130);
-        AddField(identity, "gender", "Gender", new Point(98, 216), 130);
-        AddField(identity, "isreal", "Real Referee", new Point(98, 242), 130);
-        ThreeDViewerLauncher.AttachPlaceholder(identity, new Point(270, 18), new Size(220, 220), "referee",
+        AddField(identity, "height", "Height", new Point(98, 148), 130);
+        AddField(identity, "weight", "Weight", new Point(98, 174), 130);
+        AddField(identity, "gender", "Gender", new Point(98, 200), 130);
+        AddField(identity, "isreal", "Real Referee", new Point(98, 226), 130);
+        ThreeDViewerLauncher.AttachPlaceholder(identity, new Point(270, 18), new Size(200, 200), "referee",
             () => new[] { Value("refereeid"), Value("firstname"), Value("surname"), Value("firstname") + "_" + Value("surname") },
             () => Services.FrostbiteAssets.ExportMeshForQuery(new[] { "referee_" + Value("refereeid") }));
         c.Controls.Add(identity);
         var officiating = AddCanvasTab("Officiating"); var oc = Canvas(officiating);
-        var box = Group("Officiating", new Point(3, 3), new Size(512, 210));
+        var box = Group("Officiating", new Point(3, 3), new Size(512, 118));
         AddField(box, "leagueid", "League", new Point(154, 20), 190);
-        AddField(box, "cardstrictness", "Cards Style", new Point(154, 48), 190);
-        AddField(box, "foulstrictness", "Fouls Style", new Point(154, 76), 190);
+        AddField(box, "cardstrictness", "Cards Style", new Point(154, 46), 190);
+        AddField(box, "foulstrictness", "Fouls Style", new Point(154, 72), 190);
         oc.Controls.Add(box);
 
         var face = AddCanvasTab("Face"); var fc = Canvas(face);
-        var modelling = Group("Face Modelling", new Point(3, 3), new Size(620, 310));
+        var modelling = Group("Face Modelling", new Point(3, 3), new Size(620, 250));
         AddField(modelling, "headclasscode", "Head Class", new Point(180, 22), 150);
         AddField(modelling, "headtypecode", "Head Type", new Point(180, 48), 150);
         AddField(modelling, "headvariation", "Head Variation", new Point(180, 74), 150);
@@ -552,7 +552,7 @@ public sealed class RefereesSection : ClassicEntitySection
         AddField(modelling, "facepsdlayer1", "Face Layer 1", new Point(180, 178), 150);
         AddField(modelling, "skinsurfacepack", "Surface Pack", new Point(180, 204), 150);
         fc.Controls.Add(modelling);
-        var hair = Group("Hair and Appearance", new Point(629, 3), new Size(620, 310));
+        var hair = Group("Hair and Appearance", new Point(629, 3), new Size(620, 302));
         AddField(hair, "hairstylecode", "Hair Style", new Point(180, 22), 150);
         AddField(hair, "hairtypecode", "Hair Type", new Point(180, 48), 150);
         AddField(hair, "haircolorcode", "Hair Color", new Point(180, 74), 150);
@@ -564,7 +564,7 @@ public sealed class RefereesSection : ClassicEntitySection
         AddField(hair, "lipcolor", "Lip Color", new Point(180, 230), 150);
         AddField(hair, "eyedetail", "Eye Detail", new Point(180, 256), 150);
         fc.Controls.Add(hair);
-        var skin = Group("Skin", new Point(3, 319), new Size(1246, 160));
+        var skin = Group("Skin", new Point(3, 311), new Size(1246, 146));
         AddField(skin, "skintonecode", "Skin Tone", new Point(180, 22), 150);
         AddField(skin, "skintypecode", "Skin Type", new Point(180, 48), 150);
         AddField(skin, "skinmakeup", "Skin Makeup", new Point(180, 74), 150);
@@ -573,12 +573,12 @@ public sealed class RefereesSection : ClassicEntitySection
         AddField(skin, "jerseysleevelengthcode", "Sleeves Length", new Point(430, 48), 150);
         AddField(skin, "socklengthcode", "Socks Length", new Point(430, 74), 150);
         AddField(skin, "sockstylecode", "Socks Style", new Point(430, 100), 150);
-        AddField(skin, "shortstyle", "Shorts Style", new Point(680, 22), 150);
-        AddField(skin, "smallsidedshoetypecode", "Small Sided Shoes", new Point(680, 48), 150);
-        AddField(skin, "shoetypecode", "Shoe Type", new Point(680, 74), 150);
-        AddField(skin, "shoedesigncode", "Shoe Design", new Point(680, 100), 150);
-        AddField(skin, "shoecolorcode1", "Shoe Color 1", new Point(930, 22), 150);
-        AddField(skin, "shoecolorcode2", "Shoe Color 2", new Point(930, 48), 150);
+        AddField(skin, "shoetypecode", "Shoe Type", new Point(680, 22), 150);
+        AddField(skin, "shoedesigncode", "Shoe Design", new Point(680, 48), 150);
+        AddField(skin, "shoecolorcode1", "Shoe Color 1", new Point(680, 74), 150);
+        AddField(skin, "shoecolorcode2", "Shoe Color 2", new Point(680, 100), 150);
+        AddField(skin, "shortstyle", "Shorts Style", new Point(930, 22), 150);
+        AddField(skin, "smallsidedshoetypecode", "Small Sided Shoes", new Point(930, 48), 150);
         fc.Controls.Add(skin);
     }
 }
@@ -610,20 +610,20 @@ public sealed class FormationsSection : ClassicEntitySection
         _pitchGroup.SizeChanged += (_, _) => ResizePitchPreview();
         c.Controls.Add(_pitchGroup);
 
-        var info = Group("Formation", new Point(584, 3), new Size(370, 260));
+        var info = Group("Formation", new Point(584, 3), new Size(370, 302));
         AddField(info, "formationid", "Formation Id", new Point(150, 22), 160);
-        AddField(info, "formationname", "Database Name", new Point(150, 46), 160);
-        AddField(info, "formationfullnameid", "Full Name Id", new Point(150, 70), 160);
-        AddField(info, "formationaudioid", "Audio Id", new Point(150, 94), 160);
-        AddField(info, "teamid", "Team Id", new Point(150, 118), 160);
-        AddField(info, "relativeformationid", "Base Formation", new Point(150, 142), 160);
-        AddField(info, "attackers", "Attackers", new Point(150, 166), 160);
-        AddField(info, "midfielders", "Midfielders", new Point(150, 190), 160);
-        AddField(info, "defenders", "Defenders", new Point(150, 214), 160);
-        AddField(info, "offensiverating", "Offensive Rating", new Point(150, 238), 160);
+        AddField(info, "formationname", "Database Name", new Point(150, 48), 160);
+        AddField(info, "formationfullnameid", "Full Name Id", new Point(150, 74), 160);
+        AddField(info, "formationaudioid", "Audio Id", new Point(150, 100), 160);
+        AddField(info, "teamid", "Team Id", new Point(150, 126), 160);
+        AddField(info, "relativeformationid", "Base Formation", new Point(150, 152), 160);
+        AddField(info, "attackers", "Attackers", new Point(150, 178), 160);
+        AddField(info, "midfielders", "Midfielders", new Point(150, 204), 160);
+        AddField(info, "defenders", "Defenders", new Point(150, 230), 160);
+        AddField(info, "offensiverating", "Offensive Rating", new Point(150, 256), 160);
         c.Controls.Add(info);
 
-        var roles = Group("Position Map", new Point(584, 199), new Size(720, 294));
+        var roles = Group("Position Map", new Point(584, 311), new Size(720, 278));
         for (var i = 0; i < 11; i++)
         {
             var column = i / 6;
@@ -658,7 +658,7 @@ public sealed class FormationsSection : ClassicEntitySection
         c.Controls.Add(roles);
 
         var layout = AddCanvasTab("Layout"); var lc = Canvas(layout);
-        var offsets = Group("Position Coordinates", new Point(3, 3), new Size(900, 310));
+        var offsets = Group("Position Coordinates", new Point(3, 3), new Size(900, 278));
         for (var i = 0; i < 11; i++)
         {
             var column = i / 6;
@@ -668,7 +668,7 @@ public sealed class FormationsSection : ClassicEntitySection
             AddField(offsets, $"offset{i}x", $"Slot {i + 1} X", new Point(x, y), 80);
             AddField(offsets, $"offset{i}y", "Y", new Point(x + 190, y), 80);
         }
-        AddReadonlyNote(offsets, "Coordinates control the marker positions shown in the Formation Preview.", new Point(16, 276), new Size(760, 22));
+        AddReadonlyNote(offsets, "Coordinates control the marker positions shown in the Formation Preview.", new Point(16, 256), new Size(760, 22));
         lc.Controls.Add(offsets);
     }
 
@@ -833,62 +833,77 @@ public sealed class KitsSection : ClassicEntitySection
             () => Services.FrostbiteAssets.ExportMeshForQuery(new[] { $"kit_{Value("teamkittypetechid")}", $"kit_{Value("teamtechid")}_{Value("teamkittypetechid")}" }));
         c.Controls.Add(model);
 
-        // Keep every editable kit property together. The canvas scrolls on smaller
-        // displays, but a 1080p window presents these groups directly under the previews.
-        var col = Group("Colours", new Point(3, 570), new Size(430, 130));
-        AddField(col, "teamcolorprimr", "Primary R", new Point(125, 20), 70);
-        AddField(col, "teamcolorprimg", "Primary G", new Point(125, 46), 70);
-        AddField(col, "teamcolorprimb", "Primary B", new Point(125, 72), 70);
-        AddField(col, "teamcolorsecr", "Secondary R", new Point(330, 20), 70);
-        AddField(col, "teamcolorsecg", "Secondary G", new Point(330, 46), 70);
-        AddField(col, "teamcolorsecb", "Secondary B", new Point(330, 72), 70);
-        c.Controls.Add(col);
+        // Uniform rows below the previews: every group in a row shares the row's
+        // top and bottom edge, fields pitch at 26 px, captions are right-aligned
+        // 6 px from their editor. The canvas scrolls on smaller displays.
+        var colours = Group("Colours and Percentages", new Point(3, 571), new Size(470, 176));
+        AddField(colours, "teamcolorprimr", "Primary R", new Point(110, 20), 70);
+        AddField(colours, "teamcolorprimg", "Primary G", new Point(110, 46), 70);
+        AddField(colours, "teamcolorprimb", "Primary B", new Point(110, 72), 70);
+        AddField(colours, "teamcolorprimpercent", "Primary %", new Point(110, 98), 70);
+        AddField(colours, "teamcolorsecr", "Secondary R", new Point(260, 20), 70);
+        AddField(colours, "teamcolorsecg", "Secondary G", new Point(260, 46), 70);
+        AddField(colours, "teamcolorsecb", "Secondary B", new Point(260, 72), 70);
+        AddField(colours, "teamcolorsecpercent", "Secondary %", new Point(260, 98), 70);
+        AddField(colours, "teamcolortertr", "Tertiary R", new Point(400, 20), 70);
+        AddField(colours, "teamcolortertg", "Tertiary G", new Point(400, 46), 70);
+        AddField(colours, "teamcolortertb", "Tertiary B", new Point(400, 72), 70);
+        AddField(colours, "teamcolortertpercent", "Tertiary %", new Point(400, 98), 70);
+        c.Controls.Add(colours);
 
-        var tpl = Group("Templates", new Point(438, 570), new Size(320, 130));
+        var tpl = Group("Templates", new Point(479, 571), new Size(325, 176));
         AddField(tpl, "jerseytemplateindex", "Jersey", new Point(160, 20), 140);
         AddField(tpl, "shortstemplateindex", "Shorts", new Point(160, 46), 140);
         AddField(tpl, "sockstemplateindex", "Socks", new Point(160, 72), 140);
         AddField(tpl, "numberfonttype", "Number Font", new Point(160, 98), 140);
         c.Controls.Add(tpl);
 
-        var badge = Group("Badges", new Point(763, 570), new Size(400, 160));
-        AddField(badge, "chestbadge", "Chest Badge", new Point(220, 20), 160);
-        AddField(badge, "jerseyleftsleevebadge", "Left Sleeve Badge", new Point(220, 46), 160);
-        AddField(badge, "jerseyrightsleevebadge", "Right Sleeve Badge", new Point(220, 72), 160);
-        AddField(badge, "captainarmband", "Captain Armband", new Point(220, 98), 160);
-        AddField(badge, "armbandtype", "Armband Type", new Point(220, 124), 160);
+        var badge = Group("Badges", new Point(810, 571), new Size(375, 176));
+        AddField(badge, "chestbadge", "Chest Badge", new Point(210, 20), 145);
+        AddField(badge, "jerseyleftsleevebadge", "Left Sleeve Badge", new Point(210, 46), 145);
+        AddField(badge, "jerseyrightsleevebadge", "Right Sleeve Badge", new Point(210, 72), 145);
+        AddField(badge, "captainarmband", "Captain Armband", new Point(210, 98), 145);
+        AddField(badge, "armbandtype", "Armband Type", new Point(210, 124), 145);
         c.Controls.Add(badge);
 
-        var numbers = Group("Name and Numbers", new Point(1168, 570), new Size(430, 240));
-        AddField(numbers, "jerseyfrontnumberplacementcode", "Front Number", new Point(260, 20), 150);
-        AddField(numbers, "jerseybacknameplacementcode", "Back Name", new Point(260, 46), 150);
-        AddField(numbers, "jerseybacknamefontcase", "Back Name Case", new Point(260, 72), 150);
-        AddField(numbers, "jerseynamefonttype", "Name Font", new Point(260, 98), 150);
-        AddField(numbers, "jerseynamelayouttype", "Name Layout", new Point(260, 124), 150);
-        AddField(numbers, "jerseynameoutlinewidth", "Name Outline Width", new Point(260, 150), 150);
-        AddField(numbers, "shortsnumberplacementcode", "Shorts Number", new Point(260, 176), 150);
-        AddField(numbers, "shortsnumberfonttype", "Shorts Font", new Point(260, 202), 150);
-        c.Controls.Add(numbers);
+        var nameColours = Group("Name Colours", new Point(1191, 571), new Size(400, 176));
+        AddField(nameColours, "jerseynamecolorr", "Name R", new Point(200, 20), 160);
+        AddField(nameColours, "jerseynamecolorg", "Name G", new Point(200, 46), 160);
+        AddField(nameColours, "jerseynamecolorb", "Name B", new Point(200, 72), 160);
+        AddField(nameColours, "jerseynameoutlinecolorr", "Outline R", new Point(200, 98), 160);
+        AddField(nameColours, "jerseynameoutlinecolorg", "Outline G", new Point(200, 124), 160);
+        AddField(nameColours, "jerseynameoutlinecolorb", "Outline B", new Point(200, 150), 160);
+        c.Controls.Add(nameColours);
 
-        var shape = Group("Appearance", new Point(3, 705), new Size(565, 190));
-        AddField(shape, "jerseyshapestyle", "Jersey Shape", new Point(180, 20), 150);
-        AddField(shape, "jerseycollargeometrytype", "Collar Geometry", new Point(180, 46), 150);
-        AddField(shape, "jerseyfit", "Jersey Fit", new Point(180, 72), 150);
-        AddField(shape, "shortstyle", "Shorts Style", new Point(180, 98), 150);
-        AddField(shape, "jerseyrestriction", "Jersey Restriction", new Point(180, 124), 150);
-        AddField(shape, "hasadvertisingkit", "Advertising Kit", new Point(180, 150), 150);
+        var numbers = Group("Name and Numbers", new Point(3, 755), new Size(525, 230));
+        AddField(numbers, "jerseyfrontnumberplacementcode", "Front Number", new Point(250, 20), 180);
+        AddField(numbers, "jerseybacknameplacementcode", "Back Name", new Point(250, 46), 180);
+        AddField(numbers, "jerseybacknamefontcase", "Back Name Case", new Point(250, 72), 180);
+        AddField(numbers, "jerseynamefonttype", "Name Font", new Point(250, 98), 180);
+        AddField(numbers, "jerseynamelayouttype", "Name Layout", new Point(250, 124), 180);
+        AddField(numbers, "jerseynameoutlinewidth", "Name Outline Width", new Point(250, 150), 180);
+        AddField(numbers, "shortsnumberplacementcode", "Shorts Number", new Point(250, 176), 180);
+        AddField(numbers, "shortsnumberfonttype", "Shorts Font", new Point(250, 202), 180);
+        c.Controls.Add(numbers);
+        var shape = Group("Appearance", new Point(534, 755), new Size(525, 230));
+        AddField(shape, "jerseyshapestyle", "Jersey Shape", new Point(250, 20), 180);
+        AddField(shape, "jerseycollargeometrytype", "Collar Geometry", new Point(250, 46), 180);
+        AddField(shape, "jerseyfit", "Jersey Fit", new Point(250, 72), 180);
+        AddField(shape, "shortstyle", "Shorts Style", new Point(250, 98), 180);
+        AddField(shape, "jerseyrestriction", "Jersey Restriction", new Point(250, 124), 180);
+        AddField(shape, "hasadvertisingkit", "Advertising Kit", new Point(250, 150), 180);
         c.Controls.Add(shape);
-        var rendering = Group("Rendering", new Point(573, 735), new Size(590, 210));
-        AddField(rendering, "renderingmaterialtype", "Material", new Point(220, 20), 150);
-        AddField(rendering, "jerseyrenderingdetailmaptype", "Jersey Detail Map", new Point(220, 46), 150);
-        AddField(rendering, "shortsrenderingdetailmaptype", "Shorts Detail Map", new Point(220, 72), 150);
-        AddField(rendering, "isinheritbasedetailmap", "Inherit Base Detail", new Point(220, 98), 150);
-        AddField(rendering, "isgeneric", "Generic Kit", new Point(220, 124), 150);
-        AddField(rendering, "islocked", "Locked", new Point(220, 150), 150);
-        AddField(rendering, "isembargoed", "Embargoed", new Point(220, 176), 150);
+        var rendering = Group("Rendering", new Point(1065, 755), new Size(525, 230));
+        AddField(rendering, "renderingmaterialtype", "Material", new Point(250, 20), 180);
+        AddField(rendering, "jerseyrenderingdetailmaptype", "Jersey Detail Map", new Point(250, 46), 180);
+        AddField(rendering, "shortsrenderingdetailmaptype", "Shorts Detail Map", new Point(250, 72), 180);
+        AddField(rendering, "isinheritbasedetailmap", "Inherit Base Detail", new Point(250, 98), 180);
+        AddField(rendering, "isgeneric", "Generic Kit", new Point(250, 124), 180);
+        AddField(rendering, "islocked", "Locked", new Point(250, 150), 180);
+        AddField(rendering, "isembargoed", "Embargoed", new Point(250, 176), 180);
         c.Controls.Add(rendering);
 
-        var numberColours = Group("Jersey Number Colours", new Point(3, 900), new Size(560, 280));
+        var numberColours = Group("Jersey Number Colours", new Point(3, 993), new Size(525, 254));
         AddField(numberColours, "jerseynumbercolorprimr", "Primary R", new Point(180, 20), 100);
         AddField(numberColours, "jerseynumbercolorprimg", "Primary G", new Point(180, 46), 100);
         AddField(numberColours, "jerseynumbercolorprimb", "Primary B", new Point(180, 72), 100);
@@ -900,7 +915,7 @@ public sealed class KitsSection : ClassicEntitySection
         AddField(numberColours, "jerseynumbercolorterb", "Tertiary B", new Point(180, 228), 100);
         c.Controls.Add(numberColours);
 
-        var shortsColours = Group("Shorts Number Colours", new Point(569, 900), new Size(560, 280));
+        var shortsColours = Group("Shorts Number Colours", new Point(534, 993), new Size(525, 254));
         AddField(shortsColours, "shortsnumbercolorprimr", "Primary R", new Point(180, 20), 100);
         AddField(shortsColours, "shortsnumbercolorprimg", "Primary G", new Point(180, 46), 100);
         AddField(shortsColours, "shortsnumbercolorprimb", "Primary B", new Point(180, 72), 100);
@@ -912,31 +927,13 @@ public sealed class KitsSection : ClassicEntitySection
         AddField(shortsColours, "shortsnumbercolorterb", "Tertiary B", new Point(180, 228), 100);
         c.Controls.Add(shortsColours);
 
-        var nameColours = Group("Name Colours", new Point(1135, 900), new Size(460, 210));
-        AddField(nameColours, "jerseynamecolorr", "Name R", new Point(150, 20), 90);
-        AddField(nameColours, "jerseynamecolorg", "Name G", new Point(150, 46), 90);
-        AddField(nameColours, "jerseynamecolorb", "Name B", new Point(150, 72), 90);
-        AddField(nameColours, "jerseynameoutlinecolorr", "Outline R", new Point(300, 20), 90);
-        AddField(nameColours, "jerseynameoutlinecolorg", "Outline G", new Point(300, 46), 90);
-        AddField(nameColours, "jerseynameoutlinecolorb", "Outline B", new Point(300, 72), 90);
-        c.Controls.Add(nameColours);
-
-        var tertiary = Group("Tertiary Colours and Percentages", new Point(3, 1186), new Size(560, 220));
-        AddField(tertiary, "teamcolortertr", "Tertiary R", new Point(180, 20), 100);
-        AddField(tertiary, "teamcolortertg", "Tertiary G", new Point(180, 46), 100);
-        AddField(tertiary, "teamcolortertb", "Tertiary B", new Point(180, 72), 100);
-        AddField(tertiary, "teamcolorprimpercent", "Primary %", new Point(180, 98), 100);
-        AddField(tertiary, "teamcolorsecpercent", "Secondary %", new Point(180, 124), 100);
-        AddField(tertiary, "teamcolortertpercent", "Tertiary %", new Point(180, 150), 100);
-        c.Controls.Add(tertiary);
-
-        var record = Group("Kit Record", new Point(569, 1186), new Size(560, 220));
-        AddField(record, "teamkitid", "Kit Id", new Point(180, 20), 100);
-        AddField(record, "teamtechid", "Team Tech Id", new Point(180, 46), 100);
-        AddField(record, "teamkittypetechid", "Kit Type Tech Id", new Point(180, 72), 100);
-        AddField(record, "powid", "POW Id", new Point(180, 98), 100);
-        AddField(record, "year", "Year", new Point(180, 124), 100);
-        AddField(record, "dlc", "DLC", new Point(180, 150), 100);
+        var record = Group("Kit Record", new Point(1065, 993), new Size(525, 254));
+        AddField(record, "teamkitid", "Kit Id", new Point(250, 20), 180);
+        AddField(record, "teamtechid", "Team Tech Id", new Point(250, 46), 180);
+        AddField(record, "teamkittypetechid", "Kit Type Tech Id", new Point(250, 72), 180);
+        AddField(record, "powid", "POW Id", new Point(250, 98), 180);
+        AddField(record, "year", "Year", new Point(250, 124), 180);
+        AddField(record, "dlc", "DLC", new Point(250, 150), 180);
         c.Controls.Add(record);
     }
 
