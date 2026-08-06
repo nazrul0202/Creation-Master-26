@@ -28,7 +28,7 @@ public sealed class FieldEditorGrid : UserControl
             ColumnCount = 3,
             Padding = new Padding(Theme.Space),
         };
-        _table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 210));
+        _table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 250));
         _table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         _table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 18));
         Controls.Add(_table);

@@ -390,7 +390,7 @@ public sealed class TeamsSection : SectionBase
         {
             ("Database Name", "teamname"), ("Full Name", "teamname"), ("Name (15 chars)", "teamname"),
             ("Name (10 chars)", "teamname"), ("Name (7 chars)", "teamname"), ("Score Board", "teamname")
-        }, 10, 18, 88, 158, 26);
+        }, 10, 18, 110, 136, 26);
         canvas.Controls.Add(name);
 
         var manager = Group("Manager", new Point(3, 621), new Size(270, 70));
@@ -410,7 +410,7 @@ public sealed class TeamsSection : SectionBase
             ("Domestic", "domesticprestige"), ("International", "internationalprestige"), ("Budget", "clubworth"),
             ("Overall Rating", "overallrating"), ("Attack Rating", "attackrating"), ("Midfield Rating", "midfieldrating"),
             ("Defence Rating", "defenserating"), ("Ball Number", "ballid")
-        }, 10, 44, 98, 158, 26);
+        }, 10, 44, 115, 141, 26);
         var search = new TextBox { Location = new Point(105, 334), Size = new Size(84, 21), Font = LegacyFont };
         Theme.ApplyTextBox(search);
         var find = LegacyButton("Find", new Point(195, 332), new Size(58, 24));
@@ -425,11 +425,11 @@ public sealed class TeamsSection : SectionBase
         canvas.Controls.Add(info);
 
         var lastYear = Group("Last Year Performance", new Point(279, 404), new Size(270, 96));
-        AddBoundFields(lastYear, new[] { ("League", "leagueid"), ("Position", "form"), ("Is Champion", "prev_el_champ") }, 10, 18, 98, 158, 26);
+        AddBoundFields(lastYear, new[] { ("League", "leagueid"), ("Position", "form"), ("Is Champion", "prev_el_champ") }, 10, 18, 110, 146, 26);
         canvas.Controls.Add(lastYear);
 
         var location = Group("Location", new Point(279, 508), new Size(270, 96));
-        AddBoundFields(location, new[] { ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Offset", "utcoffset") }, 10, 18, 98, 150, 26);
+        AddBoundFields(location, new[] { ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Offset", "utcoffset") }, 10, 18, 110, 140, 26);
         canvas.Controls.Add(location);
 
         var traits = Group("Opponent Behaviour", new Point(555, 3), new Size(360, 98));
@@ -459,7 +459,7 @@ public sealed class TeamsSection : SectionBase
         {
             ("League Titles", "leaguetitles"), ("Domestic Cups", "domesticcups"),
             ("UEFA Champions League", "uefa_cl_wins"), ("UEFA Europa League", "uefa_el_wins")
-        }, 10, 20, 145, 150, 26);
+        }, 10, 20, 170, 175, 26);
         canvas.Controls.Add(history);
 
         var ratings = Group("Matchday Ratings", new Point(921, 3), new Size(290, 152));
@@ -471,19 +471,19 @@ public sealed class TeamsSection : SectionBase
         }, 15, 22, 116, 150, 26);
         canvas.Controls.Add(ratings);
 
-        var tactics = Group("Team Tendency", new Point(921, 163), new Size(290, 126));
+        var tactics = Group("Team Tendency", new Point(921, 163), new Size(380, 126));
         AddBoundFields(tactics, new[]
         {
             ("Build Up Play", "buildupplay"), ("Defensive Depth", "defensivedepth"),
             ("Opponent Weak Threshold", "opponentweakthreshold"), ("Opponent Strong Threshold", "opponentstrongthreshold")
-        }, 14, 22, 154, 150, 26);
+        }, 14, 22, 190, 150, 26);
         canvas.Controls.Add(tactics);
 
         var stadiumDetails = Group("Stadium", new Point(1217, 3), new Size(310, 106));
         AddBoundFields(stadiumDetails, new[]
         {
             ("Stadium Name", "stadiumid"), ("Corner Flag Pole", "cornerflagpolecolor")
-        }, 15, 22, 120, 165, 26);
+        }, 15, 22, 140, 155, 26);
         canvas.Controls.Add(stadiumDetails);
     }
 
@@ -574,7 +574,7 @@ public sealed class TeamsSection : SectionBase
         _teamPlayers.BackColor = Theme.Input;
         _teamPlayers.ForeColor = Theme.Text;
         _teamPlayers.Font = Theme.Body;
-        _teamPlayers.Columns.Add("Number", 50);
+        _teamPlayers.Columns.Add("Number", 60);
         _teamPlayers.Columns.Add("Display Name", 175);
         _teamPlayers.Columns.Add("Position", 60);
         _teamPlayers.Columns.Add("Overall", 60);

@@ -147,13 +147,13 @@ public sealed class LeaguesSection : SectionBase
         // CM16 objective thresholds have no FC26 league-table counterpart, so
         // they are intentionally omitted instead of showing fake disabled data.
         var names = Group("Names and Other Information", new Point(3, 463), new Size(531, 197));
-        AddField(names, "leaguename", "Database Name", new Point(91, 15), 181);
-        AddMirrorField(names, "leaguename", "Name", new Point(91, 41), 181);
-        AddMirrorField(names, "leaguename", "Long Name", new Point(91, 67), 181);
-        AddField(names, "leagueid", "League Id", new Point(91, 93), 122);
-        AddField(names, "level", "Level", new Point(91, 119), 122);
-        AddCountryPicker(names, new Point(91, 145));
-        AddField(names, "leaguetype", "Prestige", new Point(91, 171), 181);
+        AddField(names, "leaguename", "Database Name", new Point(120, 15), 152);
+        AddMirrorField(names, "leaguename", "Name", new Point(120, 41), 152);
+        AddMirrorField(names, "leaguename", "Long Name", new Point(120, 67), 152);
+        AddField(names, "leagueid", "League Id", new Point(120, 93), 122);
+        AddField(names, "level", "Level", new Point(120, 119), 122);
+        AddCountryPicker(names, new Point(120, 145));
+        AddField(names, "leaguetype", "Prestige", new Point(120, 171), 152);
 
         canvas.Controls.Add(names);
 

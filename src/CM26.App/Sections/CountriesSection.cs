@@ -48,15 +48,15 @@ public sealed class CountriesSection : SectionBase
         // Exact CountryForm.cs grouping: identity at left; 256/512/card/mini
         // image viewers in the centre; country map at the right.
         var country = LegacyGroup("Country", new Point(3, 1), new Size(767, 533));
-        AddField(country, "nationname", "Database Name", new Point(101, 14), 133);
-        AddField(country, "nationid", "Country Id", new Point(101, 40), 100);
-        AddMirrorField(country, "nationname", "Name", new Point(101, 66), 133);
-        AddField(country, "nationstartingfirstletter", "Starting Letter", new Point(101, 92), 133);
-        AddField(country, "isocountrycode", "Abbreviation", new Point(101, 118), 133);
-        AddField(country, "confederation", "Confederation", new Point(101, 144), 133);
-        AddMirrorField(country, "isocountrycode", "ISO Country Code", new Point(101, 170), 133);
-        AddField(country, "groupid", "Level", new Point(101, 196), 133);
-        AddField(country, "streetdressing", "Street Dressing", new Point(101, 222), 133);
+        AddField(country, "nationname", "Database Name", new Point(130, 14), 105);
+        AddField(country, "nationid", "Country Id", new Point(130, 40), 105);
+        AddMirrorField(country, "nationname", "Name", new Point(130, 66), 105);
+        AddField(country, "nationstartingfirstletter", "Starting Letter", new Point(130, 92), 105);
+        AddField(country, "isocountrycode", "Abbreviation", new Point(130, 118), 105);
+        AddField(country, "confederation", "Confederation", new Point(130, 144), 105);
+        AddMirrorField(country, "isocountrycode", "ISO Country Code", new Point(130, 170), 105);
+        AddField(country, "groupid", "Level", new Point(130, 196), 105);
+        AddField(country, "streetdressing", "Street Dressing", new Point(130, 222), 105);
 
         _topTier.Text = "Top tier";
         _topTier.Location = new Point(11, 250);

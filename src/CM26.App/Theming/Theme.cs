@@ -251,7 +251,7 @@ public static class Theme
         g.MultiSelect = false;
         g.GridColor = Border;
         g.RowTemplate.Height = 26;
-        g.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+        g.CellBorderStyle = DataGridViewCellBorderStyle.Single;
         g.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
         // Auto-generated and explicitly-added columns do not inherit the grid default
         // styles for their header/cell rendering, so apply the palette at the column

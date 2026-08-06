@@ -56,7 +56,7 @@ public abstract class ClassicEntitySection : SectionBase
     {
         // Uniform editor-grid geometry: the caption always ends 6 px before the
         // editor, regardless of how narrow the group is.
-        var captionWidth = Math.Clamp(point.X - 14, 40, 150);
+        var captionWidth = Math.Clamp(point.X - 14, 40, 190);
         var captionX = point.X - captionWidth - 6;
         var label = new Label
         {
@@ -84,7 +84,7 @@ public abstract class ClassicEntitySection : SectionBase
     /// </summary>
     protected void AddReadonlyField(Control parent, string field, string caption, Point point, int width = 150)
     {
-        var captionWidth = Math.Clamp(point.X - 14, 40, 150);
+        var captionWidth = Math.Clamp(point.X - 14, 40, 190);
         var captionX = point.X - captionWidth - 6;
         parent.Controls.Add(new Label
         {
