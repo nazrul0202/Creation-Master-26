@@ -374,8 +374,8 @@ public sealed class TeamsSection : SectionBase
         logos.Controls.Add(CrestViewer(new Point(102, 308), new Size(64, 62)));
         logos.Controls.Add(CrestViewer(new Point(194, 308), new Size(64, 62)));
         LegacyAssetActions.Attach(Services, logos, _crestViewers[1], new Point(7, 374), () => ShowRecord(CurrentRecordIndex));
-        _crestCaption.Location = new Point(8, 404);
-        _crestCaption.Size = new Size(252, 18);
+        _crestCaption.Location = new Point(8, 402);
+        _crestCaption.Size = new Size(252, 36);
         _crestCaption.TextAlign = ContentAlignment.MiddleCenter;
         _crestCaption.ForeColor = Theme.Muted;
         _crestCaption.Font = LegacyFont;
@@ -416,7 +416,7 @@ public sealed class TeamsSection : SectionBase
         var find = LegacyButton("Find", new Point(195, 332), new Size(58, 24));
         find.Click += (_, _) => FindTeam(search.Text);
         search.KeyDown += (_, eventArgs) => { if (eventArgs.KeyCode == Keys.Enter) { FindTeam(search.Text); eventArgs.SuppressKeyPress = true; } };
-        info.Controls.Add(new Label { Text = "Find team record", Location = new Point(12, 336), Size = new Size(88, 20), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft });
+        info.Controls.Add(new Label { Text = "Find team record", Location = new Point(12, 336), Size = new Size(93, 20), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft });
         info.Controls.Add(search);
         info.Controls.Add(find);
         var importSquad = LegacyButton("Import Scraper Squad", new Point(12, 360), new Size(241, 27));

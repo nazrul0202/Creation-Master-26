@@ -148,6 +148,13 @@ internal static class Program
             return;
         }
 
+        // Per-label truncation audit: "--label-audit <dbFolder>"
+        if (args.Length >= 2 && args[0] == "--label-audit")
+        {
+            Environment.ExitCode = HeadlessSmoke.LabelAudit(args[1]);
+            return;
+        }
+
         if (args.Length >= 2 && args[0] == "--formation-test")
         {
             Environment.ExitCode = HeadlessSmoke.FormationTest(args[1]);

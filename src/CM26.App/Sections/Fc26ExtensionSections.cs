@@ -31,7 +31,7 @@ internal abstract class Fc26ExtensionSection : SectionBase
             ["hecklesregionindex"] = "Heckles Region",
             ["ambienceregionindex"] = "Ambience Region",
             ["palanguageindex"] = "PA Language",
-            ["defaultcommlang"] = "Default Commentary Language",
+            ["defaultcommlang"] = "Commentary Language",
             ["teamcanwhistleindex"] = "Team Whistle Set",
             ["artificialkey"] = "Link Id",
             ["teamid"] = "Team Id",

@@ -205,7 +205,7 @@ public sealed class PlayersSection : SectionBase
         {
             ("Preferred Position 1", "preferredposition1"), ("Preferred Position 2", "preferredposition2"),
             ("Preferred Position 3", "preferredposition3"), ("Preferred Position 4", "preferredposition4"), ("International Reputation", "internationalrep")
-        }, 12, 25, 120, 110, 26);
+        }, 12, 25, 148, 92, 26);
         canvas.Controls.Add(play);
 
         // A compact FC26 player overview, while keeping the original CM16 group-box
@@ -269,14 +269,14 @@ public sealed class PlayersSection : SectionBase
         };
         for (var c = 0; c < columns.Length; c++)
         {
-            var group = Box(columns[c].Item1, new Point(3 + (c * 145), 3), new Size(138, 318));
+            var group = Box(columns[c].Item1, new Point(3 + (c * 160), 3), new Size(153, 318));
             var y = 25;
             foreach (var field in columns[c].Item2)
             {
-                var label = new Label { Location = new Point(10, y), Size = new Size(116, 18), TextAlign = ContentAlignment.MiddleCenter, BackColor = Theme.Accent, ForeColor = Theme.Text, Font = Theme.BodyBold };
+                var label = new Label { Location = new Point(6, y), Size = new Size(141, 18), TextAlign = ContentAlignment.MiddleCenter, BackColor = Theme.Accent, ForeColor = Theme.Text, Font = Theme.BodyBold };
                 _skillValues[field] = label;
                 group.Controls.Add(label);
-                var slider = new TrackBar { Location = new Point(9, y + 19), Size = new Size(118, 28), Minimum = 1, Maximum = 99, TickStyle = TickStyle.None, Tag = field, BackColor = Theme.Panel };
+                var slider = new TrackBar { Location = new Point(5, y + 19), Size = new Size(142, 28), Minimum = 1, Maximum = 99, TickStyle = TickStyle.None, Tag = field, BackColor = Theme.Panel };
                 // TrackBar fires ValueChanged continuously while dragging; stage
                 // once per gesture (mouse release / keyboard) instead of per tick.
                 slider.ValueChanged += (_, _) => UpdateSkillLabel(slider);
@@ -468,8 +468,8 @@ public sealed class PlayersSection : SectionBase
         assignment.Controls.Add(_callnameStatus);
         assignment.Controls.Add(new Label
         {
-            Text = "The Commentary Id must already exist " +
-                   "in the installed commentary bank; CM26 will not create a fake database-only audio entry.",
+            Text = "The Commentary Id must already exist in the installed commentary\n" +
+                   "bank; CM26 will not create a fake database-only audio entry.",
             Location = new Point(16, 128), Size = new Size(610, 42),
             Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel
         });

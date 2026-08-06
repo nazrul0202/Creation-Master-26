@@ -240,7 +240,7 @@ public sealed class ManagersSection : ClassicEntitySection
         var recordLinks = Group("Record Links", new Point(520, 3), new Size(390, 128));
         AddReadonlyField(recordLinks, "managerid", "Manager Id", new Point(130, 22), 210);
         AddReadonlyField(recordLinks, "teamid", "Team Id", new Point(130, 48), 210);
-        AddReadonlyNote(recordLinks, "Technical identifiers are kept with the General record for the CM16 workflow.", new Point(12, 78), new Size(360, 24));
+        AddReadonlyNote(recordLinks, "Technical identifiers are kept with the General\nrecord for the CM16 workflow.", new Point(12, 78), new Size(360, 34));
         c.Controls.Add(recordLinks);
 
         // These are real FC26 manager columns that have no CM16 equivalent page.

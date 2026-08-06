@@ -104,15 +104,14 @@ public sealed class CountriesSection : SectionBase
         country.Controls.Add(_openNationalTeam);
         country.Controls.Add(new Label
         {
-            Text = "Create a country ID, then add its national team, domestic league,\nclubs and Compdata before starting a new Career save.",
-            Location = new Point(16, 385),
-            Size = new Size(215, 32),
+            Text = "Create a country ID, then\nadd its national team,\ndomestic league and clubs\nbefore a Career save.",
+            Location = new Point(16, 386),
+            Size = new Size(215, 66),
             Font = LegacyFont,
             ForeColor = Theme.Muted,
             BackColor = Theme.Panel,
-        });
-        _showAllDatabaseCountries.Text = "Show countries awaiting setup";
-        _showAllDatabaseCountries.Location = new Point(16, 423);
+        });        _showAllDatabaseCountries.Text = "Show countries awaiting setup";
+        _showAllDatabaseCountries.Location = new Point(16, 456);
         _showAllDatabaseCountries.Size = new Size(210, 23);
         _showAllDatabaseCountries.Font = LegacyFont;
         _showAllDatabaseCountries.BackColor = Theme.Panel;
@@ -480,7 +479,7 @@ public sealed class CountriesSection : SectionBase
         var fields = new[]
         {
             ("PA Language", "palanguageindex"),
-            ("Default Commentary Language", "defaultcommlang"),
+            ("Commentary Language", "defaultcommlang"),
             ("Player Call Bank", "playercallpatchbankindex"),
             ("SSF Player Call", "ssfplayercallindex"),
             ("Crowd Beds Region", "crowdbedsregionindex"),

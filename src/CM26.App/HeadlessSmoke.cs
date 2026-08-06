@@ -1766,6 +1766,153 @@ internal static class HeadlessSmoke
         }
     }
 
+    /// <summary>
+    /// Measures every Label/GroupBox/caption in every section against its real
+    /// text width and flags any that would truncate or overflow. Also flags
+    /// controls that overlap a group boundary. This is the "one by one" audit
+    /// of every editor layout.
+    /// </summary>
+    public static int LabelAudit(string folder)
+    {
+        try
+        {
+            using var services = new AppServices();
+            services.LoadDatabase(folder);
+
+            var factories = new (string key, Func<SectionBase> make)[]
+            {
+                ("countries", () => new CountriesSection(services)),
+                ("leagues", () => new LeaguesSection(services)),
+                ("teams", () => new TeamsSection(services)),
+                ("players", () => new PlayersSection(services)),
+                ("managers", () => new ManagersSection(services)),
+                ("stadiums", () => new StadiumsSection(services)),
+                ("stadiumaudio", () => new StadiumAudioSection(services)),
+                ("kits", () => new KitsSection(services)),
+                ("competitions", () => new CompetitionsSection(services)),
+                ("formations", () => new FormationsSection(services)),
+                ("balls", () => new BallsSection(services)),
+                ("boots", () => new BootsSection(services)),
+                ("gloves", () => new GlovesSection(services)),
+                ("sponsors", () => new SponsorsSection(services)),
+                ("adboards", () => new AdboardsSection(services)),
+                ("audio", () => new AudioNationSection(services)),
+                ("scoreboard", () => new TvSection(services)),
+                ("referees", () => new RefereesSection(services)),
+                ("browser", () => new DatabaseBrowserSection(services)),
+            };
+
+            using var bitmap = new System.Drawing.Bitmap(1, 1);
+            using var graphics = System.Drawing.Graphics.FromImage(bitmap);
+
+            int totalTruncated = 0, totalOverflow = 0;
+            foreach (var (key, make) in factories)
+            {
+                using var host = new System.Windows.Forms.Form { Width = 1280, Height = 768 };
+                using var section = make();
+                section.Dock = System.Windows.Forms.DockStyle.Fill;
+                host.Controls.Add(section);
+                host.CreateControl();
+                try
+                {
+                    section.ActivateSection();
+                    System.Windows.Forms.Application.DoEvents();
+                }
+                catch { /* record selection may fail without data; layout still valid */ }
+
+                var truncated = new List<string>();
+                var overflow = new List<string>();
+                int visibleLabels = 0;
+                // Walk every tab so labels on non-active pages are measured too.
+                var tabs = Descendants(section).OfType<System.Windows.Forms.TabControl>().ToArray();
+                int lastIndex = -1;
+                foreach (var tab in tabs)
+                {
+                    if (tab.TabPages.Count > 0)
+                    {
+                        tab.SelectedIndex = 0;
+                        lastIndex = tab.SelectedIndex;
+                    }
+                }
+                // Toggle the active tab so all page controls get laid out + handled.
+                foreach (var tab in tabs)
+                {
+                    for (var i = 0; i < tab.TabPages.Count; i++)
+                    {
+                        tab.SelectedIndex = i;
+                        System.Windows.Forms.Application.DoEvents();
+                        MeasureAll(section, truncated, ref visibleLabels);
+                    }
+                }
+                // Ensure every page measured at least once even if a tab enum changed.
+                MeasureAll(section, null, ref visibleLabels);
+                // Controls (editors) that stick out of their GroupBox client area.
+                foreach (var control in Descendants(section))
+                {
+                    if (control is System.Windows.Forms.Label || control is System.Windows.Forms.DataGridView ||
+                        control is System.Windows.Forms.ListView || control is System.Windows.Forms.TabPage) continue;
+                    if (control.Parent is not System.Windows.Forms.GroupBox group) continue;
+                    if (!control.Visible || !group.Visible) continue;
+                    var right = control.Left + control.Width;
+                    var bottom = control.Top + control.Height;
+                    if (right > group.ClientSize.Width + 2 || bottom > group.ClientSize.Height + 2)
+                        overflow.Add($"{control.GetType().Name} '{Trunc(control.Text, 20)}' ends ({right},{bottom}) group client ({group.ClientSize.Width},{group.ClientSize.Height}) @({control.Left},{control.Top})");
+                }
+
+                Console.WriteLine($"== {key}: {visibleLabels} labels, {truncated.Count} truncated, {overflow.Count} out-of-group");
+                foreach (var line in truncated.Take(40)) Console.WriteLine($"   TRUNC  {line}");
+                if (truncated.Count > 40) Console.WriteLine($"   ... +{truncated.Count - 40} more");
+                foreach (var line in overflow.Take(40)) Console.WriteLine($"   OVERFLOW  {line}");
+                if (overflow.Count > 40) Console.WriteLine($"   ... +{overflow.Count - 40} more");
+                totalTruncated += truncated.Count;
+                totalOverflow += overflow.Count;
+            }
+            Console.WriteLine($"LABEL AUDIT TOTAL: {totalTruncated} truncated, {totalOverflow} overflow");
+            return totalTruncated == 0 && totalOverflow == 0 ? 0 : 44;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("LABEL AUDIT FAILED: " + ex);
+            return 45;
+        }
+    }
+
+    private static string Trunc(string text, int max) =>
+        text.Length <= max ? text : text[..(max - 1)] + "…";
+
+    private static void MeasureAll(
+        Control root,
+        List<string>? truncated,
+        ref int visibleLabels)
+    {
+        foreach (var control in Descendants(root))
+        {
+            if (control is not System.Windows.Forms.Label label) continue;
+            if (string.IsNullOrEmpty(label.Text) || label.Width <= 0) continue;
+            // Visible=true on the active page; a page that was never switched to
+            // (e.g. GroupBox-hosted labels) still has a size, so measure it.
+            if (!label.Visible && control.Parent is not System.Windows.Forms.GroupBox) continue;
+            visibleLabels++;
+            if (truncated == null) continue;
+            // Measure with the label's real width so wrapping is accounted for.
+            // Labels wrap by default (there is no WordWrap toggle on a Label),
+            // so the failure mode is overflowing HEIGHT, not width.
+            var constraints = new System.Drawing.Size(label.Width, int.MaxValue);
+            var measured = System.Windows.Forms.TextRenderer.MeasureText(
+                label.Text, label.Font, constraints,
+                System.Windows.Forms.TextFormatFlags.NoPadding | System.Windows.Forms.TextFormatFlags.WordBreak);
+            int padX = label.AutoEllipsis ? 2 : 4;
+            int padY = 4;
+            // A label cannot ellipsize vertically; if the wrapped text needs more
+            // height than the control, it clips. Non-wrapping single-line label
+            // text (never ellipsized) instead overflows horizontally.
+            if (measured.Height > label.Height + padY && label.Height >= 18)
+                truncated.Add($"'{Trunc(label.Text, 34)}' h={label.Height} wraps-to {measured.Height} @({label.Left},{label.Top})");
+            else if (!label.AutoEllipsis && measured.Width > label.Width + padX)
+                truncated.Add($"'{Trunc(label.Text, 34)}' w={label.Width} needs~{measured.Width} @({label.Left},{label.Top})");
+        }
+    }
+
     /// <summary>Validates every Formation record used by the public pitch preview.</summary>
     public static int FormationTest(string folder)
     {
