@@ -1,5 +1,43 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.33 - UI polish pass (2026-08-06)
+
+- **Theme system fixes.** Labels, panels, checkboxes and radio buttons only remap
+  WinForms system defaults — explicit colors (muted captions, warning/validation
+  colors) are preserved. The Apply button no longer stacks duplicate focus
+  handlers, and primary buttons get white text for contrast.
+- **Theme toggle now repaints everything.** Switching dark/light re-themes the
+  module and action toolbars, the status strip and menus, then rebuilds the
+  active section so no stale colors remain. Settings controls that previously
+  kept black text on the blue theme are fixed.
+- **Every section gets a real header.** Section title, record title/subtitle and
+  icon now appear in the standard header across all editors. The record picker
+  preserves your selection when the list refreshes.
+- **Revert now works.** Reverting a record actually discards the staged edits
+  (not just clears the "modified" dots) and restores the original values.
+- **Players editor cleanup.** Sliders no longer stage hundreds of edits while
+  being dragged (they commit on release), duplicate hidden editors were removed,
+  the Body group no longer clips its fields, and the summary mirrors stay in
+  sync with edited values.
+- **Leagues editor cleanup.** League names are read-only mirrors (only the
+  database name is writable), team toolstrip text is readable again, pickers
+  keep their theme, the emblem preview matches its caption, and country
+  selection no longer falls back to the wrong row.
+- **Countries editor cleanup.** Name and ISO code are read-only mirrors with
+  working editors for the real columns; the "show all countries" checkbox no
+  longer reloads the list repeatedly.
+- **Classic editors cleanup.** Formations position map labels are correctly
+  placed, the formation info group fits its fields, Managers record links are
+  read-only, and the competition tree refreshes on activation so new competitions
+  appear immediately.
+- **Compdata builder cleanup.** The sheet picker no longer overlaps the action
+  buttons, the status line uses success/warning/danger colors, and the results
+  grid is full-row selectable. Balls/Boots captions no longer overlap their
+  editors, and the Broadcast Links section title is descriptive.
+- **Modified-dot markers** now appear on the correct tab in generic editors, and
+  dead legacy editor classes were removed.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.33.
+
 ## Version 1.0.32 - every editor filled with its real FC26 fields (2026-08-05)
 
 - **Fixed five field bindings that left editors empty.** The Teams Location group

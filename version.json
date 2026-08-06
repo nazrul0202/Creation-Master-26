@@ -1,6 +1,6 @@
 {
-  "version": "1.0.32",
+  "version": "1.0.33",
   "name": "Creation Master 26",
-  "notes": "v1.0.32 - expanded every editor with the missing FC26 fields and fixed five field bindings that left editors empty.",
+  "notes": "v1.0.33 - UI polish: theme preservation + full toolbar re-theme, real section headers, working Revert, cleaned-up Players/Leagues/Countries/Classic editors, Compdata layout, GenericTable markers.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
