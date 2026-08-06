@@ -432,8 +432,8 @@ public sealed class TeamsSection : SectionBase
         AddBoundFields(location, new[] { ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Offset", "utcoffset") }, 10, 18, 98, 150, 26);
         canvas.Controls.Add(location);
 
-        var traits = Group("Opponent Behaviour", new Point(555, 3), new Size(276, 98));
-        AddBoundFields(traits, new[] { ("Vs. weaker teams", "trait1vweak"), ("Vs. stronger teams", "trait1vstrong"), ("Vs. equal teams", "trait1vequal") }, 10, 20, 118, 150, 26);
+        var traits = Group("Opponent Behaviour", new Point(555, 3), new Size(360, 98));
+        AddBoundFields(traits, new[] { ("Vs. weaker teams", "trait1vweak"), ("Vs. stronger teams", "trait1vstrong"), ("Vs. equal teams", "trait1vequal") }, 14, 22, 154, 150, 26);
         ToolTip.SetToolTip(traits,
             "Internal behaviour bitmasks used to vary team tendencies against weaker, stronger, or evenly matched opponents.");
         canvas.Controls.Add(traits);
@@ -479,13 +479,10 @@ public sealed class TeamsSection : SectionBase
         }, 14, 22, 154, 150, 26);
         canvas.Controls.Add(tactics);
 
-        var stadiumDetails = Group("Stadium", new Point(1217, 3), new Size(310, 230));
+        var stadiumDetails = Group("Stadium", new Point(1217, 3), new Size(310, 106));
         AddBoundFields(stadiumDetails, new[]
         {
-            ("Stadium Name", "stadiumid"), ("Stanchion 1 R", "goalnetstanchioncolor1r"), ("Stanchion 1 G", "goalnetstanchioncolor1g"),
-            ("Stanchion 1 B", "goalnetstanchioncolor1b"), ("Stanchion 2 R", "goalnetstanchioncolor2r"),
-            ("Stanchion 2 G", "goalnetstanchioncolor2g"), ("Stanchion 2 B", "goalnetstanchioncolor2b"),
-            ("Corner Flag Pole", "cornerflagpolecolor")
+            ("Stadium Name", "stadiumid"), ("Corner Flag Pole", "cornerflagpolecolor")
         }, 15, 22, 120, 165, 26);
         canvas.Controls.Add(stadiumDetails);
     }
