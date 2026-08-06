@@ -1,6 +1,6 @@
 {
-  "version": "1.0.34",
+  "version": "1.0.35",
   "name": "Creation Master 26",
-  "notes": "v1.0.34 - editor geometry standardization: uniform 26px row pitch, right-aligned captions, snug group heights across Players/Teams/Leagues/Countries/Stadiums/Goal Net/Kits/Balls/Boots/Gloves/Competitions/Audio editors.",
+  "notes": "v1.0.35 - UI layout overhaul: fix label truncation across all editor sections (Countries/Teams/Leagues/Stadiums/Managers/Formations/Kits/Balls/Boots/Gloves/Compdata), add vertical grid separators to DataGridView, widen FieldEditorGrid label column, standardize caption widths.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
