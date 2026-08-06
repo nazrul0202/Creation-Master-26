@@ -1,6 +1,6 @@
 {
-  "version": "1.0.35",
+  "version": "1.0.36",
   "name": "Creation Master 26",
-  "notes": "v1.0.35 - UI layout overhaul: fix label truncation across all editor sections (Countries/Teams/Leagues/Stadiums/Managers/Formations/Kits/Balls/Boots/Gloves/Compdata), add vertical grid separators to DataGridView, widen FieldEditorGrid label column, standardize caption widths.",
+  "notes": "v1.0.36 - label truncation sweep: built a --label-audit diagnostic that measures every editor label, fixed the last truncations (countries note, team crest captions, players skill groups widened, managers record-links note, audio commentary language) - audit now reports 0 truncated labels across all 17 sections.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
