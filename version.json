@@ -1,6 +1,6 @@
 {
-  "version": "1.0.45",
+  "version": "1.0.46",
   "name": "Creation Master 26",
-  "notes": "v1.0.45 - Expanded pitch board to 670x545, increased card gap to 12px, stronger collision resolution (50 iterations), moved player reference pickers down.",
+  "notes": "v1.0.46 - Fixed PlayersSection crash: defensive font handling in AddSummaryValue to prevent GDI+ 'Parameter is not valid' error.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

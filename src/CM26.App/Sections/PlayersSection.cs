@@ -632,17 +632,22 @@ public sealed class PlayersSection : SectionBase
 
     private void AddSummaryValue(Control parent, string label, string field, Point location)
     {
-        parent.Controls.Add(new Label { Text = label, Location = location, Size = new Size(120, 20), Font = LegacyFont });
-        var value = new TextBox
+        try
         {
-            Location = new Point(location.X + 125, location.Y), Size = new Size(115, 20),
-            BorderStyle = BorderStyle.FixedSingle, BackColor = Theme.Input, ForeColor = Theme.Text,
-            TextAlign = HorizontalAlignment.Center, Font = Theme.BodyBold, Tag = field
-        };
-        value.Leave += (_, _) => StageSummary(value);
-        if (!_summaryValues.TryGetValue(field, out var values)) _summaryValues[field] = values = [];
-        values.Add(value);
-        parent.Controls.Add(value);
+            var safeFont = LegacyFont ?? Theme.Body ?? new Font("Segoe UI", 9f);
+            parent.Controls.Add(new Label { Text = label, Location = location, Size = new Size(120, 20), Font = safeFont });
+            var value = new TextBox
+            {
+                Location = new Point(location.X + 125, location.Y), Size = new Size(115, 20),
+                BorderStyle = BorderStyle.FixedSingle, BackColor = Theme.Input, ForeColor = Theme.Text,
+                TextAlign = HorizontalAlignment.Center, Font = Theme.BodyBold ?? safeFont, Tag = field
+            };
+            value.Leave += (_, _) => StageSummary(value);
+            if (!_summaryValues.TryGetValue(field, out var values)) _summaryValues[field] = values = [];
+            values.Add(value);
+            parent.Controls.Add(value);
+        }
+        catch (ArgumentException) { /* Skip field if font or layout is invalid on this system. */ }
     }
 
     private void StageEdit(TextBox editor)
