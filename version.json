@@ -1,6 +1,6 @@
 {
-  "version": "1.0.36",
+  "version": "1.0.37",
   "name": "Creation Master 26",
-  "notes": "v1.0.36 - label truncation sweep: built a --label-audit diagnostic that measures every editor label, fixed the last truncations (countries note, team crest captions, players skill groups widened, managers record-links note, audio commentary language) - audit now reports 0 truncated labels across all 17 sections.",
+  "notes": "v1.0.37 - modern UI redesign (research-based): replace the saturated blue theme with a professional neutral dark design system - tonal charcoal surfaces with hairline borders, a single restrained blue accent, muted secondary captions, semibold group headers, and consistent ModernGroupBox cards across every editor section.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
