@@ -135,7 +135,7 @@ public sealed class PlayersSection : SectionBase
     }
 
     private static Panel Canvas(TabPage p) => (Panel)p.Controls[0];
-    private static GroupBox Box(string name, Point point, Size size) => new() { Text = name, Location = point, Size = size, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text };
+    private static GroupBox Box(string name, Point point, Size size) => new ModernGroupBox { Text = name, Location = point, Size = size };
     private static PictureBox Viewer(Point point, Size size) => new() { Location = point, Size = size, BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
 
     private void AddInfoTab()
@@ -617,6 +617,8 @@ public sealed class PlayersSection : SectionBase
                 TextAlign = ContentAlignment.MiddleRight,
                 Font = LegacyFont,
                 Tag = label,
+                ForeColor = Theme.Muted,
+                BackColor = Theme.Panel,
             };
             parent.Controls.Add(caption);
             ToolTip.SetToolTip(caption, label);

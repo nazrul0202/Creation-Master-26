@@ -61,7 +61,7 @@ public class GenericTableSection : SectionBase
             // on a white canvas.  Retain the schema-driven editor, but present it
             // through that legacy form vocabulary instead of a modern property page.
             var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background, Padding = new Padding(8) };
-            var group = new GroupBox
+            var group = new ModernGroupBox
             {
                 Text = kv.Key,
                 // CM16 keeps the active editor compact at the top-left and
@@ -69,9 +69,6 @@ public class GenericTableSection : SectionBase
                 // previews / future FC26-only controls.
                 Location = new Point(8, 8),
                 Size = new Size(620, 430),
-                Font = Theme.Body,
-                ForeColor = Theme.Text,
-                BackColor = Theme.Panel,
                 Padding = new Padding(6, 18, 6, 6),
             };
             grid.Dock = DockStyle.Fill;

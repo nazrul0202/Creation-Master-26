@@ -338,11 +338,8 @@ public sealed class TeamsSection : SectionBase
 
     private static Panel Canvas(TabPage page) => (Panel)page.Controls[0];
 
-    private static GroupBox Group(string text, Point location, Size size) => new()
-    {
-        Text = text, Location = location, Size = size, Font = LegacyFont,
-        BackColor = Theme.Panel, ForeColor = Theme.Text
-    };
+    private static GroupBox Group(string text, Point location, Size size) =>
+        new ModernGroupBox { Text = text, Location = location, Size = size };
 
     private static PictureBox Viewer(Point location, Size size) => new()
     {
@@ -1278,7 +1275,8 @@ public sealed class TeamsSection : SectionBase
             parent.Controls.Add(new Label
             {
                 Text = label, Location = new Point(labelX, y + 3), Size = new Size(labelWidth, 18),
-                AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont
+                AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont,
+                ForeColor = Theme.Muted, BackColor = Theme.Panel
             });
             var editor = new TextBox { Location = new Point(editorX, y), Size = new Size(editorWidth, 20), Font = LegacyFont, Tag = field };
             Theme.ApplyTextBox(editor);
@@ -1299,7 +1297,8 @@ public sealed class TeamsSection : SectionBase
             parent.Controls.Add(new Label
             {
                 Text = label, Location = new Point(labelX, y + 3), Size = new Size(labelWidth, 18),
-                AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont
+                AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont,
+                ForeColor = Theme.Muted, BackColor = Theme.Panel
             });
             var picker = new ComboBox { Location = new Point(90, y), Size = new Size(372, 21), Font = LegacyFont, DropDownStyle = ComboBoxStyle.DropDownList, Tag = field };
             Theme.ApplyCombo(picker);

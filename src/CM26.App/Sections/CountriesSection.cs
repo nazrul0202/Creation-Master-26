@@ -563,11 +563,8 @@ public sealed class CountriesSection : SectionBase
         return -1;
     }
 
-    private GroupBox LegacyGroup(string text, Point location, Size size) => new()
-    {
-        Text = text, Location = location, Size = size, Font = LegacyFont,
-        BackColor = Theme.Panel, ForeColor = Theme.Text
-    };
+    private GroupBox LegacyGroup(string text, Point location, Size size) =>
+        new ModernGroupBox { Text = text, Location = location, Size = size };
 
     private void AddField(Control parent, string fieldName, string label, Point location, int width)
     {
@@ -575,7 +572,7 @@ public sealed class CountriesSection : SectionBase
         {
             Text = label, Location = new Point(11, location.Y + 3), Size = new Size(Math.Max(70, location.X - 17), 18),
             Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true,
-            ForeColor = Theme.Text, BackColor = Theme.Panel
+            ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(editor);
@@ -594,7 +591,7 @@ public sealed class CountriesSection : SectionBase
         {
             Text = label, Location = new Point(11, location.Y + 3), Size = new Size(Math.Max(70, location.X - 17), 18),
             Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true,
-            ForeColor = Theme.Text, BackColor = Theme.Panel
+            ForeColor = Theme.Muted, BackColor = Theme.Panel
         };
         parent.Controls.Add(caption);
         ToolTip.SetToolTip(caption, label);

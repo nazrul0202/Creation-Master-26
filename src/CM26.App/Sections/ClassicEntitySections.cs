@@ -49,7 +49,7 @@ public abstract class ClassicEntitySection : SectionBase
 
     protected GroupBox Group(string text, Point point, Size size)
     {
-        return new GroupBox { Text = text, Location = point, Size = size, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text };
+        return new ModernGroupBox { Text = text, Location = point, Size = size };
     }
 
     protected void AddField(Control parent, string field, string caption, Point point, int width = 150)
@@ -67,7 +67,7 @@ public abstract class ClassicEntitySection : SectionBase
             TextAlign = ContentAlignment.MiddleRight,
             AutoEllipsis = true,
             BackColor = Theme.Panel,
-            ForeColor = Theme.Text,
+            ForeColor = Theme.Muted,
         };
         parent.Controls.Add(label);
         ToolTip.SetToolTip(label, caption);
@@ -95,7 +95,7 @@ public abstract class ClassicEntitySection : SectionBase
             TextAlign = ContentAlignment.MiddleRight,
             AutoEllipsis = true,
             BackColor = Theme.Panel,
-            ForeColor = Theme.Text,
+            ForeColor = Theme.Muted,
         });
         var box = new TextBox { Location = point, Size = new Size(width, 20), Tag = field, ReadOnly = true, Font = LegacyFont, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(box);

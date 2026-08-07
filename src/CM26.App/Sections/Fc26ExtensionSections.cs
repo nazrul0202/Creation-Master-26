@@ -65,12 +65,12 @@ internal abstract class Fc26ExtensionSection : SectionBase
         Header.Visible = false;
         var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
         var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background };
-        var box = new GroupBox { Text = group, Location = new Point(4, 4), Size = new Size(630, Math.Max(120, 25 + ((fields.Length + 1) / 2 * 26))), Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text };
+        var box = new ModernGroupBox { Text = group, Location = new Point(4, 4), Size = new Size(630, Math.Max(120, 25 + ((fields.Length + 1) / 2 * 26))) };
         for (var i = 0; i < fields.Length; i++)
         {
             var col = i % 2; var row = i / 2;
             var x = col == 0 ? 12 : 322; var y = 20 + (row * 26);
-            var label = new Label { Text = Label(fields[i]), Location = new Point(x, y + 3), Size = new Size(165, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true, ForeColor = Theme.Text, BackColor = Theme.Panel };
+            var label = new Label { Text = Label(fields[i]), Location = new Point(x, y + 3), Size = new Size(165, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true, ForeColor = Theme.Muted, BackColor = Theme.Panel };
             box.Controls.Add(label);
             ToolTip.SetToolTip(label, Label(fields[i]));
             var editor = new TextBox { Location = new Point(x + 171, y), Size = new Size(145, 20), Font = LegacyFont, Tag = fields[i] };
@@ -162,10 +162,10 @@ internal sealed class SponsorsSection : Fc26ExtensionSection
     {
         var page = AddCanvasTab("Preview");
         var canvas = (Panel)page.Controls[0];
-        var box = new GroupBox
+        var box = new ModernGroupBox
         {
             Text = "Sponsor Artwork", Location = new Point(4, 4),
-            Size = new Size(850, 520), Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text
+            Size = new Size(850, 520)
         };
         _preview.Location = new Point(12, 24);
         _preview.Size = new Size(825, 410);
@@ -237,11 +237,10 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
     {
         var page = AddCanvasTab("NewWave Banks");
         var canvas = (Panel)page.Controls[0];
-        var box = new GroupBox
+        var box = new ModernGroupBox
         {
             Text = "NewWave Audio Banks", Location = new Point(4, 4),
-            Size = new Size(1120, 610), Font = LegacyFont,
-            BackColor = Theme.Panel, ForeColor = Theme.Text
+            Size = new Size(1120, 610)
         };
         box.Controls.Add(new Label
         {
@@ -466,10 +465,10 @@ internal sealed class AdboardsSection : Fc26ExtensionSection
     {
         var page = AddCanvasTab("Preview");
         var canvas = (Panel)page.Controls[0];
-        var box = new GroupBox
+        var box = new ModernGroupBox
         {
             Text = "Dynamic Adboard Artwork", Location = new Point(4, 4),
-            Size = new Size(850, 520), Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text
+            Size = new Size(850, 520)
         };
         _preview.Location = new Point(12, 24);
         _preview.Size = new Size(825, 410);

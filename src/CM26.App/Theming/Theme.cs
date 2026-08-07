@@ -24,63 +24,61 @@ public static class Theme
     {
         if (_dark)
         {
-            // CM26 fully-blue theme: bright medium-blue surfaces with white
-            // text, matching the CM26 Scraper tool's vivid blue appearance.
-            _background = Color.FromArgb(30, 78, 150);      // Vivid medium blue
-            _panel = Color.FromArgb(35, 89, 168);           // Brighter blue
-            _raised = Color.FromArgb(43, 99, 184);          // Light blue
-            _input = Color.FromArgb(23, 65, 135);           // Deep blue inputs
-            _border = Color.FromArgb(92, 147, 224);         // Light blue border
-            _text = Color.FromArgb(255, 255, 255);          // Pure white text
-            _muted = Color.FromArgb(198, 221, 247);         // Light blue-gray
-            _accent = Color.FromArgb(10, 47, 140);          // Deep royal blue accent
-            _accentHover = Color.FromArgb(15, 62, 173);     // Brighter hover
-            _link = Color.FromArgb(170, 210, 250);          // Light blue links on blue surfaces
-            _danger = Color.FromArgb(224, 96, 80);
-            _success = Color.FromArgb(76, 195, 138);
-            _warning = Color.FromArgb(230, 180, 58);
-            _validationBackground = Color.FromArgb(30, 72, 140);
-            _validationListBackground = Color.FromArgb(24, 60, 120);
-            _validationText = Color.FromArgb(198, 221, 247);
+            // Dark surfaces with tonal layering, hairline borders, single accent.
+            _background = Color.FromArgb(20, 23, 28);        // App canvas
+            _panel = Color.FromArgb(28, 32, 39);            // Cards / group boxes
+            _raised = Color.FromArgb(36, 41, 50);           // Hover, headers, elevated
+            _input = Color.FromArgb(15, 17, 22);            // Input wells / grid body
+            _border = Color.FromArgb(58, 65, 78);           // Hairline separators
+            _text = Color.FromArgb(232, 235, 240);          // Primary text
+            _muted = Color.FromArgb(138, 147, 162);         // Labels / secondary text
+            _accent = Color.FromArgb(61, 123, 255);         // Restrained blue (primary/selection/focus)
+            _accentHover = Color.FromArgb(47, 99, 230);     // Deeper hover
+            _link = Color.FromArgb(112, 160, 255);
+            _danger = Color.FromArgb(229, 72, 77);
+            _success = Color.FromArgb(48, 164, 108);
+            _warning = Color.FromArgb(229, 166, 35);
+            _validationBackground = Color.FromArgb(39, 30, 32);
+            _validationListBackground = Color.FromArgb(48, 36, 38);
+            _validationText = Color.FromArgb(244, 160, 160);
         }
         else
         {
-            // Light CM26 palette: soft off-white surfaces, blue borders/accents.
-            _background = Color.FromArgb(246, 248, 251);
+            _background = Color.FromArgb(244, 246, 250);
             _panel = Color.FromArgb(255, 255, 255);
-            _raised = Color.FromArgb(233, 238, 249);
+            _raised = Color.FromArgb(233, 237, 244);
             _input = Color.FromArgb(255, 255, 255);
-            _border = Color.FromArgb(20, 62, 120);
-            _text = Color.FromArgb(24, 34, 50);
-            _muted = Color.FromArgb(96, 116, 140);
-            _accent = Color.FromArgb(4, 62, 195);
-            _accentHover = Color.FromArgb(12, 58, 180);
-            _link = Color.FromArgb(4, 62, 195);
-            _danger = Color.FromArgb(200, 66, 50);
-            _success = Color.FromArgb(40, 160, 90);
-            _warning = Color.FromArgb(190, 145, 30);
-            _validationBackground = Color.FromArgb(250, 235, 235);
-            _validationListBackground = Color.FromArgb(255, 246, 246);
-            _validationText = Color.FromArgb(150, 60, 55);
+            _border = Color.FromArgb(205, 212, 224);
+            _text = Color.FromArgb(28, 34, 44);
+            _muted = Color.FromArgb(96, 106, 122);
+            _accent = Color.FromArgb(40, 96, 210);
+            _accentHover = Color.FromArgb(31, 78, 176);
+            _link = Color.FromArgb(40, 96, 210);
+            _danger = Color.FromArgb(200, 60, 62);
+            _success = Color.FromArgb(39, 150, 96);
+            _warning = Color.FromArgb(190, 138, 26);
+            _validationBackground = Color.FromArgb(252, 235, 235);
+            _validationListBackground = Color.FromArgb(255, 245, 245);
+            _validationText = Color.FromArgb(175, 62, 55);
         }
     }
 
-    private static Color _background = Color.FromArgb(30, 78, 150);
-    private static Color _panel = Color.FromArgb(35, 89, 168);
-    private static Color _raised = Color.FromArgb(43, 99, 184);
-    private static Color _input = Color.FromArgb(23, 65, 135);
-    private static Color _border = Color.FromArgb(92, 147, 224);
-    private static Color _text = Color.FromArgb(255, 255, 255);
-    private static Color _muted = Color.FromArgb(198, 221, 247);
-    private static Color _accent = Color.FromArgb(10, 47, 140);
-    private static Color _accentHover = Color.FromArgb(15, 62, 173);
-    private static Color _link = Color.FromArgb(170, 210, 250);
-    private static Color _danger = Color.FromArgb(224, 96, 80);
-    private static Color _success = Color.FromArgb(76, 195, 138);
-    private static Color _warning = Color.FromArgb(230, 180, 58);
-    private static Color _validationBackground = Color.FromArgb(30, 72, 140);
-    private static Color _validationListBackground = Color.FromArgb(24, 60, 120);
-    private static Color _validationText = Color.FromArgb(198, 221, 247);
+    private static Color _background = Color.FromArgb(20, 23, 28);
+    private static Color _panel = Color.FromArgb(28, 32, 39);
+    private static Color _raised = Color.FromArgb(36, 41, 50);
+    private static Color _input = Color.FromArgb(15, 17, 22);
+    private static Color _border = Color.FromArgb(58, 65, 78);
+    private static Color _text = Color.FromArgb(232, 235, 240);
+    private static Color _muted = Color.FromArgb(138, 147, 162);
+    private static Color _accent = Color.FromArgb(61, 123, 255);
+    private static Color _accentHover = Color.FromArgb(47, 99, 230);
+    private static Color _link = Color.FromArgb(112, 160, 255);
+    private static Color _danger = Color.FromArgb(229, 72, 77);
+    private static Color _success = Color.FromArgb(48, 164, 108);
+    private static Color _warning = Color.FromArgb(229, 166, 35);
+    private static Color _validationBackground = Color.FromArgb(39, 30, 32);
+    private static Color _validationListBackground = Color.FromArgb(48, 36, 38);
+    private static Color _validationText = Color.FromArgb(244, 160, 160);
 
     public static Color Background => _background;
     public static Color Panel => _panel;

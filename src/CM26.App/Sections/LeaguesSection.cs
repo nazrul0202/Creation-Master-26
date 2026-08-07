@@ -277,11 +277,8 @@ public sealed class LeaguesSection : SectionBase
             _teams.Items.Add("No teams linked in leagueteamlinks");
     }
 
-    private static GroupBox Group(string text, Point location, Size size) => new()
-    {
-        Text = text, Location = location, Size = size, Font = LegacyFont,
-        BackColor = Theme.Panel, ForeColor = Theme.Text
-    };
+    private static GroupBox Group(string text, Point location, Size size) =>
+        new ModernGroupBox { Text = text, Location = location, Size = size };
 
     private Panel Viewer(Point location, Size size, string caption, out PictureBox picture)
     {
@@ -469,7 +466,8 @@ public sealed class LeaguesSection : SectionBase
         parent.Controls.Add(new Label
         {
             Text = label, Location = new Point(10, location.Y + 3), Size = new Size(Math.Max(70, location.X - 16), 18),
-            AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont
+            AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont,
+            ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(editor);
@@ -488,7 +486,8 @@ public sealed class LeaguesSection : SectionBase
         parent.Controls.Add(new Label
         {
             Text = label, Location = new Point(10, location.Y + 3), Size = new Size(Math.Max(70, location.X - 16), 18),
-            AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont
+            AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont,
+            ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, ReadOnly = true, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(editor);
