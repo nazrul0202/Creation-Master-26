@@ -60,6 +60,9 @@ public abstract class SectionBase : UserControl
 
     protected int CurrentRecordIndex { get; private set; } = -1;
 
+    /// <summary>Index of the record shown in the editor, or -1. Used by the global filter bar.</summary>
+    public int CurrentRowIndex => CurrentRecordIndex;
+
     protected SectionBase(AppServices services)
     {
         Services = services;
@@ -409,6 +412,13 @@ public abstract class SectionBase : UserControl
                 break;
             }
         }
+    }
+
+    /// <summary>Applies a query to the record search box and selects the first match.</summary>
+    public void ApplyRecordFilter(string query)
+    {
+        _recordSearch.Text = query ?? string.Empty;
+        FindRecord();
     }
 
     private void FindRecord()

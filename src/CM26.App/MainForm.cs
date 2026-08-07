@@ -12,14 +12,19 @@ public sealed class MainForm : Form
 
     private readonly Panel _workspace;
     private readonly MenuStrip _menu;
-    private readonly ToolStripPanel _toolbar;
+    private readonly Panel _filterBar;
+    private readonly TextBox _filterSearch;
+    private readonly Button _goBtn, _prevBtn, _nextBtn;
+    private readonly Button _openBtn, _saveBtn, _undoBtn, _redoBtn, _validateBtn;
+    private readonly ProgressBar _progress;
+    private readonly Panel _sidebar;
+    private readonly FlowLayoutPanel _sidebarList;
     private readonly StatusStrip _status;
     private readonly ToolStripStatusLabel _statusText, _dbPath, _assetStatus, _pendingLabel;
-    private readonly ToolStripButton _openBtn, _saveBtn, _undoBtn, _redoBtn, _validateBtn;
-    private readonly ToolStripProgressBar _progress;
 
     private readonly Dictionary<string, SectionBase> _sections = new();
-    private readonly Dictionary<string, ToolStripButton> _moduleButtons = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, SidebarNavButton> _moduleButtons = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ToolTip _toolTip = new() { AutoPopDelay = 8000, InitialDelay = 400, ReshowDelay = 100 };
     private readonly WelcomePanel _welcome;
     private string? _activeKey;
 
@@ -38,11 +43,11 @@ public sealed class MainForm : Form
         try { Icon = new Icon(Path.Combine(AppContext.BaseDirectory, "Assets", "Logo", "Creation Master 26.ico")); }
         catch { /* icon optional at runtime */ }
 
-        // Best-effort immersive dark mode for the window chrome + scrollbars.
+        // Best-effort immersive dark/light mode for the window chrome + scrollbars.
         HandleCreated += (_, _) =>
         {
             if (IsHandleCreated)
-                NativeTheme.TryApplyImmersiveDarkMode(Handle);
+                NativeTheme.TryApplyImmersiveMode(Handle);
         };
 
         _registry = BuildRegistry();
@@ -71,52 +76,86 @@ public sealed class MainForm : Form
         helpMenu.DropDownItems.Add("About", null, (_, _) => ShowAbout());
         _menu.Items.AddRange(new ToolStripItem[] { fileMenu, toolsMenu, patchMenu, helpMenu });
 
-        // ---- Toolbar (two rows via ToolStripPanel so modules never overflow) ----
-        _toolbar = new ToolStripPanel
+        // ---- Filter bar (FC Editor style): actions left, record filter right ----
+        _filterBar = new Panel
         {
             Dock = DockStyle.Top,
+            Height = 46,
             BackColor = Theme.Panel,
-            Renderer = new DarkToolStripRenderer(),
+            Padding = new Padding(Theme.Space, 8, Theme.Space, 8),
         };
-
-        // Row 1: primary actions + progress + app title.
-        var actions = new ToolStrip
+        _openBtn = MakeActionButton("Open Game", "Detect the game and load its database and assets automatically (Ctrl+O)");
+        _saveBtn = MakeActionButton("Save", "Save staged changes (Ctrl+S)", primary: true);
+        _undoBtn = MakeActionButton("Undo", "Undo last change (Ctrl+Z)");
+        _redoBtn = MakeActionButton("Redo", "Redo the last undone change (Ctrl+Y)");
+        _validateBtn = MakeActionButton("Validate", "Validate staged changes");
+        _progress = new ProgressBar { Visible = false, Width = 170, Height = 18, Style = ProgressBarStyle.Marquee };
+        _filterSearch = new TextBox { PlaceholderText = "Filter records…", Width = 230, Height = 28 };
+        Theme.ApplyTextBox(_filterSearch);
+        _filterSearch.KeyDown += (_, e) =>
         {
-            BackColor = Theme.Panel,
-            GripStyle = ToolStripGripStyle.Hidden,
-            Padding = new Padding(Theme.Space, 2, Theme.Space, 2),
-            RenderMode = ToolStripRenderMode.Professional,
-            Renderer = new DarkToolStripRenderer(),
-            AutoSize = true,
+            if (e.KeyCode == Keys.Enter)
+            {
+                e.SuppressKeyPress = true;
+                ApplyGlobalFilter();
+            }
         };
-        _openBtn = MakeToolButton("Open Game", "Detect the game and load its database and assets automatically (Ctrl+O)");
-        _saveBtn = MakeToolButton("Save", "Save staged changes (Ctrl+S)", primary: true);
-        _undoBtn = MakeToolButton("Undo", "Undo last change (Ctrl+Z)");
-        _redoBtn = MakeToolButton("Redo", "Redo the last undone change (Ctrl+Y)");
-        _validateBtn = MakeToolButton("Validate", "Validate staged changes");
-        _progress = new ToolStripProgressBar { Visible = false, Width = 180, Style = ProgressBarStyle.Marquee };
-        var titleLabel = new ToolStripLabel("  Creation Master 26")
-        { ForeColor = Theme.Text, Font = Theme.SectionTitle, Alignment = ToolStripItemAlignment.Right };
-        actions.Items.Add(_openBtn);
-        actions.Items.Add(new ToolStripSeparator());
-        actions.Items.Add(_saveBtn);
-        actions.Items.Add(_undoBtn);
-        actions.Items.Add(_redoBtn);
-        actions.Items.Add(_validateBtn);
-        actions.Items.Add(new ToolStripSeparator());
-        actions.Items.Add(_progress);
-        actions.Items.Add(titleLabel);
-        _toolbar.Join(actions, 0);
+        _goBtn = MakeActionButton("Go", "Apply the filter to the current section");
+        _prevBtn = MakeActionButton("◀ Prev", "Previous record");
+        _nextBtn = MakeActionButton("Next ▶", "Next record");
+        _goBtn.Click += (_, _) => ApplyGlobalFilter();
+        _prevBtn.Click += (_, _) => StepRecord(-1);
+        _nextBtn.Click += (_, _) => StepRecord(+1);
 
-        // Row 2: module navigation grouped into labelled categories.
-        var modules = new ToolStrip
+        var filtersCaption = new Label
         {
-            BackColor = Theme.Panel,
-            GripStyle = ToolStripGripStyle.Hidden,
-            Padding = new Padding(Theme.Space, 0, Theme.Space, 0),
-            RenderMode = ToolStripRenderMode.Professional,
-            Renderer = new DarkToolStripRenderer(),
+            Text = "Filters",
             AutoSize = true,
+            Font = Theme.Label,
+            ForeColor = Theme.Muted,
+            TextAlign = ContentAlignment.MiddleCenter,
+        };
+        _filterBar.Controls.Add(_nextBtn);
+        _filterBar.Controls.Add(_prevBtn);
+        _filterBar.Controls.Add(_goBtn);
+        _filterBar.Controls.Add(_filterSearch);
+        _filterBar.Controls.Add(filtersCaption);
+        _filterBar.Controls.Add(_progress);
+        _filterBar.Controls.Add(_validateBtn);
+        _filterBar.Controls.Add(_redoBtn);
+        _filterBar.Controls.Add(_undoBtn);
+        _filterBar.Controls.Add(_saveBtn);
+        _filterBar.Controls.Add(_openBtn);
+        PositionFilterBar();
+        _filterBar.Resize += (_, _) => PositionFilterBar();
+
+        // ---- Left sidebar: Main Functions (FC Editor style) ----
+        _sidebar = new Panel
+        {
+            Dock = DockStyle.Left,
+            Width = Theme.SidebarWidth,
+            BackColor = Theme.Background,
+            Padding = new Padding(0),
+        };
+        var sidebarHeader = new Label
+        {
+            Text = "Main Functions",
+            Dock = DockStyle.Top,
+            Height = 34,
+            Font = Theme.Label,
+            ForeColor = Theme.Muted,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Padding = new Padding(14, 0, 0, 0),
+            BackColor = Theme.Background,
+        };
+        _sidebarList = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            AutoScroll = true,
+            BackColor = Theme.Background,
+            Padding = new Padding(8, 2, 8, 8),
         };
         var categories = new (string Label, string[] Keys)[]
         {
@@ -128,23 +167,27 @@ public sealed class MainForm : Form
             ("Brands", new[] { "balls", "boots", "gloves", "sponsors", "adboards" }),
             ("Audio", new[] { "audio", "scoreboard" }),
             ("Officials", new[] { "referees" }),
+            ("System", new[] { "settings" }),
         };
         foreach (var (label, keys) in categories)
         {
             if (!string.IsNullOrWhiteSpace(label))
             {
-                modules.Items.Add(new ToolStripSeparator());
-                modules.Items.Add(new ToolStripLabel(label)
+                _sidebarList.Controls.Add(new Label
                 {
-                    ForeColor = Theme.Muted,
+                    Text = label,
+                    AutoSize = true,
                     Font = Theme.Label,
-                    Margin = new Padding(6, 0, 2, 0),
+                    ForeColor = Theme.Muted,
+                    Margin = new Padding(10, 12, 0, 2),
                 });
             }
             foreach (var key in keys)
-                modules.Items.Add(MakeModuleButton(key, _registry.First(r => r.key == key).title));
+                _sidebarList.Controls.Add(MakeSidebarButton(key, _registry.First(r => r.key == key).title));
         }
-        _toolbar.Join(modules, 1);
+        _sidebarList.Resize += (_, _) => ResizeSidebarButtons();
+        _sidebar.Controls.Add(_sidebarList);
+        _sidebar.Controls.Add(sidebarHeader);
 
         // ---- Status bar ----
         _status = new StatusStrip { BackColor = Theme.Panel, ForeColor = Theme.Muted, SizingGrip = true, Renderer = new DarkToolStripRenderer() };
@@ -165,7 +208,8 @@ public sealed class MainForm : Form
         ShowEmptyWorkspace();
 
         Controls.Add(_workspace);
-        Controls.Add(_toolbar);
+        Controls.Add(_sidebar);
+        Controls.Add(_filterBar);
         Controls.Add(_status);
         Controls.Add(_menu);
 
@@ -213,17 +257,20 @@ public sealed class MainForm : Form
         ("settings", "Settings", s => new SettingsSection(s)),
     };
 
-    private static ToolStripButton MakeToolButton(string text, string tooltip, bool primary = false)
+    private Button MakeActionButton(string text, string tooltip, bool primary = false)
     {
-        return new ToolStripButton(text)
+        var button = new Button
         {
-            ToolTipText = tooltip,
-            ForeColor = primary ? Theme.Background : Theme.Text,
-            BackColor = primary ? Theme.Accent : Theme.Raised,
+            Text = text,
+            AutoSize = false,
+            Width = TextRenderer.MeasureText(text, Theme.Body).Width + 30,
+            Height = 28,
+            Margin = new Padding(2, 0, 2, 0),
             Font = primary ? Theme.BodyBold : Theme.Body,
-            Margin = new Padding(2, 2, 2, 2),
-            Padding = new Padding(8, 2, 8, 2),
         };
+        _toolTip.SetToolTip(button, tooltip);
+        Theme.ApplyButton(button, primary);
+        return button;
     }
 
     private static readonly Dictionary<string, string> ShortcutByKey = new(StringComparer.OrdinalIgnoreCase)
@@ -240,29 +287,89 @@ public sealed class MainForm : Form
         ["transfers"] = "Ctrl+0",
     };
 
-    private ToolStripButton MakeModuleButton(string key, string title)
+    private SidebarNavButton MakeSidebarButton(string key, string title)
     {
         var shortcut = ShortcutByKey.TryGetValue(key, out var sc) ? $" ({sc})" : string.Empty;
-        var button = new ToolStripButton
+        var button = new SidebarNavButton
         {
-            DisplayStyle = ToolStripItemDisplayStyle.ImageAndText,
-            Image = IconService.Get(key, 28),
-            ImageAlign = ContentAlignment.TopCenter,
-            TextAlign = ContentAlignment.BottomCenter,
-            TextImageRelation = TextImageRelation.ImageAboveText,
-            ImageTransparentColor = Color.Transparent,
-            ToolTipText = title + shortcut,
+            Image = IconService.Get(key, 20),
             Text = title,
-            AutoSize = false,
-            Width = 72,
-            Height = 52,
-            Font = Theme.Muted9,
-            ForeColor = Theme.Muted,
-            Margin = new Padding(1, 2, 1, 2),
+            Width = _sidebarList.ClientSize.Width - 16,
+            Font = Theme.Body,
         };
+        _toolTip.SetToolTip(button, title + shortcut);
         button.Click += (_, _) => NavigateTo(key);
         _moduleButtons[key] = button;
         return button;
+    }
+
+    /// <summary>Stretches sidebar buttons to the flow panel width.</summary>
+    private void ResizeSidebarButtons()
+    {
+        var width = Math.Max(120, _sidebarList.ClientSize.Width - 16);
+        foreach (SidebarNavButton button in _sidebarList.Controls.OfType<SidebarNavButton>())
+            button.Width = width;
+    }
+
+    /// <summary>Lays out the filter bar: actions left, Filters caption + search + Go + prev/next right.</summary>
+    private void PositionFilterBar()
+    {
+        var y = (_filterBar.Height - 28) / 2;
+        var x = Theme.Space;
+        _openBtn.Location = new Point(x, y);
+        x += _openBtn.Width + 4;
+        _saveBtn.Location = new Point(x, y);
+        x += _saveBtn.Width + 4;
+        _undoBtn.Location = new Point(x, y);
+        x += _undoBtn.Width + 4;
+        _redoBtn.Location = new Point(x, y);
+        x += _redoBtn.Width + 4;
+        _validateBtn.Location = new Point(x, y);
+        x += _validateBtn.Width + 4;
+        _progress.Location = new Point(x, y + 5);
+        x += _progress.Width + 4;
+
+        var caption = _filterBar.Controls.OfType<Label>().FirstOrDefault(l => l.Text == "Filters");
+        if (caption != null)
+        {
+            var captionRight = _filterBar.ClientSize.Width - Theme.Space;
+            _nextBtn.Location = new Point(captionRight - _nextBtn.Width, y);
+            captionRight -= _nextBtn.Width + 6;
+            _prevBtn.Location = new Point(captionRight - _prevBtn.Width, y);
+            captionRight -= _prevBtn.Width + 6;
+            _goBtn.Location = new Point(captionRight - _goBtn.Width, y);
+            captionRight -= _goBtn.Width + 8;
+            _filterSearch.Location = new Point(captionRight - _filterSearch.Width, y);
+            captionRight -= _filterSearch.Width + 8;
+            caption.Location = new Point(captionRight - caption.Width, y + 5);
+        }
+    }
+
+    /// <summary>Applies the global filter box text to the active section's record search.</summary>
+    private void ApplyGlobalFilter()
+    {
+        if (_activeKey == null || !_sections.TryGetValue(_activeKey, out var section))
+        {
+            SetStatus("Open a section first to filter its records.");
+            return;
+        }
+        var query = _filterSearch.Text.Trim();
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            section.FocusSearchBox();
+            return;
+        }
+        section.ApplyRecordFilter(query);
+        SetStatus($"Filtering {section.SectionTitle} records for “{query}”.");
+    }
+
+    /// <summary>Moves the active section to the previous/next record.</summary>
+    private void StepRecord(int delta)
+    {
+        if (_activeKey == null || !_sections.TryGetValue(_activeKey, out var section)) return;
+        var index = section.CurrentRowIndex;
+        if (index < 0) index = 0;
+        section.GoToRecord(index + delta);
     }
 
     public void NavigateTo(string key)
@@ -725,6 +832,7 @@ public sealed class MainForm : Form
     {
         BackColor = Theme.Background;
         ForeColor = Theme.Text;
+        NativeTheme.TryApplyImmersiveMode(Handle);
         _menu.BackColor = Theme.Background;
         _menu.ForeColor = Theme.Text;
         foreach (ToolStripItem item in _menu.Items)
@@ -732,7 +840,7 @@ public sealed class MainForm : Form
             item.BackColor = Theme.Background;
             item.ForeColor = Theme.Text;
         }
-        ReThemeToolbar();
+        ReThemeChrome();
         _status.BackColor = Theme.Panel;
         _statusText.ForeColor = Theme.Muted;
         _dbPath.ForeColor = Theme.Muted;
@@ -749,39 +857,51 @@ public sealed class MainForm : Form
         foreach (var section in _sections.Values)
             section.Dispose();
         _sections.Clear();
-        foreach (var button in _moduleButtons.Values)
-            button.ForeColor = Theme.Muted;
         // Re-navigate to the active section (works without a database for
         // settings/dashboard) so the new palette is immediately visible.
         if (_activeKey != null)
             NavigateTo(_activeKey);
     }
 
-    /// <summary>Re-colours the action/module toolbars after a theme toggle.</summary>
-    private void ReThemeToolbar()
+    /// <summary>Re-colours the filter bar and sidebar after a theme toggle.</summary>
+    private void ReThemeChrome()
     {
-        _toolbar.BackColor = Theme.Panel;
-        foreach (ToolStrip strip in _toolbar.Controls.OfType<ToolStrip>())
+        _filterBar.BackColor = Theme.Panel;
+        _sidebar.BackColor = Theme.Background;
+        _sidebarList.BackColor = Theme.Background;
+        foreach (Control control in _sidebar.Controls)
         {
-            strip.BackColor = Theme.Panel;
-            foreach (ToolStripItem item in strip.Items)
+            if (control is Label label)
             {
-                switch (item)
-                {
-                    case ToolStripButton btn:
-                        var primary = ReferenceEquals(btn, _saveBtn);
-                        btn.ForeColor = primary ? Theme.Background : Theme.Text;
-                        btn.BackColor = primary ? Theme.Accent : Theme.Raised;
-                        break;
-                    case ToolStripLabel label:
-                        // Right-aligned app title uses full text colour; category labels are muted.
-                        label.ForeColor = label.Alignment == ToolStripItemAlignment.Right ? Theme.Text : Theme.Muted;
-                        break;
-                }
+                label.BackColor = Theme.Background;
+                label.ForeColor = Theme.Muted;
             }
-            strip.Invalidate();
         }
-        _toolbar.Invalidate(true);
+        foreach (Control control in _sidebarList.Controls)
+        {
+            switch (control)
+            {
+                case Label label:
+                    label.ForeColor = Theme.Muted;
+                    break;
+                case SidebarNavButton nav:
+                    nav.ApplyTheme();
+                    break;
+            }
+        }
+        Theme.ApplyTextBox(_filterSearch);
+        foreach (Control control in _filterBar.Controls)
+        {
+            if (control is Label label)
+            {
+                label.ForeColor = Theme.Muted;
+                label.BackColor = Theme.Panel;
+            }
+        }
+        foreach (var button in new[] { _openBtn, _saveBtn, _undoBtn, _redoBtn, _validateBtn, _goBtn, _prevBtn, _nextBtn })
+            Theme.ApplyButton(button, primary: ReferenceEquals(button, _saveBtn));
+        _filterBar.Invalidate(true);
+        _sidebar.Invalidate(true);
     }
 
     /// <summary>Keeps a long path readable in the status bar by showing only the tail segments.</summary>

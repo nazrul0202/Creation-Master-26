@@ -1,6 +1,6 @@
 {
-  "version": "1.0.37",
+  "version": "1.0.38",
   "name": "Creation Master 26",
-  "notes": "v1.0.37 - modern UI redesign (research-based): replace the saturated blue theme with a professional neutral dark design system - tonal charcoal surfaces with hairline borders, a single restrained blue accent, muted secondary captions, semibold group headers, and consistent ModernGroupBox cards across every editor section.",
+  "notes": "v1.0.38 - FC Editor by decoruiz style UI: light theme (#F0F0F0 canvas, white cards, Microsoft blue accent) with the full FC Editor layout - top menu bar, filter bar (record search, Go, prev/next), left \"Main Functions\" sidebar, main content area and status bar. Dark mode stays available as an optional setting.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

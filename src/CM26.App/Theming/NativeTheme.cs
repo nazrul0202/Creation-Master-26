@@ -19,6 +19,22 @@ internal static class NativeTheme
     private static bool _dwmFailed;
 
     /// <summary>
+    /// Applies immersive dark/light mode to an HWND to match <see cref="Theme.IsDark"/>.
+    /// Returns false if the OS does not support immersive mode theming.
+    /// </summary>
+    public static bool TryApplyImmersiveMode(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) return false;
+        if (_dwmFailed) return false;
+
+        var ok = TrySetDwmAttribute(hwnd, DwmwaUseImmersiveDarkMode, Theme.IsDark ? 1 : 0)
+              || TrySetDwmAttribute(hwnd, DwmwaUseImmersiveDarkModeBefore2004, Theme.IsDark ? 1 : 0);
+        if (!ok && System.Environment.OSVersion.Version.Build < 17763)
+            _dwmFailed = true; // pre-1809 has no immersive dark mode at all
+        return ok;
+    }
+
+    /// <summary>
     /// Attempts to put an HWND (and its child scrollbars) into immersive dark mode.
     /// Safe to call from any thread; returns false if dark mode is unsupported.
     /// </summary>
@@ -35,10 +51,13 @@ internal static class NativeTheme
     }
 
     private static bool TrySetDwmAttribute(IntPtr hwnd, int attribute)
+        => TrySetDwmAttribute(hwnd, attribute, 1);
+
+    private static bool TrySetDwmAttribute(IntPtr hwnd, int attribute, int desiredValue)
     {
         try
         {
-            var value = 1;
+            var value = desiredValue;
             var hr = DwmSetWindowAttribute(hwnd, attribute, ref value, Marshal.SizeOf<int>());
             return hr >= 0;
         }

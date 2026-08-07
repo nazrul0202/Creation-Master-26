@@ -6,7 +6,9 @@ namespace CM26.App.Theming;
 /// <summary>Central design system: palette, typography, spacing. Every control uses these.</summary>
 public static class Theme
 {
-    private static bool _dark = true;
+    private static bool _dark = false;
+
+    static Theme() => ApplyPalette();
 
     /// <summary>Current visual theme mode (true = dark). Persisted with the settings.</summary>
     public static bool IsDark
@@ -24,8 +26,7 @@ public static class Theme
     {
         if (_dark)
         {
-            // FC Editor (decoruiz) palette: charcoal #242529 canvas, Microsoft
-            // blue accent family, Material status colours. Tonal layering for depth.
+            // Dark variant kept as an alternative; default is the FC Editor light theme.
             _background = Color.FromArgb(36, 37, 41);        // App canvas (#242529)
             _panel = Color.FromArgb(43, 45, 51);            // Cards / group boxes
             _raised = Color.FromArgb(51, 53, 60);           // Hover, headers, elevated
@@ -45,22 +46,24 @@ public static class Theme
         }
         else
         {
-            _background = Color.FromArgb(244, 246, 250);
-            _panel = Color.FromArgb(255, 255, 255);
-            _raised = Color.FromArgb(233, 237, 244);
-            _input = Color.FromArgb(255, 255, 255);
-            _border = Color.FromArgb(205, 212, 224);
-            _text = Color.FromArgb(28, 34, 44);
-            _muted = Color.FromArgb(96, 106, 122);
-            _accent = Color.FromArgb(0, 120, 212);
-            _accentHover = Color.FromArgb(0, 96, 172);
+            // FC Editor (decoruiz) light theme: #F0F0F0 canvas, white cards,
+            // Microsoft blue accent, flat Tk-style controls.
+            _background = Color.FromArgb(240, 240, 240);    // App canvas (#F0F0F0)
+            _panel = Color.FromArgb(255, 255, 255);         // Cards / group boxes
+            _raised = Color.FromArgb(227, 227, 227);        // Hover, headers, elevated (#E3E3E3)
+            _input = Color.FromArgb(255, 255, 255);         // Input wells / grid body
+            _border = Color.FromArgb(189, 189, 189);        // Hairline separators
+            _text = Color.FromArgb(26, 26, 26);             // Primary text
+            _muted = Color.FromArgb(105, 105, 105);         // Labels / secondary text
+            _accent = Color.FromArgb(0, 120, 212);          // Microsoft blue (#0078D4)
+            _accentHover = Color.FromArgb(0, 96, 171);      // Deeper hover (#0060AB)
             _link = Color.FromArgb(0, 120, 212);
-            _danger = Color.FromArgb(200, 60, 62);
-            _success = Color.FromArgb(39, 150, 96);
-            _warning = Color.FromArgb(190, 138, 26);
-            _validationBackground = Color.FromArgb(252, 235, 235);
-            _validationListBackground = Color.FromArgb(255, 245, 245);
-            _validationText = Color.FromArgb(175, 62, 55);
+            _danger = Color.FromArgb(201, 42, 42);          // Material red (#C92A2A)
+            _success = Color.FromArgb(76, 175, 80);         // Material green (#4CAF50)
+            _warning = Color.FromArgb(230, 119, 0);         // Orange (#E67700)
+            _validationBackground = Color.FromArgb(255, 244, 244);
+            _validationListBackground = Color.FromArgb(255, 250, 250);
+            _validationText = Color.FromArgb(175, 32, 32);
         }
     }
 
