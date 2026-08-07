@@ -689,27 +689,12 @@ public sealed class TeamsSection : SectionBase
         {
             var label = new Label
             {
-                Size = new Size(104, 40), BackColor = Color.FromArgb(11, 24, 36),
-                BorderStyle = BorderStyle.None, TextAlign = ContentAlignment.MiddleRight,
-                Font = new Font("Segoe UI", 6.4F, FontStyle.Bold),
+                Size = new Size(96, 36), BackColor = Color.FromArgb(17, 38, 56),
+                BorderStyle = BorderStyle.FixedSingle, TextAlign = ContentAlignment.MiddleRight,
+                Font = new Font("Segoe UI", 6F, FontStyle.Bold),
                 ForeColor = Color.White, AllowDrop = true, Tag = _lineupSlots.Count,
                 ImageAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(4, 1, 4, 1)
-            };
-            label.Paint += (_, e) =>
-            {
-                // Glassmorphism card: translucent gradient body, neon cyan edge
-                // and a soft outer glow — matching the broadcast night pitch.
-                var r = new Rectangle(0, 0, label.Width - 1, label.Height - 1);
-                using var body = new System.Drawing.Drawing2D.LinearGradientBrush(r,
-                    Color.FromArgb(70, 20, 40, 60), Color.FromArgb(160, 8, 20, 32),
-                    System.Drawing.Drawing2D.LinearGradientMode.Vertical);
-                e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                e.Graphics.FillRectangle(body, r);
-                using var glow = new Pen(Color.FromArgb(50, 90, 210, 255), 4f);
-                using var edge = new Pen(Color.FromArgb(220, 140, 225, 250), 1.2f);
-                e.Graphics.DrawRectangle(glow, r);
-                e.Graphics.DrawRectangle(edge, r);
+                Padding = new Padding(3, 1, 3, 1)
             };
             label.DragEnter += (_, e) => e.Effect = e.Data?.GetDataPresent(typeof(int)) == true ? DragDropEffects.Copy : DragDropEffects.None;
             label.DragDrop += (_, e) => AssignDroppedPlayer(e, label);
@@ -722,96 +707,48 @@ public sealed class TeamsSection : SectionBase
     private static void DrawPitch(Graphics graphics, Rectangle bounds)
     {
         graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
         var playable = Rectangle.Inflate(bounds, -10, -10);
 
-        // Night-mode turf: a vertical gradient from deep navy down to a dark
-        // emerald, with subtle mowing bands — the broadcast tactics-board look.
+        // Classic green pitch with subtle mowing bands.
         using (var turf = new System.Drawing.Drawing2D.LinearGradientBrush(playable,
-                   Color.FromArgb(13, 30, 44), Color.FromArgb(7, 42, 30),
+                   Color.FromArgb(0, 110, 50), Color.FromArgb(0, 130, 60),
                    System.Drawing.Drawing2D.LinearGradientMode.Vertical))
         {
             graphics.FillRectangle(turf, playable);
         }
-        using var band = new SolidBrush(Color.FromArgb(10, 255, 255, 255));
-        var bandHeight = Math.Max(1, playable.Height / 12);
-        for (var row = 0; row < 12; row += 2)
+        using var band = new SolidBrush(Color.FromArgb(20, 255, 255, 255));
+        var bandHeight = Math.Max(1, playable.Height / 10);
+        for (var row = 0; row < 10; row += 2)
             graphics.FillRectangle(band, playable.Left, playable.Top + (row * bandHeight),
                 playable.Width, bandHeight);
 
-        // Neon white lines drawn in layered passes for a soft broadcast glow.
-        var center = new Point(playable.Left + (playable.Width / 2), playable.Top + (playable.Height / 2));
-        var penaltyWidth = Math.Max(150, playable.Width / 3);
-        var penaltyHeight = Math.Max(54, playable.Height / 7);
-        var penaltyLeft = playable.Left + ((playable.Width - penaltyWidth) / 2);
-        var sixWidth = Math.Max(74, playable.Width / 7);
-        var sixHeight = Math.Max(24, playable.Height / 18);
-        var sixLeft = playable.Left + ((playable.Width - sixWidth) / 2);
+        // White lines.
+        using var line = new Pen(Color.FromArgb(210, Color.White), 1.5f);
+        graphics.DrawRectangle(line, playable);
+        var centerY = playable.Top + (playable.Height / 2);
+        graphics.DrawLine(line, playable.Left, centerY, playable.Right, centerY);
+
         var circleRadius = Math.Max(30, Math.Min(playable.Width, playable.Height) / 9);
+        var cx = playable.Left + (playable.Width / 2);
+        graphics.DrawEllipse(line, cx - circleRadius, centerY - circleRadius, circleRadius * 2, circleRadius * 2);
+        graphics.FillEllipse(Brushes.White, cx - 3, centerY - 3, 6, 6);
 
-        var shapes = new List<System.Drawing.Drawing2D.GraphicsPath>();
-        using (var outline = new System.Drawing.Drawing2D.GraphicsPath())
-        {
-            outline.AddRectangle(playable);
-            shapes.Add(outline);
-        }
-        using (var centerLine = new System.Drawing.Drawing2D.GraphicsPath())
-        {
-            centerLine.AddLine(playable.Left, center.Y, playable.Right, center.Y);
-            shapes.Add(centerLine);
-        }
-        using (var circle = new System.Drawing.Drawing2D.GraphicsPath())
-        {
-            circle.AddEllipse(center.X - circleRadius, center.Y - circleRadius, circleRadius * 2, circleRadius * 2);
-            shapes.Add(circle);
-        }
-        for (var side = 0; side < 2; side++)
-        {
-            var top = side == 0;
-            var cy = top ? playable.Top : playable.Bottom;
-            using (var pen = new System.Drawing.Drawing2D.GraphicsPath())
-            {
-                pen.AddRectangle(new Rectangle(penaltyLeft, top ? playable.Top : playable.Bottom - penaltyHeight, penaltyWidth, penaltyHeight));
-                shapes.Add(pen);
-            }
-            using (var six = new System.Drawing.Drawing2D.GraphicsPath())
-            {
-                six.AddRectangle(new Rectangle(sixLeft, top ? playable.Top : playable.Bottom - sixHeight, sixWidth, sixHeight));
-                shapes.Add(six);
-            }
-            using (var corner = new System.Drawing.Drawing2D.GraphicsPath())
-            {
-                var radius = Math.Max(8, playable.Width / 60);
-                corner.AddArc(top ? playable.Left : playable.Right - radius * 2, top ? playable.Top : playable.Bottom - radius * 2,
-                    radius * 2, radius * 2, top ? 180 : 0, top ? 90 : 90);
-                shapes.Add(corner);
-            }
-        }
+        var penaltyWidth = Math.Max(140, playable.Width / 3);
+        var penaltyHeight = Math.Max(50, playable.Height / 7);
+        var penaltyLeft = playable.Left + ((playable.Width - penaltyWidth) / 2);
+        graphics.DrawRectangle(line, penaltyLeft, playable.Top, penaltyWidth, penaltyHeight);
+        graphics.DrawRectangle(line, penaltyLeft, playable.Bottom - penaltyHeight, penaltyWidth, penaltyHeight);
 
-        // Layered glow: wide faint pass, then a crisp bright pass on top.
-        foreach (var shape in shapes)
-        {
-            using var glow = new Pen(Color.FromArgb(28, 210, 240, 255), 7f);
-            graphics.DrawPath(glow, shape);
-        }
-        foreach (var shape in shapes)
-        {
-            using var soft = new Pen(Color.FromArgb(70, 190, 230, 250), 3f);
-            graphics.DrawPath(soft, shape);
-        }
-        foreach (var shape in shapes)
-        {
-            using var bright = new Pen(Color.FromArgb(235, 232, 246, 255), 1.8f);
-            graphics.DrawPath(bright, shape);
-        }
+        var sixWidth = Math.Max(70, playable.Width / 7);
+        var sixHeight = Math.Max(22, playable.Height / 18);
+        var sixLeft = playable.Left + ((playable.Width - sixWidth) / 2);
+        graphics.DrawRectangle(line, sixLeft, playable.Top, sixWidth, sixHeight);
+        graphics.DrawRectangle(line, sixLeft, playable.Bottom - sixHeight, sixWidth, sixHeight);
 
-        // Center spot + penalty spots.
-        using (var dot = new SolidBrush(Color.FromArgb(240, 240, 248, 255)))
-        {
-            graphics.FillEllipse(dot, center.X - 3, center.Y - 3, 6, 6);
-            graphics.FillEllipse(dot, center.X - 3, playable.Top + penaltyHeight - 3, 6, 6);
-            graphics.FillEllipse(dot, center.X - 3, playable.Bottom - penaltyHeight - 3, 6, 6);
-        }
+        // Penalty spots.
+        using var dot = new SolidBrush(Color.White);
+        graphics.FillEllipse(dot, cx - 3, playable.Top + penaltyHeight - 3, 6, 6);
+        graphics.FillEllipse(dot, cx - 3, playable.Bottom - penaltyHeight - 3, 6, 6);
     }
 
     private void AssignDroppedPlayer(DragEventArgs e, Control target)
@@ -954,7 +891,7 @@ public sealed class TeamsSection : SectionBase
         for (var i = 0; i < _lineupSlots.Count; i++)
         {
             var x = ReadFormationOffset(table, record, $"offset{i}x", _formationBoard.Width);
-            var y = ReadFormationOffset(table, record, $"offset{i}y", _formationBoard.Height, invertY: true);
+            var y = ReadFormationOffset(table, record, $"offset{i}y", _formationBoard.Height);
             var positionColumn = Col(table, $"position{i}");
             var slot = _lineupSlots[i];
             slot.Label.Location = new Point(
@@ -980,98 +917,94 @@ public sealed class TeamsSection : SectionBase
         if (_formationBoard == null) return;
         var boardW = _formationBoard.Width;
         var boardH = _formationBoard.Height;
-        var placed = new List<Rectangle>();
-        foreach (var slot in _lineupSlots
-                     .Where(item => item.Label.Visible)
-                     .OrderBy(item => item.Label.Top)
-                     .ThenBy(item => item.Label.Left))
-        {
-            var desired = slot.Label.Location;
-            var candidates =
-                 from radius in Enumerable.Range(0, Math.Max(boardW, boardH) / 3).Select(value => value * 3)
-                from dy in Enumerable.Range(-radius / 3, (radius * 2 / 3) + 1).Select(value => value * 3)
-                let dxMag = radius - Math.Abs(dy)
-                from dx in dxMag == 0 ? new[] { 0 } : new[] { -dxMag, dxMag }
-                let x = Math.Clamp(desired.X + dx, 10, boardW - slot.Label.Width - 10)
-                let y = Math.Clamp(desired.Y + dy, 10, boardH - slot.Label.Height - 10)
-                let bounds = new Rectangle(x, y, slot.Label.Width, slot.Label.Height)
-                orderby (x - desired.X) * (x - desired.X) + (y - desired.Y) * (y - desired.Y)
-                select bounds;
+        var slots = _lineupSlots.Where(s => s.Label.Visible).ToList();
+        var cardW = 96;
+        var cardH = 36;
+        var gap = 6;
 
-            var pad = 12;
-            var selected = candidates.FirstOrDefault(candidate =>
+        // Phase 1: Place each card at its target, bumping right/down if occupied.
+        var occupied = new List<Rectangle>();
+        foreach (var slot in slots)
+        {
+            var rx = slot.Label.Left;
+            var ry = slot.Label.Top;
+            var rb = new Rectangle(rx, ry, cardW, cardH);
+            // Find closest non-overlapping position by spiraling outward.
+            for (var dist = 0; dist < Math.Max(boardW, boardH); dist += 4)
             {
-                var padded = candidate;
-                padded.Inflate(pad, pad);
-                return placed.All(existing => !padded.IntersectsWith(existing));
-            });
-            if (selected.Width == 0)
-            {
-                selected = Enumerable.Range(1, Math.Max(1, (boardW - slot.Label.Width - 20) / 6) + 1)
-                    .SelectMany(x => Enumerable.Range(1, Math.Max(1, (boardH - slot.Label.Height - 20) / 6) + 1)
-                        .Select(y => new Rectangle(x * 6, y * 6, slot.Label.Width, slot.Label.Height)))
-                    .OrderBy(candidate => placed.Count(existing =>
+                var found = false;
+                for (var dy = -dist; dy <= dist; dy += 4)
+                {
+                    for (var dx = -dist; dx <= dist; dx += 4)
                     {
-                        var padded = candidate;
-                        padded.Inflate(pad, pad);
-                        return padded.IntersectsWith(existing);
-                    }))
-                    .ThenBy(candidate => (candidate.X - desired.X) * (candidate.X - desired.X) +
-                                         (candidate.Y - desired.Y) * (candidate.Y - desired.Y))
-                    .First();
+                        if (Math.Abs(dx) != dist && Math.Abs(dy) != dist) continue;
+                        var nx = Math.Clamp(rx + dx, 10, boardW - cardW - 10);
+                        var ny = Math.Clamp(ry + dy, 10, boardH - cardH - 10);
+                        var nb = new Rectangle(nx, ny, cardW, cardH);
+                        nb.Inflate(gap, gap);
+                        if (!occupied.Any(o => o.IntersectsWith(nb)))
+                        {
+                            slot.Label.Left = nx;
+                            slot.Label.Top = ny;
+                            nb.Inflate(-gap, -gap);
+                            occupied.Add(nb);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) break;
+                }
+                if (found) break;
+                if (dist == 0)
+                {
+                    // First card always fits.
+                    var nb = new Rectangle(rx, ry, cardW, cardH);
+                    occupied.Add(nb);
+                    break;
+                }
             }
-            slot.Label.Location = selected.Location;
-            selected.Inflate(pad, pad);
-            placed.Add(selected);
         }
 
-        // Second pass: iteratively push any remaining overlaps apart.
-        var slots = _lineupSlots.Where(s => s.Label.Visible).ToList();
-        for (var iteration = 0; iteration < 20; iteration++)
+        // Phase 2: Iteratively push overlapping cards apart (up to 30 rounds).
+        for (var iter = 0; iter < 30; iter++)
         {
             var anyOverlap = false;
             for (var a = 0; a < slots.Count; a++)
             {
                 for (var b = a + 1; b < slots.Count; b++)
                 {
-                    var ra = new Rectangle(slots[a].Label.Location, slots[a].Label.Size);
-                    var rb = new Rectangle(slots[b].Label.Location, slots[b].Label.Size);
-                    ra.Inflate(10, 10);
-                    rb.Inflate(10, 10);
+                    var ra = new Rectangle(slots[a].Label.Left, slots[a].Label.Top, cardW, cardH);
+                    var rb = new Rectangle(slots[b].Label.Left, slots[b].Label.Top, cardW, cardH);
+                    ra.Inflate(gap, gap);
+                    rb.Inflate(gap, gap);
                     if (!ra.IntersectsWith(rb)) continue;
                     anyOverlap = true;
-                    var ca = new Point(ra.X + ra.Width / 2, ra.Y + ra.Height / 2);
-                    var cb = new Point(rb.X + rb.Width / 2, rb.Y + rb.Height / 2);
-                    var dx = ca.X - cb.X;
-                    var dy = ca.Y - cb.Y;
-                    if (dx == 0 && dy == 0) { dx = 1; }
+                    var ax = slots[a].Label.Left + cardW / 2;
+                    var ay = slots[a].Label.Top + cardH / 2;
+                    var bx = slots[b].Label.Left + cardW / 2;
+                    var by = slots[b].Label.Top + cardH / 2;
+                    var dx = ax - bx;
+                    var dy = ay - by;
+                    if (dx == 0 && dy == 0) dx = 1;
                     var dist = Math.Max(1, (int)Math.Sqrt(dx * dx + dy * dy));
-                    var push = Math.Max(0, (22 - dist) / 2 + 2);
+                    var push = Math.Max(6, (cardW + gap * 2 - dist) / 2 + 4);
                     var ox = (dx * push) / dist;
                     var oy = (dy * push) / dist;
-                    var newA = new Point(
-                        Math.Clamp(slots[a].Label.Left + ox, 10, boardW - slots[a].Label.Width - 10),
-                        Math.Clamp(slots[a].Label.Top + oy, 10, boardH - slots[a].Label.Height - 10));
-                    var newB = new Point(
-                        Math.Clamp(slots[b].Label.Left - ox, 10, boardW - slots[b].Label.Width - 10),
-                        Math.Clamp(slots[b].Label.Top - oy, 10, boardH - slots[b].Label.Height - 10));
-                    slots[a].Label.Location = newA;
-                    slots[b].Label.Location = newB;
+                    slots[a].Label.Left = Math.Clamp(slots[a].Label.Left + ox, 10, boardW - cardW - 10);
+                    slots[a].Label.Top = Math.Clamp(slots[a].Label.Top + oy, 10, boardH - cardH - 10);
+                    slots[b].Label.Left = Math.Clamp(slots[b].Label.Left - ox, 10, boardW - cardW - 10);
+                    slots[b].Label.Top = Math.Clamp(slots[b].Label.Top - oy, 10, boardH - cardH - 10);
                 }
             }
             if (!anyOverlap) break;
         }
     }
 
-    private static int ReadFormationOffset(CM26.Application.Models.DbTable table, CM26.Application.Models.DbRecord record, string field, int extent, bool invertY = false)
+    private static int ReadFormationOffset(CM26.Application.Models.DbTable table, CM26.Application.Models.DbRecord record, string field, int extent)
     {
         var raw = record.Get(Col(table, field));
         var value = double.TryParse(raw, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var parsed) ? parsed : 0d;
-        // FC26 stores these offsets as fractional board coordinates (for example
-        // 0.05, 0.50 and 0.95). Y is stored bottom-up (0.0 = GK line, 1.0 = striker line)
-        // but WinForms renders top-down (Y=0 at top), so invert Y when requested.
         var normalized = value is >= 0d and <= 1d ? value : value / 100d;
-        if (invertY) normalized = 1d - normalized;
         return Math.Clamp((int)Math.Round(Math.Clamp(normalized, 0d, 1d) * (extent - 20)) + 10, 10, extent - 10);
     }
 
