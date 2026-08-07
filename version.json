@@ -1,6 +1,6 @@
 {
-  "version": "1.0.42",
+  "version": "1.0.43",
   "name": "Creation Master 26",
-  "notes": "v1.0.42 - Formation pitch: GK positioned correctly (Y inverted), expanded board size, improved collision resolution with iterative push-apart algorithm.",
+  "notes": "v1.0.43 - Formation pitch redesigned: broadcast night-mode turf with gradient + neon glow lines + corner arcs. Player cards upgraded to glassmorphism style with cyan edge glow.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

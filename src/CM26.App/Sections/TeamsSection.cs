@@ -689,12 +689,27 @@ public sealed class TeamsSection : SectionBase
         {
             var label = new Label
             {
-                Size = new Size(100, 38), BackColor = Color.FromArgb(17, 38, 56),
-                BorderStyle = BorderStyle.FixedSingle, TextAlign = ContentAlignment.MiddleRight,
-                Font = new Font("Segoe UI", 6.2F, FontStyle.Bold),
+                Size = new Size(104, 40), BackColor = Color.FromArgb(11, 24, 36),
+                BorderStyle = BorderStyle.None, TextAlign = ContentAlignment.MiddleRight,
+                Font = new Font("Segoe UI", 6.4F, FontStyle.Bold),
                 ForeColor = Color.White, AllowDrop = true, Tag = _lineupSlots.Count,
                 ImageAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(3, 1, 3, 1)
+                Padding = new Padding(4, 1, 4, 1)
+            };
+            label.Paint += (_, e) =>
+            {
+                // Glassmorphism card: translucent gradient body, neon cyan edge
+                // and a soft outer glow — matching the broadcast night pitch.
+                var r = new Rectangle(0, 0, label.Width - 1, label.Height - 1);
+                using var body = new System.Drawing.Drawing2D.LinearGradientBrush(r,
+                    Color.FromArgb(70, 20, 40, 60), Color.FromArgb(160, 8, 20, 32),
+                    System.Drawing.Drawing2D.LinearGradientMode.Vertical);
+                e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                e.Graphics.FillRectangle(body, r);
+                using var glow = new Pen(Color.FromArgb(50, 90, 210, 255), 4f);
+                using var edge = new Pen(Color.FromArgb(220, 140, 225, 250), 1.2f);
+                e.Graphics.DrawRectangle(glow, r);
+                e.Graphics.DrawRectangle(edge, r);
             };
             label.DragEnter += (_, e) => e.Effect = e.Data?.GetDataPresent(typeof(int)) == true ? DragDropEffects.Copy : DragDropEffects.None;
             label.DragDrop += (_, e) => AssignDroppedPlayer(e, label);
@@ -707,35 +722,96 @@ public sealed class TeamsSection : SectionBase
     private static void DrawPitch(Graphics graphics, Rectangle bounds)
     {
         graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        using var stripe = new SolidBrush(Color.FromArgb(18, 255, 255, 255));
-        var playable = Rectangle.Inflate(bounds, -8, -8);
-        var stripeHeight = Math.Max(1, playable.Height / 10);
-        for (var row = 0; row < 10; row += 2)
-            graphics.FillRectangle(stripe, playable.Left, playable.Top + (row * stripeHeight),
-                playable.Width, stripeHeight);
+        graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+        var playable = Rectangle.Inflate(bounds, -10, -10);
 
-        using var line = new Pen(Color.FromArgb(235, Color.White), 2f);
-        graphics.DrawRectangle(line, playable);
-        graphics.DrawLine(line, playable.Left, playable.Top + (playable.Height / 2),
-            playable.Right, playable.Top + (playable.Height / 2));
-        graphics.DrawEllipse(line,
-            playable.Left + (playable.Width / 2) - 45,
-            playable.Top + (playable.Height / 2) - 45, 90, 90);
-        graphics.FillEllipse(Brushes.White,
-            playable.Left + (playable.Width / 2) - 3,
-            playable.Top + (playable.Height / 2) - 3, 6, 6);
+        // Night-mode turf: a vertical gradient from deep navy down to a dark
+        // emerald, with subtle mowing bands — the broadcast tactics-board look.
+        using (var turf = new System.Drawing.Drawing2D.LinearGradientBrush(playable,
+                   Color.FromArgb(13, 30, 44), Color.FromArgb(7, 42, 30),
+                   System.Drawing.Drawing2D.LinearGradientMode.Vertical))
+        {
+            graphics.FillRectangle(turf, playable);
+        }
+        using var band = new SolidBrush(Color.FromArgb(10, 255, 255, 255));
+        var bandHeight = Math.Max(1, playable.Height / 12);
+        for (var row = 0; row < 12; row += 2)
+            graphics.FillRectangle(band, playable.Left, playable.Top + (row * bandHeight),
+                playable.Width, bandHeight);
 
+        // Neon white lines drawn in layered passes for a soft broadcast glow.
+        var center = new Point(playable.Left + (playable.Width / 2), playable.Top + (playable.Height / 2));
         var penaltyWidth = Math.Max(150, playable.Width / 3);
         var penaltyHeight = Math.Max(54, playable.Height / 7);
         var penaltyLeft = playable.Left + ((playable.Width - penaltyWidth) / 2);
-        graphics.DrawRectangle(line, penaltyLeft, playable.Top, penaltyWidth, penaltyHeight);
-        graphics.DrawRectangle(line, penaltyLeft, playable.Bottom - penaltyHeight, penaltyWidth, penaltyHeight);
-
         var sixWidth = Math.Max(74, playable.Width / 7);
         var sixHeight = Math.Max(24, playable.Height / 18);
         var sixLeft = playable.Left + ((playable.Width - sixWidth) / 2);
-        graphics.DrawRectangle(line, sixLeft, playable.Top, sixWidth, sixHeight);
-        graphics.DrawRectangle(line, sixLeft, playable.Bottom - sixHeight, sixWidth, sixHeight);
+        var circleRadius = Math.Max(30, Math.Min(playable.Width, playable.Height) / 9);
+
+        var shapes = new List<System.Drawing.Drawing2D.GraphicsPath>();
+        using (var outline = new System.Drawing.Drawing2D.GraphicsPath())
+        {
+            outline.AddRectangle(playable);
+            shapes.Add(outline);
+        }
+        using (var centerLine = new System.Drawing.Drawing2D.GraphicsPath())
+        {
+            centerLine.AddLine(playable.Left, center.Y, playable.Right, center.Y);
+            shapes.Add(centerLine);
+        }
+        using (var circle = new System.Drawing.Drawing2D.GraphicsPath())
+        {
+            circle.AddEllipse(center.X - circleRadius, center.Y - circleRadius, circleRadius * 2, circleRadius * 2);
+            shapes.Add(circle);
+        }
+        for (var side = 0; side < 2; side++)
+        {
+            var top = side == 0;
+            var cy = top ? playable.Top : playable.Bottom;
+            using (var pen = new System.Drawing.Drawing2D.GraphicsPath())
+            {
+                pen.AddRectangle(new Rectangle(penaltyLeft, top ? playable.Top : playable.Bottom - penaltyHeight, penaltyWidth, penaltyHeight));
+                shapes.Add(pen);
+            }
+            using (var six = new System.Drawing.Drawing2D.GraphicsPath())
+            {
+                six.AddRectangle(new Rectangle(sixLeft, top ? playable.Top : playable.Bottom - sixHeight, sixWidth, sixHeight));
+                shapes.Add(six);
+            }
+            using (var corner = new System.Drawing.Drawing2D.GraphicsPath())
+            {
+                var radius = Math.Max(8, playable.Width / 60);
+                corner.AddArc(top ? playable.Left : playable.Right - radius * 2, top ? playable.Top : playable.Bottom - radius * 2,
+                    radius * 2, radius * 2, top ? 180 : 0, top ? 90 : 90);
+                shapes.Add(corner);
+            }
+        }
+
+        // Layered glow: wide faint pass, then a crisp bright pass on top.
+        foreach (var shape in shapes)
+        {
+            using var glow = new Pen(Color.FromArgb(28, 210, 240, 255), 7f);
+            graphics.DrawPath(glow, shape);
+        }
+        foreach (var shape in shapes)
+        {
+            using var soft = new Pen(Color.FromArgb(70, 190, 230, 250), 3f);
+            graphics.DrawPath(soft, shape);
+        }
+        foreach (var shape in shapes)
+        {
+            using var bright = new Pen(Color.FromArgb(235, 232, 246, 255), 1.8f);
+            graphics.DrawPath(bright, shape);
+        }
+
+        // Center spot + penalty spots.
+        using (var dot = new SolidBrush(Color.FromArgb(240, 240, 248, 255)))
+        {
+            graphics.FillEllipse(dot, center.X - 3, center.Y - 3, 6, 6);
+            graphics.FillEllipse(dot, center.X - 3, playable.Top + penaltyHeight - 3, 6, 6);
+            graphics.FillEllipse(dot, center.X - 3, playable.Bottom - penaltyHeight - 3, 6, 6);
+        }
     }
 
     private void AssignDroppedPlayer(DragEventArgs e, Control target)
