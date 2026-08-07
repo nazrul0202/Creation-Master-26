@@ -67,10 +67,7 @@ public sealed class TeamsSection : SectionBase
         Tabs.Padding = new Point(4, 2);
         AddGenericTab();
         AddRosterTab();
-        AddSponsorsTab();
-        AddAdboardsTab();
-        AddFlagsTab();
-        AddAudioTab();
+        // Sponsors, Adboards, Flags, Audio tabs removed — not needed for basic team editing.
     }
 
     protected override IReadOnlyList<RecordListItem> GetRecords() => Services.RequireData().GetTeams();
@@ -364,11 +361,11 @@ public sealed class TeamsSection : SectionBase
         var page = Page("Generic");
         var canvas = Canvas(page);
 
-        var logos = Group("Logos", new Point(3, 3), new Size(270, 315));
+        var logos = Group("Logos", new Point(3, 3), new Size(270, 320));
         logos.Controls.Add(CrestViewer(new Point(6, 19), new Size(256, 256)));
         LegacyAssetActions.Attach(Services, logos, _crestViewers[0], new Point(6, 277), () => ShowRecord(CurrentRecordIndex));
-        _crestCaption.Location = new Point(8, 280);
-        _crestCaption.Size = new Size(252, 30);
+        _crestCaption.Location = new Point(8, 306);
+        _crestCaption.Size = new Size(252, 12);
         _crestCaption.TextAlign = ContentAlignment.MiddleCenter;
         _crestCaption.ForeColor = Theme.Muted;
         _crestCaption.Font = LegacyFont;
@@ -692,12 +689,12 @@ public sealed class TeamsSection : SectionBase
         {
             var label = new Label
             {
-                Size = new Size(112, 42), BackColor = Color.FromArgb(17, 38, 56),
+                Size = new Size(100, 38), BackColor = Color.FromArgb(17, 38, 56),
                 BorderStyle = BorderStyle.FixedSingle, TextAlign = ContentAlignment.MiddleRight,
-                Font = new Font("Segoe UI", 6.6F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 6.2F, FontStyle.Bold),
                 ForeColor = Color.White, AllowDrop = true, Tag = _lineupSlots.Count,
                 ImageAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(4, 1, 4, 1)
+                Padding = new Padding(3, 1, 3, 1)
             };
             label.DragEnter += (_, e) => e.Effect = e.Data?.GetDataPresent(typeof(int)) == true ? DragDropEffects.Copy : DragDropEffects.None;
             label.DragDrop += (_, e) => AssignDroppedPlayer(e, label);
@@ -915,8 +912,8 @@ public sealed class TeamsSection : SectionBase
         {
             var desired = slot.Label.Location;
             var candidates =
-                 from radius in Enumerable.Range(0, Math.Max(_formationBoard.Width, _formationBoard.Height) / 6).Select(value => value * 6)
-                from dy in Enumerable.Range(-radius / 6, (radius * 2 / 6) + 1).Select(value => value * 6)
+                 from radius in Enumerable.Range(0, Math.Max(_formationBoard.Width, _formationBoard.Height) / 4).Select(value => value * 4)
+                from dy in Enumerable.Range(-radius / 4, (radius * 2 / 4) + 1).Select(value => value * 4)
                 let dxMagnitude = radius - Math.Abs(dy)
                 from dx in dxMagnitude == 0 ? new[] { 0 } : new[] { -dxMagnitude, dxMagnitude }
                 let x = Math.Clamp(desired.X + dx, 8, _formationBoard.Width - slot.Label.Width - 8)
@@ -928,7 +925,7 @@ public sealed class TeamsSection : SectionBase
             var selected = candidates.FirstOrDefault(candidate =>
             {
                 var padded = candidate;
-                padded.Inflate(5, 5);
+                padded.Inflate(8, 8);
                 return placed.All(existing => !padded.IntersectsWith(existing));
             });
             if (selected.Width == 0)
@@ -941,7 +938,7 @@ public sealed class TeamsSection : SectionBase
                     .OrderBy(candidate => placed.Count(existing =>
                     {
                         var padded = candidate;
-                        padded.Inflate(5, 5);
+                        padded.Inflate(8, 8);
                         return padded.IntersectsWith(existing);
                     }))
                     .ThenBy(candidate => (candidate.X - desired.X) * (candidate.X - desired.X) +
@@ -949,7 +946,7 @@ public sealed class TeamsSection : SectionBase
                     .First();
             }
             slot.Label.Location = selected.Location;
-            selected.Inflate(5, 5);
+            selected.Inflate(8, 8);
             placed.Add(selected);
         }
     }

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.40",
+  "version": "1.0.41",
   "name": "Creation Master 26",
-  "notes": "v1.0.40 - Kits: removed Kit Record info group, added Import/Export Kit Texture and Hotspot buttons. Sidebar: removed Stadium Audio and Sponsors. Help: added Discord Support link.",
+  "notes": "v1.0.41 - Removed Teams tabs (Sponsors, Adboards, Flags, Audio) and Players Callname tab. Fixed overlapping UI in Teams Logos group, formation player cards, and Players Identity Card.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

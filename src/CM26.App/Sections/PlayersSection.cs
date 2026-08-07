@@ -46,7 +46,7 @@ public sealed class PlayersSection : SectionBase
         AddSkillsTab();
         AddFaceTab();
         AddDetailsTab();
-        AddCallnameTab();
+        // Callname tab removed — not needed for basic player editing.
     }
 
     protected override IReadOnlyList<RecordListItem> GetRecords() => Services.RequireData().GetPlayers();
@@ -143,7 +143,7 @@ public sealed class PlayersSection : SectionBase
         var page = Page("Info");
         var canvas = Canvas(page);
 
-        var identity = Box("Identity Card", new Point(3, 3), new Size(390, 220));
+        var identity = Box("Identity Card", new Point(3, 3), new Size(390, 240));
         _miniface.Location = new Point(12, 20);
         _miniface.Size = new Size(100, 100);
         _miniface.BackColor = Theme.Input;
@@ -151,7 +151,7 @@ public sealed class PlayersSection : SectionBase
         _miniface.SizeMode = PictureBoxSizeMode.Zoom;
         identity.Controls.Add(_miniface);
         LegacyAssetActions.Attach(Services, identity, _miniface, new Point(12, 124), () => ShowRecord(CurrentRecordIndex));
-        _playerName.Location = new Point(11, 196);
+        _playerName.Location = new Point(11, 216);
         _playerName.Size = new Size(365, 20);
         _playerName.Font = LegacyFont;
         _playerName.AutoEllipsis = true;
@@ -173,11 +173,11 @@ public sealed class PlayersSection : SectionBase
         AddFields(playingFor, new[] { ("Joining Date", "playerjointeamdate"), ("Is Retiring", "isretiring") }, 12, 122, 102, 125, 26);
         canvas.Controls.Add(playingFor);
 
-        var body = Box("Body", new Point(3, 229), new Size(390, 154));
+        var body = Box("Body", new Point(3, 249), new Size(390, 154));
         AddFields(body, new[] { ("Height", "height"), ("Weight", "weight"), ("Body", "bodytypecode"), ("Best foot", "preferredfoot"), ("Weak foot", "weakfootabilitytypecode") }, 12, 18, 245, 120, 26);
         canvas.Controls.Add(body);
 
-        var look = Box("Look", new Point(3, 391), new Size(390, 252));
+        var look = Box("Look", new Point(3, 409), new Size(390, 252));
         AddFields(look, new[]
         {
             ("Jersey Style", "jerseystylecode"), ("Sleeves Length", "jerseysleevelengthcode"), ("Socks Style", "sockstylecode"),
@@ -186,7 +186,7 @@ public sealed class PlayersSection : SectionBase
         }, 12, 18, 145, 240, 26);
         canvas.Controls.Add(look);
 
-        var shoes = Box("Boots", new Point(399, 229), new Size(245, 154));
+        var shoes = Box("Boots", new Point(399, 249), new Size(245, 154));
         _shoePreview.Location = new Point(112, 30);
         _shoePreview.Size = new Size(118, 118);
         _shoePreview.BackColor = Theme.Input;
@@ -200,7 +200,7 @@ public sealed class PlayersSection : SectionBase
         }, 12, 22, 65, 40, 26);
         canvas.Controls.Add(shoes);
 
-        var play = Box("Playing Info", new Point(399, 391), new Size(245, 155));
+        var play = Box("Playing Info", new Point(399, 409), new Size(245, 155));
         AddFields(play, new[]
         {
             ("Preferred Position 1", "preferredposition1"), ("Preferred Position 2", "preferredposition2"),
