@@ -40,13 +40,34 @@ public sealed class PlayersSection : SectionBase
 
     public PlayersSection(AppServices services) : base(services)
     {
-        Tabs.Font = LegacyFont;
+        // Font/GDI+ can be hostile on some machines (remote sessions, exotic
+        // display scaling). Build every tab defensively so a single field that
+        // cannot accept a font never takes down the whole section — or the app.
+        SafeCtorStep(Tabs, "Tabs font", () => Tabs.Font = LegacyFont);
         Tabs.Padding = new Point(4, 2);
-        AddInfoTab();
-        AddSkillsTab();
-        AddFaceTab();
-        AddDetailsTab();
+        AddTabSafe("Info", AddInfoTab);
+        AddTabSafe("Skills", AddSkillsTab);
+        AddTabSafe("Face", AddFaceTab);
+        AddTabSafe("Details", AddDetailsTab);
         // Callname tab removed — not needed for basic player editing.
+    }
+
+    private void AddTabSafe(string name, Action build)
+    {
+        try { build(); }
+        catch (Exception ex)
+        {
+            Program.Log($"PlayersSection tab '{name}' build failed (skipped): {ex.Message}");
+        }
+    }
+
+    private static void SafeCtorStep(Control target, string name, Action build)
+    {
+        try { build(); }
+        catch (Exception ex)
+        {
+            Program.Log($"PlayersSection '{name}' failed: {ex.Message}");
+        }
     }
 
     protected override IReadOnlyList<RecordListItem> GetRecords() => Services.RequireData().GetPlayers();
