@@ -1,6 +1,6 @@
 {
-  "version": "1.0.41",
+  "version": "1.0.42",
   "name": "Creation Master 26",
-  "notes": "v1.0.41 - Removed Teams tabs (Sponsors, Adboards, Flags, Audio) and Players Callname tab. Fixed overlapping UI in Teams Logos group, formation player cards, and Players Identity Card.",
+  "notes": "v1.0.42 - Formation pitch: GK positioned correctly (Y inverted), expanded board size, improved collision resolution with iterative push-apart algorithm.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

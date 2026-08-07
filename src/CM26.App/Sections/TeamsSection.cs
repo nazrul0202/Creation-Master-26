@@ -599,8 +599,8 @@ public sealed class TeamsSection : SectionBase
         available.Controls.Add(_availablePlayers);
         canvas.Controls.Add(available);
 
-        var pitch = Group("Starting Lineup", new Point(731, 3), new Size(990, 795));
-        var board = new Panel { Location = new Point(8, 20), Size = new Size(650, 500), BackColor = Color.FromArgb(106, 190, 87), BorderStyle = BorderStyle.FixedSingle, AllowDrop = true, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        var pitch = Group("Starting Lineup", new Point(731, 3), new Size(990, 810));
+        var board = new Panel { Location = new Point(8, 20), Size = new Size(660, 530), BackColor = Color.FromArgb(106, 190, 87), BorderStyle = BorderStyle.FixedSingle, AllowDrop = true, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         board.Paint += (_, e) =>
         {
             // GDI+ drawing runs inside the WinForms message pump. A native fault
@@ -619,7 +619,7 @@ public sealed class TeamsSection : SectionBase
         _formationBoard = board;
         CreateLineupSlots(board);
         pitch.Controls.Add(board);
-        var bench = Group("Reserve Squad", new Point(666, 20), new Size(300, 500));
+        var bench = Group("Reserve Squad", new Point(676, 20), new Size(300, 530));
         bench.Anchor = AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom;
         bench.Controls.Add(new Label
         {
@@ -650,8 +650,8 @@ public sealed class TeamsSection : SectionBase
         };
         bench.Controls.Add(_matchdayBench);
         pitch.Controls.Add(bench);
-        pitch.Controls.Add(new Label { Text = "Formation", Location = new Point(15, 535), Size = new Size(67, 20), Font = LegacyFont, Anchor = AnchorStyles.Left | AnchorStyles.Bottom });
-        _formationView.Location = new Point(88, 532);
+        pitch.Controls.Add(new Label { Text = "Formation", Location = new Point(15, 558), Size = new Size(67, 20), Font = LegacyFont, Anchor = AnchorStyles.Left | AnchorStyles.Bottom });
+        _formationView.Location = new Point(88, 555);
         _formationView.Size = new Size(260, 21);
         _formationView.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
         _formationView.Font = LegacyFont;
@@ -662,10 +662,10 @@ public sealed class TeamsSection : SectionBase
                 SelectTeamFormation(choice);
         };
         pitch.Controls.Add(_formationView);
-        _formationStatus = new Label { Location = new Point(355, 535), Size = new Size(610, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, Visible = false, Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        _formationStatus = new Label { Location = new Point(355, 558), Size = new Size(610, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, Visible = false, Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         pitch.Controls.Add(_formationStatus);
         ToolTip.SetToolTip(_formationView, "Choose a formation template for this team.");
-        AddPlayerReferencePickers(pitch, new[] { ("Captain", "captainid"), ("Left Corner", "leftcornerkicktakerid"), ("Right Corner", "rightcornerkicktakerid"), ("Penalty", "penaltytakerid"), ("Free Kicks", "freekicktakerid") }, 15, 565);
+        AddPlayerReferencePickers(pitch, new[] { ("Captain", "captainid"), ("Left Corner", "leftcornerkicktakerid"), ("Right Corner", "rightcornerkicktakerid"), ("Penalty", "penaltytakerid"), ("Free Kicks", "freekicktakerid") }, 15, 588);
         canvas.Controls.Add(pitch);
     }
 
@@ -878,14 +878,12 @@ public sealed class TeamsSection : SectionBase
         for (var i = 0; i < _lineupSlots.Count; i++)
         {
             var x = ReadFormationOffset(table, record, $"offset{i}x", _formationBoard.Width);
-            var y = ReadFormationOffset(table, record, $"offset{i}y", _formationBoard.Height);
+            var y = ReadFormationOffset(table, record, $"offset{i}y", _formationBoard.Height, invertY: true);
             var positionColumn = Col(table, $"position{i}");
             var slot = _lineupSlots[i];
-            // Stored positions may sit on the pitch edge. Keep the whole player
-            // card visible now that full names can wrap across multiple lines.
             slot.Label.Location = new Point(
-                Math.Clamp(x - (slot.Label.Width / 2), 8, _formationBoard.Width - slot.Label.Width - 8),
-                Math.Clamp(y - (slot.Label.Height / 2), 8, _formationBoard.Height - slot.Label.Height - 8));
+                Math.Clamp(x - (slot.Label.Width / 2), 10, _formationBoard.Width - slot.Label.Width - 10),
+                Math.Clamp(y - (slot.Label.Height / 2), 10, _formationBoard.Height - slot.Label.Height - 10));
             slot.ExpectedPosition = positionColumn >= 0 ? NameResolverService.PositionLabel(Parse(record.Get(positionColumn))) : "Not stored";
             slot.Label.Visible = true;
         }
@@ -904,6 +902,8 @@ public sealed class TeamsSection : SectionBase
     private void ResolveLineupCardCollisions()
     {
         if (_formationBoard == null) return;
+        var boardW = _formationBoard.Width;
+        var boardH = _formationBoard.Height;
         var placed = new List<Rectangle>();
         foreach (var slot in _lineupSlots
                      .Where(item => item.Label.Visible)
@@ -912,33 +912,32 @@ public sealed class TeamsSection : SectionBase
         {
             var desired = slot.Label.Location;
             var candidates =
-                 from radius in Enumerable.Range(0, Math.Max(_formationBoard.Width, _formationBoard.Height) / 4).Select(value => value * 4)
-                from dy in Enumerable.Range(-radius / 4, (radius * 2 / 4) + 1).Select(value => value * 4)
-                let dxMagnitude = radius - Math.Abs(dy)
-                from dx in dxMagnitude == 0 ? new[] { 0 } : new[] { -dxMagnitude, dxMagnitude }
-                let x = Math.Clamp(desired.X + dx, 8, _formationBoard.Width - slot.Label.Width - 8)
-                let y = Math.Clamp(desired.Y + dy, 8, _formationBoard.Height - slot.Label.Height - 8)
+                 from radius in Enumerable.Range(0, Math.Max(boardW, boardH) / 3).Select(value => value * 3)
+                from dy in Enumerable.Range(-radius / 3, (radius * 2 / 3) + 1).Select(value => value * 3)
+                let dxMag = radius - Math.Abs(dy)
+                from dx in dxMag == 0 ? new[] { 0 } : new[] { -dxMag, dxMag }
+                let x = Math.Clamp(desired.X + dx, 10, boardW - slot.Label.Width - 10)
+                let y = Math.Clamp(desired.Y + dy, 10, boardH - slot.Label.Height - 10)
                 let bounds = new Rectangle(x, y, slot.Label.Width, slot.Label.Height)
                 orderby (x - desired.X) * (x - desired.X) + (y - desired.Y) * (y - desired.Y)
                 select bounds;
 
+            var pad = 12;
             var selected = candidates.FirstOrDefault(candidate =>
             {
                 var padded = candidate;
-                padded.Inflate(8, 8);
+                padded.Inflate(pad, pad);
                 return placed.All(existing => !padded.IntersectsWith(existing));
             });
             if (selected.Width == 0)
             {
-                // Malformed or unusually dense formations must still render a
-                // readable XI. Choose the least-overlapping board position.
-                selected = Enumerable.Range(1, Math.Max(1, (_formationBoard.Width - slot.Label.Width - 16) / 8) + 1)
-                    .SelectMany(x => Enumerable.Range(1, Math.Max(1, (_formationBoard.Height - slot.Label.Height - 16) / 8) + 1)
-                        .Select(y => new Rectangle(x * 8, y * 8, slot.Label.Width, slot.Label.Height)))
+                selected = Enumerable.Range(1, Math.Max(1, (boardW - slot.Label.Width - 20) / 6) + 1)
+                    .SelectMany(x => Enumerable.Range(1, Math.Max(1, (boardH - slot.Label.Height - 20) / 6) + 1)
+                        .Select(y => new Rectangle(x * 6, y * 6, slot.Label.Width, slot.Label.Height)))
                     .OrderBy(candidate => placed.Count(existing =>
                     {
                         var padded = candidate;
-                        padded.Inflate(8, 8);
+                        padded.Inflate(pad, pad);
                         return padded.IntersectsWith(existing);
                     }))
                     .ThenBy(candidate => (candidate.X - desired.X) * (candidate.X - desired.X) +
@@ -946,19 +945,58 @@ public sealed class TeamsSection : SectionBase
                     .First();
             }
             slot.Label.Location = selected.Location;
-            selected.Inflate(8, 8);
+            selected.Inflate(pad, pad);
             placed.Add(selected);
+        }
+
+        // Second pass: iteratively push any remaining overlaps apart.
+        var slots = _lineupSlots.Where(s => s.Label.Visible).ToList();
+        for (var iteration = 0; iteration < 20; iteration++)
+        {
+            var anyOverlap = false;
+            for (var a = 0; a < slots.Count; a++)
+            {
+                for (var b = a + 1; b < slots.Count; b++)
+                {
+                    var ra = new Rectangle(slots[a].Label.Location, slots[a].Label.Size);
+                    var rb = new Rectangle(slots[b].Label.Location, slots[b].Label.Size);
+                    ra.Inflate(10, 10);
+                    rb.Inflate(10, 10);
+                    if (!ra.IntersectsWith(rb)) continue;
+                    anyOverlap = true;
+                    var ca = new Point(ra.X + ra.Width / 2, ra.Y + ra.Height / 2);
+                    var cb = new Point(rb.X + rb.Width / 2, rb.Y + rb.Height / 2);
+                    var dx = ca.X - cb.X;
+                    var dy = ca.Y - cb.Y;
+                    if (dx == 0 && dy == 0) { dx = 1; }
+                    var dist = Math.Max(1, (int)Math.Sqrt(dx * dx + dy * dy));
+                    var push = Math.Max(0, (22 - dist) / 2 + 2);
+                    var ox = (dx * push) / dist;
+                    var oy = (dy * push) / dist;
+                    var newA = new Point(
+                        Math.Clamp(slots[a].Label.Left + ox, 10, boardW - slots[a].Label.Width - 10),
+                        Math.Clamp(slots[a].Label.Top + oy, 10, boardH - slots[a].Label.Height - 10));
+                    var newB = new Point(
+                        Math.Clamp(slots[b].Label.Left - ox, 10, boardW - slots[b].Label.Width - 10),
+                        Math.Clamp(slots[b].Label.Top - oy, 10, boardH - slots[b].Label.Height - 10));
+                    slots[a].Label.Location = newA;
+                    slots[b].Label.Location = newB;
+                }
+            }
+            if (!anyOverlap) break;
         }
     }
 
-    private static int ReadFormationOffset(CM26.Application.Models.DbTable table, CM26.Application.Models.DbRecord record, string field, int extent)
+    private static int ReadFormationOffset(CM26.Application.Models.DbTable table, CM26.Application.Models.DbRecord record, string field, int extent, bool invertY = false)
     {
         var raw = record.Get(Col(table, field));
         var value = double.TryParse(raw, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var parsed) ? parsed : 0d;
         // FC26 stores these offsets as fractional board coordinates (for example
-        // 0.05, 0.50 and 0.95). This is a display-only conversion.
+        // 0.05, 0.50 and 0.95). Y is stored bottom-up (0.0 = GK line, 1.0 = striker line)
+        // but WinForms renders top-down (Y=0 at top), so invert Y when requested.
         var normalized = value is >= 0d and <= 1d ? value : value / 100d;
-        return Math.Clamp((int)Math.Round(Math.Clamp(normalized, 0d, 1d) * (extent - 16)) + 8, 8, extent - 8);
+        if (invertY) normalized = 1d - normalized;
+        return Math.Clamp((int)Math.Round(Math.Clamp(normalized, 0d, 1d) * (extent - 20)) + 10, 10, extent - 10);
     }
 
     private void SelectFormationLayout(int teamId)

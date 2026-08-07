@@ -136,7 +136,7 @@ function Assemble-Package {
     }
     else {
         $deps = Get-Content $depsFile -Raw
-        if ($Label -eq 'Full Portable') {
+        if ($Label -eq 'Lite') {
             if ($deps -notmatch '"type"\s*:\s*"runtimepack"') {
                 $errors.Add("$Label deps.json does not reference the .NET runtime packs (corrupt publish - re-run dotnet publish sequentially, never in parallel).")
                 Write-Host "    MISSING runtime packs in deps.json - re-run publish sequentially" -ForegroundColor Red
