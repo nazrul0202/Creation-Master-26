@@ -1,6 +1,6 @@
 {
-  "version": "1.0.44",
+  "version": "1.0.45",
   "name": "Creation Master 26",
-  "notes": "v1.0.44 - Reverted pitch to clean classic green. Rewrote collision resolution: spiral placement + aggressive push-apart (30 iterations). Cards 96x36.",
+  "notes": "v1.0.45 - Expanded pitch board to 670x545, increased card gap to 12px, stronger collision resolution (50 iterations), moved player reference pickers down.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

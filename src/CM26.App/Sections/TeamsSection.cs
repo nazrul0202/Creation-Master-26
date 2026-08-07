@@ -599,8 +599,8 @@ public sealed class TeamsSection : SectionBase
         available.Controls.Add(_availablePlayers);
         canvas.Controls.Add(available);
 
-        var pitch = Group("Starting Lineup", new Point(731, 3), new Size(990, 810));
-        var board = new Panel { Location = new Point(8, 20), Size = new Size(660, 530), BackColor = Color.FromArgb(106, 190, 87), BorderStyle = BorderStyle.FixedSingle, AllowDrop = true, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        var pitch = Group("Starting Lineup", new Point(731, 3), new Size(990, 830));
+        var board = new Panel { Location = new Point(8, 20), Size = new Size(670, 545), BackColor = Color.FromArgb(106, 190, 87), BorderStyle = BorderStyle.FixedSingle, AllowDrop = true, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         board.Paint += (_, e) =>
         {
             // GDI+ drawing runs inside the WinForms message pump. A native fault
@@ -619,7 +619,7 @@ public sealed class TeamsSection : SectionBase
         _formationBoard = board;
         CreateLineupSlots(board);
         pitch.Controls.Add(board);
-        var bench = Group("Reserve Squad", new Point(676, 20), new Size(300, 530));
+        var bench = Group("Reserve Squad", new Point(686, 20), new Size(290, 545));
         bench.Anchor = AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom;
         bench.Controls.Add(new Label
         {
@@ -650,8 +650,8 @@ public sealed class TeamsSection : SectionBase
         };
         bench.Controls.Add(_matchdayBench);
         pitch.Controls.Add(bench);
-        pitch.Controls.Add(new Label { Text = "Formation", Location = new Point(15, 558), Size = new Size(67, 20), Font = LegacyFont, Anchor = AnchorStyles.Left | AnchorStyles.Bottom });
-        _formationView.Location = new Point(88, 555);
+        pitch.Controls.Add(new Label { Text = "Formation", Location = new Point(15, 573), Size = new Size(67, 20), Font = LegacyFont, Anchor = AnchorStyles.Left | AnchorStyles.Bottom });
+        _formationView.Location = new Point(88, 570);
         _formationView.Size = new Size(260, 21);
         _formationView.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
         _formationView.Font = LegacyFont;
@@ -662,10 +662,10 @@ public sealed class TeamsSection : SectionBase
                 SelectTeamFormation(choice);
         };
         pitch.Controls.Add(_formationView);
-        _formationStatus = new Label { Location = new Point(355, 558), Size = new Size(610, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, Visible = false, Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
+        _formationStatus = new Label { Location = new Point(355, 573), Size = new Size(610, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, Visible = false, Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         pitch.Controls.Add(_formationStatus);
         ToolTip.SetToolTip(_formationView, "Choose a formation template for this team.");
-        AddPlayerReferencePickers(pitch, new[] { ("Captain", "captainid"), ("Left Corner", "leftcornerkicktakerid"), ("Right Corner", "rightcornerkicktakerid"), ("Penalty", "penaltytakerid"), ("Free Kicks", "freekicktakerid") }, 15, 588);
+        AddPlayerReferencePickers(pitch, new[] { ("Captain", "captainid"), ("Left Corner", "leftcornerkicktakerid"), ("Right Corner", "rightcornerkicktakerid"), ("Penalty", "penaltytakerid"), ("Free Kicks", "freekicktakerid") }, 15, 600);
         canvas.Controls.Add(pitch);
     }
 
@@ -920,63 +920,55 @@ public sealed class TeamsSection : SectionBase
         var slots = _lineupSlots.Where(s => s.Label.Visible).ToList();
         var cardW = 96;
         var cardH = 36;
-        var gap = 6;
+        var gap = 12;
 
-        // Phase 1: Place each card at its target, bumping right/down if occupied.
+        // Phase 1: Place each card at its target, bumping outward if occupied.
         var occupied = new List<Rectangle>();
         foreach (var slot in slots)
         {
             var rx = slot.Label.Left;
             var ry = slot.Label.Top;
-            var rb = new Rectangle(rx, ry, cardW, cardH);
-            // Find closest non-overlapping position by spiraling outward.
-            for (var dist = 0; dist < Math.Max(boardW, boardH); dist += 4)
+            var placed = false;
+            for (var dist = 0; dist < Math.Max(boardW, boardH) / 2; dist += 3)
             {
-                var found = false;
-                for (var dy = -dist; dy <= dist; dy += 4)
+                for (var dy = -dist; dy <= dist; dy += 3)
                 {
-                    for (var dx = -dist; dx <= dist; dx += 4)
+                    for (var dx = -dist; dx <= dist; dx += 3)
                     {
                         if (Math.Abs(dx) != dist && Math.Abs(dy) != dist) continue;
                         var nx = Math.Clamp(rx + dx, 10, boardW - cardW - 10);
                         var ny = Math.Clamp(ry + dy, 10, boardH - cardH - 10);
-                        var nb = new Rectangle(nx, ny, cardW, cardH);
-                        nb.Inflate(gap, gap);
+                        var nb = new Rectangle(nx, ny, cardW + gap, cardH + gap);
                         if (!occupied.Any(o => o.IntersectsWith(nb)))
                         {
                             slot.Label.Left = nx;
                             slot.Label.Top = ny;
-                            nb.Inflate(-gap, -gap);
-                            occupied.Add(nb);
-                            found = true;
+                            occupied.Add(new Rectangle(nx, ny, cardW, cardH));
+                            placed = true;
                             break;
                         }
                     }
-                    if (found) break;
+                    if (placed) break;
                 }
-                if (found) break;
-                if (dist == 0)
-                {
-                    // First card always fits.
-                    var nb = new Rectangle(rx, ry, cardW, cardH);
-                    occupied.Add(nb);
-                    break;
-                }
+                if (placed) break;
+            }
+            if (!placed)
+            {
+                // Fallback: keep original position.
+                occupied.Add(new Rectangle(rx, ry, cardW, cardH));
             }
         }
 
-        // Phase 2: Iteratively push overlapping cards apart (up to 30 rounds).
-        for (var iter = 0; iter < 30; iter++)
+        // Phase 2: Iteratively push all overlapping pairs apart (up to 50 rounds).
+        for (var iter = 0; iter < 50; iter++)
         {
             var anyOverlap = false;
             for (var a = 0; a < slots.Count; a++)
             {
                 for (var b = a + 1; b < slots.Count; b++)
                 {
-                    var ra = new Rectangle(slots[a].Label.Left, slots[a].Label.Top, cardW, cardH);
-                    var rb = new Rectangle(slots[b].Label.Left, slots[b].Label.Top, cardW, cardH);
-                    ra.Inflate(gap, gap);
-                    rb.Inflate(gap, gap);
+                    var ra = new Rectangle(slots[a].Label.Left, slots[a].Label.Top, cardW + gap, cardH + gap);
+                    var rb = new Rectangle(slots[b].Label.Left, slots[b].Label.Top, cardW + gap, cardH + gap);
                     if (!ra.IntersectsWith(rb)) continue;
                     anyOverlap = true;
                     var ax = slots[a].Label.Left + cardW / 2;
@@ -986,10 +978,10 @@ public sealed class TeamsSection : SectionBase
                     var dx = ax - bx;
                     var dy = ay - by;
                     if (dx == 0 && dy == 0) dx = 1;
-                    var dist = Math.Max(1, (int)Math.Sqrt(dx * dx + dy * dy));
-                    var push = Math.Max(6, (cardW + gap * 2 - dist) / 2 + 4);
-                    var ox = (dx * push) / dist;
-                    var oy = (dy * push) / dist;
+                    var dist = Math.Max(1, Math.Sqrt(dx * dx + dy * dy));
+                    var push = Math.Max(8, (cardW + gap - dist) / 2 + 6);
+                    var ox = (int)((dx / dist) * push);
+                    var oy = (int)((dy / dist) * push);
                     slots[a].Label.Left = Math.Clamp(slots[a].Label.Left + ox, 10, boardW - cardW - 10);
                     slots[a].Label.Top = Math.Clamp(slots[a].Label.Top + oy, 10, boardH - cardH - 10);
                     slots[b].Label.Left = Math.Clamp(slots[b].Label.Left - ox, 10, boardW - cardW - 10);
