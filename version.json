@@ -1,6 +1,6 @@
 {
-  "version": "1.0.39",
+  "version": "1.0.40",
   "name": "Creation Master 26",
-  "notes": "v1.0.39 - Fix team logo duplication (removed redundant small crest viewers), simplified sidebar (hidden Data Sync, Balls, Boots, Gloves, Adboards, Audio, Broadcast Links, Referees). Cleaner UI focused on the core editing sections.",
+  "notes": "v1.0.40 - Kits: removed Kit Record info group, added Import/Export Kit Texture and Hotspot buttons. Sidebar: removed Stadium Audio and Sponsors. Help: added Discord Support link.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

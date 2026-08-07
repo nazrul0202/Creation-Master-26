@@ -73,6 +73,12 @@ public sealed class MainForm : Form
         helpMenu.DropDownItems.Add("Check for Updates…", null, async (_, _) => await CheckForUpdatesAsync());
         helpMenu.DropDownItems.Add("Keyboard Shortcuts…", null, (_, _) => ShowShortcuts());
         helpMenu.DropDownItems.Add(new ToolStripSeparator());
+        helpMenu.DropDownItems.Add("Discord Support", null, (_, _) =>
+        {
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://discord.gg/T75DFSuSU") { UseShellExecute = true }); }
+            catch { /* cannot open browser */ }
+        });
+        helpMenu.DropDownItems.Add(new ToolStripSeparator());
         helpMenu.DropDownItems.Add("About", null, (_, _) => ShowAbout());
         _menu.Items.AddRange(new ToolStripItem[] { fileMenu, toolsMenu, patchMenu, helpMenu });
 
@@ -161,9 +167,8 @@ public sealed class MainForm : Form
         {
             ("", new[] { "dashboard" }),
             ("World", new[] { "countries", "leagues", "teams", "players", "managers" }),
-            ("Venue", new[] { "stadiums", "stadiumaudio" }),
+            ("Venue", new[] { "stadiums" }),
             ("Team", new[] { "kits", "competitions", "formations" }),
-            ("Brands", new[] { "sponsors" }),
             ("System", new[] { "settings" }),
         };
         foreach (var (label, keys) in categories)

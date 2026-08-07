@@ -816,11 +816,20 @@ public sealed class KitsSection : ClassicEntitySection
         };
         _loadTexture.Click += async (_, _) => await LoadFrostbitePreviewAsync();
         texture.Controls.Add(_loadTexture);
+        var importKit = new Button { Text = "Import", Location = new Point(142, 527), Size = new Size(72, 25), Font = LegacyFont };
+        importKit.Click += (_, _) => ImportKitTexture();
+        texture.Controls.Add(importKit);
+        var exportKit = new Button { Text = "Export", Location = new Point(220, 527), Size = new Size(72, 25), Font = LegacyFont };
+        exportKit.Click += (_, _) => ExportKitTexture();
+        texture.Controls.Add(exportKit);
+        var hotspot = new Button { Text = "Hotspot", Location = new Point(298, 527), Size = new Size(80, 25), Font = LegacyFont };
+        hotspot.Click += (_, _) => OpenKitHotspot();
+        texture.Controls.Add(hotspot);
         _assetStatus = new Label
         {
             Text = "Select a kit",
-            Location = new Point(142, 531),
-            Size = new Size(560, 18),
+            Location = new Point(386, 531),
+            Size = new Size(316, 18),
             Font = LegacyFont,
             ForeColor = Theme.Muted,
             BackColor = Theme.Panel,
@@ -927,14 +936,7 @@ public sealed class KitsSection : ClassicEntitySection
         AddField(shortsColours, "shortsnumbercolorterb", "Tertiary B", new Point(180, 228), 100);
         c.Controls.Add(shortsColours);
 
-        var record = Group("Kit Record", new Point(1065, 993), new Size(525, 254));
-        AddField(record, "teamkitid", "Kit Id", new Point(250, 20), 180);
-        AddField(record, "teamtechid", "Team Tech Id", new Point(250, 46), 180);
-        AddField(record, "teamkittypetechid", "Kit Type Tech Id", new Point(250, 72), 180);
-        AddField(record, "powid", "POW Id", new Point(250, 98), 180);
-        AddField(record, "year", "Year", new Point(250, 124), 180);
-        AddField(record, "dlc", "DLC", new Point(250, 150), 180);
-        c.Controls.Add(record);
+        // Kit Record group removed — technical identifiers are not needed for editing.
     }
 
     protected override void OnRecordShown()
@@ -1053,5 +1055,98 @@ public sealed class KitsSection : ClassicEntitySection
         _assetStatus.Text = text;
         _assetStatus.ForeColor = isError ? Theme.Warning : Theme.Muted;
         ToolTip.SetToolTip(_assetStatus, text);
+    }
+
+    private string? BuildKitTextureLegacyPath()
+    {
+        if (!TryRawInt("teamtechid", out var teamId) ||
+            !TryRawInt("teamkittypetechid", out var kitType) ||
+            !TryRawInt("teamkitid", out var kitId))
+            return null;
+        var variant = kitType switch
+        {
+            0 => "home", 1 => "away", 2 => "third",
+            3 => "gk", 4 => "gk_away", 5 => "gk_third",
+            _ => string.Empty,
+        };
+        if (variant.Length == 0) return null;
+        return $"content/character/kit/{teamId}/{variant}_1_0/jersey_{kitId}_1_0_color.dds";
+    }
+
+    private void ImportKitTexture()
+    {
+        var legacyPath = BuildKitTextureLegacyPath();
+        if (string.IsNullOrWhiteSpace(legacyPath))
+        {
+            MessageBox.Show(FindForm(), "Kit identifiers are unavailable. Select a kit record first.",
+                "Import Kit Texture", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        using var dialog = new OpenFileDialog
+        {
+            Title = "Import Kit Texture",
+            Filter = "Texture files (*.dds;*.png;*.jpg;*.jpeg;*.bmp)|*.dds;*.png;*.jpg;*.jpeg;*.bmp|All files (*.*)|*.*"
+        };
+        if (dialog.ShowDialog(FindForm()) != DialogResult.OK) return;
+        try
+        {
+            var path = Services.LegacyMods.StageImage(legacyPath, dialog.FileName, 2048, 2048);
+            var preview = Services.Textures.CreatePreview(path, _texturePreview.Width, _texturePreview.Height);
+            var old = _texturePreview.Image;
+            _texturePreview.Image = preview == null ? null : new Bitmap(preview);
+            old?.Dispose();
+            SetAssetStatus("Kit texture imported. Save to apply.");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(FindForm(), ex.Message, "Import Kit Texture",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void ExportKitTexture()
+    {
+        var legacyPath = BuildKitTextureLegacyPath();
+        if (string.IsNullOrWhiteSpace(legacyPath))
+        {
+            MessageBox.Show(FindForm(), "Kit identifiers are unavailable. Select a kit record first.",
+                "Export Kit Texture", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        var staged = Services.LegacyMods.GetReplacement(legacyPath);
+        var path = staged ?? Services.FrostbiteAssets.ExportLegacyAsset(legacyPath);
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            MessageBox.Show(FindForm(), "No installed or staged kit texture is available to export.",
+                "Export Kit Texture", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        using var dialog = new SaveFileDialog
+        {
+            Title = "Export Kit Texture",
+            FileName = Path.GetFileName(path),
+            Filter = "DDS texture (*.dds)|*.dds|All files (*.*)|*.*"
+        };
+        if (dialog.ShowDialog(FindForm()) != DialogResult.OK) return;
+        try { File.Copy(path, dialog.FileName, overwrite: true); SetAssetStatus("Kit texture exported."); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(FindForm(), ex.Message, "Export Kit Texture",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private void OpenKitHotspot()
+    {
+        if (!TryRawInt("teamtechid", out var teamId) || !TryRawInt("teamkittypetechid", out var kitType))
+        {
+            MessageBox.Show(FindForm(), "Kit identifiers are unavailable. Select a kit record first.",
+                "Kit Hotspot", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        _ = ThreeDViewerLauncher.OpenAsync(
+            this, "kit",
+            new[] { Value("teamkitid"), "kit_" + Value("teamkitid"), Value("jerseytemplateindex") },
+            () => Services.FrostbiteAssets.ExportMeshForQuery(new[] { $"kit_{kitType}", $"{teamId}_{kitType}" }));
     }
 }
