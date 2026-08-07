@@ -364,15 +364,11 @@ public sealed class TeamsSection : SectionBase
         var page = Page("Generic");
         var canvas = Canvas(page);
 
-        var logos = Group("Logos", new Point(3, 3), new Size(270, 428));
+        var logos = Group("Logos", new Point(3, 3), new Size(270, 315));
         logos.Controls.Add(CrestViewer(new Point(6, 19), new Size(256, 256)));
         LegacyAssetActions.Attach(Services, logos, _crestViewers[0], new Point(6, 277), () => ShowRecord(CurrentRecordIndex));
-        logos.Controls.Add(CrestViewer(new Point(7, 308), new Size(64, 62)));
-        logos.Controls.Add(CrestViewer(new Point(102, 308), new Size(64, 62)));
-        logos.Controls.Add(CrestViewer(new Point(194, 308), new Size(64, 62)));
-        LegacyAssetActions.Attach(Services, logos, _crestViewers[1], new Point(7, 374), () => ShowRecord(CurrentRecordIndex));
-        _crestCaption.Location = new Point(8, 402);
-        _crestCaption.Size = new Size(252, 36);
+        _crestCaption.Location = new Point(8, 280);
+        _crestCaption.Size = new Size(252, 30);
         _crestCaption.TextAlign = ContentAlignment.MiddleCenter;
         _crestCaption.ForeColor = Theme.Muted;
         _crestCaption.Font = LegacyFont;
@@ -2089,20 +2085,17 @@ public sealed class TeamsSection : SectionBase
             var crestPath = $"data/ui/imgAssets/crest/dark/l{teamId}.dds";
             var target = new LegacyAssetEditTarget(crestPath, 256, 256);
             LegacyAssetActions.SetTarget(_crestViewers[0], target);
-            if (_crestViewers.Count > 1)
-                LegacyAssetActions.SetTarget(_crestViewers[1], new LegacyAssetEditTarget(crestPath, 64, 62));
         }
         FrostbitePreviewLoader.Load(_crestViewers[0], Services, path,
             [string.Concat(teamName.ToLowerInvariant().Where(char.IsLetterOrDigit)), $"crest_{teamId}_"], (image, source) =>
         {
             try
             {
-                for (var index = 0; index < _crestViewers.Count; index++)
+                var viewer = _crestViewers[0];
+                if (!viewer.IsDisposed)
                 {
-                    var viewer = _crestViewers[index];
-                    if (viewer.IsDisposed) continue;
                     var old = viewer.Image;
-                    viewer.Image = index == 0 ? image : image == null ? null : new Bitmap(image);
+                    viewer.Image = image;
                     old?.Dispose();
                 }
                 _crestCaption.Text = image == null

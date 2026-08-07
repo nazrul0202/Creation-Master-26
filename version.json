@@ -1,6 +1,6 @@
 {
-  "version": "1.0.38",
+  "version": "1.0.39",
   "name": "Creation Master 26",
-  "notes": "v1.0.38 - FC Editor by decoruiz style UI: light theme (#F0F0F0 canvas, white cards, Microsoft blue accent) with the full FC Editor layout - top menu bar, filter bar (record search, Go, prev/next), left \"Main Functions\" sidebar, main content area and status bar. Dark mode stays available as an optional setting.",
+  "notes": "v1.0.39 - Fix team logo duplication (removed redundant small crest viewers), simplified sidebar (hidden Data Sync, Balls, Boots, Gloves, Adboards, Audio, Broadcast Links, Referees). Cleaner UI focused on the core editing sections.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

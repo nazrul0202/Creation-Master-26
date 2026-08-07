@@ -163,10 +163,7 @@ public sealed class MainForm : Form
             ("World", new[] { "countries", "leagues", "teams", "players", "managers" }),
             ("Venue", new[] { "stadiums", "stadiumaudio" }),
             ("Team", new[] { "kits", "competitions", "formations" }),
-            ("Data", new[] { "transfers" }),
-            ("Brands", new[] { "balls", "boots", "gloves", "sponsors", "adboards" }),
-            ("Audio", new[] { "audio", "scoreboard" }),
-            ("Officials", new[] { "referees" }),
+            ("Brands", new[] { "sponsors" }),
             ("System", new[] { "settings" }),
         };
         foreach (var (label, keys) in categories)
@@ -284,7 +281,6 @@ public sealed class MainForm : Form
         ["stadiums"] = "Ctrl+7",
         ["kits"] = "Ctrl+8",
         ["competitions"] = "Ctrl+9",
-        ["transfers"] = "Ctrl+0",
     };
 
     private SidebarNavButton MakeSidebarButton(string key, string title)
@@ -771,8 +767,7 @@ public sealed class MainForm : Form
             "Ctrl+6   Managers\n" +
             "Ctrl+7   Stadiums\n" +
             "Ctrl+8   Kits\n" +
-            "Ctrl+9   Competitions\n" +
-            "Ctrl+0   Data Sync\n";
+            "Ctrl+9   Competitions\n";
         MessageBox.Show(this, text, "Keyboard Shortcuts",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
@@ -950,7 +945,6 @@ public sealed class MainForm : Form
             case Keys.Control | Keys.D7: NavigateTo("stadiums"); return true;
             case Keys.Control | Keys.D8: NavigateTo("kits"); return true;
             case Keys.Control | Keys.D9: NavigateTo("competitions"); return true;
-            case Keys.Control | Keys.D0: NavigateTo("transfers"); return true;
         }
         return base.ProcessCmdKey(ref msg, keyData);
     }
