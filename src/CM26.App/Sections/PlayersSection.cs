@@ -302,9 +302,9 @@ public sealed class PlayersSection : SectionBase
     {
         var page = Page("Face");
         var canvas = Canvas(page);
-        var preview = Box("Face Preview", new Point(3, 3), new Size(745, 451));
+        var preview = Box("Face Preview", new Point(3, 3), new Size(1200, 451));
         _facePreview.Location = new Point(8, 20);
-        _facePreview.Size = new Size(728, 390);
+        _facePreview.Size = new Size(1183, 390);
         _facePreview.BackColor = Theme.Raised;
         _facePreview.BorderStyle = BorderStyle.FixedSingle;
         _facePreview.SizeMode = PictureBoxSizeMode.Zoom;
@@ -329,10 +329,10 @@ public sealed class PlayersSection : SectionBase
         _facePreviewCaption.Text = "Face preview";
         preview.Controls.Add(_facePreviewCaption);
         canvas.Controls.Add(preview);
-        var modelling = Box("Face Modelling", new Point(3, 462), new Size(745, 204));
+        var modelling = Box("Face Modelling", new Point(3, 462), new Size(1200, 204));
         AddFields(modelling, new[] { ("Head Model", "headclasscode"), ("Head Type", "headtypecode"), ("Head Variation", "headvariation"), ("Head Asset Id", "headassetid"), ("Hair Model", "hairstylecode"), ("Hair Type", "hairtypecode"), ("High Quality Head", "hashighqualityhead") }, 16, 22, 150, 260, 26);
         canvas.Controls.Add(modelling);
-        var appearance = Box("Appearance", new Point(3, 674), new Size(745, 256));
+        var appearance = Box("Appearance", new Point(3, 674), new Size(1200, 256));
         AddFields(appearance, new[]
         {
             ("Hair Color", "haircolorcode"), ("Facial Hair", "facialhairtypecode"), ("Facial Hair Color", "facialhaircolorcode"),
@@ -340,7 +340,7 @@ public sealed class PlayersSection : SectionBase
             ("Eyebrow Code", "eyebrowcode"), ("Sideburns Code", "sideburnscode"), ("Lip Color", "lipcolor")
         }, 16, 22, 150, 260, 26);
         canvas.Controls.Add(appearance);
-        var skin = Box("Skin Details", new Point(3, 938), new Size(745, 230));
+        var skin = Box("Skin Details", new Point(3, 938), new Size(1200, 230));
         AddFields(skin, new[]
         {
             ("Skin Type", "skintypecode"), ("Skin Makeup", "skinmakeup"), ("Skin Surface Pack", "skinsurfacepack"),
@@ -355,7 +355,7 @@ public sealed class PlayersSection : SectionBase
         var page = Page("Details");
         var canvas = Canvas(page);
 
-        var tattoos = Box("Tattoos", new Point(3, 3), new Size(440, 207));
+        var tattoos = Box("Tattoos", new Point(3, 3), new Size(750, 207));
         AddFields(tattoos, new[]
         {
             ("Head Tattoo", "tattoohead"), ("Front Tattoo", "tattoofront"), ("Back Tattoo", "tattoback"),
@@ -364,7 +364,7 @@ public sealed class PlayersSection : SectionBase
         }, 12, 25, 145, 260, 26);
         canvas.Controls.Add(tattoos);
 
-        var accessories = Box("Accessories", new Point(449, 3), new Size(440, 233));
+        var accessories = Box("Accessories", new Point(759, 3), new Size(750, 233));
         AddFields(accessories, new[]
         {
             ("Accessory 1", "accessorycode1"), ("Accessory 2", "accessorycode2"),
@@ -374,7 +374,7 @@ public sealed class PlayersSection : SectionBase
         }, 12, 25, 145, 260, 26);
         canvas.Controls.Add(accessories);
 
-        var positions = Box("Preferred Positions", new Point(3, 218), new Size(440, 100));
+        var positions = Box("Preferred Positions", new Point(3, 218), new Size(750, 100));
         AddFields(positions, new[]
         {
             ("Preferred Position 5", "preferredposition5"), ("Preferred Position 6", "preferredposition6"),
@@ -382,7 +382,7 @@ public sealed class PlayersSection : SectionBase
         }, 12, 22, 145, 260, 26);
         canvas.Controls.Add(positions);
 
-        var roles = Box("Playing Roles", new Point(449, 242), new Size(440, 204));
+        var roles = Box("Playing Roles", new Point(759, 242), new Size(750, 204));
         AddFields(roles, new[]
         {
             ("Role 1", "role1"), ("Role 2", "role2"), ("Role 3", "role3"), ("Role 4", "role4"), ("Role 5", "role5"),
@@ -390,14 +390,14 @@ public sealed class PlayersSection : SectionBase
         }, 12, 22, 145, 260, 26);
         canvas.Controls.Add(roles);
 
-        var goalkeeper = Box("Goalkeeper Style", new Point(3, 326), new Size(440, 74));
+        var goalkeeper = Box("Goalkeeper Style", new Point(3, 326), new Size(750, 74));
         AddFields(goalkeeper, new[]
         {
             ("Save Type", "gksavetype"), ("Kick Style", "gkkickstyle")
         }, 12, 22, 145, 260, 26);
         canvas.Controls.Add(goalkeeper);
 
-        var profile = Box("Player Profile", new Point(3, 406), new Size(440, 259));
+        var profile = Box("Player Profile", new Point(3, 406), new Size(750, 259));
         AddFields(profile, new[]
         {
             ("Gender", "gender"), ("Personality", "personality"), ("Emotion", "emotion"),
@@ -407,7 +407,7 @@ public sealed class PlayersSection : SectionBase
         }, 12, 25, 145, 260, 26);
         canvas.Controls.Add(profile);
 
-        var development = Box("Development", new Point(449, 452), new Size(440, 178));
+        var development = Box("Development", new Point(759, 452), new Size(750, 178));
         AddFields(development, new[]
         {
             ("Pace Division", "pacdiv"), ("Dribble Reference", "driref"), ("Defence Reference", "defspe"),
@@ -415,7 +415,7 @@ public sealed class PlayersSection : SectionBase
         }, 12, 22, 145, 260, 26);
         canvas.Controls.Add(development);
 
-        var customisation = Box("Customisation", new Point(449, 636), new Size(440, 178));
+        var customisation = Box("Customisation", new Point(759, 636), new Size(750, 178));
         AddFields(customisation, new[]
         {
             ("User Can Edit Name", "usercaneditname"), ("Is Customized", "iscustomized"),
@@ -424,7 +424,7 @@ public sealed class PlayersSection : SectionBase
         }, 12, 22, 145, 260, 26);
         canvas.Controls.Add(customisation);
 
-        var iconTraits = Box("Icon Traits", new Point(3, 671), new Size(440, 74));
+        var iconTraits = Box("Icon Traits", new Point(3, 671), new Size(750, 74));
         AddFields(iconTraits, new[]
         {
             ("Icon Trait 1", "icontrait1"), ("Icon Trait 2", "icontrait2")

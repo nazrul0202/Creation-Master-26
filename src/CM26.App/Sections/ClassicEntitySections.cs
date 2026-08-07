@@ -216,7 +216,7 @@ public sealed class ManagersSection : ClassicEntitySection
     public ManagersSection(AppServices s) : base(s, "managers", "Managers", "manager", () => s.RequireData().GetManagers(), LabelMaps.Managers)
     {
         var general = AddCanvasTab("General"); var c = Canvas(general);
-        var identity = Group("Identity", new Point(4, 3), new Size(510, 222));
+        var identity = Group("Identity", new Point(4, 3), new Size(750, 222));
         _face = ImageSurface(identity, new Point(12, 20), new Size(128, 128), "Manager face");
         LegacyAssetActions.Attach(Services, identity, _face, new Point(12, 178), () => OnRecordShown());
         AddField(identity, "managerid", "Manager Id", new Point(254, 20), 120);
@@ -230,14 +230,14 @@ public sealed class ManagersSection : ClassicEntitySection
         AddField(identity, "teamid", "Playing for", new Point(254, 176), 130);
         c.Controls.Add(identity);
 
-        var body = Group("Body and Look", new Point(4, 231), new Size(510, 150));
+        var body = Group("Body and Look", new Point(4, 231), new Size(750, 150));
         AddField(body, "height", "Height", new Point(100, 20), 100);
         AddField(body, "weight", "Weight", new Point(300, 20), 100);
         AddField(body, "starrating", "Star Rating", new Point(100, 46), 100);
         AddField(body, "managerjointeamdate", "Joining Date", new Point(300, 46), 100);
         AddReadonlyNote(body, "Manager portrait preview requires a mapped visual asset.", new Point(12, 92), new Size(480, 45));
         c.Controls.Add(body);
-        var recordLinks = Group("Record Links", new Point(520, 3), new Size(390, 128));
+        var recordLinks = Group("Record Links", new Point(760, 3), new Size(750, 128));
         AddReadonlyField(recordLinks, "managerid", "Manager Id", new Point(130, 22), 210);
         AddReadonlyField(recordLinks, "teamid", "Team Id", new Point(130, 48), 210);
         AddReadonlyNote(recordLinks, "Technical identifiers are kept with the General\nrecord for the CM16 workflow.", new Point(12, 78), new Size(360, 34));
@@ -246,7 +246,7 @@ public sealed class ManagersSection : ClassicEntitySection
         // These are real FC26 manager columns that have no CM16 equivalent page.
         // Keep them as fixed legacy-style groups rather than exposing a raw schema grid.
         var face = AddCanvasTab("Face"); var fc = Canvas(face);
-        var model = Group("Face Modelling", new Point(4, 4), new Size(510, 250));
+        var model = Group("Face Modelling", new Point(4, 4), new Size(750, 250));
         AddField(model, "headassetid", "Head Asset", new Point(160, 22), 150);
         AddField(model, "headclasscode", "Head Class", new Point(160, 48), 150);
         AddField(model, "headtypecode", "Head Type", new Point(160, 74), 150);
@@ -256,7 +256,7 @@ public sealed class ManagersSection : ClassicEntitySection
         AddField(model, "facepsdlayer1", "Face Layer 1", new Point(160, 178), 150);
         AddField(model, "hashighqualityhead", "High Quality Head", new Point(160, 204), 150);
         fc.Controls.Add(model);
-        var hair = Group("Hair and Appearance", new Point(520, 4), new Size(510, 250));
+        var hair = Group("Hair and Appearance", new Point(760, 4), new Size(750, 250));
         AddField(hair, "hairstylecode", "Hair Style", new Point(170, 22), 150);
         AddField(hair, "hairtypecode", "Hair Type", new Point(170, 48), 150);
         AddField(hair, "haircolorcode", "Hair Color", new Point(170, 74), 150);
@@ -266,7 +266,7 @@ public sealed class ManagersSection : ClassicEntitySection
         AddField(hair, "skintonecode", "Skin Tone", new Point(170, 178), 150);
         AddField(hair, "bodytypecode", "Body Type", new Point(170, 204), 150);
         fc.Controls.Add(hair);
-        var skin = Group("Skin and Details", new Point(4, 260), new Size(510, 250));
+        var skin = Group("Skin and Details", new Point(4, 260), new Size(750, 250));
         AddField(skin, "skintypecode", "Skin Type", new Point(170, 22), 150);
         AddField(skin, "skincomplexion", "Complexion", new Point(170, 48), 150);
         AddField(skin, "skinmakeup", "Skin Makeup", new Point(170, 74), 150);
@@ -276,7 +276,7 @@ public sealed class ManagersSection : ClassicEntitySection
         AddField(skin, "lipcolor", "Lip Color", new Point(170, 178), 150);
         AddField(skin, "eyedetail", "Eye Detail", new Point(170, 204), 150);
         fc.Controls.Add(skin);
-        var record = Group("Record Details", new Point(520, 260), new Size(510, 224));
+        var record = Group("Record Details", new Point(760, 260), new Size(750, 224));
         AddField(record, "accessorycolourcode3", "Accessory Colour 3", new Point(170, 22), 150);
         AddField(record, "accessorycolourcode4", "Accessory Colour 4", new Point(170, 48), 150);
         AddField(record, "personalityid", "Personality", new Point(170, 74), 150);
@@ -287,7 +287,7 @@ public sealed class ManagersSection : ClassicEntitySection
         fc.Controls.Add(record);
 
         var appearance = AddCanvasTab("Appearance"); var ac = Canvas(appearance);
-        var outfit = Group("Outfit and Accessories", new Point(4, 4), new Size(620, 250));
+        var outfit = Group("Outfit and Accessories", new Point(4, 4), new Size(1510, 250));
         AddField(outfit, "outfitid", "Outfit", new Point(180, 22), 160);
         AddField(outfit, "seasonaloutfitid", "Seasonal Outfit", new Point(180, 48), 160);
         AddField(outfit, "accessorycode1", "Accessory 1", new Point(180, 74), 160);
@@ -334,7 +334,7 @@ public sealed class StadiumsSection : ClassicEntitySection
     public StadiumsSection(AppServices s) : base(s, "stadiums", "Stadiums", "stadiums", () => s.RequireData().GetStadiums(), LabelMaps.Stadiums)
     {
         var general = AddCanvasTab("General"); var c = Canvas(general);
-        var info = Group("Info", new Point(8, 3), new Size(268, 522));
+        var info = Group("Info", new Point(8, 3), new Size(400, 522));
         AddField(info, "name", "Database Name", new Point(120, 18), 136);
         AddField(info, "stadiumid", "Stadium Id", new Point(120, 44), 136);
         AddField(info, "capacity", "Capacity", new Point(120, 70), 136);
@@ -355,7 +355,7 @@ public sealed class StadiumsSection : ClassicEntitySection
         AddField(info, "frontsettype", "Front Set Type", new Point(120, 460), 136);
         AddField(info, "seatcolor", "Seat Colour", new Point(120, 486), 136);
         c.Controls.Add(info);
-        var pitchInfo = Group("Pitch", new Point(8, 530), new Size(268, 240));
+        var pitchInfo = Group("Pitch", new Point(8, 530), new Size(400, 240));
         AddField(pitchInfo, "stadiumpitchlength", "Pitch Length", new Point(120, 20), 136);
         AddField(pitchInfo, "stadiumpitchwidth", "Pitch Width", new Point(120, 46), 136);
         AddField(pitchInfo, "playsurfacetype", "Surface", new Point(120, 72), 136);
@@ -367,15 +367,15 @@ public sealed class StadiumsSection : ClassicEntitySection
         c.Controls.Add(pitchInfo);
         // Keep the useful stadium image prominent on the General tab rather
         // than leaving it as a tiny thumbnail beside a mostly empty canvas.
-        var pattern = Group("Stadium Preview", new Point(282, 3), new Size(650, 438));
+        var pattern = Group("Stadium Preview", new Point(414, 3), new Size(1100, 438));
         _generalPreview = ImageSurface(pattern, new Point(10, 22), new Size(624, 390), "Stadium preview");
         c.Controls.Add(pattern);
         var preview = AddCanvasTab("Preview"); var pc = Canvas(preview);
-        var p = Group("Preview", new Point(8, 4), new Size(1050, 680));
+        var p = Group("Preview", new Point(8, 4), new Size(1510, 680));
         _preview = ImageSurface(p, new Point(10, 22), new Size(1024, 512), "Stadium preview");
         pc.Controls.Add(p);
         var technical = AddCanvasTab("Model"); var mc = Canvas(technical);
-        var model = Group("Stadium Model", new Point(8, 4), new Size(1050, 680));
+        var model = Group("Stadium Model", new Point(8, 4), new Size(1510, 680));
 ThreeDViewerLauncher.AttachPlaceholder(model, new Point(10, 22), new Size(1024, 512), "stadium",
             () => new[] { Value("stadiumid"), "stadium_" + Value("stadiumid") },
             () => Services.FrostbiteAssets.ExportMeshForQuery(new[] { "stadium_" + Value("stadiumid") }));
@@ -805,8 +805,8 @@ public sealed class KitsSection : ClassicEntitySection
     public KitsSection(AppServices s) : base(s, "kits", "Kits", "teamkits", () => s.RequireData().GetKits(), LabelMaps.Kits)
     {
         var general = AddCanvasTab("General"); var c = Canvas(general);
-        var texture = Group("Texture", new Point(3, 3), new Size(716, 560));
-        _texturePreview = ImageSurface(texture, new Point(5, 20), new Size(700, 480), "Kit texture");
+        var texture = Group("Texture", new Point(3, 3), new Size(750, 560));
+        _texturePreview = ImageSurface(texture, new Point(5, 20), new Size(734, 480), "Kit texture");
         _loadTexture = new Button
         {
             Text = "Load Texture",
@@ -827,8 +827,8 @@ public sealed class KitsSection : ClassicEntitySection
         };
         texture.Controls.Add(_assetStatus);
         c.Controls.Add(texture);
-        var model = Group("3D Model", new Point(724, 3), new Size(600, 560));
-        ThreeDViewerLauncher.AttachPlaceholder(model, new Point(5, 20), new Size(580, 480), "kit",
+        var model = Group("3D Model", new Point(759, 3), new Size(750, 560));
+        ThreeDViewerLauncher.AttachPlaceholder(model, new Point(5, 20), new Size(730, 480), "kit",
             () => new[] { Value("teamkitid"), "kit_" + Value("teamkitid"), Value("jerseytemplateindex") },
             () => Services.FrostbiteAssets.ExportMeshForQuery(new[] { $"kit_{Value("teamkittypetechid")}", $"kit_{Value("teamtechid")}_{Value("teamkittypetechid")}" }));
         c.Controls.Add(model);
