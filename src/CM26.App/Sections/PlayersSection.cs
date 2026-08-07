@@ -210,7 +210,7 @@ public sealed class PlayersSection : SectionBase
 
         // A compact FC26 player overview, while keeping the original CM16 group-box
         // visual language instead of replacing this page with a modern card UI.
-        var summary = Box("Player Summary", new Point(650, 3), new Size(555, 129));
+        var summary = Box("Player Summary", new Point(650, 3), new Size(880, 129));
         AddSummaryValue(summary, "Overall", "overallrating", new Point(12, 25));
         AddSummaryValue(summary, "Potential", "potential", new Point(12, 51));
         AddSummaryValue(summary, "Position", "preferredposition1", new Point(12, 77));
@@ -221,7 +221,7 @@ public sealed class PlayersSection : SectionBase
         AddSummaryValue(summary, "International Rep.", "internationalrep", new Point(280, 103));
         canvas.Controls.Add(summary);
 
-        var attributes = Box("Key Attributes", new Point(650, 138), new Size(555, 181));
+        var attributes = Box("Key Attributes", new Point(650, 138), new Size(880, 181));
         AddSummaryValue(attributes, "Acceleration", "acceleration", new Point(12, 25));
         AddSummaryValue(attributes, "Sprint Speed", "sprintspeed", new Point(12, 51));
         AddSummaryValue(attributes, "Dribbling", "dribbling", new Point(12, 77));
@@ -237,7 +237,7 @@ public sealed class PlayersSection : SectionBase
         canvas.Controls.Add(attributes);
 
         // Keep the FC26 record keys and contract values on CM16's primary Info page.
-        var technical = Box("Record and Contract", new Point(650, 325), new Size(555, 106));
+        var technical = Box("Record and Contract", new Point(650, 325), new Size(880, 106));
         AddFields(technical, new[]
         {
             ("Contract Valid Until", "contractvaliduntil")
@@ -289,7 +289,7 @@ public sealed class PlayersSection : SectionBase
             canvas.Controls.Add(group);
         }
 
-        _traitsPanel = Box("Player Traits", new Point(3, 327), new Size(620, 300));
+        _traitsPanel = Box("Player Traits", new Point(3, 327), new Size(1280, 300));
         _traitsPanel.Controls.Add(new Label
         {
             Text = "Trait bitmasks are shown only when the loaded database provides them.",

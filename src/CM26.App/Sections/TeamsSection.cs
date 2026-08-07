@@ -607,7 +607,7 @@ public sealed class TeamsSection : SectionBase
         canvas.Controls.Add(available);
 
         var pitch = Group("Starting Lineup", new Point(731, 3), new Size(990, 795));
-        var board = new Panel { Location = new Point(8, 20), Size = new Size(650, 500), BackColor = Color.FromArgb(106, 190, 87), BorderStyle = BorderStyle.FixedSingle, AllowDrop = true };
+        var board = new Panel { Location = new Point(8, 20), Size = new Size(650, 500), BackColor = Color.FromArgb(106, 190, 87), BorderStyle = BorderStyle.FixedSingle, AllowDrop = true, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         board.Paint += (_, e) =>
         {
             // GDI+ drawing runs inside the WinForms message pump. A native fault
@@ -627,6 +627,7 @@ public sealed class TeamsSection : SectionBase
         CreateLineupSlots(board);
         pitch.Controls.Add(board);
         var bench = Group("Reserve Squad", new Point(666, 20), new Size(300, 500));
+        bench.Anchor = AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom;
         bench.Controls.Add(new Label
         {
             Text = "Matchday substitutes · double-click to open player",
@@ -635,6 +636,7 @@ public sealed class TeamsSection : SectionBase
         });
         _matchdayBench.Location = new Point(12, 42);
         _matchdayBench.Size = new Size(276, 443);
+        _matchdayBench.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
         _matchdayBench.Font = LegacyFont;
         _matchdayBench.View = View.Details;
         _matchdayBench.FullRowSelect = true;
@@ -655,9 +657,10 @@ public sealed class TeamsSection : SectionBase
         };
         bench.Controls.Add(_matchdayBench);
         pitch.Controls.Add(bench);
-        pitch.Controls.Add(new Label { Text = "Formation", Location = new Point(15, 535), Size = new Size(67, 20), Font = LegacyFont });
+        pitch.Controls.Add(new Label { Text = "Formation", Location = new Point(15, 535), Size = new Size(67, 20), Font = LegacyFont, Anchor = AnchorStyles.Left | AnchorStyles.Bottom });
         _formationView.Location = new Point(88, 532);
         _formationView.Size = new Size(260, 21);
+        _formationView.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
         _formationView.Font = LegacyFont;
         _formationView.DropDownHeight = 340;
         _formationView.SelectedIndexChanged += (_, _) =>
@@ -666,7 +669,7 @@ public sealed class TeamsSection : SectionBase
                 SelectTeamFormation(choice);
         };
         pitch.Controls.Add(_formationView);
-        _formationStatus = new Label { Location = new Point(355, 535), Size = new Size(610, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, Visible = false };
+        _formationStatus = new Label { Location = new Point(355, 535), Size = new Size(610, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, Visible = false, Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
         pitch.Controls.Add(_formationStatus);
         ToolTip.SetToolTip(_formationView, "Choose a formation template for this team.");
         AddPlayerReferencePickers(pitch, new[] { ("Captain", "captainid"), ("Left Corner", "leftcornerkicktakerid"), ("Right Corner", "rightcornerkicktakerid"), ("Penalty", "penaltytakerid"), ("Free Kicks", "freekicktakerid") }, 15, 565);

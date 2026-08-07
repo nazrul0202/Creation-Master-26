@@ -161,7 +161,7 @@ public sealed class LeaguesSection : SectionBase
         // objective threshold boxes are not part of the FC26 leagues schema.
         // Use the empty lower-right workspace instead of creating a sparse
         // vertical form below the league details.
-        var fc26 = Group("League Settings", new Point(540, 463), new Size(468, 125));
+        var fc26 = Group("League Settings", new Point(540, 463), new Size(532, 197));
         AddLeagueFlag(fc26, "Women's competition", "iswomencompetition", new Point(12, 20));
         AddLeagueFlag(fc26, "International league", "isinternationalleague", new Point(12, 46));
         AddLeagueFlag(fc26, "Competition pole flags", "iscompetitionpoleflagenabled", new Point(12, 72));

@@ -48,7 +48,7 @@ public static class IconService
         ["gloves"] = Color.FromArgb(110, 122, 145),
         ["sponsors"] = Color.FromArgb(96, 118, 170),
         ["adboards"] = Color.FromArgb(88, 108, 120),
-        ["audio"] = Color.FromArgb(61, 123, 255),
+        ["audio"] = Color.FromArgb(0, 120, 212),
         ["stadiumaudio"] = Color.FromArgb(83, 116, 160),
         ["scoreboard"] = Color.FromArgb(72, 92, 130),
         ["referees"] = Color.FromArgb(138, 147, 162),

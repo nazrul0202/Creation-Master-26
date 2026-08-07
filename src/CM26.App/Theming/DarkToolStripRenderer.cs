@@ -37,11 +37,11 @@ public sealed class DarkToolStripRenderer : ToolStripProfessionalRenderer
         }
         else if (button is { Checked: true })
         {
-            // Active module button highlight (deep blue fill, light blue outline).
-            using var brush = new SolidBrush(Theme.Accent);
-            e.Graphics.FillRoundedRectangle(brush, rect, 4);
-            using var pen = new Pen(Theme.Border);
-            e.Graphics.DrawRectangle(pen, rect.X + 1, rect.Y + 1, rect.Width - 3, rect.Height - 3);
+            // Active module button — subtle bottom accent indicator, neutral bg.
+            using var bg = new SolidBrush(Theme.Raised);
+            e.Graphics.FillRectangle(bg, rect);
+            using var pen = new Pen(Theme.Accent);
+            e.Graphics.DrawLine(pen, rect.X + 2, rect.Bottom - 2, rect.Right - 3, rect.Bottom - 2);
         }
     }
 
@@ -83,8 +83,8 @@ internal sealed class DarkColorTable : ProfessionalColorTable
     public override Color ImageMarginGradientEnd => Theme.Panel;
     public override Color SeparatorLight => Theme.Border;
     public override Color SeparatorDark => Theme.Border;
-    public override Color CheckBackground => Theme.Accent;
-    public override Color CheckSelectedBackground => Theme.Accent;
+    public override Color CheckBackground => Theme.Raised;
+    public override Color CheckSelectedBackground => Theme.Raised;
 }
 
 internal static class GraphicsExtensions

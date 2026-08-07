@@ -137,7 +137,7 @@ public sealed class CountriesSection : SectionBase
 
         canvas.Controls.Add(country);
 
-        var map = LegacyGroup("Map (Shape)", new Point(776, 3), new Size(528, 342));
+        var map = LegacyGroup("Map (Shape)", new Point(776, 3), new Size(528, 533));
         map.Controls.Add(CreateViewer(new Point(8, 15), new Size(512, 256), "512 x 256", out _mapViewer, out _));
         LegacyAssetActions.Attach(Services, map, _mapViewer, new Point(8, 294), RefreshCurrentRecord);
         canvas.Controls.Add(map);
