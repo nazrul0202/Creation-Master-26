@@ -348,7 +348,7 @@ internal static class Program
     private static BridgeResponse ApplyDirect(BridgeRequest request)
     {
         var inventory = EnsureIndexed(request.GameRoot ?? string.Empty);
-        var count = FrostbiteDirectLegacyWriter.Apply(
+        var result = FrostbiteDirectLegacyWriter.Apply(
             inventory.GameRoot,
             request.Query ?? throw new ArgumentException("Direct-edit plan path is required."));
         lock (IndexGate)
@@ -356,20 +356,28 @@ internal static class Program
             _indexedRoot = string.Empty;
             _indexedInventory = null;
         }
-        return new BridgeResponse(
-            true, request.Command,
-            $"Applied {count:N0} database/legacy replacement(s) directly to FC26 Data/Patch.");
+        return new BridgeResponse(true, request.Command, FormatApplyMessage(result, verified: false));
     }
 
     private static BridgeResponse VerifyDirect(BridgeRequest request)
     {
         var inventory = EnsureIndexed(request.GameRoot ?? string.Empty);
-        var count = FrostbiteDirectLegacyWriter.Verify(
+        var result = FrostbiteDirectLegacyWriter.Verify(
             inventory.GameRoot,
             request.Query ?? throw new ArgumentException("Direct-edit plan path is required."));
-        return new BridgeResponse(
-            true, request.Command,
-            $"Verified {count:N0} direct FC26 database/legacy replacement(s) without changing Data/Patch.");
+        return new BridgeResponse(true, request.Command, FormatApplyMessage(result, verified: true));
+    }
+
+    private static string FormatApplyMessage(FrostbiteDirectLegacyWriter.ApplyResult result, bool verified)
+    {
+        var verb = verified ? "Verified" : "Applied";
+        var applied = verified
+            ? $" {result.Applied:N0} direct FC26 database/legacy replacement(s) without changing Data/Patch."
+            : $" {result.Applied:N0} database/legacy replacement(s) directly to FC26 Data/Patch.";
+        if (result.Skipped.Count == 0) return verb + applied;
+        return verb + applied +
+            $" Skipped {result.Skipped.Count:N0} staged file(s) not present in this installation: " +
+            string.Join(", ", result.Skipped) + ".";
     }
 
     private static FrostbiteAssetKind? ParseKind(string? value)

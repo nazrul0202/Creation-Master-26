@@ -24,6 +24,9 @@ public sealed class TeamsSection : SectionBase
     private readonly List<PictureBox> _crestViewers = [];
     private readonly List<Panel> _teamColorChips = [];
     private readonly ListView _teamPlayers = new();
+    private readonly ImageList _rosterMinifaces = new() { ImageSize = new Size(32, 32), ColorDepth = ColorDepth.Depth32Bit };
+    private readonly HashSet<int> _pendingRosterMinifaces = [];
+    private readonly SemaphoreSlim _minifaceLoadGate = new(1, 1);
     private readonly ListView _availablePlayers = new();
     private readonly ListView _teamSponsors = new();
     private readonly PictureBox _sponsorPreview = new();
@@ -39,9 +42,6 @@ public sealed class TeamsSection : SectionBase
     private readonly ListView _teamCallnameSlots = new();
     private readonly ListView _anthemSlots = new();
     private readonly ListView _goalSongSlots = new();
-    private PictureBox? _selectedPlayerFace;
-    private Label? _selectedPlayerName;
-    private Label? _selectedPlayerDetails;
     private readonly Dictionary<string, ComboBox> _playerReferencePickers = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<LineupSlot> _lineupSlots = [];
     private readonly Dictionary<int, TeamRosterItem> _rosterByPlayerId = new();
@@ -622,9 +622,23 @@ public sealed class TeamsSection : SectionBase
     {
         var page = Page("Roster");
         var canvas = Canvas(page);
+        // The roster is intentionally beside the formation, not right-anchored.
+        // Right anchoring inside an AutoScroll canvas made WinForms reposition the
+        // control beyond the virtual area on some resolutions. That hid the SUB /
+        // RES list and leaked child text over the application navigation.
+        canvas.AutoScroll = false;
+        canvas.AutoScrollMinSize = new Size(1650, 820);
 
-        // === COMPACT SQUAD LIST (Deco-style) ===
-        var squadGroup = Group("Squad", new Point(3, 3), new Size(480, 810));
+        // Matchday choices belong directly above the squad rail. Keeping them
+        // in the roster workspace avoids a separate tall page and keeps the
+        // frequently used captain/set-piece controls in view.
+        canvas.Controls.Add(CreateMatchdayPanel(new Point(1145, 3), new Size(500, 150)));
+
+        // === VISUAL SQUAD LIST ===
+        // Mirrors the provided formation-board layout: the pitch is the primary
+        // canvas on the left and the searchable squad sits as a visual rail on
+        // the right, with a miniface beside each player.
+        var squadGroup = Group("Squad", new Point(1145, 160), new Size(500, 650));
         squadGroup.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Bottom;
 
         // Player count label
@@ -641,7 +655,7 @@ public sealed class TeamsSection : SectionBase
         _squadCountLabel = squadCount;
 
         // Tools section
-        var toolsGroup = Group("Tools", new Point(10, 42), new Size(455, 50));
+        var toolsGroup = Group("Tools", new Point(10, 42), new Size(475, 50));
         var btnTransfer = LegacyButton("Transfer", new Point(8, 18), new Size(90, 26));
         btnTransfer.Click += (_, _) => OpenTransferDialog();
         toolsGroup.Controls.Add(btnTransfer);
@@ -655,7 +669,7 @@ public sealed class TeamsSection : SectionBase
 
         // Compact squad ListView
         _teamPlayers.Location = new Point(10, 98);
-        _teamPlayers.Size = new Size(455, 700);
+        _teamPlayers.Size = new Size(475, 540);
         _teamPlayers.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
         _teamPlayers.View = View.Details;
         _teamPlayers.FullRowSelect = true;
@@ -663,12 +677,13 @@ public sealed class TeamsSection : SectionBase
         _teamPlayers.HideSelection = false;
         _teamPlayers.BackColor = Theme.Input;
         _teamPlayers.ForeColor = Theme.Text;
-        _teamPlayers.Font = new Font("Segoe UI", 8.25f);
-        _teamPlayers.Columns.Add("#", 35);
-        _teamPlayers.Columns.Add("Name", 160);
-        _teamPlayers.Columns.Add("POS", 45);
-        _teamPlayers.Columns.Add("Ovr", 40);
-        _teamPlayers.Columns.Add("Role", 55);
+        _teamPlayers.Font = new Font("Segoe UI", 8.5f);
+        _teamPlayers.SmallImageList = _rosterMinifaces;
+        _teamPlayers.Columns.Add("#", 28);
+        _teamPlayers.Columns.Add("Player", 260);
+        _teamPlayers.Columns.Add("POS", 54);
+        _teamPlayers.Columns.Add("Ovr", 42);
+        _teamPlayers.Columns.Add("Role", 46);
         _teamPlayers.HeaderStyle = ColumnHeaderStyle.Nonclickable;
         _teamPlayers.MultiSelect = false;
         _teamPlayers.ItemDrag += (_, e) =>
@@ -676,18 +691,19 @@ public sealed class TeamsSection : SectionBase
             if (e.Item is ListViewItem item && item.Tag is int playerId && playerId > 0)
                 _teamPlayers.DoDragDrop(playerId, DragDropEffects.Copy);
         };
-        _teamPlayers.SelectedIndexChanged += (_, _) => ShowSelectedRosterPlayer();
         _teamPlayers.DoubleClick += (_, _) => OpenSelectedRosterPlayer();
         squadGroup.Controls.Add(_teamPlayers);
         canvas.Controls.Add(squadGroup);
 
-        // === FORMATION / PITCH (compact) ===
-        var pitch = Group("Formation", new Point(489, 3), new Size(740, 420));
-        pitch.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+        // === FORMATION / PITCH ===
+        // The roster is a one-screen workspace. A compact pitch plus the
+        // dedicated caption strip keeps the exact FC26 coordinates readable.
+        var pitch = Group("Formation Board", new Point(3, 3), new Size(1135, 810));
+        pitch.Anchor = AnchorStyles.Top | AnchorStyles.Left;
         var board = new Panel
         {
             Location = new Point(8, 20),
-            Size = new Size(720, 340),
+            Size = new Size(1115, 730),
             BackColor = Color.FromArgb(106, 190, 87),
             BorderStyle = BorderStyle.FixedSingle,
             AllowDrop = true,
@@ -709,8 +725,8 @@ public sealed class TeamsSection : SectionBase
         pitch.Controls.Add(board);
 
         // Formation selector (bottom of pitch group)
-        pitch.Controls.Add(new Label { Text = "Formation", Location = new Point(10, 368), Size = new Size(65, 20), Font = LegacyFont });
-        _formationView.Location = new Point(80, 366);
+        pitch.Controls.Add(new Label { Text = "Formation", Location = new Point(10, 762), Size = new Size(65, 20), Font = LegacyFont });
+        _formationView.Location = new Point(80, 760);
         _formationView.Size = new Size(180, 21);
         _formationView.Font = LegacyFont;
         _formationView.DropDownHeight = 340;
@@ -720,42 +736,22 @@ public sealed class TeamsSection : SectionBase
                 SelectTeamFormation(choice);
         };
         pitch.Controls.Add(_formationView);
-        _formationStatus = new Label { Location = new Point(270, 368), Size = new Size(450, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, Visible = false };
+        _formationStatus = new Label { Location = new Point(270, 762), Size = new Size(850, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, Visible = false };
         pitch.Controls.Add(_formationStatus);
         ToolTip.SetToolTip(_formationView, "Choose a formation template for this team.");
         canvas.Controls.Add(pitch);
 
-        // === SET PIECES (below pitch, right side) ===
-        var setPieces = Group("Set Pieces", new Point(489, 427), new Size(740, 100));
-        setPieces.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-        AddPlayerReferencePickers(setPieces, new[] {
-            ("Captain", "captainid"),
-            ("Left Corner", "leftcornerkicktakerid"),
-            ("Right Corner", "rightcornerkicktakerid"),
-            ("Penalty", "penaltytakerid"),
-            ("Free Kicks", "freekicktakerid")
-        }, 10, 18);
-        canvas.Controls.Add(setPieces);
+    }
 
-        // === PLAYER PREVIEW (below squad) ===
-        // === PLAYER DETAILS (below set pieces) ===
-        var preview = Group("Player Details", new Point(489, 531), new Size(740, 160));
-        preview.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
-        _selectedPlayerFace = Viewer(new Point(10, 20), new Size(80, 80));
-        preview.Controls.Add(_selectedPlayerFace);
-        _selectedPlayerName = new Label { Location = new Point(100, 20), Size = new Size(300, 20), Font = Theme.BodyBold, Text = "Select a player", ForeColor = Theme.Text, BackColor = Theme.Panel };
-        preview.Controls.Add(_selectedPlayerName);
-        _selectedPlayerDetails = new Label
-        {
-            Location = new Point(100, 45),
-            Size = new Size(630, 110),
-            Font = LegacyFont,
-            ForeColor = Theme.Muted,
-            BackColor = Theme.Panel,
-            Text = "Double-click a player to open full editor.\nDrag a player to the pitch to assign to lineup.",
-        };
-        preview.Controls.Add(_selectedPlayerDetails);
-        canvas.Controls.Add(preview);
+    private GroupBox CreateMatchdayPanel(Point location, Size size)
+    {
+        var setPieces = Group("Matchday", location, size);
+        AddPlayerReferencePickers(setPieces, new[] {
+            ("Captain", "captainid"), ("Left Corner", "leftcornerkicktakerid"),
+            ("Right Corner", "rightcornerkicktakerid"), ("Penalty", "penaltytakerid"),
+            ("Free Kicks", "freekicktakerid")
+        }, 8, 18, pickerX: 104, pickerWidth: 380);
+        return setPieces;
     }
 
     private Label? _squadCountLabel;
@@ -775,7 +771,9 @@ public sealed class TeamsSection : SectionBase
         public required string PlayerField { get; init; }
         public int PlayerId { get; set; }
         public int LoadedMinifacePlayerId { get; set; }
+        public int AppliedMinifacePlayerId { get; set; }
         public string ExpectedPosition { get; set; } = string.Empty;
+        public Point FormationPoint { get; set; }
     }
 
     private sealed record FormationChoice(int RecordIndex, int FormationId, string Name, bool IsGeneric)
@@ -783,18 +781,59 @@ public sealed class TeamsSection : SectionBase
         public override string ToString() => Name;
     }
 
+    /// <summary>
+    /// Paints the miniface and its two-line label in separate regions.  The
+    /// label has an outline/shadow for contrast but deliberately no caption
+    /// tile, preserving the clean on-pitch style requested for the roster.
+    /// </summary>
+    private sealed class LineupMarker : Label
+    {
+        public LineupMarker()
+        {
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+                     ControlStyles.OptimizedDoubleBuffer | ControlStyles.SupportsTransparentBackColor, true);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            // Let WinForms render the parent pitch into this transparent child;
+            // never draw the parent manually from here.
+            base.OnPaintBackground(e);
+
+            const int faceSize = 70;
+            if (Image != null)
+            {
+                var width = Math.Min(faceSize, Image.Width);
+                var height = Math.Min(faceSize, Image.Height);
+                e.Graphics.DrawImage(Image, new Rectangle((Width - width) / 2, 0, width, height));
+            }
+
+            var textBounds = new Rectangle(1, 70, Math.Max(1, Width - 2), Math.Max(1, Height - 70));
+            const TextFormatFlags format = TextFormatFlags.HorizontalCenter | TextFormatFlags.Top |
+                                            TextFormatFlags.WordBreak | TextFormatFlags.NoPadding;
+            // A compact black shadow makes white names readable on every pitch
+            // stripe without reintroducing a filled rectangle behind the text.
+            var shadowBounds = new Rectangle(textBounds.X + 1, textBounds.Y + 1, textBounds.Width, textBounds.Height);
+            TextRenderer.DrawText(e.Graphics, Text, Font, shadowBounds, Color.FromArgb(235, 0, 0, 0), format);
+            TextRenderer.DrawText(e.Graphics, Text, Font, textBounds, ForeColor, format);
+        }
+    }
+
     private void CreateLineupSlots(Panel board)
     {
         foreach (var _ in Enumerable.Range(0, 11))
         {
-            var label = new Label
+            // Keep the original clean pitch treatment: a circular miniface and
+            // white text directly on the grass. A custom caption tile looked
+            // heavier than the rest of CM26 and could leave paint artefacts.
+            var label = new LineupMarker
             {
-                Size = new Size(118, 42), BackColor = Color.FromArgb(17, 38, 56),
-                BorderStyle = BorderStyle.FixedSingle, TextAlign = ContentAlignment.MiddleRight,
-                Font = new Font("Segoe UI", 7.5F, FontStyle.Bold),
+                Size = new Size(122, 104), BackColor = Color.Transparent,
+                BorderStyle = BorderStyle.None, TextAlign = ContentAlignment.BottomCenter,
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
                 ForeColor = Color.White, AllowDrop = true, Tag = _lineupSlots.Count,
-                ImageAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(4, 2, 4, 2)
+                ImageAlign = ContentAlignment.TopCenter,
+                Padding = Padding.Empty
             };
             label.DragEnter += (_, e) => e.Effect = e.Data?.GetDataPresent(typeof(int)) == true ? DragDropEffects.Copy : DragDropEffects.None;
             label.DragDrop += (_, e) => AssignDroppedPlayer(e, label);
@@ -994,66 +1033,65 @@ public sealed class TeamsSection : SectionBase
             var y = ReadFormationOffset(table, record, $"offset{i}y", _formationBoard.Height);
             var positionColumn = Col(table, $"position{i}");
             var slot = _lineupSlots[i];
-            var maxLeft = Math.Max(10, _formationBoard.Width - slot.Label.Width - 10);
-            var maxTop = Math.Max(10, _formationBoard.Height - slot.Label.Height - 10);
-            slot.Label.Location = new Point(
-                Math.Clamp(x - (slot.Label.Width / 2), Math.Min(10, maxLeft), maxLeft),
-                Math.Clamp(y - (slot.Label.Height / 2), Math.Min(10, maxTop), maxTop));
+            // FC26's Y axis starts at the defending goal.  Reverse it once for
+            // the broadcast-style board: attack at the top, goalkeeper below.
+            slot.FormationPoint = new Point(x, _formationBoard.Height - y);
             slot.ExpectedPosition = positionColumn >= 0 ? NameResolverService.PositionLabel(Parse(record.Get(positionColumn))) : "Not stored";
             slot.Label.Visible = true;
         }
-        ResolveLineupCardCollisions();
+        ApplyGoalkeeperVisualClearance();
+        ArrangeLineupInTacticalLanes();
         _formationStatus!.Text = status ?? choice.Name;
         RenderLineup();
     }
 
     /// <summary>
-    /// FC26 formation offsets describe points, while CM26 draws a full
-    /// miniface/name card around each point. Adjacent stored points can
-    /// therefore overlap even when the game formation itself is valid.
-    /// Keep the nearest non-overlapping card position without changing any
-    /// database formation coordinate.
+    /// Draw the exact tactical points stored in the FC26 formations table.
+    /// A defensive line intentionally has small Y differences (full-backs and
+    /// centre-backs), so grouping or flattening those points creates a different
+    /// formation. The only conversion is the display's reversed Y axis.
     /// </summary>
-    private void ResolveLineupCardCollisions()
+    private void ArrangeLineupInTacticalLanes()
     {
         if (_formationBoard == null) return;
-        var boardW = _formationBoard.Width;
-        var boardH = _formationBoard.Height;
-        var slots = _lineupSlots.Where(s => s.Label.Visible).ToList();
-        if (slots.Count == 0) return;
-        var cardW = slots.Max(slot => slot.Label.Width);
-        var cardH = slots.Max(slot => slot.Label.Height);
-        const int padding = 10;
-        const int gap = 4;
-        var columns = Math.Max(1, (boardW - (padding * 2) + gap) / (cardW + gap));
-        var rows = Math.Max(1, (boardH - (padding * 2) + gap) / (cardH + gap));
+        foreach (var slot in _lineupSlots.Where(slot => slot.Label.Visible))
+            PlaceLineupSlot(slot);
+    }
 
-        // A full card needs more space than a formation's point marker. Snap
-        // every desired point to its nearest free grid cell, which makes the
-        // result deterministic and guarantees zero card-over-card overlap.
-        var cells = new List<Point>(columns * rows);
-        var usableW = Math.Max(0, boardW - (padding * 2) - cardW);
-        var usableH = Math.Max(0, boardH - (padding * 2) - cardH);
-        for (var row = 0; row < rows; row++)
-        for (var column = 0; column < columns; column++)
+    /// <summary>
+    /// The stored offsets remain the source of truth. This only protects the
+    /// rendered miniface/text bounds at the goal line: otherwise a full-size
+    /// goalkeeper marker is clamped upward onto the defenders.
+    /// </summary>
+    private void ApplyGoalkeeperVisualClearance()
+    {
+        if (_formationBoard == null) return;
+        var defenders = _lineupSlots.Where(slot => slot.Label.Visible && IsDefender(slot.ExpectedPosition)).ToList();
+        if (defenders.Count == 0) return;
+
+        var lastDefenderY = defenders.Max(slot => slot.FormationPoint.Y);
+        foreach (var goalkeeper in _lineupSlots.Where(slot => slot.Label.Visible && string.Equals(slot.ExpectedPosition, "GK", StringComparison.OrdinalIgnoreCase)))
         {
-            var left = padding + (columns == 1 ? usableW / 2 : (int)Math.Round(column * usableW / (double)(columns - 1)));
-            var top = padding + (rows == 1 ? usableH / 2 : (int)Math.Round(row * usableH / (double)(rows - 1)));
-            cells.Add(new Point(left, top));
+            // 112 px keeps the face and its two text lines visibly clear of the
+            // defending line. The bottom bound leaves the full label on pitch.
+            var bottomCentre = _formationBoard.Height - (goalkeeper.Label.Height / 2) - 2;
+            var safeY = Math.Min(bottomCentre, Math.Max(goalkeeper.FormationPoint.Y, lastDefenderY + 112));
+            goalkeeper.FormationPoint = new Point(goalkeeper.FormationPoint.X, safeY);
         }
-        var remaining = new HashSet<int>(Enumerable.Range(0, cells.Count));
-        foreach (var slot in slots.OrderBy(slot => slot.Label.Top).ThenBy(slot => slot.Label.Left))
-        {
-            var target = new Point(slot.Label.Left + (slot.Label.Width / 2), slot.Label.Top + (slot.Label.Height / 2));
-            var cell = remaining.OrderBy(index =>
-            {
-                var dx = cells[index].X + (cardW / 2) - target.X;
-                var dy = cells[index].Y + (cardH / 2) - target.Y;
-                return (dx * dx) + (dy * dy);
-            }).First();
-            remaining.Remove(cell);
-            slot.Label.Location = cells[cell];
-        }
+    }
+
+    private static bool IsDefender(string position) => position.ToUpperInvariant() is "LB" or "LWB" or "LCB" or "CB" or "RCB" or "RB" or "RWB";
+
+    private void PlaceLineupSlot(LineupSlot slot)
+    {
+        if (_formationBoard == null) return;
+        var horizontalMargin = 6;
+        var verticalMargin = string.Equals(slot.ExpectedPosition, "GK", StringComparison.OrdinalIgnoreCase) ? 2 : 6;
+        var maxLeft = Math.Max(horizontalMargin, _formationBoard.Width - slot.Label.Width - horizontalMargin);
+        var maxTop = Math.Max(verticalMargin, _formationBoard.Height - slot.Label.Height - verticalMargin);
+        slot.Label.Location = new Point(
+            Math.Clamp(slot.FormationPoint.X - (slot.Label.Width / 2), horizontalMargin, maxLeft),
+            Math.Clamp(slot.FormationPoint.Y - (slot.Label.Height / 2), verticalMargin, maxTop));
     }
 
     private static int ReadFormationOffset(CM26.Application.Models.DbTable table, CM26.Application.Models.DbRecord record, string field, int extent)
@@ -1209,22 +1247,23 @@ public sealed class TeamsSection : SectionBase
 
     private void QueueLineupMiniface(LineupSlot slot, int playerId)
     {
-        if (playerId <= 0 || slot.LoadedMinifacePlayerId == playerId) return;
-        slot.LoadedMinifacePlayerId = playerId;
-        var local = Services.Assets.GetPlayerMiniface(playerId);
-        if (!string.IsNullOrWhiteSpace(local) && File.Exists(local))
-        {
-            var image = Services.Textures.CreatePreview(local, 36, 36);
-            if (image is not null) SetLineupMiniface(slot, image);
-            return;
-        }
+        if (playerId <= 0) return;
+        if (slot.LoadedMinifacePlayerId == playerId && slot.AppliedMinifacePlayerId == playerId) return;
 
-        if (!Services.FrostbiteAssets.IsAvailable) return;
-        _ = Task.Run(() =>
+        // Never leave the previous player's face visible while an asset loads
+        // (or if that asset is unavailable). This is essential when changing
+        // teams because each visual slot is reused for a different player.
+        if (slot.LoadedMinifacePlayerId != playerId)
         {
-            var asset = Services.FrostbiteAssets.ExportLegacyAsset($"data/ui/imgAssets/heads/p{playerId}.dds");
-            return string.IsNullOrWhiteSpace(asset) ? null : Services.Textures.CreatePreview(asset, 36, 36);
-        }).ContinueWith(task =>
+            var old = slot.Label.Image;
+            slot.Label.Image = null;
+            slot.AppliedMinifacePlayerId = 0;
+            old?.Dispose();
+            slot.Label.Invalidate();
+        }
+        slot.LoadedMinifacePlayerId = playerId;
+        _ = Task.Run(async () => await LoadPlayerMinifaceAsync(playerId, 76))
+        .ContinueWith(task =>
         {
             var image = task.Status == TaskStatus.RanToCompletion ? task.Result : null;
             if (image is null) return;
@@ -1233,24 +1272,62 @@ public sealed class TeamsSection : SectionBase
                 image.Dispose();
                 return;
             }
-            SetLineupMiniface(slot, image);
+            SetLineupMiniface(slot, playerId, image);
         }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
     private static void ClearLineupMiniface(LineupSlot slot)
     {
         slot.LoadedMinifacePlayerId = 0;
+        slot.AppliedMinifacePlayerId = 0;
         var old = slot.Label.Image;
         slot.Label.Image = null;
         old?.Dispose();
     }
 
-    private static void SetLineupMiniface(LineupSlot slot, Image image)
+    private static void SetLineupMiniface(LineupSlot slot, int playerId, Image image)
     {
+        if (slot.LoadedMinifacePlayerId != playerId)
+        {
+            image.Dispose();
+            return;
+        }
         var old = slot.Label.Image;
-        slot.Label.Image = image;
+        slot.Label.Image = CreateCircularMiniface(image, 76);
+        slot.AppliedMinifacePlayerId = playerId;
+        image.Dispose();
         old?.Dispose();
         slot.Label.Invalidate();
+    }
+
+    private async Task<Image?> LoadPlayerMinifaceAsync(int playerId, int size)
+    {
+        await _minifaceLoadGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var path = Services.Assets.GetPlayerMiniface(playerId);
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                path = Services.FrostbiteAssets.IsAvailable
+                    ? Services.FrostbiteAssets.ExportLegacyAsset($"data/ui/imgAssets/heads/p{playerId}.dds")
+                    : null;
+            return string.IsNullOrWhiteSpace(path) ? null : Services.Textures.CreatePreview(path, size, size);
+        }
+        finally { _minifaceLoadGate.Release(); }
+    }
+
+    private static Image CreateCircularMiniface(Image source, int diameter)
+    {
+        var image = new Bitmap(diameter, diameter);
+        using var graphics = Graphics.FromImage(image);
+        graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        using var path = new System.Drawing.Drawing2D.GraphicsPath();
+        path.AddEllipse(1, 1, diameter - 2, diameter - 2);
+        graphics.SetClip(path);
+        graphics.DrawImage(source, new Rectangle(0, 0, diameter, diameter));
+        graphics.ResetClip();
+        using var border = new Pen(Color.FromArgb(235, Color.White), 2);
+        graphics.DrawEllipse(border, 1, 1, diameter - 3, diameter - 3);
+        return image;
     }
 
     private void AddAdboardsTab()
@@ -1399,10 +1476,10 @@ public sealed class TeamsSection : SectionBase
     }
 
     // FC26 player-id foreign keys must be editable as relationships, not merely resolved text.
-    private void AddPlayerReferencePickers(Control parent, IEnumerable<(string label, string field)> definitions, int labelX, int top)
+    private void AddPlayerReferencePickers(Control parent, IEnumerable<(string label, string field)> definitions, int labelX, int top, int pickerX = 90, int pickerWidth = 372)
     {
         var row = 0;
-        var labelWidth = Math.Max(70, 90 - labelX - 6);
+        var labelWidth = Math.Max(70, pickerX - labelX - 6);
         foreach (var (label, field) in definitions)
         {
             var y = top + (row++ * 26);
@@ -1412,7 +1489,7 @@ public sealed class TeamsSection : SectionBase
                 AutoSize = false, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont,
                 ForeColor = Theme.Muted, BackColor = Theme.Panel
             });
-            var picker = new ComboBox { Location = new Point(90, y), Size = new Size(372, 21), Font = LegacyFont, DropDownStyle = ComboBoxStyle.DropDownList, Tag = field };
+            var picker = new ComboBox { Location = new Point(pickerX, y), Size = new Size(pickerWidth, 21), Font = LegacyFont, DropDownStyle = ComboBoxStyle.DropDownList, Tag = field };
             Theme.ApplyCombo(picker);
             picker.SelectedIndexChanged += (_, _) => CommitPlayerReference(picker);
             _playerReferencePickers[field] = picker;
@@ -1604,8 +1681,55 @@ public sealed class TeamsSection : SectionBase
             player.Position,
             player.Overall,
             role
-        }) { Tag = player.PlayerId };
+        }) { Tag = player.PlayerId, ImageKey = player.PlayerId.ToString() };
         _teamPlayers.Items.Add(item);
+        QueueRosterMiniface(player.PlayerId);
+    }
+
+    private void QueueRosterMiniface(int playerId)
+    {
+        if (playerId <= 0) return;
+        var key = playerId.ToString();
+        if (!_rosterMinifaces.Images.ContainsKey(key))
+            _rosterMinifaces.Images.Add(key, MissingRosterMiniface());
+        if (!_pendingRosterMinifaces.Add(playerId)) return;
+
+        _ = Task.Run(async () => await LoadPlayerMinifaceAsync(playerId, 32)).ContinueWith(task =>
+        {
+            _pendingRosterMinifaces.Remove(playerId);
+            if (IsDisposed || task.Status != TaskStatus.RanToCompletion || task.Result == null) return;
+            var image = task.Result;
+            // Replacing an image in place keeps every ListView item's image
+            // index stable. RemoveByKey/Add shifts later indices and was the
+            // reason faces could appear next to the wrong roster name.
+            using (image)
+            {
+                var circular = CreateCircularMiniface(image, 32);
+                var index = _rosterMinifaces.Images.IndexOfKey(key);
+                if (index >= 0)
+                {
+                    var old = _rosterMinifaces.Images[index];
+                    _rosterMinifaces.Images[index] = circular;
+                    old?.Dispose();
+                }
+                else
+                {
+                    _rosterMinifaces.Images.Add(key, circular);
+                }
+            }
+            _teamPlayers.Invalidate();
+        }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
+
+    private static Image MissingRosterMiniface()
+    {
+        var image = new Bitmap(32, 32);
+        using var graphics = Graphics.FromImage(image);
+        graphics.Clear(Color.FromArgb(25, 47, 68));
+        using var face = new SolidBrush(Color.FromArgb(150, 190, 205));
+        graphics.FillEllipse(face, 11, 6, 10, 10);
+        graphics.FillEllipse(face, 7, 16, 18, 18);
+        return image;
     }
 
     private void LoadAudioCatalogs()
@@ -1933,27 +2057,6 @@ public sealed class TeamsSection : SectionBase
     private int TeamColourComponent(string field) =>
         _fields.TryGetValue(field, out var value) && int.TryParse(value.RawValue, out var component) ? Math.Clamp(component, 0, 255) : 0;
 
-    private void ShowSelectedRosterPlayer()
-    {
-        if (_selectedPlayerName == null || _selectedPlayerDetails == null || _selectedPlayerFace == null) return;
-        if (_teamPlayers.SelectedItems.Count == 0 || _teamPlayers.SelectedItems[0].Tag is not int playerId || playerId <= 0 || !_rosterByPlayerId.TryGetValue(playerId, out var player))
-        {
-            _selectedPlayerName.Text = "Select a player";
-            _selectedPlayerDetails.Text = "Select a roster player to view details.\nDouble-click to open full editor.";
-            _selectedPlayerFace.Image = null;
-            return;
-        }
-        _selectedPlayerName.Text = player.Name;
-        var injury = string.IsNullOrWhiteSpace(player.Injury) || player.Injury == "0" ? "None" : player.Injury;
-        var form = string.IsNullOrWhiteSpace(player.Form) ? "Not stored" : player.Form;
-        var loan = string.IsNullOrWhiteSpace(player.LoanFrom) ? "No" : $"From {player.LoanFrom} (ends {player.LoanEndDate})";
-        var contract = string.IsNullOrWhiteSpace(player.ContractValidUntil) ? "Not stored" : player.ContractValidUntil;
-        var joined = string.IsNullOrWhiteSpace(player.JoiningDate) ? "Not stored" : player.JoiningDate;
-        _selectedPlayerDetails.Text = $"Player ID: {player.PlayerId}  |  Shirt #{player.JerseyNumber}  |  {player.Position}  |  OVR {player.Overall}\nContract until: {contract}  |  Joined: {joined}\nLeague: {player.LeagueAppearances} apps, {player.LeagueGoals} goals\nCards: {player.YellowCards} yellow, {player.RedCards} red\nForm: {form}  |  Injury: {injury}  |  Loan: {loan}";
-        var path = Services.Assets.GetPlayerMiniface(playerId);
-        SetMiniface(_selectedPlayerFace, path, playerId);
-    }
-
     /// <summary>CM16 behaviour: double-clicking a roster player opens Player editor.</summary>
     private void OpenSelectedRosterPlayer()
     {
@@ -2235,36 +2338,25 @@ public sealed class TeamsSection : SectionBase
 
     private void ShowCrest(string path, string teamName, int teamId)
     {
-        var legacyPath = string.Empty;
-        if (teamId > 0)
+        var viewer = _crestViewers[0];
+        var candidates = teamId > 0
+            ? new[]
+            {
+                $"data/ui/imgAssets/crest/dark/l{teamId}.dds",
+                $"data/ui/imgAssets/crest/light/l{teamId}.dds"
+            }
+            : Array.Empty<string>();
+
+        // Do not retain the previous club's target while the actual FC26 asset
+        // variant is being resolved. A missing dark asset must be allowed to
+        // fall back to light, not become a save target for the wrong club.
+        LegacyAssetActions.ClearTarget(viewer);
+        viewer.BackColor = DarkCrestBackground;
+        FrostbitePreviewLoader.LoadLegacyUiAssetCandidates(viewer, Services, null, candidates,
+            (image, source) =>
         {
             try
             {
-                legacyPath = Services.FrostbiteAssets.ExportLegacyAsset(
-                    $"data/ui/imgAssets/crest/dark/l{teamId}.dds");
-            }
-            catch
-            {
-                legacyPath = string.Empty;
-            }
-        }
-        if (!string.IsNullOrWhiteSpace(legacyPath)) path = legacyPath;
-        if (teamId > 0)
-        {
-            var crestPath = $"data/ui/imgAssets/crest/dark/l{teamId}.dds";
-            var target = new LegacyAssetEditTarget(crestPath, 256, 256);
-            LegacyAssetActions.SetTarget(_crestViewers[0], target);
-        }
-        // The canonical dark crest set includes white marks. Keep the exact
-        // legacy asset and put it on a dark preview surface; do not search RES
-        // material textures as a fallback because they can be unrelated kits.
-        _crestViewers[0].BackColor = DarkCrestBackground;
-        FrostbitePreviewLoader.LoadLegacyUiAsset(_crestViewers[0], Services, path,
-            $"data/ui/imgAssets/crest/dark/l{teamId}.dds", (image, source) =>
-        {
-            try
-            {
-                var viewer = _crestViewers[0];
                 if (!viewer.IsDisposed)
                 {
                     var old = viewer.Image;
@@ -2274,9 +2366,10 @@ public sealed class TeamsSection : SectionBase
                 _crestCaption.Text = image == null
                     ? $"{teamName}\r\nNo crest available"
                     : $"{teamName}\r\n{source}";
-            }
-            catch (System.AccessViolationException) { }
-            catch { }
-        });
+        }
+        catch (System.AccessViolationException) { }
+        catch { }
+    }, resolvedPath => LegacyAssetActions.SetTarget(
+        viewer, new LegacyAssetEditTarget(resolvedPath, 256, 256)));
     }
 }

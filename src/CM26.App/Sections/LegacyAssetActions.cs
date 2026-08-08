@@ -26,6 +26,8 @@ internal static class LegacyAssetActions
         Targets.Add(picture, new TargetHolder { Target = target });
     }
 
+    public static void ClearTarget(PictureBox picture) => Targets.Remove(picture);
+
     public static LegacyAssetEditTarget? GetTarget(PictureBox picture) =>
         Targets.TryGetValue(picture, out var holder) ? holder.Target : null;
 

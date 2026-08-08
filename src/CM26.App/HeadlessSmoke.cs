@@ -303,15 +303,22 @@ internal static class HeadlessSmoke
                 throw new InvalidOperationException("Workspace is missing one or more legacy database files.");
             using var session = new CM26.Application.Services.DatabaseSession();
             session.Load(workspace.DatabaseFolder);
+            var reloaded = Fc26WorkspaceService.Open();
+            if (string.Equals(workspace.DatabaseFolder, reloaded.DatabaseFolder, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Live reload reused the active native-parser workspace.");
+            using var reloadSession = new CM26.Application.Services.DatabaseSession();
+            reloadSession.Load(reloaded.DatabaseFolder);
             var isolated = !workspace.DatabaseFolder.StartsWith(
                 workspace.GameRoot.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar,
                 StringComparison.OrdinalIgnoreCase);
 
             Console.WriteLine($"Game root: {workspace.GameRoot}");
             Console.WriteLine($"Direct parser session: {workspace.DatabaseFolder}");
+            Console.WriteLine($"Reload parser session: {reloaded.DatabaseFolder}");
             Console.WriteLine($"Database tables loaded: {session.Tables.Count}");
+            Console.WriteLine($"Reload tables loaded: {reloadSession.Tables.Count}");
             Console.WriteLine($"Outside FC26 install: {isolated}");
-            return session.IsLoaded && isolated ? 0 : 19;
+            return session.IsLoaded && reloadSession.IsLoaded && isolated ? 0 : 19;
         }
         catch (Exception ex)
         {
@@ -1953,6 +1960,99 @@ internal static class HeadlessSmoke
         catch (Exception ex)
         {
             Console.WriteLine("FORMATION TEST FAILED: " + ex);
+            return 29;
+        }
+    }
+
+    /// <summary>
+    /// Verifies every roster against FC26's teamplayerlinks source table. This
+    /// specifically guards against hiding players because a resolver keeps only
+    /// one team value when a player has multiple historical links.
+    /// </summary>
+    public static int RosterTest(string folder)
+    {
+        try
+        {
+            using var services = new AppServices();
+            services.LoadDatabase(folder);
+            var links = services.Session.GetTable("teamplayerlinks");
+            var players = services.Session.GetTable("players");
+            if (links == null || players == null)
+                throw new InvalidDataException("The players or teamplayerlinks table is unavailable.");
+
+            var playerIdColumn = IndexOf(players, "playerid");
+            var linkPlayerIdColumn = IndexOf(links, "playerid");
+            var linkTeamIdColumn = IndexOf(links, "teamid");
+            if (playerIdColumn < 0 || linkPlayerIdColumn < 0 || linkTeamIdColumn < 0)
+                throw new InvalidDataException("The roster key columns are unavailable.");
+
+            var validPlayerIds = new HashSet<int>();
+            for (var row = 0; row < players.RowCount; row++)
+            {
+                var record = services.Session.GetRecord("players", row);
+                if (record != null && int.TryParse(record.Get(playerIdColumn), out var playerId) && playerId > 0)
+                    validPlayerIds.Add(playerId);
+            }
+
+            var expectedByTeam = new Dictionary<int, HashSet<int>>();
+            var danglingLinks = 0;
+            for (var row = 0; row < links.RowCount; row++)
+            {
+                var record = services.Session.GetRecord("teamplayerlinks", row);
+                if (record == null || !int.TryParse(record.Get(linkTeamIdColumn), out var teamId) || teamId <= 0 ||
+                    !int.TryParse(record.Get(linkPlayerIdColumn), out var playerId) || playerId <= 0)
+                    continue;
+                if (!validPlayerIds.Contains(playerId)) { danglingLinks++; continue; }
+                if (!expectedByTeam.TryGetValue(teamId, out var playerIds))
+                    expectedByTeam[teamId] = playerIds = [];
+                playerIds.Add(playerId);
+            }
+
+            var failures = 0;
+            var data = services.RequireData();
+            foreach (var (teamId, expected) in expectedByTeam)
+            {
+                var actual = data.GetTeamRoster(teamId).Select(player => player.PlayerId).ToHashSet();
+                if (actual.SetEquals(expected)) continue;
+                failures++;
+                Console.WriteLine($"  team {teamId}: expected={expected.Count}, actual={actual.Count}, " +
+                    $"missing=[{string.Join(',', expected.Except(actual).Take(5))}], " +
+                    $"unexpected=[{string.Join(',', actual.Except(expected).Take(5))}]");
+            }
+            Console.WriteLine($"ROSTER TEST: teams={expectedByTeam.Count}, validLinks={expectedByTeam.Sum(pair => pair.Value.Count)}, " +
+                $"danglingLinks={danglingLinks}, failures={failures}");
+            return failures == 0 ? 0 : 43;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("ROSTER TEST FAILED: " + ex);
+            return 44;
+        }
+    }
+
+    /// <summary>Writes the exact FC26 formation source values for visual-layout diagnostics.</summary>
+    public static int FormationDump(string folder, string outputPath)
+    {
+        try
+        {
+            using var services = new AppServices();
+            services.LoadDatabase(folder);
+            var table = services.Session.GetTable("formations")
+                ?? throw new InvalidDataException("The formations table is unavailable.");
+            using var writer = new StreamWriter(outputPath, false, System.Text.Encoding.UTF8);
+            for (var row = 0; row < table.RowCount; row++)
+            {
+                var id = services.Session.GetCell("formations", row, "formationid");
+                var name = services.Session.GetCell("formations", row, "formationname");
+                writer.WriteLine($"{row}|{id}|{name}");
+                for (var slot = 0; slot < 11; slot++)
+                    writer.WriteLine($"  {slot}: pos={services.Session.GetCell("formations", row, $"position{slot}")}, x={services.Session.GetCell("formations", row, $"offset{slot}x")}, y={services.Session.GetCell("formations", row, $"offset{slot}y")}");
+            }
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            File.WriteAllText(outputPath, "FORMATION DUMP FAILED: " + ex);
             return 29;
         }
     }

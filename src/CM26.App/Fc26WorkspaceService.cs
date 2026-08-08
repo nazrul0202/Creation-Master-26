@@ -56,7 +56,12 @@ public static class Fc26WorkspaceService
     {
         var sourceKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
             Path.GetFullPath(gameRoot).ToUpperInvariant())))[..12].ToLowerInvariant();
-        return Path.Combine(GetSessionRoot(), "FC26-" + sourceKey, "database");
+        // Never refresh a database in place while the native parser may still own
+        // the previous session. Each Open gets an immutable generation; AppServices
+        // swaps to it only after the new payload has loaded successfully.
+        return Path.Combine(
+            GetSessionRoot(), "FC26-" + sourceKey,
+            $"database-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}");
     }
 
     private static string GetSessionRoot() => Path.Combine(
@@ -84,12 +89,11 @@ public static class Fc26WorkspaceService
             var manifest = new WorkspaceManifest(Path.GetFullPath(gameRoot), Path.GetFullPath(gameRoot), DateTimeOffset.UtcNow);
             File.WriteAllText(Path.Combine(temporary, "cm26-workspace.json"), JsonSerializer.Serialize(manifest));
 
-            Directory.CreateDirectory(sessionFolder);
-            CopyDatabaseFiles(temporary, sessionFolder, overwrite: true);
-            File.Copy(
-                Path.Combine(temporary, "cm26-workspace.json"),
-                Path.Combine(sessionFolder, "cm26-workspace.json"),
-                overwrite: true);
+            // The destination is generation-specific, so publish the fully built
+            // workspace with one directory rename instead of exposing partially
+            // copied files to the native database loader.
+            Directory.Move(temporary, sessionFolder);
+            temporary = string.Empty;
         }
         finally
         {

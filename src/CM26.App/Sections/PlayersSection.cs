@@ -16,6 +16,7 @@ public sealed class PlayersSection : SectionBase
     private readonly Dictionary<string, FieldValue> _fields = new(StringComparer.OrdinalIgnoreCase);
     private readonly FieldEditorGrid _stagingGrid = new();
     private readonly PictureBox _miniface = new();
+    private readonly PictureBox _overviewFace = new();
     private readonly PictureBox _shoePreview = new();
     private readonly PictureBox _facePreview = new();
     private readonly Label _facePreviewCaption = new();
@@ -24,6 +25,20 @@ public sealed class PlayersSection : SectionBase
     private readonly Dictionary<string, Label> _skillValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<TextBox>> _summaryValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, TrackBar> _skillSliders = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Label> _overviewRatings = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Panel> _overviewBars = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Label> _overviewFacts = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<Label>> _overviewAttributeValues = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<Panel>> _playerStatBars = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Button> _playerLayoutButtons = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Button> _playerCategoryButtons = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Label _overviewName = new();
+    private readonly Label _overviewMeta = new();
+    private readonly Label _overviewOverall = new();
+    private readonly Label _overviewPotential = new();
+    private readonly Label _overviewGrowth = new();
+    private string _playerStatsLayout = "CM";
+    private bool _playerUseBars = true;
     private readonly List<TextBox> _traitEditors = [];
     private readonly TextBox _callnameId = new();
     private readonly Label _callnameStatus = new();
@@ -47,10 +62,7 @@ public sealed class PlayersSection : SectionBase
         // cannot accept a font never takes down the whole section — or the app.
         SafeCtorStep(Tabs, "Tabs font", () => Tabs.Font = LegacyFont);
         Tabs.Padding = new Point(4, 2);
-        AddTabSafe("Info", AddInfoTab);
-        AddTabSafe("Skills", AddSkillsTab);
-        AddTabSafe("Face", AddFaceTab);
-        AddTabSafe("Details", AddDetailsTab);
+        AddTabSafe("Player", AddOverviewTab);
         // Callname tab removed — not needed for basic player editing.
     }
 
@@ -221,6 +233,214 @@ public sealed class PlayersSection : SectionBase
     private static Panel Canvas(TabPage p) => (Panel)p.Controls[0];
     private static GroupBox Box(string name, Point point, Size size) => new ModernGroupBox { Text = name, Location = point, Size = size };
     private static PictureBox Viewer(Point point, Size size) => new() { Location = point, Size = size, BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
+
+    // A read-only player card keeps the editable legacy form intact while
+    // giving the section the quick, stat-first view expected from career tools.
+    private void AddOverviewTab()
+    {
+        var page = Page("Player");
+        var canvas = Canvas(page);
+        canvas.AutoScrollMinSize = new Size(1370, 690);
+        canvas.BackColor = Color.FromArgb(235, 237, 234);
+        var card = new Panel { Location = new Point(12, 12), Size = new Size(1340, 660), BackColor = Color.FromArgb(235, 237, 234) };
+        canvas.Controls.Add(card);
+        var header = new Panel { Location = new Point(16, 16), Size = new Size(1308, 142), BackColor = Color.White };
+        card.Controls.Add(header);
+        header.Controls.Add(new Panel { Location = new Point(0, 0), Size = new Size(6, 142), BackColor = Color.FromArgb(116, 185, 34) });
+        _overviewFace.Location = new Point(16, 13);
+        _overviewFace.Size = new Size(116, 116);
+        _overviewFace.SizeMode = PictureBoxSizeMode.Zoom;
+        _overviewFace.BackColor = Color.FromArgb(243, 245, 241);
+        _overviewFace.BorderStyle = BorderStyle.None;
+        header.Controls.Add(_overviewFace);
+        _overviewName.Location = new Point(150, 20);
+        _overviewName.Size = new Size(460, 36);
+        _overviewName.Font = new Font("Segoe UI", 20, FontStyle.Bold);
+        _overviewName.ForeColor = Color.FromArgb(37, 37, 34);
+        header.Controls.Add(_overviewName);
+        _overviewMeta.Location = new Point(153, 63);
+        _overviewMeta.Size = new Size(500, 24);
+        _overviewMeta.Font = Theme.BodyBold;
+        _overviewMeta.ForeColor = Color.FromArgb(94, 108, 57);
+        header.Controls.Add(_overviewMeta);
+        AddHeaderMetric(header, "PAC", 150, Color.FromArgb(129, 204, 33), "acceleration", "sprintspeed");
+        AddHeaderMetric(header, "SHO", 268, Color.FromArgb(232, 175, 33), "finishing", "shotpower", "longshots", "penalties", "volleys");
+        AddHeaderMetric(header, "PAS", 386, Color.FromArgb(74, 173, 222), "shortpassing", "longpassing", "vision", "crossing", "curve");
+        AddHeaderMetric(header, "DRI", 504, Color.FromArgb(190, 95, 219), "agility", "balance", "reactions", "ballcontrol", "dribbling", "composure");
+        AddHeaderMetric(header, "DEF", 622, Color.FromArgb(59, 165, 199), "interceptions", "headingaccuracy", "defensiveawareness", "standingtackle", "slidingtackle");
+        AddHeaderMetric(header, "PHY", 740, Color.FromArgb(224, 100, 79), "jumping", "stamina", "strength", "aggression");
+        AddOverviewTile(header, _overviewOverall, "OVR", 1050, Color.FromArgb(107, 184, 31));
+        AddOverviewTile(header, _overviewGrowth, "GRO", 940, Color.FromArgb(205, 142, 16));
+        AddOverviewTile(header, _overviewPotential, "POT", 1160, Color.FromArgb(72, 156, 29));
+        var facts = new Panel { Location = new Point(16, 172), Size = new Size(1308, 92), BackColor = Color.FromArgb(255, 255, 253) };
+        card.Controls.Add(facts);
+        facts.Controls.Add(new Label { Text = "PLAYER INFO", Location = new Point(12, 4), Size = new Size(180, 16), Font = Theme.Muted9, ForeColor = Color.FromArgb(106, 110, 101) });
+        AddOverviewFact(facts, "Position", "preferredposition1", 12);
+        AddOverviewFact(facts, "Club", "club", 224);
+        AddOverviewFact(facts, "Nation", "nationality", 436);
+        AddOverviewFact(facts, "Height", "height", 648, " cm");
+        AddOverviewFact(facts, "Weight", "weight", 860, " kg");
+        AddOverviewFact(facts, "Preferred foot", "preferredfoot", 1072);
+
+        // FCRadar-style display controls.  They alter how the single player
+        // workbench communicates the same FC26 database values; no duplicate
+        // Info/Skills/Face/Details pages are required.
+        AddLayoutButton(card, "Classic", 960);
+        AddLayoutButton(card, "FUT", 1040);
+        AddLayoutButton(card, "CM", 1100);
+        AddCategoryButton(card, "Numbers", 1170, false);
+        AddCategoryButton(card, "Bars", 1260, true);
+
+        var headings = new Label { Text = "PLAYER ATTRIBUTES", Location = new Point(18, 282), Size = new Size(420, 22), Font = Theme.BodyBold, ForeColor = Color.FromArgb(45, 45, 42) };
+        card.Controls.Add(headings);
+        AddOverviewAttributeGroup(card, "ATTACKING", Color.FromArgb(229, 175, 43), 18, 316,
+            ("Crossing", "crossing"), ("Finishing", "finishing"), ("Heading accuracy", "headingaccuracy"), ("Short passing", "shortpassing"), ("Volleys", "volleys"), ("Penalties", "penalties"));
+        AddOverviewAttributeGroup(card, "SKILL", Color.FromArgb(202, 112, 222), 455, 316,
+            ("Dribbling", "dribbling"), ("Curve", "curve"), ("Free-kick accuracy", "freekickaccuracy"), ("Long passing", "longpassing"), ("Ball control", "ballcontrol"), ("Composure", "composure"));
+        AddOverviewAttributeGroup(card, "MOVEMENT", Color.FromArgb(147, 216, 50), 892, 316,
+            ("Acceleration", "acceleration"), ("Sprint speed", "sprintspeed"), ("Agility", "agility"), ("Reactions", "reactions"), ("Balance", "balance"), ("Positioning", "positioning"));
+        AddOverviewAttributeGroup(card, "POWER", Color.FromArgb(224, 101, 79), 18, 480,
+            ("Shot power", "shotpower"), ("Jumping", "jumping"), ("Stamina", "stamina"), ("Strength", "strength"), ("Long shots", "longshots"));
+        AddOverviewAttributeGroup(card, "MENTALITY", Color.FromArgb(81, 174, 237), 455, 480,
+            ("Vision", "vision"), ("Aggression", "aggression"), ("Interceptions", "interceptions"), ("Att. position", "positioning"), ("Reactions", "reactions"));
+        AddOverviewAttributeGroup(card, "DEFENDING", Color.FromArgb(57, 160, 197), 892, 480,
+            ("Def. awareness", "defensiveawareness"), ("Stand tackle", "standingtackle"), ("Slide tackle", "slidingtackle"), ("Heading accuracy", "headingaccuracy"), ("Strength", "strength"));
+        var edit = new Button { Text = "Edit player data...", Location = new Point(1088, 610), Size = new Size(158, 30), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(45, 70, 52), ForeColor = Color.White };
+        edit.FlatAppearance.BorderSize = 0;
+        edit.FlatAppearance.MouseOverBackColor = Color.FromArgb(73, 103, 78);
+        edit.Click += (_, _) => OpenSinglePlayerEditor();
+        card.Controls.Add(edit);
+        var note = new Label { Text = "Read-only career overview · Edit all database values in the Info and Skills tabs.", Location = new Point(28, 550), Size = new Size(800, 24), ForeColor = Color.FromArgb(166, 184, 187), Font = Theme.Body };
+        note.Visible = false;
+        note.Location = new Point(18, 612);
+        card.Controls.Add(note);
+    }
+
+    private static void AddOverviewTile(Control parent, Label value, string title, int x, Color accent)
+    {
+        var tile = new Panel { Location = new Point(x, 22), Size = new Size(90, 112), BackColor = accent };
+        value.Location = new Point(5, 10); value.Size = new Size(80, 54); value.Font = new Font("Segoe UI", 24, FontStyle.Bold); value.TextAlign = ContentAlignment.MiddleCenter; value.ForeColor = Color.White;
+        tile.Controls.Add(value);
+        tile.Controls.Add(new Label { Text = title, Location = new Point(4, 73), Size = new Size(82, 20), TextAlign = ContentAlignment.MiddleCenter, Font = Theme.BodyBold, ForeColor = Color.White });
+        parent.Controls.Add(tile);
+    }
+
+    private static Color Lighten(Color color, int amount)
+    {
+        amount = Math.Clamp(amount, 0, 255);
+        return Color.FromArgb(
+            color.R + (255 - color.R) * amount / 255,
+            color.G + (255 - color.G) * amount / 255,
+            color.B + (255 - color.B) * amount / 255);
+    }
+
+    private void AddHeaderMetric(Control parent, string code, int x, Color accent, params string[] fields)
+    {
+        var metric = new Panel { Location = new Point(x, 96), Size = new Size(106, 32), BackColor = Lighten(accent, 235) };
+        metric.Controls.Add(new Panel { Location = new Point(0, 0), Size = new Size(4, 32), BackColor = accent });
+        var value = new Label { Location = new Point(11, 4), Size = new Size(40, 23), Font = new Font("Segoe UI", 11, FontStyle.Bold), ForeColor = accent, TextAlign = ContentAlignment.MiddleLeft, Tag = fields };
+        metric.Controls.Add(value);
+        metric.Controls.Add(new Label { Text = code, Location = new Point(47, 5), Size = new Size(52, 20), Font = Theme.BodyBold, ForeColor = Color.FromArgb(45, 45, 42), TextAlign = ContentAlignment.MiddleRight });
+        _overviewRatings[code] = value;
+        parent.Controls.Add(metric);
+    }
+
+    private void AddOverviewFact(Control parent, string title, string field, int x, string suffix = "")
+    {
+        var block = new Panel { Location = new Point(x, 22), Size = new Size(196, 58), BackColor = Color.FromArgb(246, 248, 244) };
+        block.Controls.Add(new Label { Text = title.ToUpperInvariant(), Location = new Point(10, 6), Size = new Size(176, 16), Font = new Font(Theme.Body, FontStyle.Bold), ForeColor = Color.FromArgb(109, 109, 101) });
+        var value = new Label { Location = new Point(10, 25), Size = new Size(176, 26), Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = Color.FromArgb(41, 41, 38), AutoEllipsis = true, Tag = suffix };
+        block.Controls.Add(value);
+        parent.Controls.Add(block);
+        _overviewFacts[field] = value;
+    }
+
+    private void AddLayoutButton(Control parent, string mode, int x)
+    {
+        var button = new Button { Text = mode, Location = new Point(x, 278), Size = new Size(66, 26), FlatStyle = FlatStyle.Flat, Font = Theme.Muted9 };
+        button.FlatAppearance.BorderSize = 1;
+        button.FlatAppearance.BorderColor = Color.FromArgb(190, 190, 182);
+        button.Click += (_, _) => { _playerStatsLayout = mode; RefreshOverview(); };
+        _playerLayoutButtons[mode] = button;
+        parent.Controls.Add(button);
+    }
+
+    private void AddCategoryButton(Control parent, string text, int x, bool bars)
+    {
+        var button = new Button { Text = text, Location = new Point(x, 278), Size = new Size(78, 26), FlatStyle = FlatStyle.Flat, Font = Theme.Muted9 };
+        button.FlatAppearance.BorderSize = 1;
+        button.FlatAppearance.BorderColor = Color.FromArgb(190, 190, 182);
+        button.Click += (_, _) => { _playerUseBars = bars; RefreshOverview(); };
+        _playerCategoryButtons[text] = button;
+        parent.Controls.Add(button);
+    }
+
+    private void OpenSinglePlayerEditor()
+    {
+        if (_currentPlayerId <= 0 || _fields.Count == 0) return;
+        var editor = new FieldEditorGrid { Dock = DockStyle.Fill };
+        editor.SetFields(_fields.Values.OrderBy(value => value.Label).ToList(), ToolTip);
+        editor.FieldEdited += (_, change) =>
+        {
+            if (StageField(TableName, CurrentRecordIndex, change.field, change.value, editor))
+                ShowRecord(CurrentRecordIndex);
+        };
+        using var dialog = new Form
+        {
+            Text = $"Edit { _playerName.Text }",
+            StartPosition = FormStartPosition.CenterParent,
+            Size = new Size(720, 760),
+            MinimizeBox = false,
+            ShowInTaskbar = false,
+            BackColor = Theme.Background
+        };
+        dialog.Controls.Add(editor);
+        dialog.ShowDialog(this);
+    }
+
+    private void AddOverviewAttributeGroup(Control parent, string title, Color accent, int x, int y, params (string Label, string Field)[] attributes)
+    {
+        var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), BackColor = Color.White };
+        group.Controls.Add(new Panel { Location = new Point(0, 0), Size = new Size(418, 4), BackColor = accent });
+        group.Controls.Add(new Label { Text = title, Location = new Point(14, 12), Size = new Size(250, 20), Font = Theme.BodyBold, ForeColor = accent });
+        var row = 0;
+        foreach (var (label, field) in attributes)
+        {
+            var yOffset = 38 + row * 20;
+            group.Controls.Add(new Label { Text = label, Location = new Point(14, yOffset), Size = new Size(305, 18), Font = Theme.Body, ForeColor = Color.FromArgb(55, 55, 51) });
+            var value = new Label { Location = new Point(336, yOffset), Size = new Size(64, 18), TextAlign = ContentAlignment.MiddleRight, Font = Theme.BodyBold, ForeColor = Color.FromArgb(37, 37, 34) };
+            group.Controls.Add(value);
+            var track = new Panel { Location = new Point(218, yOffset + 5), Size = new Size(106, 8), BackColor = Color.FromArgb(223, 225, 219), Visible = false };
+            var fill = new Panel { Location = Point.Empty, Size = new Size(1, 8), BackColor = accent };
+            track.Controls.Add(fill);
+            group.Controls.Add(track);
+            if (!_overviewAttributeValues.TryGetValue(field, out var values))
+                _overviewAttributeValues[field] = values = [];
+            values.Add(value);
+            if (!_playerStatBars.TryGetValue(field, out var bars))
+                _playerStatBars[field] = bars = [];
+            bars.Add(track);
+            row++;
+        }
+        parent.Controls.Add(group);
+    }
+
+    private void AddOverviewMetric(Control parent, string code, string[] fields, int x, int y, Color accent)
+    {
+        var box = new Panel { Location = new Point(x, y), Size = new Size(418, 118), BackColor = Color.FromArgb(18, 27, 29) };
+        var value = new Label { Location = new Point(14, 12), Size = new Size(64, 36), Font = new Font("Segoe UI", 18, FontStyle.Bold), ForeColor = accent, TextAlign = ContentAlignment.MiddleCenter };
+        box.Controls.Add(value);
+        box.Controls.Add(new Label { Text = code, Location = new Point(84, 20), Size = new Size(72, 20), Font = Theme.BodyBold, ForeColor = Color.White });
+        var label = new Label { Location = new Point(14, 54), Size = new Size(390, 20), ForeColor = Color.FromArgb(190, 205, 207), Font = Theme.Body };
+        box.Controls.Add(label);
+        var track = new Panel { Location = new Point(14, 88), Size = new Size(390, 10), BackColor = Color.FromArgb(54, 72, 74) };
+        var fill = new Panel { Location = Point.Empty, Size = new Size(1, 10), BackColor = accent };
+        track.Controls.Add(fill); box.Controls.Add(track); parent.Controls.Add(box);
+        _overviewRatings[code] = value;
+        _overviewBars[code] = fill;
+        value.Tag = fields;
+        label.Tag = fields;
+    }
 
     private void AddInfoTab()
     {
@@ -912,6 +1132,8 @@ public sealed class PlayersSection : SectionBase
             if (IsDisposed) { preview?.Dispose(); return; }
             _miniface.Image?.Dispose();
             _miniface.Image = preview;
+            _overviewFace.Image?.Dispose();
+            _overviewFace.Image = preview == null ? null : new Bitmap(preview);
         });
         LegacyAssetActions.SetTarget(_miniface,
             new LegacyAssetEditTarget($"data/ui/imgAssets/heads/p{playerId}.dds", 128, 128));
@@ -1007,7 +1229,71 @@ public sealed class PlayersSection : SectionBase
                 ToolTip.SetToolTip(editor, writable ? field : field + " is a resolved value; edit its relationship in the appropriate picker.");
             }
         }
+        RefreshOverview();
         RefreshPlayerCallname();
+    }
+
+    private void RefreshOverview()
+    {
+        _overviewName.Text = _playerName.Text;
+        var position = GetOverviewText("preferredposition1");
+        var nation = GetOverviewText("nationality");
+        _overviewMeta.Text = string.Join("  ·  ", new[] { position, _clubName.Text, nation }.Where(text => !string.IsNullOrWhiteSpace(text)));
+        _overviewOverall.Text = GetOverviewNumber("overallrating").ToString();
+        _overviewPotential.Text = GetOverviewNumber("potential").ToString();
+        _overviewGrowth.Text = $"+{Math.Max(0, GetOverviewNumber("potential") - GetOverviewNumber("overallrating"))}";
+        foreach (var (mode, button) in _playerLayoutButtons)
+        {
+            var active = string.Equals(mode, _playerStatsLayout, StringComparison.OrdinalIgnoreCase);
+            button.BackColor = active ? Color.FromArgb(137, 202, 35) : Color.White;
+            button.ForeColor = Color.FromArgb(42, 42, 39);
+        }
+        foreach (var (name, button) in _playerCategoryButtons)
+        {
+            var active = (name == "Bars") == _playerUseBars;
+            button.BackColor = active ? Color.FromArgb(246, 183, 36) : Color.White;
+            button.ForeColor = Color.FromArgb(42, 42, 39);
+        }
+        foreach (var (field, label) in _overviewFacts)
+        {
+            var value = string.Equals(field, "club", StringComparison.OrdinalIgnoreCase)
+                ? _clubName.Text
+                : GetOverviewText(field);
+            label.Text = string.IsNullOrWhiteSpace(value) ? "—" : value + (label.Tag as string ?? string.Empty);
+        }
+        foreach (var (field, labels) in _overviewAttributeValues)
+        {
+            var value = GetOverviewNumber(field);
+            foreach (var label in labels)
+                label.Text = value == 0 ? "—" : value.ToString();
+        }
+        foreach (var (field, bars) in _playerStatBars)
+        {
+            var score = GetOverviewNumber(field);
+            foreach (var track in bars)
+            {
+                track.Visible = _playerUseBars;
+                if (track.Controls.Count > 0)
+                    track.Controls[0].Width = Math.Max(1, (int)Math.Round(track.Width * Math.Clamp(score, 0, 99) / 99d));
+            }
+        }
+        foreach (var (code, value) in _overviewRatings)
+        {
+            var fields = value.Tag as string[] ?? [];
+            var available = fields.Select(GetOverviewNumber).Where(number => number > 0).ToArray();
+            var rating = available.Length == 0 ? 0 : (int)Math.Round(available.Average());
+            value.Text = rating == 0 ? "—" : rating.ToString();
+            if (_overviewBars.TryGetValue(code, out var fill))
+                fill.Width = Math.Max(1, (int)Math.Round(390 * Math.Clamp(rating, 0, 99) / 99d));
+        }
+    }
+
+    private int GetOverviewNumber(string field) => _fields.TryGetValue(field, out var value) && int.TryParse(value.RawValue, out var parsed) ? parsed : 0;
+
+    private string GetOverviewText(string field)
+    {
+        if (!_fields.TryGetValue(field, out var value)) return string.Empty;
+        return TryGetMappedDisplay(field, _currentPlayerId, value.RawValue, out var mapped) ? mapped : value.Value;
     }
 
     private void RefreshPlayerCallname()

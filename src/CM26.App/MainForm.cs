@@ -677,27 +677,50 @@ public sealed class MainForm : Form
                 return false;
             }
             _services.LegacyMods.MarkApplied();
+            var reloaded = true;
             if (reloadAfterApply)
-                await ReloadFromLiveFc26Async();
-            SetStatus(result.Message);
+                reloaded = await ReloadFromLiveFc26Async();
+            SetStatus(reloaded
+                ? result.Message
+                : result.Message + " Automatic editor reload failed; reopen FC26 data before further editing.");
             MessageBox.Show(this,
-                result.Message + "\n\nThe live Data/Patch archives now contain the edits and Creation Master " +
-                "has reloaded the editor from those live archives. " +
+                result.Message + (reloaded
+                    ? "\n\nThe live Data/Patch archives now contain the edits and Creation Master " +
+                      "has reloaded the editor from those live archives. "
+                    : "\n\nThe live Data/Patch transaction completed, but automatic reload verification failed. " +
+                      "The previous editor session is still open; close and reopen FC26 data before further editing. ") +
                 "Use File > Restore Original Data to return to the untouched CmModData snapshot.",
-                "Direct edit complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                reloaded ? "Direct edit complete" : "Direct edit applied; reload required",
+                MessageBoxButtons.OK, reloaded ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
             return true;
         }
         finally { SetBusy(false, null); }
     }
 
-    private async Task ReloadFromLiveFc26Async()
+    private async Task<bool> ReloadFromLiveFc26Async()
     {
         SetBusy(true, "Verifying and reloading live Data/Patch…");
-        var workspace = await Task.Run(() => _services.ReloadFromLiveFc26());
-        SetStatus(
-            $"Saved, verified and reloaded directly from {workspace.GameRoot}\\Data and Patch.");
-        if (_activeKey != null && _sections.TryGetValue(_activeKey, out var section))
-            section.ActivateSection();
+        try
+        {
+            var workspace = await Task.Run(() => _services.ReloadFromLiveFc26());
+            SetStatus(
+                $"Saved, verified and reloaded directly from {workspace.GameRoot}\\Data and Patch.");
+            if (_activeKey != null && _sections.TryGetValue(_activeKey, out var section))
+                section.ActivateSection();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Program.Log("Live reload verification failed after direct save: " + ex);
+            SetStatus("Direct save completed, but reload verification failed. Reopen FC26 data before editing.");
+            MessageBox.Show(this,
+                "The direct Data/Patch transaction completed, but Creation Master could not reload the " +
+                "fresh database payload. The previous editor session has been retained.\n\n" +
+                "Close and reopen FC26 data before making more edits. If the game rejects the change, use " +
+                "File > Restore Original Data.\n\n" + ex.Message,
+                "Reload verification failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
     }
 
     private void Undo()

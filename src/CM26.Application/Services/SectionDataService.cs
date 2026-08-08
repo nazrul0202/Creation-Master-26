@@ -170,7 +170,10 @@ public sealed class SectionDataService
             {
                 var link = _session.GetRecord("teamplayerlinks", row); if (link == null) continue;
                 if (ParseInt(link.Get(linkTeamId)) == teamId)
-                    linkByPlayerId[ParseInt(link.Get(linkPlayerId))] = link;
+                {
+                    var linkedPlayerId = ParseInt(link.Get(linkPlayerId));
+                    if (linkedPlayerId > 0) linkByPlayerId[linkedPlayerId] = link;
+                }
             }
         }
         var loanByPlayerId = new Dictionary<int, (int fromTeamId, string endDate)>();
@@ -193,11 +196,13 @@ public sealed class SectionDataService
         {
             var rec = _session.GetRecord("players", row); if (rec == null) continue;
             var playerId = ParseInt(rec.Get(id));
-            if (_resolver.PlayerTeamId(playerId) != teamId) continue;
+            // The FC26 roster relationship is owned by teamplayerlinks. The
+            // resolver keeps only one team per player for quick display and can
+            // therefore hide valid roster rows when another link is loaded later.
+            if (!linkByPlayerId.TryGetValue(playerId, out var link)) continue;
             var fnId = ParseInt(rec.Get(fn)); var lnId = ParseInt(rec.Get(ln)); var cnId = ParseInt(rec.Get(cn));
             var parts = _resolver.PlayerNameParts(playerId, fnId, lnId, cnId);
             var resolved = parts.HasAnyName;
-            linkByPlayerId.TryGetValue(playerId, out var link);
             loanByPlayerId.TryGetValue(playerId, out var loanInfo);
             string LinkValue(string field) => link == null || links == null ? string.Empty : link.Get(Col(links, field));
             roster.Add(new TeamRosterItem

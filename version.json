@@ -1,6 +1,6 @@
 {
-  "version": "1.0.50",
+  "version": "1.0.72",
   "name": "Creation Master 26",
-  "notes": "v1.0.50 - Correct dark crest presentation, deterministic non-overlapping formation cards, and nation-ID-safe player country dropdowns.",
+  "notes": "v1.0.72 - Fixed direct-save reload crashes with immutable parser workspaces and controlled reload verification; includes the v1.0.71 league/team asset fixes.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

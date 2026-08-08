@@ -103,6 +103,20 @@ public sealed class LegacyAssetModService
         return true;
     }
 
+    public bool MoveReplacement(string sourceLegacyPath, string targetLegacyPath)
+    {
+        var source = Normalize(sourceLegacyPath);
+        var target = Normalize(targetLegacyPath);
+        if (string.Equals(source, target, StringComparison.OrdinalIgnoreCase))
+            return _replacements.ContainsKey(source);
+        if (!_replacements.Remove(source, out var replacement)) return false;
+
+        _replacements[target] = replacement with { LegacyPath = target };
+        SaveState();
+        Changed?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
     public string WriteDirectPlan()
     {
         if (!HasChanges) throw new InvalidOperationException("No asset replacements are staged.");

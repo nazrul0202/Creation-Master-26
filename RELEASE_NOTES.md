@@ -1,5 +1,19 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.72 - direct-save reload stability (2026-08-08)
+
+- **Save reload no longer reuses an active native-parser folder.** Each live
+  `Data/Patch` extraction is published atomically to a unique immutable generation,
+  then loaded before the previous database session is released.
+- **Reload failures are contained.** A native parser rejection after a completed
+  direct transaction is logged and shown as a recovery warning instead of escaping
+  as a fatal UI-thread exception or incorrectly claiming the editor reloaded.
+- **Regression coverage expanded.** Workspace verification now opens two consecutive
+  live generations and requires both to load all FC26 tables from different paths.
+- Includes the v1.0.71 league/team dark-light asset resolution and optional-logo
+  save fixes.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.72.
+
 ## Version 1.0.49 - dark crests, formation stability and dropdown polish (2026-08-08)
 
 - **Team crests prefer the dark collection.** The installed FC26 dark crest path and

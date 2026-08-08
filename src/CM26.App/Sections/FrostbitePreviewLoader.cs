@@ -92,8 +92,23 @@ internal static class FrostbitePreviewLoader
         {
             foreach (var legacyPath in candidates)
             {
-                var path = services.FrostbiteAssets.ExportLegacyAsset(legacyPath);
-                if (!string.IsNullOrWhiteSpace(path)) return (FilePath: path, LegacyPath: legacyPath);
+                try
+                {
+                    var path = services.FrostbiteAssets.ExportLegacyAsset(legacyPath);
+                    if (!string.IsNullOrWhiteSpace(path)) return (FilePath: path, LegacyPath: legacyPath);
+                }
+                catch (FileNotFoundException)
+                {
+                    // Try the next UI variant (for example dark before light).
+                }
+                catch (DirectoryNotFoundException)
+                {
+                    // The collection is not present in this FC installation.
+                }
+                catch (InvalidOperationException)
+                {
+                    // Asset bridge unavailable for this candidate; preserve the rest.
+                }
             }
             return (FilePath: (string?)null, LegacyPath: (string?)null);
         })

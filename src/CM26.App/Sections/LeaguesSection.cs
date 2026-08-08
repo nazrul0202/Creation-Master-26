@@ -134,13 +134,18 @@ public sealed class LeaguesSection : SectionBase
         teamBox.Controls.Add(_teams);
         canvas.Controls.Add(teamBox);
 
-        // LeagueForm.cs: 256-square, 200x64 and 512x128 image workspace.
-        var logos = Group("Logos", new Point(476, 3), new Size(532, 431));
+        // LeagueForm.cs: 256-square, 200x64 and 512x128 image workspace. The
+        // group is 457px tall so the 512x128 viewer (holder bottom at Y=446,
+        // including its view/import/remove row) is fully visible. The league
+        // name caption sits under the banner instead of covering the main
+        // logo's link row (Y 276-294).
+        var logos = Group("Logos", new Point(476, 3), new Size(532, 457));
         logos.Controls.Add(Viewer(new Point(6, 18), new Size(256, 256), "256 x 256", out _mainLogo));
         logos.Controls.Add(Viewer(new Point(268, 18), new Size(200, 64), "200 x 64", out _bannerLogo));
         logos.Controls.Add(Viewer(new Point(6, 297), new Size(512, 128), "512 x 128", out _wideLogo));
-        _logoCaption.Location = new Point(7, 278);
-        _logoCaption.Size = new Size(255, 16);
+        _logoCaption.Location = new Point(268, 110);
+        _logoCaption.Size = new Size(200, 16);
+        _logoCaption.AutoEllipsis = true;
         _logoCaption.Font = LegacyFont;
         _logoCaption.TextAlign = ContentAlignment.MiddleCenter;
         _logoCaption.ForeColor = Theme.Muted;
@@ -310,38 +315,56 @@ public sealed class LeaguesSection : SectionBase
 
     private void ShowLeagueLogo(string path, string name, int leagueId)
     {
-        // League marks are legacy UI DDS assets, independent from the 3D
-        // leaguelogo material textures. Use the light collection on CM26's
-        // white editor background, matching the asset browser display.
-        var mainPath = $"data/ui/imgAssets/league/light/l{leagueId}.dds";
-        var bannerPath = $"data/ui/imgAssets/leagueLogos_tiny/light/l{leagueId}.dds";
-        var widePath = $"data/ui/imgAssets/league512x128/light/l{leagueId}.dds";
-        LegacyAssetActions.SetTarget(_mainLogo, new LegacyAssetEditTarget(mainPath, 256, 256));
-        LegacyAssetActions.SetTarget(_bannerLogo, new LegacyAssetEditTarget(bannerPath, 200, 64));
-        LegacyAssetActions.SetTarget(_wideLogo, new LegacyAssetEditTarget(widePath, 512, 128));
+        // Load the primary logo first. The wide preview can then reliably use it
+        // as a fallback when a league does not ship a dedicated 512x128 texture.
+        LoadLeagueLogo(_mainLogo, name, leagueId, "league", 256, 256, updateCaption: true,
+            completed: () =>
+            {
+                LoadLeagueLogo(_bannerLogo, name, leagueId, "leagueLogos_tiny", 200, 64);
+                LoadLeagueLogo(_wideLogo, name, leagueId, "league512x128", 512, 128, fallbackToMain: true);
+            });
+    }
 
-        FrostbitePreviewLoader.LoadLegacyUiAsset(_mainLogo, Services,
-            Services.LegacyMods.GetReplacement(mainPath) ?? path, mainPath, (image, source) =>
-        {
-            if (IsDisposed) { image?.Dispose(); return; }
-            _mainLogo.Image?.Dispose();
-            _mainLogo.Image = image;
-            if (image != null) _logoCaption.Text = $"{name} · {source}";
-        });
-        FrostbitePreviewLoader.LoadLegacyUiAsset(_bannerLogo, Services,
-            Services.LegacyMods.GetReplacement(bannerPath), bannerPath, (image, _) =>
-        {
-            if (IsDisposed) { image?.Dispose(); return; }
-            _bannerLogo.Image?.Dispose();
-            _bannerLogo.Image = image;
-        });
-        FrostbitePreviewLoader.LoadLegacyUiAsset(_wideLogo, Services,
-            Services.LegacyMods.GetReplacement(widePath), widePath, (image, _) =>
-        {
-            if (IsDisposed) { image?.Dispose(); return; }
-            _wideLogo.Image?.Dispose();
-            _wideLogo.Image = image;
-        });
+    private void LoadLeagueLogo(
+        PictureBox viewer,
+        string name,
+        int leagueId,
+        string collection,
+        int width,
+        int height,
+        bool updateCaption = false,
+        bool fallbackToMain = false,
+        Action? completed = null)
+    {
+        var darkPath = $"data/ui/imgAssets/{collection}/dark/l{leagueId}.dds";
+        var lightPath = $"data/ui/imgAssets/{collection}/light/l{leagueId}.dds";
+        var candidates = new[] { darkPath, lightPath };
+        var stagedPath = candidates.FirstOrDefault(candidate =>
+            !string.IsNullOrWhiteSpace(Services.LegacyMods.GetReplacement(candidate)));
+
+        // Older versions always targeted light. Clear that stale target until
+        // the installed game tells us which variant actually exists.
+        LegacyAssetActions.ClearTarget(viewer);
+        FrostbitePreviewLoader.LoadLegacyUiAssetCandidates(viewer, Services, null, candidates,
+            (image, source) =>
+            {
+                if (IsDisposed) { image?.Dispose(); return; }
+                if (image == null && fallbackToMain && _mainLogo.Image != null)
+                    image = new Bitmap(_mainLogo.Image);
+
+                var old = viewer.Image;
+                viewer.Image = image;
+                old?.Dispose();
+                completed?.Invoke();
+                if (updateCaption && image != null) _logoCaption.Text = $"{name} · {source}";
+            },
+            resolvedPath =>
+            {
+                if (!string.IsNullOrWhiteSpace(stagedPath) &&
+                    !string.Equals(stagedPath, resolvedPath, StringComparison.OrdinalIgnoreCase))
+                    Services.LegacyMods.MoveReplacement(stagedPath, resolvedPath);
+                LegacyAssetActions.SetTarget(viewer, new LegacyAssetEditTarget(resolvedPath, width, height));
+            });
     }
 
     private void ImportAsset(PictureBox picture)

@@ -161,6 +161,18 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 3 && args[0] == "--formation-dump")
+        {
+            Environment.ExitCode = HeadlessSmoke.FormationDump(args[1], args[2]);
+            return;
+        }
+
+        if (args.Length >= 2 && args[0] == "--roster-test")
+        {
+            Environment.ExitCode = HeadlessSmoke.RosterTest(args[1]);
+            return;
+        }
+
         if (args.Length >= 2 && args[0] == "--audio-mapping-test")
         {
             Environment.ExitCode = HeadlessSmoke.AudioMappingTest(args[1]);

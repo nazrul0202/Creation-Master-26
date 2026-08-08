@@ -28,6 +28,13 @@ internal static class FrostbiteDirectLegacyWriter
     private sealed record Plan(IReadOnlyList<Replacement> Replacements);
     private sealed record Replacement(string LegacyPath, string SourcePath);
     private sealed record ResolvedEdit(LegacyAssetTarget Target, byte[] ReplacementBytes);
+
+    /// <summary>
+    /// Outcome of a direct-edit preparation. Skipped entries are staged files
+    /// whose legacy path is not shipped by this FC26 installation; they are
+    /// ignored instead of failing the whole save.
+    /// </summary>
+    public sealed record ApplyResult(int Applied, IReadOnlyList<string> Skipped);
     private sealed record ChunkWrite(Guid Id, FrostbiteCasLocation Original, byte[] Encoded);
     private sealed record TocChunkLocation(string Path, long RecordPosition);
     private sealed class ManifestEntry
@@ -43,13 +50,13 @@ internal static class FrostbiteDirectLegacyWriter
         public uint Size { get; set; }
     }
 
-    public static int Apply(string gameRoot, string planPath)
+    public static ApplyResult Apply(string gameRoot, string planPath)
         => Prepare(gameRoot, planPath, commit: true);
 
-    public static int Verify(string gameRoot, string planPath)
+    public static ApplyResult Verify(string gameRoot, string planPath)
         => Prepare(gameRoot, planPath, commit: false);
 
-    private static int Prepare(string gameRoot, string planPath, bool commit)
+    private static ApplyResult Prepare(string gameRoot, string planPath, bool commit)
     {
         var root = Path.GetFullPath(gameRoot);
         EnsureSafeRoot(root);
@@ -59,14 +66,32 @@ internal static class FrostbiteDirectLegacyWriter
             throw new InvalidDataException("No FC26 legacy replacements are staged.");
 
         var layout = FrostbiteLayoutReader.Read(Path.Combine(root, "Patch", "layout.toc"));
-        var edits = plan.Replacements.Select(item =>
+        var skipped = new List<string>();
+        var edits = new List<ResolvedEdit>(plan.Replacements.Count);
+        foreach (var item in plan.Replacements)
         {
             if (!File.Exists(item.SourcePath))
                 throw new FileNotFoundException("Replacement file was not found.", item.SourcePath);
-            return new ResolvedEdit(
-                FrostbiteLegacyAssetResolver.ResolveTarget(root, layout.Catalogs, item.LegacyPath),
-                File.ReadAllBytes(item.SourcePath));
-        }).ToArray();
+            LegacyAssetTarget target;
+            try
+            {
+                target = FrostbiteLegacyAssetResolver.ResolveTarget(root, layout.Catalogs, item.LegacyPath);
+            }
+            catch (FileNotFoundException)
+            {
+                // The staged path is not shipped by this FC26 installation (for
+                // example a league logo staged under a dark/light variant the
+                // game does not contain). Skip it gracefully instead of failing
+                // the whole save; the caller reports it to the user.
+                skipped.Add(item.LegacyPath);
+                continue;
+            }
+            edits.Add(new ResolvedEdit(target, File.ReadAllBytes(item.SourcePath)));
+        }
+        if (edits.Count == 0)
+            throw new InvalidDataException(
+                "None of the staged replacements exist in this FC26 installation: " +
+                string.Join(", ", skipped));
 
         var writes = BuildChunkWrites(root, layout.Catalogs, edits);
         var tocLocations = LocateDirectChunks(root, writes.Select(x => x.Id).ToHashSet());
@@ -78,7 +103,7 @@ internal static class FrostbiteDirectLegacyWriter
         if (!commit)
         {
             VerifyTocPlan(root, layout.Catalogs, writes, tocLocations);
-            return edits.Length;
+            return new ApplyResult(edits.Count, skipped);
         }
         if (new[] { "FC26", "FC26_Trial", "FC26_Showcase" }
             .Any(name => Process.GetProcessesByName(name).Length != 0))
@@ -91,7 +116,7 @@ internal static class FrostbiteDirectLegacyWriter
         try
         {
             Commit(root, layout.Catalogs, writes, tocLocations, transaction);
-            return edits.Length;
+            return new ApplyResult(edits.Count, skipped);
         }
         finally
         {
