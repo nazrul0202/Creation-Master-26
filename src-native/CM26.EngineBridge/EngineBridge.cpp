@@ -179,14 +179,22 @@ namespace CM26 { namespace EngineBridge {
         // Load main + locale fully into memory. Throws on failure (caller catches).
         void Load(String^ metaPath, String^ databasePath, String^ localePath) {
             std::wstring meta = Wide(metaPath), dbp = Wide(databasePath), loc = Wide(localePath);
-            cm26::NativeDatabase* mainDb = new cm26::NativeDatabase(_engine->readT3db(meta, dbp, false));
+            cm26::NativeDatabase* mainDb = nullptr;
             try {
+                mainDb = new cm26::NativeDatabase(_engine->readT3db(meta, dbp, false));
                 cm26::NativeDatabase* locDb = new cm26::NativeDatabase(_engine->readT3db(L"", loc, true));
                 if (_main) { delete _main; } if (_locale) { delete _locale; }
                 _main = gcnew NativeDatabaseHandle(mainDb, false, databasePath, metaPath);
                 _locale = gcnew NativeDatabaseHandle(locDb, true, localePath, "");
                 _metaPath = metaPath; _dbPath = databasePath; _localePath = localePath;
-            } catch (...) { delete mainDb; throw; }
+            } catch (const std::exception& ex) {
+                delete mainDb;
+                throw gcnew InvalidOperationException(
+                    "Native database load failed: " + gcnew String(ex.what()));
+            } catch (...) {
+                delete mainDb;
+                throw gcnew InvalidOperationException("Native database load failed with an unknown engine error.");
+            }
         }
 
         // Stage one validated edit. Returns engine outcome; never writes bytes.
@@ -237,8 +245,17 @@ namespace CM26 { namespace EngineBridge {
 
         // Independently reload-verify a written file. Throws on failure. Read-only.
         void VerifyFile(String^ metaPath, String^ databasePath, bool encryptedLocale) {
-            auto db = _engine->readT3db(Wide(metaPath), Wide(databasePath), encryptedLocale);
-            if (db.tables.empty()) throw gcnew InvalidOperationException("Verification produced no tables");
+            try {
+                auto db = _engine->readT3db(Wide(metaPath), Wide(databasePath), encryptedLocale);
+                if (db.tables.empty()) throw gcnew InvalidOperationException("Verification produced no tables");
+            } catch (InvalidOperationException^) {
+                throw;
+            } catch (const std::exception& ex) {
+                throw gcnew InvalidOperationException(
+                    "Native database verification failed: " + gcnew String(ex.what()));
+            } catch (...) {
+                throw gcnew InvalidOperationException("Native database verification failed with an unknown engine error.");
+            }
         }
 
         // Write a validated copy through the engine. Throws on failure. Never touches the source.
