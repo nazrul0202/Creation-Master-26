@@ -2030,6 +2030,515 @@ internal static class HeadlessSmoke
         }
     }
 
+    private static readonly (string Club, string Coach)[] MalaysiaSuperLeague2026 =
+    [
+        ("Brunei DPMM", "Jamie McAllister"),
+        ("Johor Darul Ta'zim", "Xisco Muñoz"),
+        ("Kelantan Red Warrior", "Irfan Bakti"),
+        ("Kuala Lumpur City", "Dollah Salleh"),
+        ("Kuching City", "Aidil Sharin"),
+        ("Melaka", "E. Elavarasan"),
+        ("Negeri Sembilan", "Daniel Giménez"),
+        ("Pulau Pinang", "Wan Rohaimi"),
+        ("Sabah", "Juan Torres"),
+        ("Selangor", "Kim Pan-gon"),
+        ("Star City", "Mehmet Duraković"),
+        ("Terengganu", "Nafuzi Zain"),
+    ];
+
+    private sealed record MalaysiaClub(string Name, string City, int Capacity, string Coach, string CoachNation,
+        IReadOnlyList<(string Name, string Nation)> ConfirmedPlayers);
+
+    // Wikipedia revision 6909091 (2026-08-08): only explicitly published player
+    // names are included. Empty future-season slots are deliberately not invented.
+    private static readonly MalaysiaClub[] MalaysiaSuperLeagueManifest =
+    [
+        new("Brunei DPMM", "Bandar Seri Begawan", 28000, "Jamie McAllister", "Scotland",
+            [("Dalberto", "Brazil"), ("Nicholas Swirad", "England"), ("Ebenezer Abban", "Ghana"), ("Óscar Santis", "Guatemala"), ("Miguel Oliveira", "Portugal"), ("Clark Robertson", "Scotland"), ("Muhammad Toha", "Indonesia"), ("Samuel Somerville", "Malaysia")]),
+        new("Johor Darul Ta'zim", "Iskandar Puteri", 40000, "Xisco Muñoz", "Spain",
+            [("Brad Tapp", "Australia"), ("Jonathan Silva", "Argentina"), ("Eddy Israfilov", "Azerbaijan"), ("Jairo", "Brazil"), ("Marcos Guilherme", "Brazil"), ("Kevin Medina", "Colombia"), ("Yago", "Brazil"), ("Ager Aketxe", "Spain"), ("Raúl Parra", "Spain"), ("Teto", "Spain"), ("Nené", "Portugal"), ("Dejan Petrovic", "Slovenia"), ("Shahab Zahedi", "Iran"), ("Antonio Glauder", "Philippines"), ("Óscar Arribas", "Philippines"), ("Matthew Davies", "Malaysia"), ("Manuel Hidalgo", "Malaysia"), ("Bergson", "Malaysia"), ("La'Vere Corbin-Ong", "Malaysia"), ("Hong Wan", "Malaysia"), ("Stuart Wilkin", "Malaysia"), ("Christian Abad", "Malaysia"), ("Nacho Méndez", "Malaysia"), ("Natxo Insa", "Malaysia"), ("Junior Eldstål", "Malaysia"), ("Mohamadou Sumareh", "Malaysia")]),
+        new("Kelantan Red Warrior", "Kota Bharu", 30000, "Irfan Bakti", "Malaysia", []),
+        new("Kuala Lumpur City", "Kuala Lumpur", 18000, "Dollah Salleh", "Malaysia", [("Paulo Josué", "Malaysia"), ("Giancarlo Gallifuoco", "Malaysia")]),
+        new("Kuching City", "Kuching", 26000, "Aidil Sharin", "Singapore",
+            [("Dylan Halls", "Australia"), ("Ajdin Mujagić", "Bosnia and Herzegovina"), ("Gabriel Peres", "Brazil"), ("Jerome Etame", "Cameroon"), ("Ronald Ngah", "Cameroon"), ("Ahmad Israiwah", "Jordan"), ("Petrus Shitembi", "Namibia"), ("James Okwuosa", "Nigeria"), ("Kaishu Yamazaki", "Japan"), ("Yuki Tanigawa", "Japan"), ("João Pedro", "Timor-Leste"), ("Declan Lambert", "Malaysia"), ("Rodney Celvin", "Malaysia"), ("Ryan Lambert", "Malaysia")]),
+        new("Melaka", "Krubong", 40000, "E. Elavarasan", "Malaysia", []),
+        new("Negeri Sembilan", "Seremban", 25550, "Daniel Giménez", "Spain", [("Jovan Motika", "Bosnia and Herzegovina"), ("Kei Oshiro", "Japan"), ("Mio Tsuneyasu", "Japan"), ("Takumi Sasaki", "Japan"), ("Filip Andersen", "Mongolia"), ("Wai Linn Aung", "Myanmar")]),
+        new("Pulau Pinang", "George Town", 25000, "Wan Rohaimi", "Malaysia", []),
+        new("Sabah", "Kota Kinabalu", 35000, "Juan Torres", "Spain", [("Cifu", "Spain"), ("Kervens Belfort", "Haiti"), ("Dane Ingham", "New Zealand"), ("Darren Lok", "Malaysia")]),
+        new("Selangor", "Petaling Jaya", 10661, "Kim Pan-gon", "South Korea", [("Chrigor", "Brazil"), ("Vitor Pernambuco", "Brazil"), ("Hugo Boumous", "France"), ("Alex Agyarkwa", "Ghana"), ("Richmond Ankrah", "Ghana"), ("Eduardo Sosa", "Venezuela"), ("Peter Makrillos", "Australia"), ("Jefferson Tabinas", "Philippines"), ("Safuwan Baharudin", "Singapore"), ("Quentin Cheng", "Malaysia"), ("Nooa Laine", "Malaysia")]),
+        new("Star City", "Alor Setar", 32387, "Mehmet Duraković", "Australia", [("Endrick", "Malaysia")]),
+        new("Terengganu", "Kuala Nerus", 50000, "Nafuzi Zain", "Malaysia", [("Elvis Kamsoba", "Burundi"), ("Ngweni Ndassi", "Cameroon"), ("Víctor Ruiz", "Spain"), ("Habib Haroon", "Bahrain"), ("Manny Ott", "Philippines"), ("Jordan Mintah", "Malaysia"), ("Romel Morales", "Malaysia")]),
+    ];
+
+    /// <summary>Runs the complete Malaysia import on a copy and verifies persistence plus idempotency.</summary>
+    public static int MalaysiaSuperLeagueProbe(string folder)
+    {
+        var probeFolder = Path.Combine(Path.GetTempPath(), "cm26-malaysia-super-league-" + Guid.NewGuid().ToString("N"));
+        var keepForInspection = false;
+        try
+        {
+            Directory.CreateDirectory(probeFolder);
+            CopyDatabaseSet(folder, probeFolder);
+            using (var services = new AppServices())
+            {
+                services.LoadDatabase(probeFolder);
+                var result = ImportMalaysiaSuperLeague(services);
+                Console.WriteLine($"IMPORT PLAN: league={result.LeagueId}, teams +{result.TeamsCreated}, managers +{result.ManagersCreated}, players +{result.PlayersCreated}, links +{result.LinksCreated}");
+                var issues = services.Session.ValidateIntegrity();
+                if (issues.Count > 0) throw new InvalidDataException("Integrity validation failed: " + string.Join("; ", issues.Take(5)));
+                var save = services.Save.SaveToSourceFolder();
+                if (!save.Success) throw new InvalidOperationException(save.Message);
+            }
+            using (var reloaded = new AppServices())
+            {
+                reloaded.LoadDatabase(probeFolder);
+                VerifyMalaysiaSuperLeague(reloaded);
+                var repeat = ImportMalaysiaSuperLeague(reloaded);
+                if (repeat.TeamsCreated != 0 || repeat.ManagersCreated != 0 || repeat.PlayersCreated != 0 || repeat.LinksCreated != 0)
+                    throw new InvalidOperationException("Second importer run was not idempotent.");
+            }
+            Console.WriteLine("MALAYSIA SUPER LEAGUE PROBE OK");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            keepForInspection = true;
+            Console.WriteLine("MALAYSIA SUPER LEAGUE PROBE FAILED: " + ex);
+            Console.WriteLine("PROBE FOLDER (kept for inspection): " + probeFolder);
+            DumpNameSidecarState(probeFolder);
+            return 47;
+        }
+        finally
+        {
+            if (!keepForInspection)
+            {
+                try { if (Directory.Exists(probeFolder)) Directory.Delete(probeFolder, true); } catch { }
+            }
+        }
+    }
+
+    /// <summary>Loads a written database folder and prints the durable player-name tables.</summary>
+    private static void DumpNameSidecarState(string folder)
+    {
+        try
+        {
+            using var services = new AppServices();
+            services.LoadDatabase(folder);
+            var session = services.Session;
+            foreach (var tableName in new[] { "editedplayernames", "players" })
+            {
+                var table = session.GetTable(tableName);
+                if (table == null)
+                {
+                    Console.WriteLine($"[{tableName}] TABLE MISSING");
+                    continue;
+                }
+                Console.WriteLine($"[{tableName}] rows={table.RowCount}");
+                for (var row = 0; row < table.RowCount; row++)
+                {
+                    var first = session.GetCell(tableName, row, "firstname");
+                    var surname = session.GetCell(tableName, row, "surname");
+                    var common = session.GetCell(tableName, row, "commonname");
+                    var pid = session.GetCell(tableName, row, "playerid");
+                    if (string.IsNullOrWhiteSpace(first) && string.IsNullOrWhiteSpace(surname) &&
+                        string.IsNullOrWhiteSpace(common)) continue;
+                    Console.WriteLine($"  row {row}: playerid={pid} first='{first}' surname='{surname}' common='{common}'");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("NAME SIDECAR DUMP FAILED: " + ex);
+        }
+    }
+
+    private sealed record MalaysiaImportResult(int LeagueId, int TeamsCreated, int ManagersCreated, int PlayersCreated, int LinksCreated);
+
+    private static MalaysiaImportResult ImportMalaysiaSuperLeague(AppServices services)
+    {
+        var session = services.Session;
+        var malaysiaId = FindNationId(session, "Malaysia");
+        if (malaysiaId <= 0) throw new InvalidOperationException("Malaysia is missing from nations.");
+        var leagueId = FindLeagueId(session, "Malaysia Super League", malaysiaId);
+        var teamsCreated = 0;
+        var managersCreated = 0;
+        var playersCreated = 0;
+        var linksCreated = 0;
+        if (leagueId <= 0)
+        {
+            leagueId = CreateRow(services, "leagues", "leagueid", new Dictionary<string, string>
+            {
+                ["leaguename"] = "Malaysia Super League",
+                ["countryid"] = malaysiaId.ToString(),
+                ["level"] = "1",
+                ["leaguetype"] = "0",
+                ["iswomencompetition"] = "0",
+                ["isinternationalleague"] = "0",
+            });
+        }
+
+        foreach (var club in MalaysiaSuperLeagueManifest)
+        {
+            var teamId = FindTeamId(session, club.Name);
+            if (teamId <= 0)
+            {
+                teamId = CreateRow(services, "teams", "teamid", new Dictionary<string, string>
+                {
+                    ["teamname"] = club.Name,
+                    ["countryid"] = malaysiaId.ToString(),
+                    ["teamstadiumcapacity"] = club.Capacity.ToString(),
+                    ["assetid"] = "0", ["presassetone"] = "0", ["presassettwo"] = "0",
+                    ["captainid"] = "-1", ["penaltytakerid"] = "-1", ["freekicktakerid"] = "-1",
+                    ["leftcornerkicktakerid"] = "-1", ["rightcornerkicktakerid"] = "-1",
+                    ["overallrating"] = "50", ["attackrating"] = "50", ["midfieldrating"] = "50",
+                    ["defenserating"] = "50", ["domesticprestige"] = "0", ["internationalprestige"] = "0",
+                    ["clubworth"] = "0",
+                });
+                teamsCreated++;
+            }
+            if (EnsureLeagueTeamLink(services, leagueId, teamId)) linksCreated++;
+
+            if (!ManagerExistsForTeam(session, teamId, club.Coach))
+            {
+                var coachNationId = FindNationId(session, club.CoachNation);
+                CreateRow(services, "manager", "managerid", new Dictionary<string, string>
+                {
+                    ["firstname"] = FirstName(club.Coach), ["surname"] = Surname(club.Coach),
+                    ["commonname"] = club.Coach, ["teamid"] = teamId.ToString(),
+                    ["nationality"] = coachNationId.ToString(), ["headassetid"] = "0",
+                    ["islicensed"] = "0", ["isrewardable"] = "0",
+                });
+                managersCreated++;
+            }
+
+            var jersey = 1;
+            foreach (var (name, nation) in club.ConfirmedPlayers)
+            {
+                var playerId = FindPlayerIdByTeamJersey(session, teamId, jersey);
+                if (playerId <= 0)
+                {
+                    var playerNationId = FindNationId(session, nation);
+                    playerId = CreateRow(services, "players", "playerid", new Dictionary<string, string>
+                    {
+                        ["teamid"] = teamId.ToString(), ["firstnameid"] = "0", ["lastnameid"] = "0",
+                        ["commonnameid"] = "0", ["playerjerseynameid"] = "0", ["headclasscode"] = "0",
+                        ["contractvaliduntil"] = DateTime.Today.Year.ToString(), ["overallrating"] = "50",
+                        ["potential"] = "60", ["preferredposition1"] = "25", ["preferredposition2"] = "-1",
+                        ["preferredposition3"] = "-1", ["preferredposition4"] = "-1", ["preferredfoot"] = "1",
+                        ["nationality"] = playerNationId.ToString(), ["height"] = "180", ["weight"] = "75",
+                        ["jerseynumber"] = jersey.ToString(), ["isretiring"] = "0",
+                    });
+                    CreateEditedPlayerName(services, playerId, name);
+                    services.SetPlayerNameOverride(playerId, FirstName(name), Surname(name), name);
+                    playersCreated++;
+                }
+                if (EnsureTeamPlayerLink(services, teamId, playerId, jersey, 25)) linksCreated++;
+                jersey++;
+            }
+        }
+        session.RefreshSchema();
+        services.RefreshDatabaseIndexes();
+        return new MalaysiaImportResult(leagueId, teamsCreated, managersCreated, playersCreated, linksCreated);
+    }
+
+    private static int CreateRow(AppServices services, string tableName, string idField, IReadOnlyDictionary<string, string> values)
+    {
+        var table = services.Session.GetTable(tableName)
+            ?? throw new InvalidOperationException($"Table '{tableName}' is unavailable.");
+        if (table.RowCount == 0) throw new InvalidOperationException($"Table '{tableName}' has no template row.");
+        // Batch imports must append. Duplicating row zero inserts at row one and
+        // shifts every previous pending edit in this table; appending keeps the
+        // engine's row-index pending metadata stable for all earlier entities.
+        var row = table.RowCount;
+        var duplicated = services.Session.DuplicateRow(tableName, row - 1);
+        if (!duplicated.Success) throw new InvalidOperationException(duplicated.Message);
+        services.Session.RefreshSchema();
+        var id = NextId(services.Session, tableName, idField);
+        var staged = new Dictionary<string, string>(values, StringComparer.OrdinalIgnoreCase) { [idField] = id.ToString() };
+        foreach (var (field, value) in staged)
+        {
+            if (table.FindColumn(field) == null) continue;
+            var outcome = services.Pending.Stage(tableName, row, field, value);
+            if (!outcome.Success) throw new InvalidOperationException($"{tableName}.{field}: {outcome.Message}");
+        }
+        services.Pending.MarkStructuralChange();
+        services.Session.RefreshSchema();
+        return id;
+    }
+
+    private static int NextId(CM26.Application.Services.DatabaseSession session, string tableName, string fieldName)
+    {
+        session.RefreshSchema();
+        var table = session.GetTable(tableName) ?? throw new InvalidOperationException($"Table '{tableName}' is unavailable.");
+        var column = table.FindColumn(fieldName) ?? throw new InvalidOperationException($"Field '{fieldName}' is unavailable.");
+        var used = new HashSet<int>();
+        var max = Math.Max(column.RangeLow, 0);
+        for (var row = 0; row < table.RowCount; row++)
+            if (int.TryParse(session.GetCell(tableName, row, fieldName), out var value)) { used.Add(value); max = Math.Max(max, value); }
+        for (var candidate = Math.Max(1, max + 1); candidate <= column.RangeHigh; candidate++)
+            if (!used.Contains(candidate)) return candidate;
+        for (var candidate = Math.Max(1, column.RangeLow); candidate <= column.RangeHigh; candidate++)
+            if (!used.Contains(candidate)) return candidate;
+        throw new InvalidOperationException($"No unused {tableName}.{fieldName} is available.");
+    }
+
+    private static bool EnsureLeagueTeamLink(AppServices services, int leagueId, int teamId)
+    {
+        var session = services.Session;
+        var links = session.GetTable("leagueteamlinks") ?? throw new InvalidOperationException("leagueteamlinks is unavailable.");
+        for (var row = 0; row < links.RowCount; row++)
+            if (ParseInt(session.GetCell("leagueteamlinks", row, "leagueid")) == leagueId &&
+                ParseInt(session.GetCell("leagueteamlinks", row, "teamid")) == teamId) return false;
+        CreateRow(services, "leagueteamlinks", "artificialkey", new Dictionary<string, string>
+        {
+            ["leagueid"] = leagueId.ToString(), ["teamid"] = teamId.ToString(),
+        });
+        return true;
+    }
+
+    private static bool EnsureTeamPlayerLink(AppServices services, int teamId, int playerId, int jersey, int position)
+    {
+        var session = services.Session;
+        var links = session.GetTable("teamplayerlinks") ?? throw new InvalidOperationException("teamplayerlinks is unavailable.");
+        for (var row = 0; row < links.RowCount; row++)
+            if (ParseInt(session.GetCell("teamplayerlinks", row, "teamid")) == teamId &&
+                ParseInt(session.GetCell("teamplayerlinks", row, "playerid")) == playerId) return false;
+        CreateRow(services, "teamplayerlinks", "artificialkey", new Dictionary<string, string>
+        {
+            ["teamid"] = teamId.ToString(), ["playerid"] = playerId.ToString(),
+            ["jerseynumber"] = jersey.ToString(), ["position"] = position.ToString(),
+        });
+        return true;
+    }
+
+    private static void CreateEditedPlayerName(AppServices services, int playerId, string name)
+    {
+        var names = services.Session.GetTable("editedplayernames");
+        if (names == null || names.RowCount == 0) return;
+        var row = names.RowCount;
+        var duplicated = services.Session.DuplicateRow("editedplayernames", row - 1);
+        if (!duplicated.Success) throw new InvalidOperationException(duplicated.Message);
+        foreach (var (field, value) in new Dictionary<string, string>
+        {
+            ["playerid"] = playerId.ToString(), ["firstname"] = FirstName(name), ["surname"] = Surname(name),
+            ["commonname"] = name, ["playerjerseyname"] = Surname(name),
+        })
+        {
+            if (names.FindColumn(field) == null) continue;
+            // Match the production player creator. This table is a durable name
+            // sidecar, while Pending row tracking is reserved for visible editor
+            // fields and can otherwise describe a shifted structural row.
+            var outcome = services.Session.StageEdit("editedplayernames", row, field, value);
+            if (!outcome.Success) throw new InvalidOperationException($"editedplayernames.{field}: {outcome.Message}");
+        }
+        services.Pending.MarkStructuralChange();
+        services.Session.RefreshSchema();
+    }
+
+    private static int FindNationId(CM26.Application.Services.DatabaseSession session, string name)
+    {
+        var row = FindRowByText(session, "nations", "nationname", name);
+        return row < 0 ? 0 : ParseInt(session.GetCell("nations", row, "nationid"));
+    }
+
+    private static int FindLeagueId(CM26.Application.Services.DatabaseSession session, string name, int countryId)
+    {
+        var table = session.GetTable("leagues");
+        if (table == null) return 0;
+        var expected = NormalizeEntityName(name);
+        for (var row = 0; row < table.RowCount; row++)
+            if (NormalizeEntityName(session.GetCell("leagues", row, "leaguename")) == expected &&
+                ParseInt(session.GetCell("leagues", row, "countryid")) == countryId)
+                return ParseInt(session.GetCell("leagues", row, "leagueid"));
+        return 0;
+    }
+
+    private static int FindTeamId(CM26.Application.Services.DatabaseSession session, string name)
+    {
+        var row = FindTeamRow(session, name);
+        return row < 0 ? 0 : ParseInt(session.GetCell("teams", row, "teamid"));
+    }
+
+    private static bool ManagerExistsForTeam(CM26.Application.Services.DatabaseSession session, int teamId, string name)
+    {
+        var table = session.GetTable("manager");
+        if (table == null) return false;
+        var expected = NormalizeEntityName(name);
+        for (var row = 0; row < table.RowCount; row++)
+        {
+            if (ParseInt(session.GetCell("manager", row, "teamid")) != teamId) continue;
+            var manager = $"{session.GetCell("manager", row, "firstname")} {session.GetCell("manager", row, "surname")}";
+            if (NormalizeEntityName(manager) == expected) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// The durable import key is the (team, jersey number) pair stored in
+    /// teamplayerlinks. This database has no writable player-name store
+    /// (editedplayernames is empty and playernames compressed text cannot be
+    /// appended through the engine), so name-based lookups would never find a
+    /// player after a reload and every re-run would duplicate the squad.
+    /// </summary>
+    private static int FindPlayerIdByTeamJersey(CM26.Application.Services.DatabaseSession session, int teamId, int jersey)
+    {
+        var table = session.GetTable("teamplayerlinks");
+        if (table == null) return 0;
+        for (var row = 0; row < table.RowCount; row++)
+            if (ParseInt(session.GetCell("teamplayerlinks", row, "teamid")) == teamId &&
+                ParseInt(session.GetCell("teamplayerlinks", row, "jerseynumber")) == jersey)
+                return ParseInt(session.GetCell("teamplayerlinks", row, "playerid"));
+        return 0;
+    }
+
+    private static void VerifyMalaysiaSuperLeague(AppServices services)
+    {
+        var session = services.Session;
+        var malaysiaId = FindNationId(session, "Malaysia");
+        var leagueId = FindLeagueId(session, "Malaysia Super League", malaysiaId);
+        if (leagueId <= 0) throw new InvalidOperationException("Malaysia Super League did not persist.");
+        foreach (var club in MalaysiaSuperLeagueManifest)
+        {
+            var teamId = FindTeamId(session, club.Name);
+            if (teamId <= 0) throw new InvalidOperationException($"Team did not persist: {club.Name}");
+            if ((services.Resolver?.TeamLeagueId(teamId) ?? 0) != leagueId)
+                throw new InvalidOperationException($"League link did not persist: {club.Name}");
+            if (!ManagerExistsForTeam(session, teamId, club.Coach))
+                throw new InvalidOperationException($"Manager did not persist: {club.Coach}");
+            var jersey = 1;
+            foreach (var (name, _) in club.ConfirmedPlayers)
+            {
+                var playerId = FindPlayerIdByTeamJersey(session, teamId, jersey);
+                if (playerId <= 0) throw new InvalidOperationException($"Player did not persist: {name} (jersey {jersey})");
+                if (!HasTeamPlayerLink(session, teamId, playerId))
+                    throw new InvalidOperationException($"Player link did not persist: {name} -> {club.Name}");
+                var inGameName = services.Resolver?.PlayerNameByPlayerId(playerId);
+                Console.WriteLine($"  {club.Name,-26} {jersey,-3} {name,-28} playerid={playerId} name-resolved='{inGameName}'");
+                jersey++;
+            }
+        }
+    }
+
+    private static bool HasTeamPlayerLink(CM26.Application.Services.DatabaseSession session, int teamId, int playerId)
+    {
+        var table = session.GetTable("teamplayerlinks");
+        if (table == null) return false;
+        for (var row = 0; row < table.RowCount; row++)
+            if (ParseInt(session.GetCell("teamplayerlinks", row, "teamid")) == teamId &&
+                ParseInt(session.GetCell("teamplayerlinks", row, "playerid")) == playerId) return true;
+        return false;
+    }
+
+    private static void CopyDatabaseSet(string source, string destination)
+    {
+        foreach (var name in new[] { "fifa_ng_db-meta.xml", "fifa_ng_db.db", "eng_us.db" })
+        {
+            var file = Directory.EnumerateFiles(source).FirstOrDefault(path => Path.GetFileName(path).Equals(name, StringComparison.OrdinalIgnoreCase))
+                ?? throw new FileNotFoundException("Required database file is missing.", name);
+            File.Copy(file, Path.Combine(destination, name), overwrite: true);
+        }
+    }
+
+    private static string FirstName(string name)
+    {
+        var words = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return words.Length == 0 ? "Unknown" : words[0];
+    }
+
+    private static string Surname(string name)
+    {
+        var words = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return words.Length <= 1 ? string.Empty : string.Join(' ', words[1..]);
+    }
+
+    /// <summary>Read-only inventory gate before the Malaysia live import probe.</summary>
+    public static int MalaysiaSuperLeagueAudit(string folder)
+    {
+        try
+        {
+            using var services = new AppServices();
+            services.LoadDatabase(folder);
+            var session = services.Session;
+            var nationRow = FindRowByText(session, "nations", "nationname", "Malaysia");
+            var nationId = nationRow >= 0 ? ParseInt(session.GetCell("nations", nationRow, "nationid")) : 0;
+            var leagueRow = FindRowByText(session, "leagues", "leaguename", "Malaysia Super League");
+            var leagueId = leagueRow >= 0 ? ParseInt(session.GetCell("leagues", leagueRow, "leagueid")) : 0;
+            Console.WriteLine($"Malaysia nation: row={nationRow}, id={nationId}");
+            Console.WriteLine($"Malaysia Super League: row={leagueRow}, id={leagueId}");
+
+            var found = 0;
+            foreach (var (club, expectedCoach) in MalaysiaSuperLeague2026)
+            {
+                var teamRow = FindTeamRow(session, club);
+                if (teamRow < 0)
+                {
+                    Console.WriteLine($"MISSING TEAM | {club} | expected coach: {expectedCoach}");
+                    continue;
+                }
+                found++;
+                var teamId = ParseInt(session.GetCell("teams", teamRow, "teamid"));
+                var roster = services.RequireData().GetTeamRoster(teamId);
+                var manager = services.Resolver?.TeamManagerName(teamId) ?? "—";
+                var linkedLeague = services.Resolver?.TeamLeagueId(teamId) ?? 0;
+                Console.WriteLine($"TEAM {teamId} | {session.GetCell("teams", teamRow, "teamname")} | " +
+                    $"league={linkedLeague} | roster={roster.Count} | manager={manager} | expected={expectedCoach}");
+            }
+            Console.WriteLine($"MALAYSIA SUPER LEAGUE AUDIT: teams={found}/12");
+            return nationId > 0 ? 0 : 45;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("MALAYSIA SUPER LEAGUE AUDIT FAILED: " + ex);
+            return 46;
+        }
+    }
+
+    private static int FindTeamRow(CM26.Application.Services.DatabaseSession session, string expected)
+    {
+        var normalized = NormalizeEntityName(expected);
+        var teams = session.GetTable("teams");
+        if (teams == null) return -1;
+        for (var row = 0; row < teams.RowCount; row++)
+        {
+            var actual = NormalizeEntityName(session.GetCell("teams", row, "teamname"));
+            if (actual == normalized || TeamAlias(actual) == TeamAlias(normalized)) return row;
+        }
+        return -1;
+    }
+
+    private static int FindRowByText(CM26.Application.Services.DatabaseSession session,
+        string tableName, string fieldName, string expected)
+    {
+        var table = session.GetTable(tableName);
+        if (table == null) return -1;
+        var normalized = NormalizeEntityName(expected);
+        for (var row = 0; row < table.RowCount; row++)
+            if (NormalizeEntityName(session.GetCell(tableName, row, fieldName)) == normalized) return row;
+        return -1;
+    }
+
+    private static string TeamAlias(string value) => value switch
+    {
+        "johor darul tazim" or "johor darul takzim" or "jdt" => "jdt",
+        "brunei dpmm" or "dpmm" or "dpmm fc" => "brunei dpmm",
+        "kuala lumpur city" or "kuala lumpur city fc" => "kuala lumpur city",
+        "pulau pinang" or "penang" or "penang fc" => "pulau pinang",
+        "negeri sembilan" or "negeri sembilan fc" => "negeri sembilan",
+        _ => value.EndsWith(" fc", StringComparison.Ordinal) ? value[..^3] : value,
+    };
+
+    private static string NormalizeEntityName(string value)
+    {
+        var decomposed = value.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+        return new string(decomposed.Where(character =>
+            System.Globalization.CharUnicodeInfo.GetUnicodeCategory(character) !=
+            System.Globalization.UnicodeCategory.NonSpacingMark &&
+            (char.IsLetterOrDigit(character) || char.IsWhiteSpace(character))).ToArray())
+            .Replace("  ", " ", StringComparison.Ordinal).Trim();
+    }
+
+    private static int ParseInt(string value) => int.TryParse(value, out var parsed) ? parsed : 0;
+
     /// <summary>Writes the exact FC26 formation source values for visual-layout diagnostics.</summary>
     public static int FormationDump(string folder, string outputPath)
     {
