@@ -14,6 +14,10 @@ namespace CM26.App.Sections;
 public sealed class LeaguesSection : SectionBase
 {
     private static readonly Font LegacyFont = Theme.Body;
+    // FC26's canonical `crest/dark` family intentionally contains white marks
+    // (Liverpool and Nottingham Forest are examples). A transparent preview on
+    // the normal white ListView background makes valid dark crests look missing.
+    private static readonly Color DarkCrestTile = Color.FromArgb(20, 42, 63);
     private readonly List<TextBox> _editors = [];
     private readonly List<TextBox> _nameMirrors = [];
     private readonly Dictionary<string, FieldValue> _fields = new(StringComparer.OrdinalIgnoreCase);
@@ -734,7 +738,7 @@ public sealed class LeaguesSection : SectionBase
             try
             {
                 using var source = Image.FromFile(path);
-                image = new Bitmap(source, _teamImages.ImageSize);
+                image = CreateDarkCrestTile(source);
             }
             catch { image = MissingCrest(); }
         }
@@ -753,23 +757,17 @@ public sealed class LeaguesSection : SectionBase
             await _teamCrestGate.WaitAsync();
             try
             {
-                // FC26's menu crest is a legacy UI file. Do this before any
-                // RES fallback: logo_* and crest_* resources are often kit
-                // material maps, hence the muted/wrong colours in previews.
+                // FC26's menu crest is a legacy UI file. Never fall back to a
+                // RES texture here: those matches are often kit materials and
+                // silently substitute the wrong crest.
                 var legacyPath = Services.FrostbiteAssets.ExportLegacyAsset(
                     $"data/ui/imgAssets/crest/dark/l{teamId}.dds");
                 if (!string.IsNullOrWhiteSpace(legacyPath))
-                    return FrostbitePreviewLoader.CreatePreview(Services, legacyPath, 56, 56);
-                var token = string.Concat(teamName.ToLowerInvariant().Where(char.IsLetterOrDigit));
-                var match = Services.FrostbiteAssets.SearchAssets(token, "Res", 80)
-                    .FirstOrDefault(x => x.ResType == 0x6BDE20BA &&
-                        x.Name.Contains("/textures/logo/logo_", StringComparison.OrdinalIgnoreCase) &&
-                        x.Name.EndsWith("_color", StringComparison.OrdinalIgnoreCase))
-                    ?? Services.FrostbiteAssets.SearchAssets($"crest_{teamId}_", "Res", 40)
-                    .FirstOrDefault(x => x.ResType == 0x6BDE20BA &&
-                        x.Name.EndsWith("_color", StringComparison.OrdinalIgnoreCase));
-                var path = match == null ? null : Services.FrostbiteAssets.ExportTexture(match.Name);
-                return FrostbitePreviewLoader.CreatePreview(Services, path, 56, 56, linearColor: true);
+                {
+                    using var crest = FrostbitePreviewLoader.CreatePreview(Services, legacyPath, 56, 56);
+                    return crest == null ? null : CreateDarkCrestTile(crest);
+                }
+                return null;
             }
             finally { _teamCrestGate.Release(); }
         }).ContinueWith(task =>
@@ -788,10 +786,23 @@ public sealed class LeaguesSection : SectionBase
     {
         var image = new Bitmap(56, 56);
         using var graphics = Graphics.FromImage(image);
-        graphics.Clear(Theme.Raised);
-        using var pen = new Pen(Theme.Border, 1);
+        graphics.Clear(DarkCrestTile);
+        using var pen = new Pen(Color.FromArgb(145, Color.White), 1);
         graphics.DrawRectangle(pen, 3, 3, 49, 49);
-        TextRenderer.DrawText(graphics, "?", Theme.Body, new Rectangle(3, 3, 49, 49), Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        TextRenderer.DrawText(graphics, "?", Theme.Body, new Rectangle(3, 3, 49, 49), Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        return image;
+    }
+
+    private static Image CreateDarkCrestTile(Image crest)
+    {
+        var image = new Bitmap(56, 56);
+        using var graphics = Graphics.FromImage(image);
+        graphics.Clear(DarkCrestTile);
+        graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+        var scale = Math.Min(50d / crest.Width, 50d / crest.Height);
+        var width = Math.Max(1, (int)Math.Round(crest.Width * scale));
+        var height = Math.Max(1, (int)Math.Round(crest.Height * scale));
+        graphics.DrawImage(crest, new Rectangle((56 - width) / 2, (56 - height) / 2, width, height));
         return image;
     }
 }

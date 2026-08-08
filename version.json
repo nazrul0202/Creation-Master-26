@@ -1,6 +1,6 @@
 {
-  "version": "1.0.49",
+  "version": "1.0.50",
   "name": "Creation Master 26",
-  "notes": "v1.0.49 - Dark team crest loading, resilient formation pitch rendering, and FC Editor-inspired dropdown pickers across team/player/formation editors.",
+  "notes": "v1.0.50 - Correct dark crest presentation, deterministic non-overlapping formation cards, and nation-ID-safe player country dropdowns.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

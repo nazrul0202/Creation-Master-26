@@ -16,6 +16,7 @@ namespace CM26.App.Sections;
 public sealed class TeamsSection : SectionBase
 {
     private static readonly Font LegacyFont = Theme.Body;
+    private static readonly Color DarkCrestBackground = Color.FromArgb(20, 42, 63);
     private readonly List<TextBox> _editors = [];
     private readonly Dictionary<string, FieldValue> _fields = new(StringComparer.OrdinalIgnoreCase);
     private readonly FieldEditorGrid _stagingGrid = new();
@@ -788,9 +789,9 @@ public sealed class TeamsSection : SectionBase
         {
             var label = new Label
             {
-                Size = new Size(140, 48), BackColor = Color.FromArgb(17, 38, 56),
+                Size = new Size(118, 42), BackColor = Color.FromArgb(17, 38, 56),
                 BorderStyle = BorderStyle.FixedSingle, TextAlign = ContentAlignment.MiddleRight,
-                Font = new Font("Segoe UI", 8F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 7.5F, FontStyle.Bold),
                 ForeColor = Color.White, AllowDrop = true, Tag = _lineupSlots.Count,
                 ImageAlign = ContentAlignment.MiddleLeft,
                 Padding = new Padding(4, 2, 4, 2)
@@ -1019,81 +1020,39 @@ public sealed class TeamsSection : SectionBase
         var boardW = _formationBoard.Width;
         var boardH = _formationBoard.Height;
         var slots = _lineupSlots.Where(s => s.Label.Visible).ToList();
-        var cardW = Math.Min(140, Math.Max(20, boardW - 20));
-        var cardH = Math.Min(48, Math.Max(20, boardH - 20));
-        var gap = 12;
-        var minX = Math.Min(10, Math.Max(0, boardW - cardW));
-        var maxX = Math.Max(minX, boardW - cardW - 10);
-        var minY = Math.Min(10, Math.Max(0, boardH - cardH));
-        var maxY = Math.Max(minY, boardH - cardH - 10);
+        if (slots.Count == 0) return;
+        var cardW = slots.Max(slot => slot.Label.Width);
+        var cardH = slots.Max(slot => slot.Label.Height);
+        const int padding = 10;
+        const int gap = 4;
+        var columns = Math.Max(1, (boardW - (padding * 2) + gap) / (cardW + gap));
+        var rows = Math.Max(1, (boardH - (padding * 2) + gap) / (cardH + gap));
 
-        // Phase 1: Place each card at its target, bumping outward if occupied.
-        var occupied = new List<Rectangle>();
-        foreach (var slot in slots)
+        // A full card needs more space than a formation's point marker. Snap
+        // every desired point to its nearest free grid cell, which makes the
+        // result deterministic and guarantees zero card-over-card overlap.
+        var cells = new List<Point>(columns * rows);
+        var usableW = Math.Max(0, boardW - (padding * 2) - cardW);
+        var usableH = Math.Max(0, boardH - (padding * 2) - cardH);
+        for (var row = 0; row < rows; row++)
+        for (var column = 0; column < columns; column++)
         {
-            var rx = slot.Label.Left;
-            var ry = slot.Label.Top;
-            var placed = false;
-            for (var dist = 0; dist < Math.Max(boardW, boardH) / 2; dist += 3)
-            {
-                for (var dy = -dist; dy <= dist; dy += 3)
-                {
-                    for (var dx = -dist; dx <= dist; dx += 3)
-                    {
-                        if (Math.Abs(dx) != dist && Math.Abs(dy) != dist) continue;
-                        var nx = Math.Clamp(rx + dx, minX, maxX);
-                        var ny = Math.Clamp(ry + dy, minY, maxY);
-                        var nb = new Rectangle(nx, ny, cardW + gap, cardH + gap);
-                        if (!occupied.Any(o => o.IntersectsWith(nb)))
-                        {
-                            slot.Label.Left = nx;
-                            slot.Label.Top = ny;
-                            occupied.Add(new Rectangle(nx, ny, cardW, cardH));
-                            placed = true;
-                            break;
-                        }
-                    }
-                    if (placed) break;
-                }
-                if (placed) break;
-            }
-            if (!placed)
-            {
-                // Fallback: keep original position.
-                occupied.Add(new Rectangle(rx, ry, cardW, cardH));
-            }
+            var left = padding + (columns == 1 ? usableW / 2 : (int)Math.Round(column * usableW / (double)(columns - 1)));
+            var top = padding + (rows == 1 ? usableH / 2 : (int)Math.Round(row * usableH / (double)(rows - 1)));
+            cells.Add(new Point(left, top));
         }
-
-        // Phase 2: Iteratively push all overlapping pairs apart (up to 50 rounds).
-        for (var iter = 0; iter < 50; iter++)
+        var remaining = new HashSet<int>(Enumerable.Range(0, cells.Count));
+        foreach (var slot in slots.OrderBy(slot => slot.Label.Top).ThenBy(slot => slot.Label.Left))
         {
-            var anyOverlap = false;
-            for (var a = 0; a < slots.Count; a++)
+            var target = new Point(slot.Label.Left + (slot.Label.Width / 2), slot.Label.Top + (slot.Label.Height / 2));
+            var cell = remaining.OrderBy(index =>
             {
-                for (var b = a + 1; b < slots.Count; b++)
-                {
-                    var ra = new Rectangle(slots[a].Label.Left, slots[a].Label.Top, cardW + gap, cardH + gap);
-                    var rb = new Rectangle(slots[b].Label.Left, slots[b].Label.Top, cardW + gap, cardH + gap);
-                    if (!ra.IntersectsWith(rb)) continue;
-                    anyOverlap = true;
-                    var ax = slots[a].Label.Left + cardW / 2;
-                    var ay = slots[a].Label.Top + cardH / 2;
-                    var bx = slots[b].Label.Left + cardW / 2;
-                    var by = slots[b].Label.Top + cardH / 2;
-                    var dx = ax - bx;
-                    var dy = ay - by;
-                    if (dx == 0 && dy == 0) dx = 1;
-                    var dist = Math.Max(1, Math.Sqrt(dx * dx + dy * dy));
-                    var push = Math.Max(8, (cardW + gap - dist) / 2 + 6);
-                    var ox = (int)((dx / dist) * push);
-                    var oy = (int)((dy / dist) * push);
-                    slots[a].Label.Left = Math.Clamp(slots[a].Label.Left + ox, minX, maxX);
-                    slots[a].Label.Top = Math.Clamp(slots[a].Label.Top + oy, minY, maxY);
-                    slots[b].Label.Left = Math.Clamp(slots[b].Label.Left - ox, minX, maxX);
-                    slots[b].Label.Top = Math.Clamp(slots[b].Label.Top - oy, minY, maxY);
-                }
-            }
-            if (!anyOverlap) break;
+                var dx = cells[index].X + (cardW / 2) - target.X;
+                var dy = cells[index].Y + (cardH / 2) - target.Y;
+                return (dx * dx) + (dy * dy);
+            }).First();
+            remaining.Remove(cell);
+            slot.Label.Location = cells[cell];
         }
     }
 
@@ -2296,8 +2255,12 @@ public sealed class TeamsSection : SectionBase
             var target = new LegacyAssetEditTarget(crestPath, 256, 256);
             LegacyAssetActions.SetTarget(_crestViewers[0], target);
         }
-        FrostbitePreviewLoader.Load(_crestViewers[0], Services, path,
-            [string.Concat(teamName.ToLowerInvariant().Where(char.IsLetterOrDigit)), $"crest_{teamId}_"], (image, source) =>
+        // The canonical dark crest set includes white marks. Keep the exact
+        // legacy asset and put it on a dark preview surface; do not search RES
+        // material textures as a fallback because they can be unrelated kits.
+        _crestViewers[0].BackColor = DarkCrestBackground;
+        FrostbitePreviewLoader.LoadLegacyUiAsset(_crestViewers[0], Services, path,
+            $"data/ui/imgAssets/crest/dark/l{teamId}.dds", (image, source) =>
         {
             try
             {
@@ -2314,7 +2277,6 @@ public sealed class TeamsSection : SectionBase
             }
             catch (System.AccessViolationException) { }
             catch { }
-        }, asset => asset.Name.Contains("/textures/logo/logo_", StringComparison.OrdinalIgnoreCase) ||
-                    asset.Name.Contains("/crest_", StringComparison.OrdinalIgnoreCase), linearColor: true);
+        });
     }
 }

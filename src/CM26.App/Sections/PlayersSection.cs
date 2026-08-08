@@ -96,12 +96,10 @@ public sealed class PlayersSection : SectionBase
             ("Goalkeeper (GK)", "0"),
         };
 
-        // Build nationality options from database
-        var countries = Services.RequireData().GetCountries();
-        var nationalityOptions = countries.Select(c => (c.Title, c.RecordIndex.ToString())).ToList();
-        // Negative sentinel keeps an explicit "unknown" item distinct from
-        // the first real nation row (database row 0).
-        nationalityOptions.Insert(0, ("(Unknown nationality)", "-1"));
+        // `players.nationality` stores nations.nationid, not the nations table
+        // row index. Reuse the editor's canonical mapping so a selected country
+        // and the Player Summary always resolve to the same nation.
+        var nationalityOptions = NationOptions().Select(option => (option.Display, option.Value)).ToList();
 
         var fields = new List<EntityField>
         {
@@ -702,13 +700,16 @@ public sealed class PlayersSection : SectionBase
 
     private IReadOnlyList<ReferenceOption> NationOptions()
     {
-        var options = new List<ReferenceOption> { new("Not set", "-1") };
+        var options = new List<ReferenceOption> { new("Not set", "-1"), new("No nation", "0") };
         try
         {
             var nations = Services.RequireData().GetCountries();
             options.AddRange(nations
                 .Where(n => !string.IsNullOrWhiteSpace(n.Title))
-                .Select(n => new ReferenceOption(n.Title, n.RecordIndex.ToString())));
+                .Select(n => new ReferenceOption(n.Title,
+                    Services.Session.GetCell("nations", n.RecordIndex, "nationid")))
+                .Where(option => int.TryParse(option.Value, out var nationId) && nationId > 0)
+                .DistinctBy(option => option.Value));
         }
         catch { /* Section can be constructed before a database is attached. */ }
         return options;
@@ -755,7 +756,10 @@ public sealed class PlayersSection : SectionBase
             !_fields.TryGetValue(field, out var value) || !value.IsWritable)
             return;
         if (StageField(TableName, CurrentRecordIndex, value.FieldName, option.Value, _stagingGrid))
+        {
+            value.Value = option.Value;
             RefreshSummaryMirrors(field);
+        }
     }
 
     private void RefreshReferencePickers()
