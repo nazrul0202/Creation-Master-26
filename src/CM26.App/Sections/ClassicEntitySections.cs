@@ -588,6 +588,9 @@ public sealed class FormationsSection : ClassicEntitySection
     private readonly Panel _pitch;
     private readonly Label _pitchStatus;
     private readonly GroupBox _pitchGroup;
+    private readonly Dictionary<string, ComboBox> _formationPickers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly FieldEditorGrid _pickerStaging = new();
+    private bool _syncFormationPickers;
 
     public FormationsSection(AppServices s) : base(s, "formations", "Formations", "formations", () => s.RequireData().GetFormations(), LabelMaps.Formations)
     {
@@ -642,7 +645,7 @@ public sealed class FormationsSection : ClassicEntitySection
                 BackColor = Theme.Panel,
                 ForeColor = Theme.Text,
             });
-            AddSlotEditor(roles, $"position{i}", new Point(x, y), 78);
+            AddFormationDropdown(roles, $"position{i}", new Point(x, y), 78, PositionOptions());
             roles.Controls.Add(new Label
             {
                 Text = "Role",
@@ -653,7 +656,7 @@ public sealed class FormationsSection : ClassicEntitySection
                 BackColor = Theme.Panel,
                 ForeColor = Theme.Text,
             });
-            AddSlotEditor(roles, $"pos{i}role", new Point(x + 154, y), 78);
+            AddFormationDropdown(roles, $"pos{i}role", new Point(x + 154, y), 78, RoleOptions());
         }
         c.Controls.Add(roles);
 
@@ -680,6 +683,7 @@ public sealed class FormationsSection : ClassicEntitySection
         _pitchStatus.Text = string.IsNullOrWhiteSpace(name)
             ? "Select a formation."
             : $"{name} · {validSlots}/11 positions mapped";
+        RefreshFormationPickers();
         ResizePitchPreview();
         _pitch.Invalidate();
     }
@@ -692,6 +696,86 @@ public sealed class FormationsSection : ClassicEntitySection
         box.Leave += (_, _) => Commit(box);
         parent.Controls.Add(box);
         _editors.Add(box);
+    }
+
+    private sealed record FormationOption(string Display, string Value)
+    {
+        public override string ToString() => Display;
+    }
+
+    private static IReadOnlyList<FormationOption> PositionOptions() =>
+        new[] { new FormationOption("Not set", "-1") }
+            .Concat(Enumerable.Range(0, 28).Select(code =>
+                new FormationOption(NameResolverService.PositionLabel(code), code.ToString())))
+            .ToArray();
+
+    private IReadOnlyList<FormationOption> RoleOptions()
+    {
+        var values = new HashSet<int> { 0 };
+        try
+        {
+            var table = Services.Session.GetTable("formations");
+            foreach (var name in Enumerable.Range(0, 11).Select(i => $"pos{i}role"))
+            {
+                if (table?.FindColumn(name) == null) continue;
+                for (var row = 0; row < table.RowCount; row++)
+                    if (int.TryParse(Services.Session.GetCell("formations", row, name), out var parsedRole)) values.Add(parsedRole);
+            }
+        }
+        catch { /* Keep the safe zero option when a partial schema is loaded. */ }
+        return new[] { new FormationOption("Not set", "0") }
+            .Concat(values.Where(role => role > 0).OrderBy(role => role)
+                .Select(role => new FormationOption($"Role {role}", role.ToString())))
+            .ToArray();
+    }
+
+    private void AddFormationDropdown(
+        Control parent, string field, Point point, int width,
+        IReadOnlyList<FormationOption> options)
+    {
+        var picker = new ComboBox
+        {
+            Location = point,
+            Size = new Size(width, 21),
+            Tag = field,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Font = LegacyFont,
+            IntegralHeight = false,
+            DropDownHeight = 300,
+        };
+        Theme.ApplyCombo(picker);
+        picker.Items.AddRange(options.Cast<object>().ToArray());
+        picker.SelectedIndexChanged += (_, _) => CommitFormationPicker(picker);
+        parent.Controls.Add(picker);
+        _formationPickers[field] = picker;
+    }
+
+    private void CommitFormationPicker(ComboBox picker)
+    {
+        if (_syncFormationPickers || CurrentRowIndex < 0 || picker.Tag is not string field ||
+            picker.SelectedItem is not FormationOption option ||
+            !CurrentValues.TryGetValue(field, out var value) || !value.IsWritable)
+            return;
+        StageField("formations", CurrentRowIndex, value.FieldName, option.Value, _pickerStaging);
+    }
+
+    private void RefreshFormationPickers()
+    {
+        _syncFormationPickers = true;
+        try
+        {
+            foreach (var (field, picker) in _formationPickers)
+            {
+                var raw = CurrentValues.TryGetValue(field, out var value) ? value.RawValue : string.Empty;
+                picker.SelectedItem = picker.Items.Cast<FormationOption>()
+                    .FirstOrDefault(item => item.Value.Equals(raw, StringComparison.OrdinalIgnoreCase))
+                    ?? picker.Items.Cast<FormationOption>().FirstOrDefault();
+                picker.Enabled = CurrentValues.TryGetValue(field, out value) && value.IsWritable;
+                picker.BackColor = picker.Enabled ? Theme.Input : Theme.Raised;
+                picker.ForeColor = picker.Enabled ? Theme.Text : Theme.Muted;
+            }
+        }
+        finally { _syncFormationPickers = false; }
     }
 
     private void ResizePitchPreview()
@@ -711,7 +795,7 @@ public sealed class FormationsSection : ClassicEntitySection
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         g.Clear(Color.FromArgb(43, 132, 82));
         if (_pitch.ClientSize.Width < 100 || _pitch.ClientSize.Height < 100) return;
-        var field = new Rectangle(9, 9, Math.Max(1, _pitch.Width - 19), Math.Max(1, _pitch.Height - 19));
+        var field = new Rectangle(9, 9, Math.Max(1, _pitch.ClientSize.Width - 19), Math.Max(1, _pitch.ClientSize.Height - 19));
         using (var stripe = new SolidBrush(Color.FromArgb(18, 255, 255, 255)))
         {
             var stripeHeight = Math.Max(1, field.Height / 8);
@@ -720,17 +804,19 @@ public sealed class FormationsSection : ClassicEntitySection
         }
         using var pen = new Pen(Color.FromArgb(225, Color.White), 2);
         g.DrawRectangle(pen, field);
-        g.DrawEllipse(pen, (_pitch.Width / 2) - 45, (_pitch.Height / 2) - 45, 90, 90);
-        g.FillEllipse(Brushes.White, (_pitch.Width / 2) - 3, (_pitch.Height / 2) - 3, 6, 6);
-        g.DrawLine(pen, field.Left, _pitch.Height / 2, field.Right, _pitch.Height / 2);
-        var penaltyWidth = 230;
-        var penaltyHeight = 64;
-        var sixWidth = 105;
-        var sixHeight = 25;
-        g.DrawRectangle(pen, (_pitch.Width - penaltyWidth) / 2, field.Top, penaltyWidth, penaltyHeight);
-        g.DrawRectangle(pen, (_pitch.Width - sixWidth) / 2, field.Top, sixWidth, sixHeight);
-        g.DrawRectangle(pen, (_pitch.Width - penaltyWidth) / 2, field.Bottom - penaltyHeight, penaltyWidth, penaltyHeight);
-        g.DrawRectangle(pen, (_pitch.Width - sixWidth) / 2, field.Bottom - sixHeight, sixWidth, sixHeight);
+        var centre = new Point(field.Left + (field.Width / 2), field.Top + (field.Height / 2));
+        var circle = Math.Max(30, Math.Min(90, Math.Min(field.Width, field.Height) / 5));
+        g.DrawEllipse(pen, centre.X - (circle / 2), centre.Y - (circle / 2), circle, circle);
+        g.FillEllipse(Brushes.White, centre.X - 3, centre.Y - 3, 6, 6);
+        g.DrawLine(pen, field.Left, centre.Y, field.Right, centre.Y);
+        var penaltyWidth = Math.Max(70, Math.Min(230, field.Width / 3));
+        var penaltyHeight = Math.Max(30, Math.Min(64, field.Height / 6));
+        var sixWidth = Math.Max(40, Math.Min(105, field.Width / 7));
+        var sixHeight = Math.Max(16, Math.Min(25, field.Height / 14));
+        g.DrawRectangle(pen, centre.X - (penaltyWidth / 2), field.Top, penaltyWidth, penaltyHeight);
+        g.DrawRectangle(pen, centre.X - (sixWidth / 2), field.Top, sixWidth, sixHeight);
+        g.DrawRectangle(pen, centre.X - (penaltyWidth / 2), field.Bottom - penaltyHeight, penaltyWidth, penaltyHeight);
+        g.DrawRectangle(pen, centre.X - (sixWidth / 2), field.Bottom - sixHeight, sixWidth, sixHeight);
         var occupied = new List<Rectangle>();
         for (var i = 0; i < 11; i++)
         {
@@ -740,13 +826,17 @@ public sealed class FormationsSection : ClassicEntitySection
                 ? NameResolverService.PositionLabel(positionCode)
                 : "—";
             const int boxWidth = 88, boxHeight = 48;
-            // Stored offsets describe the centre of a player marker.  Using
-            // them as the top-left corner pushed GK/CB labels into each other
-            // at the upper boundary.
-            var centreX = 12 + (int)Math.Round(x * Math.Max(1, _pitch.Width - 48));
-            var centreY = 12 + (int)Math.Round(y * Math.Max(1, _pitch.Height - 40));
-            var left = Math.Clamp(centreX - (boxWidth / 2), 12, _pitch.Width - boxWidth - 12);
-            var top = Math.Clamp(centreY - (boxHeight / 2), 12, _pitch.Height - boxHeight - 12);
+            // Stored offsets are normalized centres.  Anchor them to the
+            // actual field rectangle (rather than the whole control) so the
+            // cards stay inside the painted pitch after a resize.
+            var centreX = field.Left + (int)Math.Round(x * field.Width);
+            var centreY = field.Top + (int)Math.Round(y * field.Height);
+            var minLeft = Math.Min(field.Left + 3, Math.Max(0, field.Right - boxWidth));
+            var maxLeft = Math.Max(minLeft, field.Right - boxWidth - 3);
+            var minTop = Math.Min(field.Top + 3, Math.Max(0, field.Bottom - boxHeight));
+            var maxTop = Math.Max(minTop, field.Bottom - boxHeight - 3);
+            var left = Math.Clamp(centreX - (boxWidth / 2), minLeft, maxLeft);
+            var top = Math.Clamp(centreY - (boxHeight / 2), minTop, maxTop);
             var box = FindFreeFormationBox(left, top, boxWidth, boxHeight, occupied);
             occupied.Add(box);
             var marker = new Rectangle(box.Left + 27, box.Top, 34, 34);
@@ -767,6 +857,10 @@ public sealed class FormationsSection : ClassicEntitySection
 
     private Rectangle FindFreeFormationBox(int left, int top, int width, int height, IReadOnlyList<Rectangle> occupied)
     {
+        var minX = Math.Min(12, Math.Max(0, _pitch.Width - width));
+        var maxX = Math.Max(minX, _pitch.Width - width - 12);
+        var minY = Math.Min(12, Math.Max(0, _pitch.Height - height));
+        var maxY = Math.Max(minY, _pitch.Height - height - 12);
         var candidate = new Rectangle(left, top, width, height);
         if (!occupied.Any(box => box.IntersectsWith(candidate))) return candidate;
 
@@ -777,8 +871,8 @@ public sealed class FormationsSection : ClassicEntitySection
         {
             foreach (var (dx, dy) in new[] { (-distance, 0), (distance, 0), (0, distance), (0, -distance), (-distance, distance), (distance, distance) })
             {
-                var x = Math.Clamp(left + dx, 12, _pitch.Width - width - 12);
-                var y = Math.Clamp(top + dy, 12, _pitch.Height - height - 12);
+                var x = Math.Clamp(left + dx, minX, maxX);
+                var y = Math.Clamp(top + dy, minY, maxY);
                 candidate = new Rectangle(x, y, width, height);
                 if (!occupied.Any(box => box.IntersectsWith(candidate))) return candidate;
             }

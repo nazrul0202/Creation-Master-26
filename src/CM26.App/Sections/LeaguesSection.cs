@@ -601,7 +601,13 @@ public sealed class LeaguesSection : SectionBase
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
-        if (!EntityCreationDialog.TryShow(this, "Team for this league", [("Team name", "New Team")], out var values)) return;
+
+        var fields = new List<EntityField>
+        {
+            new("Team name", "New Team"),
+        };
+
+        if (!EntityCreationDialog.TryShow(this, "Team for this league", fields, out var values)) return;
 
         var teams = Services.Session.GetTable("teams");
         if (teams == null || teams.RowCount == 0)
@@ -752,9 +758,6 @@ public sealed class LeaguesSection : SectionBase
                 // material maps, hence the muted/wrong colours in previews.
                 var legacyPath = Services.FrostbiteAssets.ExportLegacyAsset(
                     $"data/ui/imgAssets/crest/dark/l{teamId}.dds");
-                if (string.IsNullOrWhiteSpace(legacyPath))
-                    legacyPath = Services.FrostbiteAssets.ExportLegacyAsset(
-                        $"data/ui/imgAssets/crest/light/l{teamId}.dds");
                 if (!string.IsNullOrWhiteSpace(legacyPath))
                     return FrostbitePreviewLoader.CreatePreview(Services, legacyPath, 56, 56);
                 var token = string.Concat(teamName.ToLowerInvariant().Where(char.IsLetterOrDigit));

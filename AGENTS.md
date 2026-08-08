@@ -7,4 +7,5 @@
 
 ## Build & test
 - Release config: `Release\assemble_packages.ps1` assembles Full/Lite portable packages.
+- **Always place every release package (Full Portable + Lite zips + SHA256SUMS) in `D:\CM 26 Final\Release`.** This is the one and only release location — never leave the new version elsewhere (e.g. publish_*_vX.Y.Z folders at repo root are only intermediate build output, not releases).
 - Public release version is a fixed MAJOR.MINOR.PATCH (e.g. v1.0.18); keep `CM26.App.csproj` + Assembly/File/Informational versions in sync.

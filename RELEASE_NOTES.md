@@ -1,5 +1,18 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.49 - dark crests, formation stability and dropdown polish (2026-08-08)
+
+- **Team crests prefer the dark collection.** The installed FC26 dark crest path and
+  the FC Editor by decoruiz asset tree are checked first; light crest fallbacks are
+  no longer selected for team previews.
+- **Formation editor is resilient.** Pitch markers stay inside the field after resize,
+  collision spacing is clamped for small layouts, missing offset columns fall back
+  safely, and generic/team formation links tolerate custom database rows.
+- **FC Editor-style selectors.** Team country/league, player position/nationality/
+  preferred foot, and formation positions/roles use themed dropdown controls while
+  preserving the underlying FC26 numeric values.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.49.
+
 ## Version 1.0.34 - editor geometry standardization (2026-08-06)
 
 - **Uniform editor rows everywhere.** Every fixed editor section now uses the same

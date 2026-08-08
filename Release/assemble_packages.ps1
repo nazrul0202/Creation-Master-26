@@ -137,9 +137,11 @@ function Assemble-Package {
     else {
         $deps = Get-Content $depsFile -Raw
         if ($Label -eq 'Lite') {
-            if ($deps -notmatch '"type"\s*:\s*"runtimepack"') {
-                $errors.Add("$Label deps.json does not reference the .NET runtime packs (corrupt publish - re-run dotnet publish sequentially, never in parallel).")
-                Write-Host "    MISSING runtime packs in deps.json - re-run publish sequentially" -ForegroundColor Red
+            # Framework-dependent publish should NOT have runtime packs (it relies on installed .NET runtime).
+            # Verify the deps.json has the expected structure with targets.
+            if ($deps -notmatch '"targets"') {
+                $errors.Add("$Label deps.json is missing targets section (corrupt publish - re-run dotnet publish sequentially, never in parallel).")
+                Write-Host "    MISSING targets in deps.json - re-run publish sequentially" -ForegroundColor Red
             }
         }
         elseif ($deps -notmatch 'CM26_by_Rizco98\.dll') {

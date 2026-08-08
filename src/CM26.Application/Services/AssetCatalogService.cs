@@ -44,12 +44,18 @@ public sealed class AssetCatalogService
     };
     private static readonly string[] TeamLogoPatterns =
     {
+        // FC Editor by decoruiz keeps its menu crests in a separate dark
+        // collection. Prefer these paths before the installed FC26 archive so
+        // previews never accidentally pick the light/white variant.
+        Path.Combine("FC Editor by decoruiz Alpha v21", "assets", "26", "crest", "dark", "{0}.png"),
+        Path.Combine("FC Editor by decoruiz Alpha v21", "assets", "crest", "dark", "{0}.png"),
+        Path.Combine("assets", "26", "crest", "dark", "{0}.png"),
+        Path.Combine("assets", "crest", "dark", "{0}.png"),
+        Path.Combine("26", "crest", "dark", "{0}.png"),
+        Path.Combine("crest", "dark", "{0}.png"),
         Path.Combine("data", "ui", "imgAssets", "crest", "dark", "l{0}.dds"),
-        Path.Combine("data", "ui", "imgAssets", "crest", "light", "l{0}.dds"),
         Path.Combine("legacy", "data", "ui", "imgAssets", "crest", "dark", "l{0}.dds"),
-        Path.Combine("legacy", "data", "ui", "imgAssets", "crest", "light", "l{0}.dds"),
         Path.Combine("imgAssets", "crest", "dark", "l{0}.dds"),
-        Path.Combine("imgAssets", "crest", "light", "l{0}.dds"),
         Path.Combine("team_logos", "{0}.png"),
         Path.Combine("team_logos", "team_{0}.png"),
         Path.Combine("crests", "{0}.png"),

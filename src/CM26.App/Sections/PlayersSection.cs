@@ -29,8 +29,10 @@ public sealed class PlayersSection : SectionBase
     private readonly Label _callnameStatus = new();
     private GroupBox? _traitsPanel;
     private bool _syncSkillSliders;
+    private bool _syncReferencePickers;
     private int _currentPlayerId;
     private int _currentHeadAssetId;
+    private readonly Dictionary<string, ComboBox> _referencePickers = new(StringComparer.OrdinalIgnoreCase);
 
     public override string SectionKey => "players";
     public override string SectionTitle => "Players";
@@ -74,14 +76,76 @@ public sealed class PlayersSection : SectionBase
 
     protected override void CreateNewRecord()
     {
-        if (!EntityCreationDialog.TryShow(this, "Player",
-                [("First name", "New"), ("Surname", "Player")], out var values))
+        // Build position options
+        var positionOptions = new List<(string Display, string Value)>
+        {
+            ("Striker (ST)", "25"),
+            ("Centre Forward (CF)", "21"),
+            ("Right Winger (RW)", "23"),
+            ("Left Winger (LW)", "27"),
+            ("Right Midfielder (RM)", "12"),
+            ("Central Midfielder (CM)", "14"),
+            ("Left Midfielder (LM)", "16"),
+            ("Attacking Midfielder (CAM)", "18"),
+            ("Defensive Midfielder (CDM)", "10"),
+            ("Right Back (RB)", "3"),
+            ("Centre Back (CB)", "5"),
+            ("Left Back (LB)", "7"),
+            ("Right Wing Back (RWB)", "2"),
+            ("Left Wing Back (LWB)", "8"),
+            ("Goalkeeper (GK)", "0"),
+        };
+
+        // Build nationality options from database
+        var countries = Services.RequireData().GetCountries();
+        var nationalityOptions = countries.Select(c => (c.Title, c.RecordIndex.ToString())).ToList();
+        // Negative sentinel keeps an explicit "unknown" item distinct from
+        // the first real nation row (database row 0).
+        nationalityOptions.Insert(0, ("(Unknown nationality)", "-1"));
+
+        var fields = new List<EntityField>
+        {
+            new("First name", "New"),
+            new("Surname", "Player"),
+            new("Position", "25", EntityFieldType.Dropdown, positionOptions),
+            new("Nationality", "-1", EntityFieldType.Dropdown, nationalityOptions),
+            new("Preferred foot", "1", EntityFieldType.Dropdown, new List<(string, string)>
+            {
+                ("Right", "1"),
+                ("Left", "2"),
+            }),
+        };
+
+        if (!EntityCreationDialog.TryShow(this, "Player", fields, out var values))
             return;
         try
         {
-            var requestedName = $"{values[0]} {values[1]}".Trim();
+            var firstName = values[0];
+            var surname = values[1];
+            var requestedName = $"{firstName} {surname}".Trim();
             if (GetRecords().Any(item => string.Equals(item.Title.Trim(), requestedName, StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException("A player with that name already exists. Add a distinguishing name before creating the record.");
+
+            // Dropdown values already contain the FC26 position code.  Treating
+            // the code as an option-list index made e.g. GK (0) resolve to the
+            // first item while higher positions mapped to the wrong role.
+            var positionCode = int.TryParse(values[2], out var parsedPosition) &&
+                parsedPosition is >= 0 and <= 27
+                    ? parsedPosition.ToString()
+                    : "25";
+
+            // Parse nationality
+            var nationality = "0";
+            if (int.TryParse(values[3], out var nationRow) && nationRow >= 0)
+            {
+                var nations = Services.Session.GetTable("nations");
+                if (nations != null && nationRow < nations.RowCount && nations.FindColumn("nationid") != null)
+                    nationality = Services.Session.GetCell("nations", nationRow, "nationid") ?? "0";
+            }
+
+            // Parse preferred foot
+            var preferredFoot = values[4] == "2" ? "2" : "1";
+
             var id = CreateRecordFromTemplate(TableName, "playerid", new Dictionary<string, string>
             {
                 ["firstnameid"] = "0",
@@ -92,18 +156,19 @@ public sealed class PlayersSection : SectionBase
                 ["contractvaliduntil"] = DateTime.Today.Year.ToString(),
                 ["overallrating"] = "50",
                 ["potential"] = "60",
-                ["preferredposition1"] = "25",
+                ["preferredposition1"] = positionCode,
                 ["preferredposition2"] = "-1",
                 ["preferredposition3"] = "-1",
                 ["preferredposition4"] = "-1",
-                ["preferredfoot"] = "1",
+                ["preferredfoot"] = preferredFoot,
+                ["nationality"] = nationality,
                 ["height"] = "180",
                 ["weight"] = "75",
                 ["jerseynumber"] = "0",
                 ["isretiring"] = "0",
             });
-            var nameSaved = TryCreateEditedPlayerName(id, values[0], values[1]);
-            Services.SetPlayerNameOverride(id, values[0], values[1]);
+            var nameSaved = TryCreateEditedPlayerName(id, firstName, surname);
+            Services.SetPlayerNameOverride(id, firstName, surname);
             Services.Session.RefreshSchema();
             Services.RefreshDatabaseIndexes();
             LoadData();
@@ -180,8 +245,9 @@ public sealed class PlayersSection : SectionBase
         AddFields(identity, new[]
         {
             ("Player Id", "playerid"), ("First Name", "firstnameid"), ("Surname", "lastnameid"), ("Common Name", "commonnameid"),
-            ("Jersey", "jerseynumber"), ("Birthdate", "birthdate"), ("Country", "nationality")
+            ("Jersey", "jerseynumber"), ("Birthdate", "birthdate")
         }, 155, 20, 255, 120, 26);
+        AddReferenceDropdown(identity, "Country", "nationality", new Point(255, 176), 120, NationOptions());
         canvas.Controls.Add(identity);
 
         var playingFor = Box("Playing for", new Point(399, 3), new Size(245, 174));
@@ -195,7 +261,8 @@ public sealed class PlayersSection : SectionBase
         canvas.Controls.Add(playingFor);
 
         var body = Box("Body", new Point(3, 249), new Size(390, 154));
-        AddFields(body, new[] { ("Height", "height"), ("Weight", "weight"), ("Body", "bodytypecode"), ("Best foot", "preferredfoot"), ("Weak foot", "weakfootabilitytypecode") }, 12, 18, 245, 120, 26);
+        AddFields(body, new[] { ("Height", "height"), ("Weight", "weight"), ("Body", "bodytypecode"), ("Weak foot", "weakfootabilitytypecode") }, 12, 18, 245, 120, 26);
+        AddReferenceDropdown(body, "Best foot", "preferredfoot", new Point(245, 96), 120, FootOptions());
         canvas.Controls.Add(body);
 
         var look = Box("Look", new Point(3, 409), new Size(390, 252));
@@ -222,11 +289,11 @@ public sealed class PlayersSection : SectionBase
         canvas.Controls.Add(shoes);
 
         var play = Box("Playing Info", new Point(399, 409), new Size(245, 155));
-        AddFields(play, new[]
-        {
-            ("Preferred Position 1", "preferredposition1"), ("Preferred Position 2", "preferredposition2"),
-            ("Preferred Position 3", "preferredposition3"), ("Preferred Position 4", "preferredposition4"), ("International Reputation", "internationalrep")
-        }, 12, 25, 148, 92, 26);
+        AddReferenceDropdown(play, "Preferred Position 1", "preferredposition1", new Point(148, 25), 92, PositionOptions());
+        AddReferenceDropdown(play, "Preferred Position 2", "preferredposition2", new Point(148, 51), 92, PositionOptions());
+        AddReferenceDropdown(play, "Preferred Position 3", "preferredposition3", new Point(148, 77), 92, PositionOptions());
+        AddReferenceDropdown(play, "Preferred Position 4", "preferredposition4", new Point(148, 103), 92, PositionOptions());
+        AddFields(play, new[] { ("International Reputation", "internationalrep") }, 12, 129, 148, 92, 26);
         canvas.Controls.Add(play);
 
         // A compact FC26 player overview, while keeping the original CM16 group-box
@@ -619,6 +686,97 @@ public sealed class PlayersSection : SectionBase
         return null;
     }
 
+    private sealed record ReferenceOption(string Display, string Value)
+    {
+        public override string ToString() => Display;
+    }
+
+    private static IReadOnlyList<ReferenceOption> PositionOptions() =>
+        new[] { new ReferenceOption("Not set", "-1") }
+            .Concat(Enumerable.Range(0, 28).Select(code =>
+                new ReferenceOption(NameResolverService.PositionLabel(code), code.ToString())))
+            .ToArray();
+
+    private static IReadOnlyList<ReferenceOption> FootOptions() =>
+        [new("Not set", "0"), new("Right", "1"), new("Left", "2")];
+
+    private IReadOnlyList<ReferenceOption> NationOptions()
+    {
+        var options = new List<ReferenceOption> { new("Not set", "-1") };
+        try
+        {
+            var nations = Services.RequireData().GetCountries();
+            options.AddRange(nations
+                .Where(n => !string.IsNullOrWhiteSpace(n.Title))
+                .Select(n => new ReferenceOption(n.Title, n.RecordIndex.ToString())));
+        }
+        catch { /* Section can be constructed before a database is attached. */ }
+        return options;
+    }
+
+    private void AddReferenceDropdown(
+        Control parent, string labelText, string field, Point point, int width,
+        IReadOnlyList<ReferenceOption> options)
+    {
+        var labelWidth = Math.Max(70, point.X - 12 - 6);
+        parent.Controls.Add(new Label
+        {
+            Text = labelText,
+            Location = new Point(12, point.Y + 3),
+            Size = new Size(labelWidth, 18),
+            AutoEllipsis = true,
+            TextAlign = ContentAlignment.MiddleRight,
+            Font = LegacyFont,
+            ForeColor = Theme.Muted,
+            BackColor = Theme.Panel,
+        });
+        var picker = new ComboBox
+        {
+            Location = point,
+            Size = new Size(width, 21),
+            Tag = field,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Font = LegacyFont,
+            IntegralHeight = false,
+            DropDownHeight = 320,
+        };
+        Theme.ApplyCombo(picker);
+        picker.Items.AddRange(options.Cast<object>().ToArray());
+        picker.SelectedIndexChanged += (_, _) => StageReferencePicker(picker);
+        ToolTip.SetToolTip(picker, $"Choose the {labelText.ToLowerInvariant()} used by FC26.");
+        parent.Controls.Add(picker);
+        _referencePickers[field] = picker;
+    }
+
+    private void StageReferencePicker(ComboBox picker)
+    {
+        if (_syncReferencePickers || CurrentRecordIndex < 0 || picker.Tag is not string field ||
+            picker.SelectedItem is not ReferenceOption option ||
+            !_fields.TryGetValue(field, out var value) || !value.IsWritable)
+            return;
+        if (StageField(TableName, CurrentRecordIndex, value.FieldName, option.Value, _stagingGrid))
+            RefreshSummaryMirrors(field);
+    }
+
+    private void RefreshReferencePickers()
+    {
+        _syncReferencePickers = true;
+        try
+        {
+            foreach (var (field, picker) in _referencePickers)
+            {
+                var raw = _fields.TryGetValue(field, out var value) ? value.RawValue : string.Empty;
+                var selected = picker.Items.Cast<ReferenceOption>()
+                    .FirstOrDefault(option => option.Value.Equals(raw, StringComparison.OrdinalIgnoreCase));
+                picker.SelectedItem = selected ?? picker.Items.Cast<ReferenceOption>().FirstOrDefault();
+                picker.Enabled = _fields.TryGetValue(field, out value) && value.IsWritable;
+                picker.BackColor = picker.Enabled ? Theme.Input : Theme.Raised;
+                picker.ForeColor = picker.Enabled ? Theme.Text : Theme.Muted;
+            }
+        }
+        finally { _syncReferencePickers = false; }
+    }
+
     private void AddFields(Control parent, IEnumerable<(string label, string field)> fields, int labelX, int top, int editorX, int width, int rowHeight)
     {
         var row = 0;
@@ -806,6 +964,7 @@ public sealed class PlayersSection : SectionBase
                 ToolTip.SetToolTip(edit, NameFieldTooltip(key, string.Empty));
             }
         }
+        RefreshReferencePickers();
         _syncSkillSliders = true;
         try
         {

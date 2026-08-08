@@ -1,6 +1,6 @@
 {
-  "version": "1.0.47",
+  "version": "1.0.49",
   "name": "Creation Master 26",
-  "notes": "v1.0.47 - PlayersSection: every tab builds defensively (single font/GDI+ failure skips a field instead of crashing the app). AddSummaryValue uses fallback fonts.",
+  "notes": "v1.0.49 - Dark team crest loading, resilient formation pitch rendering, and FC Editor-inspired dropdown pickers across team/player/formation editors.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
