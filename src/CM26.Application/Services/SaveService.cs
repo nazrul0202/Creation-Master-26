@@ -74,6 +74,35 @@ public sealed class SaveService
         }
     }
 
+    /// <summary>
+    /// Serialises the active edit session into an isolated folder for a mod
+    /// package.  Unlike <see cref="SaveToSourceFolder"/>, this never replaces
+    /// a file in the installed game.
+    /// </summary>
+    public SaveResult SaveToDirectory(string destinationFolder)
+    {
+        if (!_session.IsLoaded)
+            return new SaveResult(false, "No database loaded", null, null);
+        try
+        {
+            var integrityIssues = _session.ValidateIntegrity();
+            if (integrityIssues.Count > 0)
+                return new SaveResult(false, "Mod export blocked by database integrity checks: " + string.Join("; ", integrityIssues.Take(5)), null, null);
+            Directory.CreateDirectory(destinationFolder);
+            var main = Path.Combine(destinationFolder, "fifa_ng_db.db");
+            var locale = Path.Combine(destinationFolder, "eng_us.db");
+            _session.SaveCopy(locale: false, main);
+            _session.SaveCopy(locale: true, locale);
+            _session.VerifyFile(_session.MetaPath!, main, encryptedLocale: false);
+            _session.VerifyFile(string.Empty, locale, encryptedLocale: true);
+            return new SaveResult(true, "Edited database prepared for CM26 mod export.", null, null);
+        }
+        catch (Exception ex)
+        {
+            return new SaveResult(false, "Mod export save failed: " + ex.Message, null, null);
+        }
+    }
+
     private static void EnsureWritable(string path)
     {
         if (!File.Exists(path)) throw new FileNotFoundException("File missing", path);

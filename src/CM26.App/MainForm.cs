@@ -746,10 +746,10 @@ public sealed class MainForm : Form
         {
             if (_services.Pending.HasChanges)
             {
-                var saved = await Task.Run(() => _services.Save.SaveToSourceFolder());
+                var stagingFolder = Path.Combine(Path.GetTempPath(), "CM26-mod-export-" + Guid.NewGuid().ToString("N"));
+                var saved = await Task.Run(() => _services.Save.SaveToDirectory(stagingFolder));
                 if (!saved.Success) throw new InvalidOperationException(saved.Message);
-                _services.LegacyMods.StageDatabase(_services.Session.LoadedFolder
-                    ?? throw new InvalidOperationException("The active database session is unavailable."));
+                _services.LegacyMods.StageDatabase(stagingFolder);
             }
             var name = Path.GetFileNameWithoutExtension(dialog.FileName);
             var manifest = await Task.Run(() => CM26ModPackageService.Export(
@@ -812,13 +812,14 @@ public sealed class MainForm : Form
             SetStatus(reloaded
                 ? result.Message
                 : result.Message + " Automatic editor reload failed; reopen FC26 data before further editing.");
+
             MessageBox.Show(this,
                 result.Message + (reloaded
                     ? "\n\nThe live Data/Patch archives now contain the edits and Creation Master " +
-                      "has reloaded the editor from those live archives. "
+                      "has reloaded the editor from those live archives."
                     : "\n\nThe live Data/Patch transaction completed, but automatic reload verification failed. " +
                       "The previous editor session is still open; close and reopen FC26 data before further editing. ") +
-                "Use File > Restore Original Data to return to the untouched CmModData snapshot.",
+                "\n\nUse File > Restore Original Data to return to the untouched CmModData snapshot.",
                 reloaded ? "Direct edit complete" : "Direct edit applied; reload required",
                 MessageBoxButtons.OK, reloaded ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
             return true;

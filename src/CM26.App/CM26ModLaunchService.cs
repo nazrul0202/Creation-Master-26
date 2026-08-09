@@ -3,7 +3,12 @@ using System.Text.Json;
 
 namespace CM26.App;
 
-/// <summary>Crash-recoverable Data/Patch swap, mirroring mod-manager overlay lifecycle.</summary>
+/// <summary>
+/// Validates a CM26 data-path overlay.  FET launches FC26 with a separate
+/// data path; moving the installed Data/Patch folders is both unnecessary and
+/// unsafe because the EA/Steam launcher can inspect those folders while it
+/// starts the game.
+/// </summary>
 public static class CM26ModLaunchService
 {
     private const string Marker = "cm26-mod-launch-state.json";
@@ -16,34 +21,28 @@ public static class CM26ModLaunchService
         if (!Directory.Exists(Path.Combine(overlay, "Data")) || !Directory.Exists(Path.Combine(overlay, "Patch")))
             return (false, "Build CM26ModData before launching mods.");
         var state = Path.Combine(root, Marker);
-        if (File.Exists(state)) return Recover(root);
         try
         {
-            File.WriteAllText(state, JsonSerializer.Serialize(new { active = true, createdUtc = DateTimeOffset.UtcNow }));
-            Directory.Move(Path.Combine(root, "Data"), Path.Combine(root, "CM26OriginalData"));
-            Directory.Move(Path.Combine(root, "Patch"), Path.Combine(root, "CM26OriginalPatch"));
-            Directory.Move(Path.Combine(overlay, "Data"), Path.Combine(root, "Data"));
-            Directory.Move(Path.Combine(overlay, "Patch"), Path.Combine(root, "Patch"));
-            return (true, "CM26 mod overlay is active. Launch FC26, then restore original data after it exits.");
+            File.WriteAllText(state, JsonSerializer.Serialize(new
+            {
+                active = true,
+                dataPath = Path.GetFileName(overlay),
+                createdUtc = DateTimeOffset.UtcNow
+            }));
+            return (true, "CM26ModData is ready. FC26 will be launched with -dataPath CM26ModData; original Data/Patch remains untouched.");
         }
-        catch (Exception ex) { return Recover(root) is var recovery && recovery.Success ? (false, "Activation failed and original data was restored: " + ex.Message) : (false, "Activation failed: " + ex.Message); }
+        catch (Exception ex) { return (false, "Unable to prepare CM26 mod launch: " + ex.Message); }
     }
 
     public static (bool Success, string Message) Restore(string root, bool recovering = false)
     {
-        if (IsGameRunning()) return (false, "Close FC26 before restoring original data.");
-        var state = Path.Combine(root, Marker); var overlay = CM26ModOverlayService.OverlayRoot(root);
-        if (!Directory.Exists(Path.Combine(root, "CM26OriginalData"))) return (true, "Original FC26 Data is already active.");
+        var state = Path.Combine(root, Marker);
         try
         {
-            if (Directory.Exists(Path.Combine(root, "Data"))) Directory.Move(Path.Combine(root, "Data"), Path.Combine(overlay, "Data"));
-            if (Directory.Exists(Path.Combine(root, "Patch"))) Directory.Move(Path.Combine(root, "Patch"), Path.Combine(overlay, "Patch"));
-            Directory.Move(Path.Combine(root, "CM26OriginalData"), Path.Combine(root, "Data"));
-            Directory.Move(Path.Combine(root, "CM26OriginalPatch"), Path.Combine(root, "Patch"));
             if (File.Exists(state)) File.Delete(state);
-            return (true, recovering ? "Recovered original FC26 Data/Patch after an interrupted mod launch." : "Original FC26 Data/Patch restored.");
+            return (true, recovering ? "Cleared an interrupted CM26 mod launch marker; original Data/Patch was never changed." : "CM26 mod launch marker cleared. Original Data/Patch was never changed.");
         }
-        catch (Exception ex) { return (false, "Unable to restore original FC26 data: " + ex.Message); }
+        catch (Exception ex) { return (false, "Unable to clear CM26 mod launch state: " + ex.Message); }
     }
     private static bool IsGameRunning() => new[] { "FC26", "FC26_Trial", "FC26_Showcase" }.Any(n => Process.GetProcessesByName(n).Length > 0);
 }

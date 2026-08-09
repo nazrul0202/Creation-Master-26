@@ -54,6 +54,12 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--restore-original")
+        {
+            Environment.ExitCode = HeadlessSmoke.RestoreOriginal(args.Length >= 2 ? args[1] : null);
+            return;
+        }
+
         if (args.Length >= 2 && args[0] == "--live-save-roundtrip")
         {
             Environment.ExitCode = HeadlessSmoke.LiveSaveRoundTrip(args[1]);

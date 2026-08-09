@@ -48,7 +48,7 @@ public sealed class ModManagerSection : SectionBase
         var actions = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = Theme.Background };
         actions.Controls.Add(refresh); actions.Controls.Add(restore); actions.Controls.Add(launch); actions.Controls.Add(build); actions.Controls.Add(import);
         var hint = new Label { Dock = DockStyle.Top, Height = 52, ForeColor = Theme.Muted,
-            Text = "Library: " + CM26ModLibraryService.Root + "  |  CM26 mods are separate from FET. Build & Launch creates CM26ModData without writing original game.",
+            Text = "Library: " + CM26ModLibraryService.Root + "  |  CM26 uses FET-style -dataPath CM26ModData; the installed Data/Patch folders are never swapped.",
             Padding = new Padding(0, 8, 0, 0) };
         var page = new TabPage("CM26 Mods") { BackColor = Theme.Background, Padding = new Padding(8) };
         page.Controls.Add(_mods); page.Controls.Add(_status); page.Controls.Add(hint); page.Controls.Add(actions);
@@ -116,17 +116,22 @@ public sealed class ModManagerSection : SectionBase
     private async Task LaunchAsync(string? root, Button button)
     {
         if (string.IsNullOrWhiteSpace(root)) return;
-        if (MessageBox.Show(this, "Activate CM26ModData and launch FC26? Original Data/Patch will be restored after the game exits.",
+        if (MessageBox.Show(this, "Launch FC26 with CM26ModData? The installed Data/Patch folders will not be changed.",
                 "Launch with CM26 Mods", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
         var result = CM26ModLaunchService.Activate(root);
         _status.Text = result.Message;
         if (!result.Success) { MessageBox.Show(this, result.Message, "CM26 Mod Manager", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
         try
         {
-            using var game = Process.Start(new ProcessStartInfo(Path.Combine(root, "FC26.exe")) { UseShellExecute = true })
+            using var game = Process.Start(new ProcessStartInfo(Path.Combine(root, "FC26.exe"))
+            {
+                UseShellExecute = true,
+                WorkingDirectory = root,
+                Arguments = "-dataPath CM26ModData"
+            })
                 ?? throw new InvalidOperationException("FC26 did not start.");
             button.Enabled = false;
-            _status.Text = "FC26 launched with CM26 mods. Original data will restore when it exits.";
+            _status.Text = "FC26 launched with -dataPath CM26ModData. Original Data/Patch remains untouched.";
             await game.WaitForExitAsync();
             Restore(root);
         }

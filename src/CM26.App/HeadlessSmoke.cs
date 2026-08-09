@@ -2030,6 +2030,29 @@ internal static class HeadlessSmoke
         }
     }
 
+    /// <summary>Restores the verified CmModData snapshot to the live game folders.</summary>
+    public static int RestoreOriginal(string? gameRoot = null)
+    {
+        try
+        {
+            var root = FrostbiteAssetSession.ResolveGameRoot(gameRoot ?? SettingsService.FC26GameFolder)
+                ?? throw new InvalidOperationException("FC26 game folder was not detected.");
+            var backup = GameBackupService.Inspect(root, verifyContent: true);
+            if (!backup.IsReady) throw new InvalidOperationException(backup.Message);
+            if (new[] { "FC26", "FC26_Trial", "FC26_Showcase" }
+                .Any(name => System.Diagnostics.Process.GetProcessesByName(name).Length != 0))
+                throw new InvalidOperationException("Close FC26 before restoring original Data/Patch.");
+            var result = GameBackupService.Restore(backup);
+            Console.WriteLine(result.Message);
+            return result.Success ? 0 : 31;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("RESTORE ORIGINAL FAILED: " + ex);
+            return 32;
+        }
+    }
+
     private static readonly (string Club, string Coach)[] MalaysiaSuperLeague2026 =
     [
         ("Brunei DPMM", "Jamie McAllister"),
