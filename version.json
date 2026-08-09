@@ -1,6 +1,6 @@
 {
-  "version": "1.0.72",
+  "version": "1.0.73",
   "name": "Creation Master 26",
-  "notes": "v1.0.72 - Fixed direct-save reload crashes with immutable parser workspaces and controlled reload verification; includes the v1.0.71 league/team asset fixes.",
+  "notes": "v1.0.73 - Blocks unsafe direct saves after an FC26 title update or FET/FIFAModData folder swap, and clears the stale FC26 Assets cache after database saves.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

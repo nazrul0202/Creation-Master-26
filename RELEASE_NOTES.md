@@ -1,5 +1,18 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.73 - safe FC26 baseline guard (2026-08-09)
+
+- **Direct save is blocked on a mixed game baseline.** CM26 now compares the
+  boot-critical `Data/Patch` layout and initfs sentinels with `CmModData` before
+  it changes any archive. A title update or an FET `FIFAModData` folder swap can
+  leave the database readable in the editor but make FC26 crash on boot; CM26
+  now stops first and explains how to restore/repair FC26 and create a fresh
+  backup.
+- **FC26 database cache is invalidated after a successful save.** The stale
+  `Documents\\EA SPORTS FC 26\\settings\\Assets*` cache is cleared, matching FET's
+  required pre-launch behaviour for `fifa_ng_db` edits.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.73.
+
 ## Version 1.0.72 - direct-save reload stability (2026-08-08)
 
 - **Save reload no longer reuses an active native-parser folder.** Each live

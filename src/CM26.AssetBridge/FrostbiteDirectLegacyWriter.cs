@@ -34,7 +34,7 @@ internal static class FrostbiteDirectLegacyWriter
     /// whose legacy path is not shipped by this FC26 installation; they are
     /// ignored instead of failing the whole save.
     /// </summary>
-    public sealed record ApplyResult(int Applied, IReadOnlyList<string> Skipped);
+    public sealed record ApplyResult(int Applied, IReadOnlyList<string> Skipped, int ClearedGameCaches = 0);
     private sealed record ChunkWrite(Guid Id, FrostbiteCasLocation Original, byte[] Encoded);
     private sealed record TocChunkLocation(string Path, long RecordPosition);
     private sealed class ManifestEntry
@@ -60,6 +60,7 @@ internal static class FrostbiteDirectLegacyWriter
     {
         var root = Path.GetFullPath(gameRoot);
         EnsureSafeRoot(root);
+        EnsureBackupMatchesLiveGame(root);
         var plan = JsonSerializer.Deserialize<Plan>(File.ReadAllText(planPath), BridgeJson.Options)
             ?? throw new InvalidDataException("Direct-edit plan is empty.");
         if (plan.Replacements == null || plan.Replacements.Count == 0)
@@ -116,7 +117,8 @@ internal static class FrostbiteDirectLegacyWriter
         try
         {
             Commit(root, layout.Catalogs, writes, tocLocations, transaction);
-            return new ApplyResult(edits.Count, skipped);
+            var clearedCaches = ClearDatabaseAssetCaches();
+            return new ApplyResult(edits.Count, skipped, clearedCaches);
         }
         finally
         {
@@ -557,6 +559,73 @@ internal static class FrostbiteDirectLegacyWriter
             !Directory.Exists(Path.Combine(root, "CmModData", "Patch")))
             throw new InvalidOperationException(
                 "Direct edit requires FC26 Data/Patch and a verified CmModData backup.");
+    }
+
+    /// <summary>
+    /// A CmModData snapshot is safe only while it represents the exact installed
+    /// game baseline.  A title update or a mod-manager folder swap changes the
+    /// boot-critical layout/initfs files even when the database remains readable.
+    /// Writing a database into that mixed state can leave FC26 unable to start,
+    /// while the old snapshot is also unsafe to restore over the newer title
+    /// update.  Check compact, immutable sentinels before any direct mutation.
+    /// </summary>
+    private static void EnsureBackupMatchesLiveGame(string root)
+    {
+        var mismatches = new List<string>();
+        foreach (var relative in new[]
+                 {
+                     Path.Combine("Data", "layout.toc"),
+                     Path.Combine("Data", "initfs_Win32"),
+                     Path.Combine("Patch", "layout.toc"),
+                     Path.Combine("Patch", "initfs_Win32"),
+                 })
+        {
+            var live = Path.Combine(root, relative);
+            var backup = Path.Combine(root, "CmModData", relative);
+            if (!File.Exists(live) || !File.Exists(backup) ||
+                new FileInfo(live).Length != new FileInfo(backup).Length ||
+                !SHA256.HashData(File.ReadAllBytes(live)).AsSpan()
+                    .SequenceEqual(SHA256.HashData(File.ReadAllBytes(backup))))
+                mismatches.Add(relative.Replace(Path.DirectorySeparatorChar, '/'));
+        }
+
+        if (mismatches.Count != 0)
+            throw new InvalidOperationException(
+                "Direct save was blocked because the installed FC26 baseline no longer matches " +
+                "CmModData (" + string.Join(", ", mismatches) + "). This usually means a title " +
+                "update or an active FET/FIFAModData folder swap. Restore/repair FC26 with its " +
+                "launcher, then create a fresh CmModData backup before editing. CM26 will not " +
+                "write into a mixed game state.");
+    }
+
+    /// <summary>
+    /// FC26 caches database-derived Assets files under Documents. FET clears this
+    /// cache before launch whenever fifa_ng_db changes; do the same after a
+    /// successful direct database transaction so stale asset indexes cannot be
+    /// loaded against the new table layout.
+    /// </summary>
+    private static int ClearDatabaseAssetCaches()
+    {
+        try
+        {
+            var settings = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "EA SPORTS FC 26", "settings");
+            if (!Directory.Exists(settings)) return 0;
+            var cleared = 0;
+            foreach (var file in Directory.EnumerateFiles(settings, "Assets*", SearchOption.TopDirectoryOnly))
+            {
+                File.Delete(file);
+                cleared++;
+            }
+            return cleared;
+        }
+        catch
+        {
+            // The game data has already committed atomically. Cache cleanup is
+            // best-effort and must never convert a successful save into failure.
+            return 0;
+        }
     }
 
     private static void EnsureRange(long total, long offset, long length)

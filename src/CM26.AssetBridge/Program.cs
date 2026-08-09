@@ -374,8 +374,11 @@ internal static class Program
         var applied = verified
             ? $" {result.Applied:N0} direct FC26 database/legacy replacement(s) without changing Data/Patch."
             : $" {result.Applied:N0} database/legacy replacement(s) directly to FC26 Data/Patch.";
-        if (result.Skipped.Count == 0) return verb + applied;
-        return verb + applied +
+        var cache = !verified && result.ClearedGameCaches > 0
+            ? $" Cleared {result.ClearedGameCaches:N0} stale FC26 Assets cache file(s)."
+            : string.Empty;
+        if (result.Skipped.Count == 0) return verb + applied + cache;
+        return verb + applied + cache +
             $" Skipped {result.Skipped.Count:N0} staged file(s) not present in this installation: " +
             string.Join(", ", result.Skipped) + ".";
     }
