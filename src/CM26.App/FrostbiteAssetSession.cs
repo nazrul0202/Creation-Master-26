@@ -344,6 +344,19 @@ public sealed class FrostbiteAssetSession
         return (true, response.Message);
     }
 
+    /// <summary>
+    /// Applies the normal Frostbite transaction to a CM26-owned overlay root.
+    /// Unlike <see cref="ApplyDirect"/>, the overlay intentionally has no
+    /// FC26.exe and therefore must not be opened as a live game session.
+    /// </summary>
+    public (bool Success, string Message) ApplyOverlay(string overlayRoot, string planPath)
+    {
+        var response = RunBridge(["--apply-direct", overlayRoot, planPath], timeoutMilliseconds: 10 * 60_000);
+        return response?.Ok == true
+            ? (true, response.Message)
+            : (false, response?.Message ?? "The asset bridge failed to build the CM26 mod overlay.");
+    }
+
     private static BridgeOperationResponse? RunBridge(
         IReadOnlyList<string> arguments, int timeoutMilliseconds)
     {
