@@ -61,6 +61,8 @@ public sealed class MainForm : Form
         var fileMenu = new ToolStripMenuItem("File");
         fileMenu.DropDownItems.Add("Open Game", null, async (_, _) => await OpenFc26Async());
         fileMenu.DropDownItems.Add("Save Draft for FIFA Mod", null, async (_, _) => await SaveAsync());
+        fileMenu.DropDownItems.Add("Export CM26 Project (.fifaproject)...", null, async (_, _) => await ExportProjectAsync());
+        fileMenu.DropDownItems.Add("Import CM26 Project (.fifaproject)...", null, async (_, _) => await ImportProjectAsync());
         fileMenu.DropDownItems.Add("Export FIFA Mod (.fifamod)...", null, async (_, _) => await ExportModAsync());
         fileMenu.DropDownItems.Add("Restore Original Data…", null, async (_, _) => await RestoreOriginalAsync());
         fileMenu.DropDownItems.Add(new ToolStripSeparator());
@@ -783,6 +785,139 @@ public sealed class MainForm : Form
     }
 
 #endif
+    private async Task ExportProjectAsync()
+    {
+        if (!_services.Pending.HasChanges && !_services.LegacyMods.HasChanges)
+        {
+            MessageBox.Show(this, "There are no staged changes to save in a CM26 project.", "Export CM26 Project",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        var issues = _services.Validation.ValidateAll(_services.Pending.Changes);
+        if (issues.Any(issue => issue.IsError))
+        {
+            MessageBox.Show(this, "Resolve validation errors before exporting a project.", "Export CM26 Project",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        using var dialog = new SaveFileDialog
+        {
+            Title = "Export CM26 Project",
+            Filter = "CM26 FIFA Project (*.fifaproject)|*.fifaproject",
+            DefaultExt = ".fifaproject",
+            AddExtension = true,
+            FileName = "CM26-Project-" + DateTime.Now.ToString("yyyyMMdd-HHmm") + ".fifaproject",
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        SetBusy(true, "Saving editable CM26 project...");
+        try
+        {
+            if (_services.Pending.HasChanges)
+            {
+                var stagingFolder = Path.Combine(Path.GetTempPath(), "CM26-project-export-" + Guid.NewGuid().ToString("N"));
+                var saved = await Task.Run(() => _services.Save.SaveToDirectory(stagingFolder));
+                if (!saved.Success) throw new InvalidOperationException(saved.Message);
+                _services.LegacyMods.StageDatabase(
+                    stagingFolder,
+                    includeLocale: _services.Pending.Changes.Any(change => change.IsLocale));
+            }
+
+            var project = await Task.Run(() => CM26ModPackageService.ExportProject(
+                dialog.FileName,
+                Path.GetFileNameWithoutExtension(dialog.FileName),
+                _services.LegacyMods.GetModPayloads()));
+            _services.Pending.MarkSaved();
+            SetStatus($"CM26 project exported: {project.Payloads.Length} payload(s).");
+            MessageBox.Show(this,
+                "Editable CM26 project exported. Import this .fifaproject in CM26 to continue editing.\n\n" +
+                "To play it, also use File > Export FIFA Mod (.fifamod) and import that file in FIFA Mod Manager.",
+                "CM26 project exported", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            Program.Log("CM26 project export failed: " + ex);
+            MessageBox.Show(this, ex.Message, "Export CM26 Project", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            SetStatus("CM26 project export failed.");
+        }
+        finally
+        {
+            SetBusy(false, null);
+        }
+    }
+
+    private async Task ImportProjectAsync()
+    {
+        if (!_services.Session.IsLoaded || string.IsNullOrWhiteSpace(_services.ActiveGameRoot))
+        {
+            MessageBox.Show(this, "Open FC26 first. CM26 needs the matching game version and original database metadata before it can load a project.",
+                "Import CM26 Project", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if ((_services.Pending.HasChanges || _services.LegacyMods.HasChanges) &&
+            MessageBox.Show(this,
+                "Importing a project replaces the current unsaved CM26 draft. Export your current project first if you want to keep it. Continue?",
+                "Import CM26 Project", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            return;
+
+        using var dialog = new OpenFileDialog
+        {
+            Title = "Import CM26 Project",
+            Filter = "CM26 FIFA Project (*.fifaproject)|*.fifaproject",
+            Multiselect = false,
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+        SetBusy(true, "Loading CM26 project...");
+        try
+        {
+            var loadedFolder = _services.Session.LoadedFolder
+                ?? throw new InvalidOperationException("The current FC26 database session is unavailable.");
+            var projectFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Creation Master 26", "projects", "import-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(projectFolder);
+            foreach (var file in new[] { "fifa_ng_db-meta.xml", "fifa_ng_db.db", "eng_us.db" })
+                File.Copy(Path.Combine(loadedFolder, file), Path.Combine(projectFolder, file), overwrite: true);
+
+            var payloadFolder = Path.Combine(projectFolder, "payload");
+            var manifest = CM26ModPackageService.ExtractToDirectory(dialog.FileName, payloadFolder);
+            foreach (var payload in manifest.Payloads)
+            {
+                var source = Path.Combine(payloadFolder, payload.GamePath.Replace('/', Path.DirectorySeparatorChar));
+                if (payload.GamePath.Equals("data/db/fifa_ng_db.db", StringComparison.OrdinalIgnoreCase))
+                    File.Copy(source, Path.Combine(projectFolder, "fifa_ng_db.db"), overwrite: true);
+                else if (payload.GamePath.Equals("data/loc/eng_us.db", StringComparison.OrdinalIgnoreCase))
+                    File.Copy(source, Path.Combine(projectFolder, "eng_us.db"), overwrite: true);
+            }
+
+            await Task.Run(() => _services.LoadDatabase(projectFolder, _services.ActiveGameRoot));
+            foreach (var payload in manifest.Payloads)
+            {
+                var source = Path.Combine(payloadFolder, payload.GamePath.Replace('/', Path.DirectorySeparatorChar));
+                _services.LegacyMods.StageFile(payload.GamePath, source);
+            }
+            _services.Pending.MarkSaved();
+            NavigateTo("dashboard");
+            SetStatus($"CM26 project loaded: {manifest.Payloads.Length} payload(s).");
+            MessageBox.Show(this,
+                "CM26 project loaded safely. Continue editing, then export a new .fifaproject and/or .fifamod when ready.",
+                "CM26 project imported", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            Program.Log("CM26 project import failed: " + ex);
+            MessageBox.Show(this,
+                "CM26 could not load this project. Only CM26-created .fifaproject files are supported.\n\n" + ex.Message,
+                "Import CM26 Project", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            SetStatus("CM26 project import failed.");
+        }
+        finally
+        {
+            SetBusy(false, null);
+        }
+    }
+
     private async Task ExportModAsync()
     {
         if (!_services.Pending.HasChanges && !_services.LegacyMods.HasChanges)

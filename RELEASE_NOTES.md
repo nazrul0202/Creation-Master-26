@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.86 - editable CM26 FIFA projects (2026-08-10)
+
+- Added `File > Export CM26 Project (.fifaproject)` to save an editable, checksum-verified snapshot of the staged database and assets.
+- Added `File > Import CM26 Project (.fifaproject)` to reopen that project in CM26, preserve its staged assets, and continue editing without touching FC26 `Data/Patch`.
+- A CM26 `.fifaproject` is intentionally identified as a CM26 project; it is not presented as compatibility with FET's undocumented proprietary project format.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.86.
+
 ## Version 1.0.85 - safe FIFA Mod draft workflow (2026-08-10)
 
 - Replaced the live-game Save workflow with Save Draft for FIFA Mod. It writes CM26-owned staging only and never writes the installed FC26 `Data` or `Patch` folders.

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.85",
+  "version": "1.0.86",
   "name": "Creation Master 26",
-  "notes": "v1.0.85 - Save now creates a safe CM26 FIFA Mod draft and never writes FC26 Data/Patch.",
+  "notes": "v1.0.86 - export and re-import editable CM26 .fifaproject projects.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
