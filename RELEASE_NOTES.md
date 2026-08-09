@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.81 - FIFA Mod Manager import hotfix (2026-08-10)
+
+- Fixed FETM category metadata from the invalid `0 / 0` pair to FIFA Mod Manager's valid `Legacy / Database` pair (`6 / 3`).
+- This fixes FIFA Mod Manager import failing with `Parameter 'element'`.
+- CM26 validates those category bytes before confirming an export.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.81.
+
 ## Version 1.0.80 - FIFA Mod export hotfix (2026-08-10)
 
 - Fixed the CM26 UI-to-Asset-Bridge request mapping for `.fifamod` export. Export no longer fails immediately with the generic “asset bridge failed” message.

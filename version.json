@@ -1,6 +1,6 @@
 {
-  "version": "1.0.80",
+  "version": "1.0.81",
   "name": "Creation Master 26",
-  "notes": "v1.0.80 - fixes the CM26 UI to send FIFA Mod Manager exports to the Asset Bridge.",
+  "notes": "v1.0.81 - fixes FIFA Mod Manager import metadata for CM26 .fifamod exports.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

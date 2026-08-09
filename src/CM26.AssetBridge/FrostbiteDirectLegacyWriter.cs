@@ -99,7 +99,16 @@ internal static class FrostbiteDirectLegacyWriter
         _ = ReadUInt24(reader);
         for (var i = 0; i < 16; i++)
         {
-            if (i is 2 or 3) _ = reader.ReadByte();
+            if (i == 2)
+            {
+                if (reader.ReadByte() != 6)
+                    throw new InvalidDataException("Generated FETM package has an invalid main category.");
+            }
+            else if (i == 3)
+            {
+                if (reader.ReadByte() != 3)
+                    throw new InvalidDataException("Generated FETM package has an invalid legacy subcategory.");
+            }
             else _ = ReadString(reader);
         }
         Skip(reader, Read7Bit(reader)); // icon
@@ -227,7 +236,11 @@ internal static class FrostbiteDirectLegacyWriter
         WriteUInt24(writer, checked((uint)head));
         WriteString(writer, Path.GetFileNameWithoutExtension(destination));
         WriteString(writer, "CM26");
-        writer.Write((byte)0); writer.Write((byte)0); // category + subcategory
+        // FIFA Mod Manager maps this pair through ModMainCategory.  Zero is
+        // not a defined category and causes its importer to fail with
+        // "Parameter 'element'".  CM26's current payloads are legacy
+        // database/lightweight asset edits, so use Legacy / Database.
+        writer.Write((byte)6); writer.Write((byte)3);
         foreach (var value in new[] { "", "", "1.0", "Created by Creation Master 26", "", "", "", "", "", "", "", "" })
             WriteString(writer, value);
         Write7Bit(writer, 0); // icon
