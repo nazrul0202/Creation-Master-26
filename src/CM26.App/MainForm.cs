@@ -248,6 +248,7 @@ public sealed class MainForm : Form
         ("competitions", "Competitions", s => new CompetitionsSection(s)),
         ("formations", "Formations", s => new FormationsSection(s)),
         ("transfers", "Data Sync", s => new TransfersSection(s)),
+        ("modmanager", "CM26 Mod Manager", s => new ModManagerSection(s)),
         ("balls", "Balls", s => new BallsSection(s)),
         ("boots", "Boots", s => new BootsSection(s)),
         ("gloves", "Gloves", s => new GlovesSection(s)),
