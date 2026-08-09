@@ -378,7 +378,9 @@ internal static class Program
     private static BridgeResponse ExportFet(BridgeRequest request)
     {
         var output = request.OutputPath ?? throw new ArgumentException("FET mod output path is required.");
-        var result = FrostbiteDirectLegacyWriter.ExportFetMod(request.GameRoot ?? string.Empty,
+        var root = request.GameRoot ?? string.Empty;
+        _ = EnsureIndexed(root);
+        var result = FrostbiteDirectLegacyWriter.ExportFetMod(root,
             request.Query ?? throw new ArgumentException("FET export plan is required."), output);
         return new BridgeResponse(true, request.Command,
             $"FET mod exported: {result.Applied} legacy edit(s), {result.Skipped.Count} skipped.", OutputPath: output);
