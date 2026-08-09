@@ -60,7 +60,7 @@ public sealed class MainForm : Form
         _menu = new MenuStrip { Dock = DockStyle.Top, BackColor = Theme.Background, ForeColor = Theme.Text, Font = Theme.Body, Renderer = new DarkToolStripRenderer() };
         var fileMenu = new ToolStripMenuItem("File");
         fileMenu.DropDownItems.Add("Open Game", null, async (_, _) => await OpenFc26Async());
-        fileMenu.DropDownItems.Add("Save", null, async (_, _) => await SaveAsync());
+        fileMenu.DropDownItems.Add("Save Draft for FIFA Mod", null, async (_, _) => await SaveAsync());
         fileMenu.DropDownItems.Add("Export FIFA Mod (.fifamod)...", null, async (_, _) => await ExportModAsync());
         fileMenu.DropDownItems.Add("Restore Original Data…", null, async (_, _) => await RestoreOriginalAsync());
         fileMenu.DropDownItems.Add(new ToolStripSeparator());
@@ -93,7 +93,7 @@ public sealed class MainForm : Form
             Padding = new Padding(Theme.Space, 8, Theme.Space, 8),
         };
         _openBtn = MakeActionButton("Open Game", "Detect the game and load its database and assets automatically (Ctrl+O)");
-        _saveBtn = MakeActionButton("Save", "Save staged changes (Ctrl+S)", primary: true);
+        _saveBtn = MakeActionButton("Save Draft", "Save changes for FIFA Mod export (Ctrl+S). It never writes FC26 Data/Patch.", primary: true);
         _undoBtn = MakeActionButton("Undo", "Undo last change (Ctrl+Z)");
         _redoBtn = MakeActionButton("Redo", "Redo the last undone change (Ctrl+Y)");
         _validateBtn = MakeActionButton("Validate", "Validate staged changes");
@@ -651,7 +651,73 @@ public sealed class MainForm : Form
         if (_activeKey != null && _sections.TryGetValue(_activeKey, out var section)) section.ActivateSection();
     }
 
+    /// <summary>
+    /// Saves a CM26-owned draft for the FIFA Mod Manager workflow.  This is
+    /// deliberately separate from the retired direct-write implementation
+    /// below: clicking Save must never alter an installed FC26 Data/Patch tree.
+    /// </summary>
     private async Task SaveAsync()
+    {
+        if (!_services.Pending.HasChanges && !_services.LegacyMods.HasChanges)
+        {
+            SetStatus("No staged changes to save.");
+            return;
+        }
+        if (!_services.Pending.HasChanges)
+        {
+            MessageBox.Show(this,
+                "Your asset changes are already staged in the CM26 export draft. Use File > Export FIFA Mod (.fifamod) to create the mod package.",
+                "CM26 draft ready", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var issues = _services.Validation.ValidateAll(_services.Pending.Changes);
+        if (issues.Any(issue => issue.IsError))
+        {
+            MessageBox.Show(this,
+                $"There are {issues.Count(issue => issue.IsError)} validation error(s). Resolve them before saving the draft.",
+                "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        SetBusy(true, "Saving CM26 export draft...");
+        try
+        {
+            var stagingFolder = Path.Combine(Path.GetTempPath(), "CM26-save-draft-" + Guid.NewGuid().ToString("N"));
+            var result = await Task.Run(() => _services.Save.SaveToDirectory(stagingFolder));
+            if (!result.Success)
+            {
+                Program.Log("Draft save failed: " + result.Message);
+                MessageBox.Show(this, result.Message, "Draft save failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                SetStatus("Draft save failed - FC26 Data/Patch was not modified.");
+                return;
+            }
+
+            _services.LegacyMods.StageDatabase(
+                stagingFolder,
+                includeLocale: _services.Pending.Changes.Any(change => change.IsLocale));
+            _services.Pending.MarkSaved();
+            SetStatus("CM26 draft saved. Export FIFA Mod to create a .fifamod package.");
+            MessageBox.Show(this,
+                "Draft saved safely. FC26 Data/Patch was not changed.\n\nNext: File > Export FIFA Mod (.fifamod).",
+                "CM26 draft saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            Program.Log("Draft save failed: " + ex);
+            MessageBox.Show(this, ex.Message, "Draft save failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            SetStatus("Draft save failed - FC26 Data/Patch was not modified.");
+        }
+        finally
+        {
+            SetBusy(false, null);
+        }
+    }
+
+    // Direct writes to a live FC26 installation are intentionally retired.
+#if false
+    [Obsolete("Direct writing to FC26 is retained only for source compatibility and is not exposed by the UI.")]
+    private async Task SaveDirectAsyncLegacy()
     {
         if (!_services.Pending.HasChanges && !_services.LegacyMods.HasChanges)
         {
@@ -716,6 +782,7 @@ public sealed class MainForm : Form
         }
     }
 
+#endif
     private async Task ExportModAsync()
     {
         if (!_services.Pending.HasChanges && !_services.LegacyMods.HasChanges)

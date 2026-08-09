@@ -1,6 +1,6 @@
 {
-  "version": "1.0.84",
+  "version": "1.0.85",
   "name": "Creation Master 26",
-  "notes": "v1.0.84 - database-only FIFA Mod Manager exports avoid unnecessary Dynamic Loc failures.",
+  "notes": "v1.0.85 - Save now creates a safe CM26 FIFA Mod draft and never writes FC26 Data/Patch.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.85 - safe FIFA Mod draft workflow (2026-08-10)
+
+- Replaced the live-game Save workflow with Save Draft for FIFA Mod. It writes CM26-owned staging only and never writes the installed FC26 `Data` or `Patch` folders.
+- The direct-write implementation is retired from the application build, preventing Save from consuming export changes or corrupting the live database.
+- After editing, choose `File > Export FIFA Mod (.fifamod)` directly, or use Save Draft and then export. Both paths retain a staged draft for FIFA Mod Manager.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.85.
+
 ## Version 1.0.84 - database-only FMM export stability (2026-08-10)
 
 - `.fifamod` database export now stages `fifa_ng_db.db` alone unless the user explicitly changed a locale table.
