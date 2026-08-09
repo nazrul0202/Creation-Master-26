@@ -41,7 +41,8 @@ public sealed class ModManagerSection : SectionBase
         Theme.ApplyButton(import, true); Theme.ApplyButton(build, true); Theme.ApplyButton(launch, true); Theme.ApplyButton(restore); Theme.ApplyButton(refresh);
         import.Click += (_, _) => Import();
         build.Click += async (_, _) => await BuildOverlayAsync(build);
-        launch.Click += (_, _) => Launch(root: FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder));
+        launch.Click += async (_, _) => await LaunchAsync(
+            root: FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder), button: launch);
         restore.Click += (_, _) => Restore(root: FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder));
         refresh.Click += (_, _) => RefreshLibrary();
         var actions = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = Theme.Background };
@@ -112,7 +113,7 @@ public sealed class ModManagerSection : SectionBase
         finally { button.Enabled = true; }
     }
 
-    private void Launch(string? root)
+    private async Task LaunchAsync(string? root, Button button)
     {
         if (string.IsNullOrWhiteSpace(root)) return;
         if (MessageBox.Show(this, "Activate CM26ModData and launch FC26? Original Data/Patch will be restored after the game exits.",
@@ -120,8 +121,17 @@ public sealed class ModManagerSection : SectionBase
         var result = CM26ModLaunchService.Activate(root);
         _status.Text = result.Message;
         if (!result.Success) { MessageBox.Show(this, result.Message, "CM26 Mod Manager", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
-        try { Process.Start(new ProcessStartInfo(Path.Combine(root, "FC26.exe")) { UseShellExecute = true }); }
+        try
+        {
+            using var game = Process.Start(new ProcessStartInfo(Path.Combine(root, "FC26.exe")) { UseShellExecute = true })
+                ?? throw new InvalidOperationException("FC26 did not start.");
+            button.Enabled = false;
+            _status.Text = "FC26 launched with CM26 mods. Original data will restore when it exits.";
+            await game.WaitForExitAsync();
+            Restore(root);
+        }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Launch FC26", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        finally { button.Enabled = true; }
     }
 
     private void Restore(string? root)
