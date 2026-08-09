@@ -1,6 +1,6 @@
 {
-  "version": "1.0.82",
+  "version": "1.0.83",
   "name": "Creation Master 26",
-  "notes": "v1.0.82 - fixes FC26 crashes from exported legacy chunks by matching FIFA Mod Manager's collector model.",
+  "notes": "v1.0.83 - audited FET/FIFA Mod Manager legacy export contract with deterministic chunk IDs and strict preflight validation.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

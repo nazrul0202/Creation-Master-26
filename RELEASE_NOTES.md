@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.83 - FET/FIFA Mod Manager export-contract audit (2026-08-10)
+
+- Matched FC26 legacy chunk GUID generation exactly to FET's `LegacyFileManager.GenerateDeterministicGuid` contract.
+- Added strict export preflight: only sized legacy chunks are allowed, collector metadata is mandatory, every FET payload is SHA-1 checked, and every FC26 payload is decode-verified before export completes.
+- Clean Release build passes without warnings or errors.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.83.
+
 ## Version 1.0.82 - FC26 legacy-chunk crash hotfix (2026-08-10)
 
 - Reworked `.fifamod` legacy export to match FIFA Mod Manager's FC26 collector model: one new chunk per legacy file, true logical size, and FMM-built collector manifests.

@@ -132,7 +132,7 @@ internal static class FrostbiteDirectLegacyWriter
         SkipEbx(reader, ReadUInt24(reader));
         SkipRes(reader, ReadUInt24(reader));
 
-        var chunks = new List<(byte[] Sha1, long Offset, int Length)>();
+        var chunks = new List<(byte[] Sha1, long Offset, int Length, ushort Flags, int LogicalSize)>();
         var chunkCount = ReadUInt24(reader);
         for (var i = 0; i < chunkCount; i++)
         {
@@ -143,7 +143,7 @@ internal static class FrostbiteDirectLegacyWriter
             var relativeOffset = Read7BitLong(reader);
             var length = Read7Bit(reader);
             if ((flags & 8) != 0) _ = Read7Bit(reader);
-            if ((flags & 16) != 0) _ = Read7Bit(reader);
+            var logicalSize = (flags & 16) != 0 ? Read7Bit(reader) : 0;
             if ((flags & 32) != 0) Skip(reader, 8); // FC26 H32
             if ((flags & 2) != 0) { Skip(reader, 8); _ = ReadString(reader); }
             if ((flags & 128) != 0) Skip(reader, checked(Read7Bit(reader) * 8L));
@@ -151,9 +151,13 @@ internal static class FrostbiteDirectLegacyWriter
             if (relativeOffset < 0 || length < 0 || relativeOffset > long.MaxValue - manifestOffset ||
                 manifestOffset + relativeOffset > stream.Length - length)
                 throw new InvalidDataException("FETM chunk payload range is invalid.");
-            chunks.Add((sha1, relativeOffset, length));
+            if ((flags & 2) == 0 || (flags & 16) == 0 || logicalSize == 0)
+                throw new InvalidDataException("CM26 FET exports must contain sized legacy chunks only.");
+            chunks.Add((sha1, relativeOffset, length, flags, logicalSize));
         }
         var collectors = Read7Bit(reader);
+        if (chunks.Count == 0 || collectors == 0)
+            throw new InvalidDataException("CM26 FET export is missing legacy chunks or collector metadata.");
         for (var i = 0; i < collectors; i++) { _ = ReadString(reader); Skip(reader, 21); }
         var bundleRefTables = Read7Bit(reader);
         for (var i = 0; i < bundleRefTables; i++) { Skip(reader, 4); _ = ReadString(reader); }
@@ -320,16 +324,22 @@ internal static class FrostbiteDirectLegacyWriter
     {
         var used = new HashSet<Guid>();
         var writes = new List<FetChunkWrite>(edits.Count);
+        Span<byte> guidBytes = stackalloc byte[16];
         foreach (var edit in edits)
         {
-            // New-format FC26 collectors point one legacy file at one chunk.
-            // A stable GUID keeps repeated exports of the same CM26 change
-            // merge-friendly, while the edit bytes ensure it does not collide
-            // with a different replacement of the same file.
-            var seed = SHA1.HashData(Encoding.UTF8.GetBytes(
-                edit.Target.Name.ToLowerInvariant() + "\0" + Convert.ToHexString(SHA1.HashData(edit.ReplacementBytes))));
-            var id = new Guid(seed.AsSpan(0, 16));
-            while (!used.Add(id)) id = Guid.NewGuid();
+            // Match FET's FC26 LegacyFileManager.GenerateDeterministicGuid:
+            // [nameHash, nameHash ^ counter], then force the marker byte.
+            // FIFA Mod Manager uses this shape for one-file legacy chunks.
+            var counter = 1UL;
+            Guid id;
+            do
+            {
+                BinaryPrimitives.WriteUInt64LittleEndian(guidBytes, edit.Target.NameHash);
+                BinaryPrimitives.WriteUInt64LittleEndian(guidBytes[8..], edit.Target.NameHash ^ counter++);
+                guidBytes[15] = 1;
+                id = new Guid(guidBytes);
+            }
+            while (id == edit.Target.OriginalChunkId || !used.Add(id));
             var encoded = Encode(root, edit.ReplacementBytes);
             var decoded = FrostbitePayloadReader.Decompress(encoded, edit.ReplacementBytes.Length, root);
             if (!decoded.AsSpan().SequenceEqual(edit.ReplacementBytes))
