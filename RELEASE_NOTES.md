@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.84 - database-only FMM export stability (2026-08-10)
+
+- `.fifamod` database export now stages `fifa_ng_db.db` alone unless the user explicitly changed a locale table.
+- Removes a previously staged unchanged `eng_us.db` from the export plan, preventing FIFA Mod Manager Dynamic Loc cleanup on normal league/team/database edits.
+- Verified a real CM26 database-only export emits exactly one legacy edit.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.84.
+
 ## Version 1.0.83 - FET/FIFA Mod Manager export-contract audit (2026-08-10)
 
 - Matched FC26 legacy chunk GUID generation exactly to FET's `LegacyFileManager.GenerateDeterministicGuid` contract.

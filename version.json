@@ -1,6 +1,6 @@
 {
-  "version": "1.0.83",
+  "version": "1.0.84",
   "name": "Creation Master 26",
-  "notes": "v1.0.83 - audited FET/FIFA Mod Manager legacy export contract with deterministic chunk IDs and strict preflight validation.",
+  "notes": "v1.0.84 - database-only FIFA Mod Manager exports avoid unnecessary Dynamic Loc failures.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

@@ -749,7 +749,9 @@ public sealed class MainForm : Form
                 var stagingFolder = Path.Combine(Path.GetTempPath(), "CM26-mod-export-" + Guid.NewGuid().ToString("N"));
                 var saved = await Task.Run(() => _services.Save.SaveToDirectory(stagingFolder));
                 if (!saved.Success) throw new InvalidOperationException(saved.Message);
-                _services.LegacyMods.StageDatabase(stagingFolder);
+                _services.LegacyMods.StageDatabase(
+                    stagingFolder,
+                    includeLocale: _services.Pending.Changes.Any(change => change.IsLocale));
             }
             var plan = _services.LegacyMods.WriteDirectPlan();
             var exported = await Task.Run(() => _services.FrostbiteAssets.ExportFetMod(plan, dialog.FileName));

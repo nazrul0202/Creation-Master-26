@@ -94,12 +94,21 @@ public sealed class LegacyAssetModService
         return destination;
     }
 
-    public void StageDatabase(string databaseFolder)
+    /// <summary>
+    /// Stages the main database and, only when it was actually edited, the
+    /// encrypted locale database.  Shipping an unchanged eng_us.db makes FIFA
+    /// Mod Manager run its Dynamic Loc cleanup, which can fail on locked cache
+    /// files and is unnecessary for normal league/team/database edits.
+    /// </summary>
+    public void StageDatabase(string databaseFolder, bool includeLocale = false)
     {
         if (string.IsNullOrWhiteSpace(databaseFolder) || !Directory.Exists(databaseFolder))
             throw new DirectoryNotFoundException("The active FC26 database staging session is unavailable.");
         StageFile("data/db/fifa_ng_db.db", Find(databaseFolder, "fifa_ng_db.db"));
-        StageFile("data/loc/eng_us.db", Find(databaseFolder, "eng_us.db"));
+        if (includeLocale)
+            StageFile("data/loc/eng_us.db", Find(databaseFolder, "eng_us.db"));
+        else
+            Remove("data/loc/eng_us.db");
     }
 
     public bool Remove(string legacyPath)
