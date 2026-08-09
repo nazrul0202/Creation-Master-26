@@ -33,12 +33,14 @@ public sealed class ModManagerSection : SectionBase
             _status.Text = e.Item.Checked ? "Mod enabled for the next CM26ModData build." : "Mod disabled.";
         };
         var import = new Button { Text = "Import CM26 Mod...", Dock = DockStyle.Left, Width = 160 };
+        var build = new Button { Text = "Build CM26ModData", Dock = DockStyle.Left, Width = 165 };
         var refresh = new Button { Text = "Refresh", Dock = DockStyle.Left, Width = 95 };
-        Theme.ApplyButton(import, true); Theme.ApplyButton(refresh);
+        Theme.ApplyButton(import, true); Theme.ApplyButton(build, true); Theme.ApplyButton(refresh);
         import.Click += (_, _) => Import();
+        build.Click += async (_, _) => await BuildOverlayAsync(build);
         refresh.Click += (_, _) => RefreshLibrary();
         var actions = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = Theme.Background };
-        actions.Controls.Add(refresh); actions.Controls.Add(import);
+        actions.Controls.Add(refresh); actions.Controls.Add(build); actions.Controls.Add(import);
         var hint = new Label { Dock = DockStyle.Top, Height = 52, ForeColor = Theme.Muted,
             Text = "CM26 mods are separate from FET. Enable packages here; Build & Launch will create CM26ModData without writing the original game.",
             Padding = new Padding(0, 8, 0, 0) };
@@ -77,5 +79,31 @@ public sealed class ModManagerSection : SectionBase
             _status.Text = $"{_mods.Items.Count} CM26 mod(s); {_mods.CheckedItems.Count} enabled.";
         }
         finally { _loading = false; }
+    }
+
+    private async Task BuildOverlayAsync(Button button)
+    {
+        var root = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+        var packages = CM26ModLibraryService.EnabledPackages();
+        if (string.IsNullOrWhiteSpace(root) || packages.Count == 0)
+        {
+            MessageBox.Show(this, "Set the FC26 game folder and enable at least one CM26 mod first.",
+                "Build CM26ModData", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if (MessageBox.Show(this,
+                "CM26 will build a separate CM26ModData overlay from the original game. " +
+                "This can require over 100 GB free space. FET folders will not be used. Continue?",
+                "Build CM26ModData", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        button.Enabled = false; _status.Text = "Building isolated CM26ModData overlay...";
+        try
+        {
+            var progress = new Progress<string>(value => _status.Text = value);
+            var result = await Task.Run(() => CM26ModOverlayService.Build(root, packages, Services.FrostbiteAssets, progress));
+            _status.Text = result.Message;
+            MessageBox.Show(this, result.Message, "CM26 Mod Manager", MessageBoxButtons.OK,
+                result.Success ? MessageBoxIcon.Information : MessageBoxIcon.Error);
+        }
+        finally { button.Enabled = true; }
     }
 }
