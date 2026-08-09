@@ -275,6 +275,18 @@ internal static class Program
         CM26.App.Theming.Theme.IsDark = SettingsService.DarkMode;
 
         // First-run End User License Agreement. If the user declines, do not continue.
+        // Recover a CM26-owned folder swap before any editor/archive session is
+        // opened. The marker is written before activation, so this also covers
+        // a power loss or a force-closed modded launch.
+        var configuredGameRoot = SettingsService.FC26GameFolder;
+        if (Directory.Exists(configuredGameRoot))
+        {
+            var recovery = CM26ModLaunchService.Recover(configuredGameRoot);
+            if (!recovery.Success) Log("CM26 mod recovery pending: " + recovery.Message);
+            else if (!recovery.Message.StartsWith("Original FC26 Data is already active", StringComparison.Ordinal))
+                Log("CM26 mod recovery: " + recovery.Message);
+        }
+
         if (!SettingsService.EulaAccepted)
         {
             var accepted = CM26.App.Controls.EulaDialog.Show(null);
