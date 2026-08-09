@@ -92,14 +92,19 @@ internal sealed class ManagerForm : Form
     private async Task LaunchAsync(Button button)
     {
         var root = GameRoot(); if (root == null) return;
-        if (MessageBox.Show(this, "Activate CM26ModData and launch FC26? Keep this manager open so it can restore original Data/Patch when FC26 exits.", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        if (MessageBox.Show(this, "Launch FC26 with CM26ModData? The installed Data/Patch folders will not be changed.", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
         var activated = CM26ModLaunchService.Activate(root);
         CM26ModLibraryService.WriteLog("Activate: " + activated.Message);
         if (!activated.Success) { MessageBox.Show(this, activated.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
         try
         {
-            using var game = Process.Start(new ProcessStartInfo(Path.Combine(root, "FC26.exe")) { UseShellExecute = true }) ?? throw new InvalidOperationException("FC26 did not start.");
-            button.Enabled = false; _status.Text = "FC26 launched. Original Data/Patch will be restored when it exits.";
+            using var game = Process.Start(new ProcessStartInfo(Path.Combine(root, "FC26.exe"))
+            {
+                UseShellExecute = true,
+                WorkingDirectory = root,
+                Arguments = "-dataPath CM26ModData"
+            }) ?? throw new InvalidOperationException("FC26 did not start.");
+            button.Enabled = false; _status.Text = "FC26 launched with -dataPath CM26ModData. Original Data/Patch remains untouched.";
             await game.WaitForExitAsync(); Restore(showMessage: false);
         }
         catch (Exception ex) { CM26ModLibraryService.WriteLog("Launch error: " + ex); MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
