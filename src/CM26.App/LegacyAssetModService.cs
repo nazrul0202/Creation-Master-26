@@ -24,6 +24,13 @@ public sealed class LegacyAssetModService
     public bool HasChanges => Count > 0;
     public event EventHandler? Changed;
 
+    /// <summary>Snapshot of payloads for a portable CM26 mod package.</summary>
+    public IReadOnlyList<CM26ModPackageService.Payload> GetModPayloads() =>
+        _replacements.Values
+            .OrderBy(item => item.LegacyPath, StringComparer.OrdinalIgnoreCase)
+            .Select(item => new CM26ModPackageService.Payload(item.LegacyPath, item.SourcePath))
+            .ToArray();
+
     public void Open(string fingerprint)
     {
         _workspace = Path.Combine(
