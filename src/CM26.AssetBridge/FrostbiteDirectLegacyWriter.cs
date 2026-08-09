@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Numerics;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace CM26.AssetBridge;
@@ -79,7 +80,139 @@ internal static class FrostbiteDirectLegacyWriter
         if (edits.Count == 0) throw new InvalidDataException("No exportable CM26 legacy changes were staged.");
         var writes = BuildChunkWrites(root, layout.Catalogs, edits);
         WriteFetMod(destination, layout.Head, writes, edits);
+        ValidateFetMod(destination);
         return new ApplyResult(edits.Count, skipped);
+    }
+
+    // This follows the FETM v1 reader layout used by FIFA Mod Manager.  The
+    // exporter validates every generated package before reporting success so a
+    // truncated manifest, wrong relative offset, or payload hash mismatch is
+    // caught on the CM26 side instead of when a user attempts to import it.
+    private static void ValidateFetMod(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
+        if (reader.ReadUInt32() != 1297368390u || reader.ReadByte() != 1)
+            throw new InvalidDataException("Generated file does not contain a FETM v1 header.");
+        if (!ReadString(reader).Equals("FC26", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Generated FETM package has an invalid game identifier.");
+        _ = ReadUInt24(reader);
+        for (var i = 0; i < 16; i++)
+        {
+            if (i is 2 or 3) _ = reader.ReadByte();
+            else _ = ReadString(reader);
+        }
+        Skip(reader, Read7Bit(reader)); // icon
+        var screenshots = Read7Bit(reader);
+        for (var i = 0; i < screenshots; i++) Skip(reader, Read7Bit(reader));
+        var locales = Read7Bit(reader);
+        for (var i = 0; i < locales; i++) { _ = ReadString(reader); _ = ReadString(reader); }
+        var initFs = Read7Bit(reader);
+        for (var i = 0; i < initFs; i++) { _ = ReadString(reader); Skip(reader, Read7Bit(reader)); }
+        SkipLua(reader); SkipLua(reader);
+        var manifestOffset = reader.ReadUInt32();
+        if (manifestOffset >= stream.Length) throw new InvalidDataException("FETM manifest offset is outside the file.");
+        var addedBundleCount = ReadUInt24(reader);
+        for (var i = 0; i < addedBundleCount; i++) { _ = ReadString(reader); Skip(reader, 12); }
+        SkipEbx(reader, ReadUInt24(reader));
+        SkipRes(reader, ReadUInt24(reader));
+
+        var chunks = new List<(byte[] Sha1, long Offset, int Length)>();
+        var chunkCount = ReadUInt24(reader);
+        for (var i = 0; i < chunkCount; i++)
+        {
+            Skip(reader, 16);
+            var sha1 = reader.ReadBytes(20);
+            if (sha1.Length != 20) throw new EndOfStreamException();
+            var flags = reader.ReadUInt16();
+            var relativeOffset = Read7BitLong(reader);
+            var length = Read7Bit(reader);
+            if ((flags & 2) != 0) { Skip(reader, 8); _ = ReadString(reader); }
+            if ((flags & 8) != 0) _ = Read7Bit(reader);
+            if ((flags & 16) != 0) _ = Read7Bit(reader);
+            if ((flags & 32) != 0) Skip(reader, 8); // FC26 H32
+            if ((flags & 128) != 0) Skip(reader, checked(Read7Bit(reader) * 8L));
+            if ((flags & 4) != 0) Skip(reader, 4);
+            if (relativeOffset < 0 || length < 0 || relativeOffset > long.MaxValue - manifestOffset ||
+                manifestOffset + relativeOffset > stream.Length - length)
+                throw new InvalidDataException("FETM chunk payload range is invalid.");
+            chunks.Add((sha1, relativeOffset, length));
+        }
+        var collectors = Read7Bit(reader);
+        for (var i = 0; i < collectors; i++) { _ = ReadString(reader); Skip(reader, 21); }
+        var bundleRefTables = Read7Bit(reader);
+        for (var i = 0; i < bundleRefTables; i++) { Skip(reader, 4); _ = ReadString(reader); }
+        foreach (var chunk in chunks)
+        {
+            stream.Position = manifestOffset + chunk.Offset;
+            var payload = reader.ReadBytes(chunk.Length);
+            if (payload.Length != chunk.Length || !SHA1.HashData(payload).AsSpan().SequenceEqual(chunk.Sha1))
+                throw new InvalidDataException("FETM chunk payload SHA1 verification failed.");
+        }
+    }
+
+    private static void SkipLua(BinaryReader reader)
+    {
+        var count = Read7Bit(reader);
+        for (var i = 0; i < count; i++)
+        {
+            _ = ReadString(reader);
+            var lines = Read7Bit(reader);
+            for (var line = 0; line < lines; line++) _ = ReadString(reader);
+        }
+    }
+
+    private static void SkipEbx(BinaryReader reader, uint count)
+    {
+        if (count != 0) throw new InvalidDataException("CM26 FET validator only accepts packages without EBX entries.");
+    }
+
+    private static void SkipRes(BinaryReader reader, uint count)
+    {
+        if (count != 0) throw new InvalidDataException("CM26 FET validator only accepts packages without RES entries.");
+    }
+
+    private static string ReadString(BinaryReader reader)
+    {
+        var length = Read7Bit(reader);
+        var bytes = reader.ReadBytes(length);
+        if (bytes.Length != length) throw new EndOfStreamException();
+        return Encoding.UTF8.GetString(bytes);
+    }
+    private static int Read7Bit(BinaryReader reader)
+    {
+        var value = 0; var shift = 0;
+        while (true)
+        {
+            var next = reader.ReadByte();
+            value |= (next & 0x7F) << shift;
+            if ((next & 0x80) == 0) return value;
+            shift += 7;
+            if (shift > 28) throw new InvalidDataException($"Invalid FETM 7-bit integer at offset {reader.BaseStream.Position}.");
+        }
+    }
+    private static long Read7BitLong(BinaryReader reader)
+    {
+        long value = 0; var shift = 0;
+        while (true)
+        {
+            var next = reader.ReadByte();
+            value |= (long)(next & 0x7F) << shift;
+            if ((next & 0x80) == 0) return value;
+            shift += 7;
+            if (shift > 63) throw new InvalidDataException("Invalid FETM 7-bit long.");
+        }
+    }
+    private static uint ReadUInt24(BinaryReader reader)
+    {
+        var b0 = reader.ReadByte(); var b1 = reader.ReadByte(); var b2 = reader.ReadByte();
+        return (uint)(b0 | (b1 << 8) | (b2 << 16));
+    }
+    private static void Skip(BinaryReader reader, long bytes)
+    {
+        if (bytes < 0 || bytes > reader.BaseStream.Length - reader.BaseStream.Position)
+            throw new EndOfStreamException("FETM structure is truncated.");
+        reader.BaseStream.Position += bytes;
     }
 
     private static void WriteFetMod(string destination, int head, IReadOnlyList<ChunkWrite> writes,
