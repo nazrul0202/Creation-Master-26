@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.76 - standalone CM26 Mod Manager (2026-08-09)
+
+- **Export/import CM26 mods.** Edited database and legacy payloads can be exported as checksum-verified `.cm26mod` packages, imported to an independent local library, and enabled in the new Mod Manager.
+- **FET-style isolated lifecycle.** Enabled mods build into `CM26ModData`; the Frostbite writer targets that overlay rather than original FC26 `Data/Patch`. Launch activates a marker-protected folder swap, restores original data when FC26 exits, and attempts recovery at CM26 startup after an interrupted launch.
+- **FET remains separate.** CM26 never reads, writes or replaces `FIFAModData`; `.fifamod` compatibility is not claimed.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.76.
+
 ## Version 1.0.75 - guided game data update (2026-08-09)
 
 - **FET-style update wizard.** When `Open Game` detects a title update or FET baseline mismatch, CM26 presents a guided choice to launch FC26 without mods, confirm that it reached the main menu, and then archive/refresh `CmModData` before the editor loads.

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.75",
+  "version": "1.0.76",
   "name": "Creation Master 26",
-  "notes": "v1.0.75 - Adds an FET-style Game Data Update wizard: launch FC26 vanilla, confirm the main menu, then archive and refresh CmModData before editing.",
+  "notes": "v1.0.76 - Adds standalone CM26 Mod Manager: export/import .cm26mod, isolated CM26ModData overlay, guarded launch/restore and startup recovery.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
