@@ -130,6 +130,13 @@ public sealed class SettingsSection : SectionBase
         scraperRow.Controls.Add(scraperBrowse);
 
         var backupRow = new BufferedPanel { Dock = DockStyle.Top, Height = 32, BackColor = Theme.Background };
+        var refreshBackup = new Button
+        {
+            Text = "Refresh CmModData",
+            Dock = DockStyle.Left,
+            Width = 160,
+        };
+        Theme.ApplyButton(refreshBackup);
         var compressBackup = new Button
         {
             Text = "Compress CmModData",
@@ -176,11 +183,54 @@ public sealed class SettingsSection : SectionBase
                 if (!IsDisposed) compressBackup.Enabled = true;
             }
         };
+        refreshBackup.Click += async (_, _) =>
+        {
+            var gameRoot = _gameFolderBox.Text.Trim();
+            var baseline = GameBackupService.InspectLiveBaseline(gameRoot);
+            var prompt = baseline.IsMatch
+                ? "CmModData already matches this FC26 installation. Refresh it anyway?\n\n" +
+                  "The current snapshot will be archived, then a fresh snapshot will be created."
+                : "Use this only after Steam/EA has finished updating or repairing FC26, FET mods are disabled, " +
+                  "and FC26 has reached its main menu once without mods.\n\n" +
+                  "CM26 will archive the existing CmModData folder and create a fresh snapshot. Continue?";
+            if (MessageBox.Show(this, prompt, "Refresh CmModData", MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning) != DialogResult.Yes)
+                return;
+
+            refreshBackup.Enabled = false;
+            compressionStatus.Text = "Creating fresh CmModData snapshotâ€¦";
+            try
+            {
+                var progress = new Progress<GameBackupService.RestoreProgress>(item =>
+                {
+                    var percent = item.TotalBytes > 0
+                        ? (int)Math.Clamp(item.CompletedBytes * 100 / item.TotalBytes, 0, 100)
+                        : item.Total <= 0 ? 0 : item.Completed * 100 / item.Total;
+                    compressionStatus.Text = $"{item.Phase}: {percent}% â€“ {item.CurrentFile}";
+                });
+                var result = await Task.Run(() =>
+                    GameBackupService.RefreshAfterVanillaLaunch(gameRoot, progress));
+                compressionStatus.Text = result.Message;
+                compressionStatus.ForeColor = result.Success ? Theme.Success : Theme.Warning;
+                MessageBox.Show(this, result.Message, result.Success ? "CmModData refreshed" : "Refresh failed",
+                    MessageBoxButtons.OK, result.Success ? MessageBoxIcon.Information : MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                compressionStatus.Text = "Refresh failed: " + ex.Message;
+                compressionStatus.ForeColor = Theme.Danger;
+            }
+            finally
+            {
+                if (!IsDisposed) refreshBackup.Enabled = true;
+            }
+        };
         backupRow.Controls.Add(compressionStatus);
         backupRow.Controls.Add(compressBackup);
+        backupRow.Controls.Add(refreshBackup);
         var backupHint = new Label
         {
-            Text = "Backup storage: compression is optional and does not replace backup validation.",
+            Text = "After an FC26 update, launch vanilla once, then refresh CmModData. Compression is optional.",
             Dock = DockStyle.Top,
             Height = 25,
             ForeColor = Theme.Muted,

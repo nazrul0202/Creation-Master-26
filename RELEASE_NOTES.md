@@ -1,5 +1,11 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.74 - vanilla-launch baseline refresh (2026-08-09)
+
+- **Open Game now rejects a stale baseline.** Before loading editable data, CM26 compares the FC26 archive sentinels with `CmModData`; it will not open or save against a post-update or FET/FIFAModData-swapped game state.
+- **Added Settings > Refresh CmModData.** After FC26 has reached its main menu once without mods, this archives the prior snapshot as `CmModData_previous_<timestamp>` and builds a fresh baseline. The old snapshot is never overwritten silently.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.74.
+
 ## Version 1.0.73 - safe FC26 baseline guard (2026-08-09)
 
 - **Direct save is blocked on a mixed game baseline.** CM26 now compares the

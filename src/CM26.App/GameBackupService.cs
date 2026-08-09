@@ -22,6 +22,8 @@ public static class GameBackupService
         long CompletedBytes = 0, long TotalBytes = 0);
     public sealed record RestoreResult(bool Success, string Message, int CopiedFiles, int DeletedFiles);
     public sealed record CompressionResult(bool Success, string Message);
+    public sealed record BaselineStatus(bool IsMatch, string Message);
+    public sealed record RefreshResult(bool Success, string Message, string ArchivedBackupPath);
 
     public static BackupStatus Inspect(string? gameRoot, bool verifyContent = false)
     {
@@ -83,6 +85,9 @@ public static class GameBackupService
         if (existing.IsReady)
         {
             EnsureManifest(existing.BackupRoot);
+            var baseline = InspectLiveBaseline(existing.GameRoot);
+            if (!baseline.IsMatch)
+                return new(false, existing, 0, baseline.Message);
             return new(true, existing, 0, "Existing CmModData backup verified.");
         }
         if (!FrostbiteAssetSession.IsGameRoot(gameRoot))
@@ -146,6 +151,87 @@ public static class GameBackupService
         finally
         {
             if (Directory.Exists(temporary)) Directory.Delete(temporary, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Checks the small set of Frostbite root files that identify the exact FC26
+    /// build.  This is deliberately fast enough for Open Game, unlike a full
+    /// multi-gigabyte backup audit.
+    /// </summary>
+    public static BaselineStatus InspectLiveBaseline(string? gameRoot)
+    {
+        var backup = Inspect(gameRoot);
+        if (!backup.IsReady) return new(false, backup.Message);
+        var mismatches = new List<string>();
+        foreach (var relative in new[]
+                 {
+                     Path.Combine("Data", "layout.toc"),
+                     Path.Combine("Data", "initfs_Win32"),
+                     Path.Combine("Patch", "layout.toc"),
+                     Path.Combine("Patch", "initfs_Win32"),
+                 })
+        {
+            var live = Path.Combine(backup.GameRoot, relative);
+            var snapshot = Path.Combine(backup.BackupRoot, relative);
+            if (!File.Exists(live) || !File.Exists(snapshot) ||
+                new FileInfo(live).Length != new FileInfo(snapshot).Length ||
+                !string.Equals(ComputeSha256(live), ComputeSha256(snapshot), StringComparison.OrdinalIgnoreCase))
+                mismatches.Add(relative.Replace(Path.DirectorySeparatorChar, '/'));
+        }
+        if (mismatches.Count == 0)
+            return new(true, "CmModData matches the installed FC26 baseline.");
+
+        var fetData = Directory.Exists(Path.Combine(backup.GameRoot, "FIFAModData")) ||
+                      Directory.Exists(Path.Combine(backup.GameRoot, "FIFAModData_backup"));
+        return new(false,
+            "FC26 has changed since CmModData was created (" + string.Join(", ", mismatches) + "). " +
+            "This can happen after a title update" + (fetData ? " or while FET/FIFAModData is present" : string.Empty) + ". " +
+            "Launch FC26 once without mods and confirm it reaches the main menu, then use Settings > Refresh CmModData. " +
+            "CM26 will not open or save against a mixed baseline.");
+    }
+
+    /// <summary>
+    /// Archives the previous immutable snapshot and creates a new one from the
+    /// current vanilla game build. The caller must explicitly confirm that the
+    /// game was launched without mods after the latest title update.
+    /// </summary>
+    public static RefreshResult RefreshAfterVanillaLaunch(
+        string? gameRoot, IProgress<RestoreProgress>? progress = null)
+    {
+        if (!FrostbiteAssetSession.IsGameRoot(gameRoot))
+            return new(false, "Game installation was not detected.", string.Empty);
+        if (IsGameRunning())
+            return new(false, "Close FC26 before refreshing CmModData.", string.Empty);
+
+        var root = Path.GetFullPath(gameRoot!).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var current = Path.Combine(root, "CmModData");
+        var archived = string.Empty;
+        try
+        {
+            if (Directory.Exists(current))
+            {
+                var suffix = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+                archived = Path.Combine(root, "CmModData_previous_" + suffix);
+                var attempt = 1;
+                while (Directory.Exists(archived))
+                    archived = Path.Combine(root, "CmModData_previous_" + suffix + "_" + attempt++);
+                Directory.Move(current, archived);
+            }
+
+            var created = EnsureCreated(root, progress);
+            if (!created.Success)
+                throw new InvalidOperationException(created.Message);
+            return new(true,
+                "A fresh CmModData snapshot was created for the current FC26 build. " +
+                (string.IsNullOrWhiteSpace(archived) ? string.Empty : "Previous snapshot archived at " + archived + "."),
+                archived);
+        }
+        catch (Exception ex)
+        {
+            if (!Directory.Exists(current) && !string.IsNullOrWhiteSpace(archived) && Directory.Exists(archived))
+                Directory.Move(archived, current);
+            return new(false, "CmModData refresh failed: " + ex.Message, archived);
         }
     }
 

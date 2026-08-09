@@ -1,6 +1,6 @@
 {
-  "version": "1.0.73",
+  "version": "1.0.74",
   "name": "Creation Master 26",
-  "notes": "v1.0.73 - Blocks unsafe direct saves after an FC26 title update or FET/FIFAModData folder swap, and clears the stale FC26 Assets cache after database saves.",
+  "notes": "v1.0.74 - Requires a fresh CmModData snapshot after an FC26 title update or FET/FIFAModData baseline change; Settings can archive and recreate it after one vanilla launch.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
