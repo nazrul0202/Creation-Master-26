@@ -1,6 +1,6 @@
 {
-  "version": "1.0.77",
+  "version": "1.0.78",
   "name": "Creation Master 26",
-  "notes": "v1.0.77 - CM26 Mod Manager library moved to D:\\CM26 Mod Manager, separate from FC26 and FET.",
+  "notes": "v1.0.78 - standalone CM26 Mod Manager application with independent Mods and Logs folders.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

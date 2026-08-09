@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.78 - standalone CM26 Mod Manager application (2026-08-09)
+
+- Added the real standalone `CM26 Mod Manager.exe`, published independently to `D:\\CM26 Mod Manager`.
+- Its local layout mirrors a mod-manager workflow: packages in `Mods\\`, logs in `Logs\\`, and enabled-mod state in `CM26 Mod Manager.json`.
+- The app can select the FC26 folder, import and enable `.cm26mod` packages, build an isolated `CM26ModData`, launch FC26, and restore original `Data/Patch` after FC26 exits.
+- It does not access FET's `FIFAModData`, does not claim `.fifamod` compatibility, and does not modify EA AntiCheat files.
+
 ## Version 1.0.77 - dedicated CM26 mod library (2026-08-09)
 
 - CM26 Mod Manager now stores imported `.cm26mod` packages and enabled state in `D:\\CM26 Mod Manager`, separate from FC26 and FET.
