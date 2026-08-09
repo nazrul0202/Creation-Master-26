@@ -398,6 +398,7 @@ public sealed class FrostbiteAssetSession
                     "--extract" => new { command = "extractAsset", gameRoot = arguments[1], assetType = arguments[2], query = arguments[3] },
                     "--audio-bank" => new { command = "inspectAudio", gameRoot = arguments[1], query = arguments[2], assetType = "Res" },
                     "--apply-direct" => new { command = "applyDirect", gameRoot = arguments[1], query = arguments[2] },
+                    "--export-fet" => new { command = "exportFet", gameRoot = arguments[1], query = arguments[2], outputPath = arguments[3] },
                     _ => throw new ArgumentException("Unsupported bridge operation.")
                 };
                 _bridgeInput.WriteLine(JsonSerializer.Serialize(request));

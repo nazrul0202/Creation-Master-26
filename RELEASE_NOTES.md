@@ -1,5 +1,11 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.80 - FIFA Mod export hotfix (2026-08-10)
+
+- Fixed the CM26 UI-to-Asset-Bridge request mapping for `.fifamod` export. Export no longer fails immediately with the generic “asset bridge failed” message.
+- Verified through the same JSON protocol used by the UI with staged `fifa_ng_db.db` and `eng_us.db` changes; it generated a valid FETM package.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.80.
+
 ## Version 1.0.79 - FIFA Mod Manager export validation (2026-08-10)
 
 - CM26 exports staged database and lightweight legacy asset edits as FETM v1 `.fifamod` packages for FIFA Mod Manager workflows.
