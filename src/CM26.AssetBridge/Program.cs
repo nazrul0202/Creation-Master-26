@@ -82,6 +82,12 @@ internal static class Program
             Console.WriteLine(JsonSerializer.Serialize(response, BridgeJson.Options));
             return response.Ok ? 0 : 2;
         }
+        if (args.Length >= 4 && args[0].Equals("--export-fet", StringComparison.OrdinalIgnoreCase))
+        {
+            var response = Execute(new BridgeRequest("exportFet", args[1], args[2], OutputPath: args[3]));
+            Console.WriteLine(JsonSerializer.Serialize(response, BridgeJson.Options));
+            return response.Ok ? 0 : 2;
+        }
 
         // Long-lived newline-delimited JSON protocol. One response is emitted
         // for every request, which keeps the WinForms process isolated from all
@@ -123,6 +129,7 @@ internal static class Program
                 "inspectaudio" => InspectAudio(request),
                 "applydirect" => ApplyDirect(request),
                 "verifydirect" => VerifyDirect(request),
+                "exportfet" => ExportFet(request),
                 _ => new BridgeResponse(false, request.Command, $"Unknown command: {request.Command}"),
             };
         }
@@ -366,6 +373,15 @@ internal static class Program
             inventory.GameRoot,
             request.Query ?? throw new ArgumentException("Direct-edit plan path is required."));
         return new BridgeResponse(true, request.Command, FormatApplyMessage(result, verified: true));
+    }
+
+    private static BridgeResponse ExportFet(BridgeRequest request)
+    {
+        var output = request.OutputPath ?? throw new ArgumentException("FET mod output path is required.");
+        var result = FrostbiteDirectLegacyWriter.ExportFetMod(request.GameRoot ?? string.Empty,
+            request.Query ?? throw new ArgumentException("FET export plan is required."), output);
+        return new BridgeResponse(true, request.Command,
+            $"FET mod exported: {result.Applied} legacy edit(s), {result.Skipped.Count} skipped.", OutputPath: output);
     }
 
     private static string FormatApplyMessage(FrostbiteDirectLegacyWriter.ApplyResult result, bool verified)

@@ -357,6 +357,16 @@ public sealed class FrostbiteAssetSession
             : (false, response?.Message ?? "The asset bridge failed to build the CM26 mod overlay.");
     }
 
+    public (bool Success, string Message) ExportFetMod(string planPath, string destination)
+    {
+        if (!IsAvailable || string.IsNullOrWhiteSpace(GameRoot))
+            return (false, "Game assets are not ready.");
+        var response = RunBridge(["--export-fet", GameRoot, planPath, destination], timeoutMilliseconds: 10 * 60_000);
+        return response?.Ok == true
+            ? (true, response.Message)
+            : (false, response?.Message ?? "The asset bridge failed to export the FET mod.");
+    }
+
     private static BridgeOperationResponse? RunBridge(
         IReadOnlyList<string> arguments, int timeoutMilliseconds)
     {

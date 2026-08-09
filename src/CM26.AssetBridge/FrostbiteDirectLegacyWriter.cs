@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Numerics;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -55,6 +56,125 @@ internal static class FrostbiteDirectLegacyWriter
 
     public static ApplyResult Verify(string gameRoot, string planPath)
         => Prepare(gameRoot, planPath, commit: false);
+
+    /// <summary>Writes the FETM v1 container consumed by FIFA Mod Manager for CM26 legacy edits.</summary>
+    public static ApplyResult ExportFetMod(string gameRoot, string planPath, string destination)
+    {
+        var root = Path.GetFullPath(gameRoot);
+        EnsureSafeRoot(root);
+        var plan = JsonSerializer.Deserialize<Plan>(File.ReadAllText(planPath), BridgeJson.Options)
+            ?? throw new InvalidDataException("FET export plan is empty.");
+        var layout = FrostbiteLayoutReader.Read(Path.Combine(root, "Patch", "layout.toc"));
+        var skipped = new List<string>();
+        var edits = new List<ResolvedEdit>();
+        foreach (var item in plan.Replacements ?? [])
+        {
+            try
+            {
+                var target = FrostbiteLegacyAssetResolver.ResolveTarget(root, layout.Catalogs, item.LegacyPath);
+                edits.Add(new ResolvedEdit(target, File.ReadAllBytes(item.SourcePath)));
+            }
+            catch (FileNotFoundException) { skipped.Add(item.LegacyPath); }
+        }
+        if (edits.Count == 0) throw new InvalidDataException("No exportable CM26 legacy changes were staged.");
+        var writes = BuildChunkWrites(root, layout.Catalogs, edits);
+        WriteFetMod(destination, layout.Head, writes, edits);
+        return new ApplyResult(edits.Count, skipped);
+    }
+
+    private static void WriteFetMod(string destination, int head, IReadOnlyList<ChunkWrite> writes,
+        IReadOnlyList<ResolvedEdit> edits)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(destination))!);
+        using var stream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None);
+        using var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true);
+        writer.Write(1297368390u); // FETM
+        writer.Write((byte)1);
+        WriteString(writer, "FC26");
+        WriteUInt24(writer, checked((uint)head));
+        WriteString(writer, Path.GetFileNameWithoutExtension(destination));
+        WriteString(writer, "CM26");
+        writer.Write((byte)0); writer.Write((byte)0); // category + subcategory
+        foreach (var value in new[] { "", "", "1.0", "Created by Creation Master 26", "", "", "", "", "", "", "", "" })
+            WriteString(writer, value);
+        Write7Bit(writer, 0); // icon
+        Write7Bit(writer, 0); // screenshots
+        Write7Bit(writer, 0); // locale ini
+        Write7Bit(writer, 0); // initfs
+        Write7Bit(writer, 0); Write7Bit(writer, 0); // lua changes
+        var manifestOffsetPosition = stream.Position;
+        writer.Write(0u);
+        WriteUInt24(writer, 0); // added bundles
+        WriteUInt24(writer, 0); // EBX
+        WriteUInt24(writer, 0); // RES
+        WriteUInt24(writer, checked((uint)writes.Count));
+        var payloads = new List<byte[]>();
+        long payloadOffset = 0;
+        foreach (var write in writes)
+        {
+            writer.Write(write.Id.ToByteArray());
+            var payload = write.Encoded;
+            writer.Write(System.Security.Cryptography.SHA1.HashData(payload));
+            var legacy = edits.FirstOrDefault(edit => edit.Target.OriginalChunkId == write.Id);
+            var flags = legacy == null ? (ushort)0 : (ushort)2;
+            writer.Write(flags);
+            Write7BitLong(writer, payloadOffset);
+            Write7Bit(writer, payload.Length);
+            if (legacy != null)
+            {
+                writer.Write(legacy.Target.NameHash);
+                WriteString(writer, legacy.Target.Name);
+            }
+            payloadOffset += payload.Length;
+            payloads.Add(payload);
+        }
+        var collectors = edits.GroupBy(edit => edit.Target.CollectorEbxName, StringComparer.OrdinalIgnoreCase).ToArray();
+        Write7Bit(writer, collectors.Length);
+        foreach (var group in collectors)
+        {
+            var target = group.First().Target;
+            WriteString(writer, target.CollectorEbxName);
+            writer.Write(target.CollectorManifestChunkId.ToByteArray());
+            writer.Write(target.CollectorInPatch);
+            writer.Write(SuperBundleHash(target.CollectorSuperBundle));
+        }
+        Write7Bit(writer, 0); // bundle ref tables
+        var manifestStart = stream.Position;
+        foreach (var payload in payloads) writer.Write(payload);
+        stream.Position = manifestOffsetPosition;
+        writer.Write(checked((uint)manifestStart));
+    }
+
+    private static void WriteString(BinaryWriter writer, string value)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(value ?? string.Empty);
+        Write7Bit(writer, bytes.Length); writer.Write(bytes);
+    }
+    private static void Write7Bit(BinaryWriter writer, int value)
+    {
+        uint current = checked((uint)value);
+        while (current >= 128) { writer.Write((byte)(current | 128)); current >>= 7; }
+        writer.Write((byte)current);
+    }
+    private static void Write7BitLong(BinaryWriter writer, long value)
+    {
+        ulong current = checked((ulong)value);
+        while (current >= 128) { writer.Write((byte)(current | 128)); current >>= 7; }
+        writer.Write((byte)current);
+    }
+    private static void WriteUInt24(BinaryWriter writer, uint value)
+    {
+        writer.Write((byte)value); writer.Write((byte)(value >> 8)); writer.Write((byte)(value >> 16));
+    }
+    private static uint SuperBundleHash(string value) => XxHash32(System.Text.Encoding.Unicode.GetBytes(value.ToLowerInvariant()));
+    private static uint XxHash32(ReadOnlySpan<byte> data)
+    {
+        const uint p1 = 2654435761, p2 = 2246822519, p3 = 3266489917, p4 = 668265263, p5 = 374761393;
+        uint h = p5 + (uint)data.Length; var i = 0;
+        while (i + 4 <= data.Length) { h += BitConverter.ToUInt32(data.Slice(i, 4)) * p3; h = BitOperations.RotateLeft(h, 17) * p4; i += 4; }
+        while (i < data.Length) { h += data[i++] * p5; h = BitOperations.RotateLeft(h, 11) * p1; }
+        h ^= h >> 15; h *= p2; h ^= h >> 13; h *= p3; return h ^ (h >> 16);
+    }
 
     private static ApplyResult Prepare(string gameRoot, string planPath, bool commit)
     {

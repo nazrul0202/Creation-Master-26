@@ -61,7 +61,7 @@ public sealed class MainForm : Form
         var fileMenu = new ToolStripMenuItem("File");
         fileMenu.DropDownItems.Add("Open Game", null, async (_, _) => await OpenFc26Async());
         fileMenu.DropDownItems.Add("Save", null, async (_, _) => await SaveAsync());
-        fileMenu.DropDownItems.Add("Export CM26 Mod...", null, async (_, _) => await ExportModAsync());
+        fileMenu.DropDownItems.Add("Export FIFA Mod (.fifamod)...", null, async (_, _) => await ExportModAsync());
         fileMenu.DropDownItems.Add("Restore Original Data…", null, async (_, _) => await RestoreOriginalAsync());
         fileMenu.DropDownItems.Add(new ToolStripSeparator());
         fileMenu.DropDownItems.Add("Exit", null, (_, _) => Close());
@@ -720,28 +720,28 @@ public sealed class MainForm : Form
     {
         if (!_services.Pending.HasChanges && !_services.LegacyMods.HasChanges)
         {
-            MessageBox.Show(this, "There are no staged changes to export.", "Export CM26 Mod",
+            MessageBox.Show(this, "There are no staged changes to export.", "Export FIFA Mod",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
         var issues = _services.Validation.ValidateAll(_services.Pending.Changes);
         if (issues.Any(issue => issue.IsError))
         {
-            MessageBox.Show(this, "Resolve validation errors before exporting a mod.", "Export CM26 Mod",
+            MessageBox.Show(this, "Resolve validation errors before exporting a mod.", "Export FIFA Mod",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
         using var dialog = new SaveFileDialog
         {
-            Title = "Export CM26 Mod",
-            Filter = "CM26 Mod (*.cm26mod)|*.cm26mod",
-            DefaultExt = CM26ModPackageService.Extension,
+            Title = "Export FIFA Mod",
+            Filter = "FIFA Mod (*.fifamod)|*.fifamod",
+            DefaultExt = ".fifamod",
             AddExtension = true,
-            FileName = "CM26-" + DateTime.Now.ToString("yyyyMMdd-HHmm") + CM26ModPackageService.Extension,
+            FileName = "CM26-" + DateTime.Now.ToString("yyyyMMdd-HHmm") + ".fifamod",
         };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
 
-        SetBusy(true, "Building CM26 mod package...");
+        SetBusy(true, "Building FIFA Mod Manager mod...");
         try
         {
             if (_services.Pending.HasChanges)
@@ -751,22 +751,21 @@ public sealed class MainForm : Form
                 if (!saved.Success) throw new InvalidOperationException(saved.Message);
                 _services.LegacyMods.StageDatabase(stagingFolder);
             }
-            var name = Path.GetFileNameWithoutExtension(dialog.FileName);
-            var manifest = await Task.Run(() => CM26ModPackageService.Export(
-                dialog.FileName, name, _services.LegacyMods.GetModPayloads()));
+            var plan = _services.LegacyMods.WriteDirectPlan();
+            var exported = await Task.Run(() => _services.FrostbiteAssets.ExportFetMod(plan, dialog.FileName));
+            if (!exported.Success) throw new InvalidOperationException(exported.Message);
             _services.Pending.MarkSaved();
             _services.LegacyMods.MarkApplied();
-            SetStatus($"CM26 mod exported: {manifest.Name} ({manifest.Payloads.Length} payloads)");
+            SetStatus(exported.Message);
             MessageBox.Show(this,
-                $"Exported {manifest.Name} with {manifest.Payloads.Length} payload(s).\n\n" +
-                "The original FC26 Data/Patch files were not changed. Use CM26 Mod Manager to build and launch this mod.",
-                "CM26 Mod exported", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                exported.Message + "\n\nThe original FC26 Data/Patch files were not changed. Import this file in FIFA Mod Manager.",
+                "FIFA Mod exported", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {
-            Program.Log("CM26 mod export failed: " + ex);
-            MessageBox.Show(this, ex.Message, "Export CM26 Mod", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            SetStatus("CM26 mod export failed.");
+            Program.Log("FIFA mod export failed: " + ex);
+            MessageBox.Show(this, ex.Message, "Export FIFA Mod", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            SetStatus("FIFA mod export failed.");
         }
         finally
         {
