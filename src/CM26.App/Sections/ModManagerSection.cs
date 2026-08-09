@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Diagnostics;
 using System.Windows.Forms;
 using CM26.App.Theming;
 using CM26.Application.Models;
@@ -34,13 +35,17 @@ public sealed class ModManagerSection : SectionBase
         };
         var import = new Button { Text = "Import CM26 Mod...", Dock = DockStyle.Left, Width = 160 };
         var build = new Button { Text = "Build CM26ModData", Dock = DockStyle.Left, Width = 165 };
+        var launch = new Button { Text = "Launch with CM26 Mods", Dock = DockStyle.Left, Width = 180 };
+        var restore = new Button { Text = "Restore Original", Dock = DockStyle.Left, Width = 130 };
         var refresh = new Button { Text = "Refresh", Dock = DockStyle.Left, Width = 95 };
-        Theme.ApplyButton(import, true); Theme.ApplyButton(build, true); Theme.ApplyButton(refresh);
+        Theme.ApplyButton(import, true); Theme.ApplyButton(build, true); Theme.ApplyButton(launch, true); Theme.ApplyButton(restore); Theme.ApplyButton(refresh);
         import.Click += (_, _) => Import();
         build.Click += async (_, _) => await BuildOverlayAsync(build);
+        launch.Click += (_, _) => Launch(root: FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder));
+        restore.Click += (_, _) => Restore(root: FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder));
         refresh.Click += (_, _) => RefreshLibrary();
         var actions = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = Theme.Background };
-        actions.Controls.Add(refresh); actions.Controls.Add(build); actions.Controls.Add(import);
+        actions.Controls.Add(refresh); actions.Controls.Add(restore); actions.Controls.Add(launch); actions.Controls.Add(build); actions.Controls.Add(import);
         var hint = new Label { Dock = DockStyle.Top, Height = 52, ForeColor = Theme.Muted,
             Text = "CM26 mods are separate from FET. Enable packages here; Build & Launch will create CM26ModData without writing the original game.",
             Padding = new Padding(0, 8, 0, 0) };
@@ -105,5 +110,26 @@ public sealed class ModManagerSection : SectionBase
                 result.Success ? MessageBoxIcon.Information : MessageBoxIcon.Error);
         }
         finally { button.Enabled = true; }
+    }
+
+    private void Launch(string? root)
+    {
+        if (string.IsNullOrWhiteSpace(root)) return;
+        if (MessageBox.Show(this, "Activate CM26ModData and launch FC26? Original Data/Patch will be restored after the game exits.",
+                "Launch with CM26 Mods", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        var result = CM26ModLaunchService.Activate(root);
+        _status.Text = result.Message;
+        if (!result.Success) { MessageBox.Show(this, result.Message, "CM26 Mod Manager", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
+        try { Process.Start(new ProcessStartInfo(Path.Combine(root, "FC26.exe")) { UseShellExecute = true }); }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Launch FC26", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+    }
+
+    private void Restore(string? root)
+    {
+        if (string.IsNullOrWhiteSpace(root)) return;
+        var result = CM26ModLaunchService.Restore(root);
+        _status.Text = result.Message;
+        MessageBox.Show(this, result.Message, "CM26 Mod Manager", MessageBoxButtons.OK,
+            result.Success ? MessageBoxIcon.Information : MessageBoxIcon.Error);
     }
 }
