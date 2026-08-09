@@ -1,5 +1,10 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.77 - dedicated CM26 mod library (2026-08-09)
+
+- CM26 Mod Manager now stores imported `.cm26mod` packages and enabled state in `D:\\CM26 Mod Manager`, separate from FC26 and FET.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.77.
+
 ## Version 1.0.76 - standalone CM26 Mod Manager (2026-08-09)
 
 - **Export/import CM26 mods.** Edited database and legacy payloads can be exported as checksum-verified `.cm26mod` packages, imported to an independent local library, and enabled in the new Mod Manager.

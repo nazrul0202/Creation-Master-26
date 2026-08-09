@@ -5,9 +5,8 @@ namespace CM26.App;
 /// <summary>Local library and enabled-order state for standalone CM26 mods.</summary>
 public static class CM26ModLibraryService
 {
-    private static readonly string Root = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Creation Master 26", "mods");
+    /// <summary>User-visible standalone library, kept away from the FC26 install and FET.</summary>
+    public static readonly string Root = @"D:\CM26 Mod Manager";
     private static readonly string StatePath = Path.Combine(Root, "enabled.json");
 
     public sealed record LibraryItem(string PackagePath, CM26ModPackageService.PackageManifest Manifest, bool Enabled);

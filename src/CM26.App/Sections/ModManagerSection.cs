@@ -48,7 +48,7 @@ public sealed class ModManagerSection : SectionBase
         var actions = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = Theme.Background };
         actions.Controls.Add(refresh); actions.Controls.Add(restore); actions.Controls.Add(launch); actions.Controls.Add(build); actions.Controls.Add(import);
         var hint = new Label { Dock = DockStyle.Top, Height = 52, ForeColor = Theme.Muted,
-            Text = "CM26 mods are separate from FET. Enable packages here; Build & Launch will create CM26ModData without writing the original game.",
+            Text = "Library: " + CM26ModLibraryService.Root + "  |  CM26 mods are separate from FET. Build & Launch creates CM26ModData without writing original game.",
             Padding = new Padding(0, 8, 0, 0) };
         var page = new TabPage("CM26 Mods") { BackColor = Theme.Background, Padding = new Padding(8) };
         page.Controls.Add(_mods); page.Controls.Add(_status); page.Controls.Add(hint); page.Controls.Add(actions);
