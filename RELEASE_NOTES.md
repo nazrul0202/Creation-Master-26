@@ -1,5 +1,10 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.75 - guided game data update (2026-08-09)
+
+- **FET-style update wizard.** When `Open Game` detects a title update or FET baseline mismatch, CM26 presents a guided choice to launch FC26 without mods, confirm that it reached the main menu, and then archive/refresh `CmModData` before the editor loads.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.75.
+
 ## Version 1.0.74 - vanilla-launch baseline refresh (2026-08-09)
 
 - **Open Game now rejects a stale baseline.** Before loading editable data, CM26 compares the FC26 archive sentinels with `CmModData`; it will not open or save against a post-update or FET/FIFAModData-swapped game state.

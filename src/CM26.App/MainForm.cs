@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
 using CM26.App.Controls;
@@ -442,6 +443,20 @@ public sealed class MainForm : Form
 
     private async Task OpenFc26Async()
     {
+        var configuredRoot = SettingsService.FC26GameFolder;
+        var gameRoot = Directory.Exists(configuredRoot)
+            ? Path.GetFullPath(configuredRoot)
+            : FrostbiteAssetSession.ResolveGameRoot(configuredRoot);
+        var backup = GameBackupService.Inspect(gameRoot);
+        if (backup.IsReady)
+        {
+            var baseline = GameBackupService.InspectLiveBaseline(gameRoot);
+            if (!baseline.IsMatch)
+            {
+                await RunBaselineUpdateWizardAsync(backup, baseline.Message);
+                return;
+            }
+        }
         SetBusy(true, "Preparing game data…");
         try
         {
@@ -470,6 +485,60 @@ public sealed class MainForm : Form
         {
             SetBusy(false, null);
         }
+    }
+
+    private async Task RunBaselineUpdateWizardAsync(GameBackupService.BackupStatus backup, string detail)
+    {
+        var choice = MessageBox.Show(this,
+            "FC26 needs a baseline update before CM26 can edit it.\n\n" + detail + "\n\n" +
+            "1. Disable/restore FET mods.\n2. Launch FC26 without mods and reach the main menu.\n" +
+            "3. Exit FC26, then click Yes to create a fresh CM26 baseline.\n\n" +
+            "Yes = I have completed the vanilla launch\nNo = launch FC26 now\nCancel = do nothing",
+            "CM26 Game Data Update", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
+        if (choice == DialogResult.Cancel) return;
+        if (choice == DialogResult.No)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(Path.Combine(backup.GameRoot, "FC26.exe")) { UseShellExecute = true });
+                SetStatus("FC26 was launched. Reach the main menu without mods, exit it, then select Open Game again.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "CM26 could not launch FC26: " + ex.Message +
+                    "\n\nLaunch it from Steam/EA App without mods, then select Open Game again.",
+                    "Launch FC26", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            return;
+        }
+
+        SetBusy(true, "Refreshing FC26 baseline...");
+        try
+        {
+            var progress = new Progress<GameBackupService.RestoreProgress>(item =>
+            {
+                var percent = item.TotalBytes > 0
+                    ? (int)Math.Clamp(item.CompletedBytes * 100 / item.TotalBytes, 0, 100)
+                    : item.Total <= 0 ? 0 : item.Completed * 100 / item.Total;
+                SetStatus($"{item.Phase}: {percent}% - {item.CurrentFile}");
+            });
+            var refreshed = await Task.Run(() =>
+                GameBackupService.RefreshAfterVanillaLaunch(backup.GameRoot, progress));
+            if (!refreshed.Success)
+            {
+                MessageBox.Show(this, refreshed.Message, "CM26 Game Data Update",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                SetStatus("Baseline refresh failed.");
+                return;
+            }
+            MessageBox.Show(this, refreshed.Message + "\n\nCM26 will now load the updated game data.",
+                "CM26 Game Data Update", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        finally
+        {
+            SetBusy(false, null);
+        }
+        await OpenFc26Async();
     }
 
     private async Task LoadDatabaseFolderAsync(string folder)
