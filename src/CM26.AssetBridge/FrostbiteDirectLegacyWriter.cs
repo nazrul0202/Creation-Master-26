@@ -38,6 +38,7 @@ internal static class FrostbiteDirectLegacyWriter
     /// </summary>
     public sealed record ApplyResult(int Applied, IReadOnlyList<string> Skipped, int ClearedGameCaches = 0);
     private sealed record ChunkWrite(Guid Id, FrostbiteCasLocation Original, byte[] Encoded);
+    private sealed record FetChunkWrite(Guid Id, byte[] Encoded, ResolvedEdit Legacy);
     private sealed record TocChunkLocation(string Path, long RecordPosition);
     private sealed class ManifestEntry
     {
@@ -78,7 +79,12 @@ internal static class FrostbiteDirectLegacyWriter
             catch (FileNotFoundException) { skipped.Add(item.LegacyPath); }
         }
         if (edits.Count == 0) throw new InvalidDataException("No exportable CM26 legacy changes were staged.");
-        var writes = BuildChunkWrites(root, layout.Catalogs, edits);
+        // FIFA Mod Manager does not consume a rebuilt collector manifest from
+        // the mod.  It creates one itself from legacy chunks.  Each file must
+        // therefore become a new chunk with its actual logical size, just as
+        // FET's LegacyFileManager does; reusing the original shared chunk with
+        // a zero logical size produces a collector that crashes FC26 at boot.
+        var writes = BuildFetChunkWrites(root, edits);
         WriteFetMod(destination, layout.Head, writes, edits);
         ValidateFetMod(destination);
         return new ApplyResult(edits.Count, skipped);
@@ -136,10 +142,10 @@ internal static class FrostbiteDirectLegacyWriter
             var flags = reader.ReadUInt16();
             var relativeOffset = Read7BitLong(reader);
             var length = Read7Bit(reader);
-            if ((flags & 2) != 0) { Skip(reader, 8); _ = ReadString(reader); }
             if ((flags & 8) != 0) _ = Read7Bit(reader);
             if ((flags & 16) != 0) _ = Read7Bit(reader);
             if ((flags & 32) != 0) Skip(reader, 8); // FC26 H32
+            if ((flags & 2) != 0) { Skip(reader, 8); _ = ReadString(reader); }
             if ((flags & 128) != 0) Skip(reader, checked(Read7Bit(reader) * 8L));
             if ((flags & 4) != 0) Skip(reader, 4);
             if (relativeOffset < 0 || length < 0 || relativeOffset > long.MaxValue - manifestOffset ||
@@ -224,7 +230,7 @@ internal static class FrostbiteDirectLegacyWriter
         reader.BaseStream.Position += bytes;
     }
 
-    private static void WriteFetMod(string destination, int head, IReadOnlyList<ChunkWrite> writes,
+    private static void WriteFetMod(string destination, int head, IReadOnlyList<FetChunkWrite> writes,
         IReadOnlyList<ResolvedEdit> edits)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(destination))!);
@@ -261,16 +267,12 @@ internal static class FrostbiteDirectLegacyWriter
             writer.Write(write.Id.ToByteArray());
             var payload = write.Encoded;
             writer.Write(System.Security.Cryptography.SHA1.HashData(payload));
-            var legacy = edits.FirstOrDefault(edit => edit.Target.OriginalChunkId == write.Id);
-            var flags = legacy == null ? (ushort)0 : (ushort)2;
-            writer.Write(flags);
+            writer.Write((ushort)(2 | 16)); // IsLegacy + HasLogicalSize
             Write7BitLong(writer, payloadOffset);
             Write7Bit(writer, payload.Length);
-            if (legacy != null)
-            {
-                writer.Write(legacy.Target.NameHash);
-                WriteString(writer, legacy.Target.Name);
-            }
+            Write7Bit(writer, write.Legacy.ReplacementBytes.Length);
+            writer.Write(write.Legacy.Target.NameHash);
+            WriteString(writer, write.Legacy.Target.Name);
             payloadOffset += payload.Length;
             payloads.Add(payload);
         }
@@ -313,6 +315,29 @@ internal static class FrostbiteDirectLegacyWriter
         writer.Write((byte)value); writer.Write((byte)(value >> 8)); writer.Write((byte)(value >> 16));
     }
     private static uint SuperBundleHash(string value) => XxHash32(System.Text.Encoding.Unicode.GetBytes(value.ToLowerInvariant()));
+
+    private static IReadOnlyList<FetChunkWrite> BuildFetChunkWrites(string root, IReadOnlyList<ResolvedEdit> edits)
+    {
+        var used = new HashSet<Guid>();
+        var writes = new List<FetChunkWrite>(edits.Count);
+        foreach (var edit in edits)
+        {
+            // New-format FC26 collectors point one legacy file at one chunk.
+            // A stable GUID keeps repeated exports of the same CM26 change
+            // merge-friendly, while the edit bytes ensure it does not collide
+            // with a different replacement of the same file.
+            var seed = SHA1.HashData(Encoding.UTF8.GetBytes(
+                edit.Target.Name.ToLowerInvariant() + "\0" + Convert.ToHexString(SHA1.HashData(edit.ReplacementBytes))));
+            var id = new Guid(seed.AsSpan(0, 16));
+            while (!used.Add(id)) id = Guid.NewGuid();
+            var encoded = Encode(root, edit.ReplacementBytes);
+            var decoded = FrostbitePayloadReader.Decompress(encoded, edit.ReplacementBytes.Length, root);
+            if (!decoded.AsSpan().SequenceEqual(edit.ReplacementBytes))
+                throw new InvalidDataException($"FET legacy payload verification failed for {edit.Target.Name}.");
+            writes.Add(new FetChunkWrite(id, encoded, edit));
+        }
+        return writes;
+    }
     private static uint XxHash32(ReadOnlySpan<byte> data)
     {
         const uint p1 = 2654435761, p2 = 2246822519, p3 = 3266489917, p4 = 668265263, p5 = 374761393;
@@ -757,14 +782,17 @@ internal static class FrostbiteDirectLegacyWriter
             {
                 var count = Math.Min(FrostbiteBlockSize, input.Length - offset);
                 var source = input.AsSpan(offset, count).ToArray();
-                var destination = new byte[checked((int)bound(8, checked((nuint)count)))];
+                // FC26/FET use the Leviathan Frostbite codec for legacy chunks.
+                // The previous Kraken marker was readable by the bridge but is
+                // not the codec FMM emits for FC26 legacy files.
+                var destination = new byte[checked((int)bound(13, checked((nuint)count)))];
                 var sourceHandle = GCHandle.Alloc(source, GCHandleType.Pinned);
                 var destinationHandle = GCHandle.Alloc(destination, GCHandleType.Pinned);
                 int packed;
                 try
                 {
                     packed = checked((int)compress(
-                        8, sourceHandle.AddrOfPinnedObject(), checked((nuint)source.Length),
+                        13, sourceHandle.AddrOfPinnedObject(), checked((nuint)source.Length),
                         destinationHandle.AddrOfPinnedObject(), 4,
                         IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 0));
                 }
@@ -776,7 +804,7 @@ internal static class FrostbiteDirectLegacyWriter
                 var useCompressed = packed > 0 && packed < count;
                 WriteUInt32BigEndian(output, checked((uint)count));
                 WriteUInt32BigEndian(output,
-                    ((useCompressed ? 17u : 0u) << 24) | 0x00700000u |
+                    ((useCompressed ? 24u : 0u) << 24) | 0x00700000u |
                     checked((uint)(useCompressed ? packed : count)));
                 output.Write(useCompressed ? destination.AsSpan(0, packed) : source);
             }

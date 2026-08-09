@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.82 - FC26 legacy-chunk crash hotfix (2026-08-10)
+
+- Reworked `.fifamod` legacy export to match FIFA Mod Manager's FC26 collector model: one new chunk per legacy file, true logical size, and FMM-built collector manifests.
+- Changed emitted legacy payloads to FC26's Leviathan codec and round-trip verifies every encoded payload before export succeeds.
+- Fixed FETM validator field order for legacy chunks with `LogicalSize`.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.82.
+
 ## Version 1.0.81 - FIFA Mod Manager import hotfix (2026-08-10)
 
 - Fixed FETM category metadata from the invalid `0 / 0` pair to FIFA Mod Manager's valid `Legacy / Database` pair (`6 / 3`).
