@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.79 - FIFA Mod Manager export validation (2026-08-10)
+
+- CM26 exports staged database and lightweight legacy asset edits as FETM v1 `.fifamod` packages for FIFA Mod Manager workflows.
+- The exporter automatically refreshes an incompatible local asset index before packaging.
+- Every package is validated before success is reported: FETM header, manifest offsets, chunk ranges and SHA-1 payload hashes are checked.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.79.
+
 ## Version 1.0.78 - standalone CM26 Mod Manager application (2026-08-09)
 
 - Added the real standalone `CM26 Mod Manager.exe`, published independently to `D:\\CM26 Mod Manager`.
