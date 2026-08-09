@@ -162,6 +162,7 @@ public sealed class FrostbiteContainerScanner
                         asset.Kind, asset.Name, asset.Sha1, asset.OriginalSize,
                         asset.ResType, asset.ResMeta, asset.ResRid, asset.ChunkId,
                         asset.LogicalOffset, asset.LogicalSize,
+                        bundle.SuperBundle,
                         location.Patch, location.Catalog, location.Cas,
                         location.Offset, location.Size));
                 }
@@ -186,6 +187,7 @@ public sealed class FrostbiteContainerScanner
                 indexedAssets.Add(new FrostbiteIndexedAsset(
                     FrostbiteAssetKind.Chunk, chunk.Id.ToString("D"), string.Empty,
                     0, 0, string.Empty, 0, chunk.Id, 0, 0,
+                    chunk.SuperBundle,
                     chunk.Location.Patch, chunk.Location.Catalog, chunk.Location.Cas,
                     chunk.Location.Offset, chunk.Location.Size));
                 chunkCount = checked(chunkCount + 1);

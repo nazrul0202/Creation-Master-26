@@ -13,6 +13,7 @@ internal sealed record FrostbiteIndexedAsset(
     Guid ChunkId,
     uint LogicalOffset,
     uint LogicalSize,
+    string SuperBundle,
     bool Patch,
     uint Catalog,
     byte Cas,
@@ -22,7 +23,7 @@ internal sealed record FrostbiteIndexedAsset(
 internal static class FrostbiteAssetIndexStore
 {
     private static readonly byte[] Magic = "CM26AIDX"u8.ToArray();
-    private const int Version = 1;
+    private const int Version = 2;
 
     public static string IndexPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -227,6 +228,7 @@ internal static class FrostbiteAssetIndexStore
         writer.Write(asset.ChunkId.ToByteArray());
         writer.Write(asset.LogicalOffset);
         writer.Write(asset.LogicalSize);
+        writer.Write(asset.SuperBundle);
         writer.Write(asset.Patch);
         writer.Write(asset.Catalog);
         writer.Write(asset.Cas);
@@ -246,6 +248,7 @@ internal static class FrostbiteAssetIndexStore
         var chunkId = new Guid(reader.ReadBytes(16));
         var logicalOffset = reader.ReadUInt32();
         var logicalSize = reader.ReadUInt32();
+        var superBundle = reader.ReadString();
         var patch = reader.ReadBoolean();
         var catalog = reader.ReadUInt32();
         var cas = reader.ReadByte();
@@ -253,6 +256,6 @@ internal static class FrostbiteAssetIndexStore
         var size = reader.ReadUInt32();
         return new FrostbiteIndexedAsset(
             kind, name, sha1, originalSize, resType, resMeta, resRid,
-            chunkId, logicalOffset, logicalSize, patch, catalog, cas, offset, size);
+            chunkId, logicalOffset, logicalSize, superBundle, patch, catalog, cas, offset, size);
     }
 }

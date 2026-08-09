@@ -9,6 +9,7 @@ internal sealed record FrostbiteCasLocation(
 
 internal sealed record FrostbiteCasBundle(
     string Name,
+    string SuperBundle,
     FrostbiteCasLocation Metadata,
     IReadOnlyList<FrostbiteCasLocation> Assets);
 
@@ -23,7 +24,7 @@ internal sealed record FrostbiteTocReadResult(
 /// by FC26's legacy-file collector.
 /// </summary>
 internal sealed record FrostbiteDirectChunk(
-    Guid Id, FrostbiteCasLocation Location, long LocationRecordPosition);
+    Guid Id, string SuperBundle, FrostbiteCasLocation Location, long LocationRecordPosition);
 
 /// <summary>
 /// Bounded, read-only reader for the FC26 superbundle TOC index. This reader
@@ -83,22 +84,23 @@ internal static class FrostbiteTocReader
                 ReadUInt32BigEndian(stream),
                 ReadUInt64BigEndian(stream));
 
+        var superBundle = ToSuperBundleName(relativePath);
         var directChunks = ReadDirectChunks(
-            stream, chunkGuidOffset, dataOffset, chunkCount);
+            stream, chunkGuidOffset, dataOffset, chunkCount, superBundle);
 
         IReadOnlyList<string> names = (flags & CompressedStringsFlag) != 0
             ? ReadCompressedNames(stream, rawBundles, namesOffset, namesWordCount,
                 decodeTableOffset, decodeTableCount)
             : ReadPlainNames(stream, rawBundles, namesOffset);
 
-        var casBundles = ReadCasBundles(stream, rawBundles, names);
+        var casBundles = ReadCasBundles(stream, rawBundles, names, superBundle);
         return new FrostbiteTocReadResult(
             new FrostbiteTocIndex(relativePath, flags, bundleCount, chunkCount, names),
             casBundles, directChunks);
     }
 
     private static IReadOnlyList<FrostbiteDirectChunk> ReadDirectChunks(
-        Stream stream, uint chunkGuidOffset, uint dataOffset, int chunkCount)
+        Stream stream, uint chunkGuidOffset, uint dataOffset, int chunkCount, string superBundle)
     {
         if (chunkCount == 0) return [];
 
@@ -141,14 +143,14 @@ internal static class FrostbiteTocReader
             var offset = ReadUInt32BigEndian(stream);
             var size = ReadUInt32BigEndian(stream);
             result.Add(new FrostbiteDirectChunk(
-                id, new FrostbiteCasLocation(patch, catalog, cas, offset, size),
+                id, superBundle, new FrostbiteCasLocation(patch, catalog, cas, offset, size),
                 checked(chunkDataPosition + (long)index * 16)));
         }
         return result;
     }
 
     private static IReadOnlyList<FrostbiteCasBundle> ReadCasBundles(
-        Stream stream, IReadOnlyList<RawBundle> bundles, IReadOnlyList<string> names)
+        Stream stream, IReadOnlyList<RawBundle> bundles, IReadOnlyList<string> names, string superBundle)
     {
         const uint memoryResident = 0x80000000;
         const uint inlineRead = 0x40000000;
@@ -203,9 +205,21 @@ internal static class FrostbiteTocReader
             }
 
             result.Add(new FrostbiteCasBundle(
-                names[bundleIndex], locations[0], locations.Skip(1).ToArray()));
+                names[bundleIndex], superBundle, locations[0], locations.Skip(1).ToArray()));
         }
         return result;
+    }
+
+    private static string ToSuperBundleName(string relativePath)
+    {
+        var normalized = relativePath.Replace('\\', '/');
+        foreach (var prefix in new[] { "Data/", "Patch/" })
+            if (normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                normalized = normalized[prefix.Length..];
+        if (normalized.StartsWith("Win32/", StringComparison.OrdinalIgnoreCase))
+            normalized = normalized["Win32/".Length..];
+        return Path.ChangeExtension(normalized, null)?.Replace('\\', '/').ToLowerInvariant()
+            ?? throw new InvalidDataException("TOC has no superbundle name.");
     }
 
     private static IReadOnlyList<string> ReadCompressedNames(

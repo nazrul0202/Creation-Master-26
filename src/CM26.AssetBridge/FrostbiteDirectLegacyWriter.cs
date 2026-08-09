@@ -231,7 +231,7 @@ internal static class FrostbiteDirectLegacyWriter
     private static FrostbiteIndexedAsset CreateChunkAsset(LegacyAssetTarget target) =>
         new(FrostbiteAssetKind.Chunk, target.OriginalChunkId.ToString("D"),
             target.OriginalSha1, 0, 0, string.Empty, 0, target.OriginalChunkId,
-            0, 0, target.OriginalInPatch, target.OriginalCatalog, target.OriginalCas,
+            0, 0, string.Empty, target.OriginalInPatch, target.OriginalCatalog, target.OriginalCas,
             target.OriginalOffset, target.OriginalCompressedSize);
 
     private static ManifestEntry[] ParseManifest(byte[] manifest)
