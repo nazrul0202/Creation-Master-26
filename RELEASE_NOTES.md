@@ -1,5 +1,11 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.87 - complete editable player workbench (2026-08-10)
+
+- Rebuilt the main Players screen as a white CM26 player card with profile, OVR/GRO/POT, key ratings, player info, contract, roles, traits guidance, and all six outfield categories plus goalkeeping.
+- Card attribute values are directly editable with 0-99 validation; Info, Skills & Traits, Face, and Details & Roles tabs expose the remaining editable player data.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.87.
+
 ## Version 1.0.86 - editable CM26 FIFA projects (2026-08-10)
 
 - Added `File > Export CM26 Project (.fifaproject)` to save an editable, checksum-verified snapshot of the staged database and assets.

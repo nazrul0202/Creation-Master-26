@@ -29,6 +29,7 @@ public sealed class PlayersSection : SectionBase
     private readonly Dictionary<string, Panel> _overviewBars = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Label> _overviewFacts = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<TextBox>> _overviewAttributeValues = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<Label>> _overviewSupplementValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<Panel>> _playerStatBars = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Button> _playerLayoutButtons = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Button> _playerCategoryButtons = new(StringComparer.OrdinalIgnoreCase);
@@ -244,9 +245,9 @@ public sealed class PlayersSection : SectionBase
     {
         var page = Page("Player");
         var canvas = Canvas(page);
-        canvas.AutoScrollMinSize = new Size(1370, 690);
+        canvas.AutoScrollMinSize = new Size(1370, 940);
         canvas.BackColor = Color.FromArgb(235, 237, 234);
-        var card = new Panel { Location = new Point(12, 12), Size = new Size(1340, 660), BackColor = Color.FromArgb(235, 237, 234) };
+        var card = new Panel { Location = new Point(12, 12), Size = new Size(1340, 910), BackColor = Color.FromArgb(235, 237, 234) };
         canvas.Controls.Add(card);
         var header = new Panel { Location = new Point(16, 16), Size = new Size(1308, 142), BackColor = Color.White };
         card.Controls.Add(header);
@@ -309,6 +310,17 @@ public sealed class PlayersSection : SectionBase
             ("Vision", "vision"), ("Aggression", "aggression"), ("Interceptions", "interceptions"), ("Att. position", "positioning"), ("Reactions", "reactions"));
         AddOverviewAttributeGroup(card, "DEFENDING", Color.FromArgb(57, 160, 197), 892, 480,
             ("Def. awareness", "defensiveawareness"), ("Stand tackle", "standingtackle"), ("Slide tackle", "slidingtackle"), ("Heading accuracy", "headingaccuracy"), ("Strength", "strength"));
+        AddOverviewAttributeGroup(card, "GOALKEEPING", Color.FromArgb(210, 54, 62), 18, 644,
+            ("GK diving", "gkdiving"), ("GK handling", "gkhandling"), ("GK kicking", "gkkicking"), ("GK positioning", "gkpositioning"), ("GK reflexes", "gkreflexes"));
+        AddOverviewSupplement(card, "CONTRACT & VALUE", 455, 644,
+            ("Contract until", "contractvaliduntil"), ("Jersey number", "jerseynumber"), ("Reputation", "internationalrep"));
+        AddOverviewSupplement(card, "PLAYING ROLES", 892, 644,
+            ("Role 1", "role1"), ("Role 2", "role2"), ("Role 3", "role3"), ("Role 4", "role4"));
+        var traits = new Panel { Location = new Point(455, 804), Size = new Size(855, 82), BackColor = Color.White };
+        traits.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(855, 4), BackColor = Color.FromArgb(116, 185, 34) });
+        traits.Controls.Add(new Label { Text = "PLAYSTYLES & TRAITS", Location = new Point(14, 12), Size = new Size(240, 18), Font = Theme.BodyBold, ForeColor = Color.FromArgb(65, 105, 39) });
+        traits.Controls.Add(new Label { Text = "Edit traits and specialities in Skills & Traits. Edit roles in Details & Roles.", Location = new Point(14, 39), Size = new Size(810, 24), Font = Theme.Body, ForeColor = Color.FromArgb(92, 98, 88) });
+        card.Controls.Add(traits);
         var edit = new Button { Text = "Edit player data...", Location = new Point(1088, 610), Size = new Size(158, 30), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(45, 70, 52), ForeColor = Color.White };
         edit.FlatAppearance.BorderSize = 0;
         edit.FlatAppearance.MouseOverBackColor = Color.FromArgb(73, 103, 78);
@@ -316,7 +328,7 @@ public sealed class PlayersSection : SectionBase
         card.Controls.Add(edit);
         var note = new Label { Text = "Read-only career overview · Edit all database values in the Info and Skills tabs.", Location = new Point(28, 550), Size = new Size(800, 24), ForeColor = Color.FromArgb(166, 184, 187), Font = Theme.Body };
         note.Visible = false;
-        note.Location = new Point(18, 612);
+        note.Location = new Point(18, 858);
         card.Controls.Add(note);
     }
 
@@ -454,6 +466,25 @@ public sealed class PlayersSection : SectionBase
         }
         if (StageField(TableName, CurrentRecordIndex, field, rating.ToString(), _stagingGrid))
             ShowRecord(CurrentRecordIndex);
+    }
+
+    private void AddOverviewSupplement(Control parent, string title, int x, int y, params (string Label, string Field)[] entries)
+    {
+        var group = new Panel { Location = new Point(x, y), Size = new Size(418, 150), BackColor = Color.White };
+        group.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(418, 4), BackColor = Color.FromArgb(116, 185, 34) });
+        group.Controls.Add(new Label { Text = title, Location = new Point(14, 12), Size = new Size(360, 20), Font = Theme.BodyBold, ForeColor = Color.FromArgb(65, 105, 39) });
+        for (var index = 0; index < entries.Length; index++)
+        {
+            var (label, field) = entries[index];
+            var yOffset = 40 + index * 25;
+            group.Controls.Add(new Label { Text = label, Location = new Point(14, yOffset), Size = new Size(185, 20), Font = Theme.Body, ForeColor = Color.FromArgb(55, 55, 51) });
+            var value = new Label { Location = new Point(204, yOffset), Size = new Size(198, 20), TextAlign = ContentAlignment.MiddleRight, Font = Theme.BodyBold, ForeColor = Color.FromArgb(37, 37, 34), AutoEllipsis = true };
+            group.Controls.Add(value);
+            if (!_overviewSupplementValues.TryGetValue(field, out var values))
+                _overviewSupplementValues[field] = values = [];
+            values.Add(value);
+        }
+        parent.Controls.Add(group);
     }
 
     private void AddOverviewMetric(Control parent, string code, string[] fields, int x, int y, Color accent)
@@ -1304,6 +1335,12 @@ public sealed class PlayersSection : SectionBase
                 label.ForeColor = writable ? Color.FromArgb(42, 111, 29) : Color.FromArgb(100, 100, 96);
                 ToolTip.SetToolTip(label, writable ? "Enter a value from 0 to 99, then press Enter." : "This FC26 field is not writable.");
             }
+        }
+        foreach (var (field, labels) in _overviewSupplementValues)
+        {
+            var text = GetOverviewText(field);
+            foreach (var label in labels)
+                label.Text = string.IsNullOrWhiteSpace(text) ? "-" : text;
         }
         foreach (var (field, bars) in _playerStatBars)
         {
