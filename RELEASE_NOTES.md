@@ -1,5 +1,10 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.90 - player-card styling refresh (2026-08-10)
+
+- Refreshed the player card with rounded header, ratings, information and attribute panels.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.90.
+
 ## Version 1.0.89 - named player card (2026-08-10)
 
 - The one-page player workbench no longer displays raw `trait`, `icontrait`, or `role` field names and values.

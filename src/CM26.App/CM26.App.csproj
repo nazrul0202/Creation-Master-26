@@ -20,6 +20,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Keep local source snapshots available without compiling a second PlayersSection type. -->
+    <Compile Remove="Sections\PlayersSectionBACKUP.cs" />
     <ProjectReference Include="..\CM26.AssetBridge\CM26.AssetBridge.csproj"
                       ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\CM26.Application\CM26.Application.csproj" />

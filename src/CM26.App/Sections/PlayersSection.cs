@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Diagnostics;
 using System.Windows.Forms;
 using CM26.App.Controls;
@@ -31,6 +32,9 @@ public sealed class PlayersSection : SectionBase
     private readonly Dictionary<string, List<TextBox>> _overviewAttributeValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<Label>> _overviewSupplementValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<Panel>> _playerStatBars = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<Panel>> _overviewAttributeBadges = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Panel> _overviewMetricTiles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Panel> _overviewRatingTiles = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Button> _playerLayoutButtons = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Button> _playerCategoryButtons = new(StringComparer.OrdinalIgnoreCase);
     private readonly Label _overviewName = new();
@@ -257,6 +261,7 @@ public sealed class PlayersSection : SectionBase
         var card = new Panel { Location = new Point(12, 12), Size = new Size(1340, 910), BackColor = Color.FromArgb(235, 237, 234) };
         canvas.Controls.Add(card);
         var header = new Panel { Location = new Point(16, 16), Size = new Size(1308, 142), BackColor = Color.White };
+        ApplyRoundedCorners(header, 14);
         card.Controls.Add(header);
         header.Controls.Add(new Panel { Location = new Point(0, 0), Size = new Size(6, 142), BackColor = Color.FromArgb(116, 185, 34) });
         _overviewFace.Location = new Point(16, 13);
@@ -289,6 +294,7 @@ public sealed class PlayersSection : SectionBase
         AddOverviewTile(header, _overviewGrowth, "GRO", 940, Color.FromArgb(205, 142, 16));
         AddOverviewTile(header, _overviewPotential, "POT", 1160, Color.FromArgb(72, 156, 29));
         var facts = new Panel { Location = new Point(16, 172), Size = new Size(1308, 92), BackColor = Color.FromArgb(255, 255, 253) };
+        ApplyRoundedCorners(facts, 12);
         card.Controls.Add(facts);
         facts.Controls.Add(new Label { Text = "PLAYER INFO", Location = new Point(12, 4), Size = new Size(180, 16), Font = Theme.Muted9, ForeColor = Color.FromArgb(106, 110, 101) });
         AddOverviewFact(facts, "Position", "preferredposition1", 12);
@@ -326,13 +332,15 @@ public sealed class PlayersSection : SectionBase
         card.Controls.Add(note);
     }
 
-    private static void AddOverviewTile(Control parent, Label value, string title, int x, Color accent)
+    private void AddOverviewTile(Control parent, Label value, string title, int x, Color accent)
     {
         var tile = new Panel { Location = new Point(x, 22), Size = new Size(90, 112), BackColor = accent };
+        ApplyRoundedCorners(tile, 14);
         value.Location = new Point(5, 10); value.Size = new Size(80, 54); value.Font = new Font("Segoe UI", 24, FontStyle.Bold); value.TextAlign = ContentAlignment.MiddleCenter; value.ForeColor = Color.White;
         tile.Controls.Add(value);
         tile.Controls.Add(new Label { Text = title, Location = new Point(4, 73), Size = new Size(82, 20), TextAlign = ContentAlignment.MiddleCenter, Font = Theme.BodyBold, ForeColor = Color.White });
         parent.Controls.Add(tile);
+        _overviewRatingTiles[title] = tile;
     }
 
     private static Color Lighten(Color color, int amount)
@@ -344,20 +352,51 @@ public sealed class PlayersSection : SectionBase
             color.B + (255 - color.B) * amount / 255);
     }
 
+    /// <summary>FUT-style rating grade used for the fcradar-style colored badges (0-99 scale).</summary>
+    private static Color RatingColor(int rating) => rating switch
+    {
+        >= 90 => Color.FromArgb(24, 133, 74),
+        >= 80 => Color.FromArgb(92, 173, 61),
+        >= 70 => Color.FromArgb(224, 138, 39),
+        >= 60 => Color.FromArgb(226, 170, 40),
+        >= 50 => Color.FromArgb(213, 99, 53),
+        > 0 => Color.FromArgb(196, 63, 63),
+        _ => Color.FromArgb(196, 199, 191)
+    };
+
+    /// <summary>Clips a control to a rounded rectangle. Cheap and one-shot since every
+    /// overview tile/badge here has a fixed size set at creation time.</summary>
+    private static void ApplyRoundedCorners(Control control, int radius)
+    {
+        if (control.Width <= 0 || control.Height <= 0) return;
+        var d = Math.Min(radius * 2, Math.Min(control.Width, control.Height));
+        var rect = new Rectangle(0, 0, control.Width, control.Height);
+        using var path = new GraphicsPath();
+        path.AddArc(rect.X, rect.Y, d, d, 180, 90);
+        path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
+        path.AddArc(rect.Right - d, rect.Bottom - d, d, d, 0, 90);
+        path.AddArc(rect.X, rect.Bottom - d, d, d, 90, 90);
+        path.CloseFigure();
+        control.Region?.Dispose();
+        control.Region = new Region(path);
+    }
+
     private void AddHeaderMetric(Control parent, string code, int x, Color accent, params string[] fields)
     {
         var metric = new Panel { Location = new Point(x, 96), Size = new Size(106, 32), BackColor = Lighten(accent, 235) };
-        metric.Controls.Add(new Panel { Location = new Point(0, 0), Size = new Size(4, 32), BackColor = accent });
-        var value = new Label { Location = new Point(11, 4), Size = new Size(40, 23), Font = new Font("Segoe UI", 11, FontStyle.Bold), ForeColor = accent, TextAlign = ContentAlignment.MiddleLeft, Tag = fields };
+        ApplyRoundedCorners(metric, 8);
+        var value = new Label { Location = new Point(11, 4), Size = new Size(40, 23), Font = new Font("Segoe UI", 11, FontStyle.Bold), ForeColor = Color.White, TextAlign = ContentAlignment.MiddleLeft, Tag = fields };
         metric.Controls.Add(value);
-        metric.Controls.Add(new Label { Text = code, Location = new Point(47, 5), Size = new Size(52, 20), Font = Theme.BodyBold, ForeColor = Color.FromArgb(45, 45, 42), TextAlign = ContentAlignment.MiddleRight });
+        metric.Controls.Add(new Label { Text = code, Location = new Point(47, 5), Size = new Size(52, 20), Font = Theme.BodyBold, ForeColor = Color.White, TextAlign = ContentAlignment.MiddleRight });
         _overviewRatings[code] = value;
+        _overviewMetricTiles[code] = metric;
         parent.Controls.Add(metric);
     }
 
     private void AddOverviewFact(Control parent, string title, string field, int x, string suffix = "")
     {
         var block = new Panel { Location = new Point(x, 22), Size = new Size(196, 58), BackColor = Color.FromArgb(246, 248, 244) };
+        ApplyRoundedCorners(block, 8);
         block.Controls.Add(new Label { Text = title.ToUpperInvariant(), Location = new Point(10, 6), Size = new Size(176, 16), Font = new Font(Theme.Body, FontStyle.Bold), ForeColor = Color.FromArgb(109, 109, 101) });
         var value = new Label { Location = new Point(10, 25), Size = new Size(176, 26), Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = Color.FromArgb(41, 41, 38), AutoEllipsis = true, Tag = suffix };
         block.Controls.Add(value);
@@ -411,6 +450,7 @@ public sealed class PlayersSection : SectionBase
     private void AddOverviewAttributeGroup(Control parent, string title, Color accent, int x, int y, params (string Label, string Field)[] attributes)
     {
         var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), BackColor = Color.White };
+        ApplyRoundedCorners(group, 12);
         group.Controls.Add(new Panel { Location = new Point(0, 0), Size = new Size(418, 4), BackColor = accent });
         group.Controls.Add(new Label { Text = title, Location = new Point(14, 12), Size = new Size(250, 20), Font = Theme.BodyBold, ForeColor = accent });
         var row = 0;
@@ -465,6 +505,7 @@ public sealed class PlayersSection : SectionBase
     private void AddOverviewSupplement(Control parent, string title, int x, int y, params (string Label, string Field)[] entries)
     {
         var group = new Panel { Location = new Point(x, y), Size = new Size(418, 150), BackColor = Color.White };
+        ApplyRoundedCorners(group, 12);
         group.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(418, 4), BackColor = Color.FromArgb(116, 185, 34) });
         group.Controls.Add(new Label { Text = title, Location = new Point(14, 12), Size = new Size(360, 20), Font = Theme.BodyBold, ForeColor = Color.FromArgb(65, 105, 39) });
         for (var index = 0; index < entries.Length; index++)
