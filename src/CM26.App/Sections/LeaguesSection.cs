@@ -36,6 +36,9 @@ public sealed class LeaguesSection : SectionBase
     private readonly ToolStripButton _removeTeam = new("Remove");
     private readonly Dictionary<string, CheckBox> _leagueFlags = new(StringComparer.OrdinalIgnoreCase);
     private readonly ComboBox _countryPicker = new() { DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly Label _leagueNameLabel = new();
+    private readonly Label _leagueMetaLabel = new();
+    private readonly PictureBox _leagueLogoPreview = new();
     private int _leagueId;
     private bool _syncLeagueFlags;
     private bool _syncCountryPicker;
@@ -53,13 +56,34 @@ public sealed class LeaguesSection : SectionBase
         Tabs.Padding = new Point(3, 1);
 
         var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
-        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background };
+        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground };
         page.Controls.Add(canvas);
         Tabs.TabPages.Add(page);
 
-        // LeagueForm.cs: the team selector (3,3,467,454).
-        var teamBox = Group("Teams", new Point(3, 3), new Size(467, 454));
-        var teamTools = new ToolStrip { Location = new Point(4, 17), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text, Renderer = new DarkToolStripRenderer() };
+        // ── League header card ────────────────────────────────────────────
+        var header = CardLayout.CreateHeader(1340, 142, Color.FromArgb(0, 120, 212));
+        _leagueNameLabel.Location = new Point(150, 20);
+        _leagueNameLabel.Size = new Size(460, 36);
+        _leagueNameLabel.Font = new Font("Segoe UI", 20, FontStyle.Bold);
+        _leagueNameLabel.ForeColor = CardLayout.CardText;
+        header.Controls.Add(_leagueNameLabel);
+        _leagueMetaLabel.Location = new Point(153, 63);
+        _leagueMetaLabel.Size = new Size(500, 24);
+        _leagueMetaLabel.Font = Theme.BodyBold;
+        _leagueMetaLabel.ForeColor = CardLayout.CardMuted;
+        header.Controls.Add(_leagueMetaLabel);
+        _leagueLogoPreview.Location = new Point(16, 13);
+        _leagueLogoPreview.Size = new Size(116, 116);
+        _leagueLogoPreview.SizeMode = PictureBoxSizeMode.Zoom;
+        _leagueLogoPreview.BackColor = Color.FromArgb(243, 245, 241);
+        _leagueLogoPreview.BorderStyle = BorderStyle.None;
+        header.Controls.Add(_leagueLogoPreview);
+        CardLayout.ApplyRounded(header, 14);
+        canvas.Controls.Add(header);
+
+        // ── Teams card ────────────────────────────────────────────────────
+        var teamBox = CardLayout.CreateGroup(canvas, "Teams in League", Color.FromArgb(0, 120, 212), 16, 172, 467, 454);
+        var teamTools = new ToolStrip { Location = new Point(4, 26), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = CardLayout.CardWhite, ForeColor = Theme.Text, Renderer = new DarkToolStripRenderer() };
         teamTools.Items.Add(_teamPicker);
         teamTools.Items.Add(_addTeam);
         teamTools.Items.Add(_removeTeam);
@@ -77,7 +101,7 @@ public sealed class LeaguesSection : SectionBase
                 item.ForeColor = Theme.Text;
         _teamPicker.ComboBox.BackColor = Theme.Input;
         _teamPicker.ComboBox.ForeColor = Theme.Text;
-        var teamActions = new ToolStrip { Location = new Point(4, 43), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Text, Renderer = new DarkToolStripRenderer() };
+        var teamActions = new ToolStrip { Location = new Point(4, 52), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = CardLayout.CardWhite, ForeColor = Theme.Text, Renderer = new DarkToolStripRenderer() };
         teamActions.Items.Add(new ToolStripLabel("Find club to add") { ForeColor = Theme.Muted });
         teamActions.Items.Add(_teamSearch);
         var findTeam = new ToolStripButton("Find") { ForeColor = Theme.Text };
@@ -97,8 +121,8 @@ public sealed class LeaguesSection : SectionBase
             FindTeams();
             e.SuppressKeyPress = true;
         };
-        _teams.Location = new Point(4, 69);
-        _teams.Size = new Size(458, 381);
+        _teams.Location = new Point(4, 78);
+        _teams.Size = new Size(458, 368);
         _teams.View = View.LargeIcon;
         _teams.LargeImageList = _teamImages;
         _teams.MultiSelect = false;
@@ -132,53 +156,40 @@ public sealed class LeaguesSection : SectionBase
         teamBox.Controls.Add(teamTools);
         teamBox.Controls.Add(teamActions);
         teamBox.Controls.Add(_teams);
-        canvas.Controls.Add(teamBox);
 
-        // LeagueForm.cs: 256-square, 200x64 and 512x128 image workspace. The
-        // group is 457px tall so the 512x128 viewer (holder bottom at Y=446,
-        // including its view/import/remove row) is fully visible. The league
-        // name caption sits under the banner instead of covering the main
-        // logo's link row (Y 276-294).
-        var logos = Group("Logos", new Point(476, 3), new Size(532, 457));
-        logos.Controls.Add(Viewer(new Point(6, 18), new Size(256, 256), "256 x 256", out _mainLogo));
-        logos.Controls.Add(Viewer(new Point(268, 18), new Size(200, 64), "200 x 64", out _bannerLogo));
-        logos.Controls.Add(Viewer(new Point(6, 297), new Size(512, 128), "512 x 128", out _wideLogo));
+        // ── Logos card ────────────────────────────────────────────────────
+        var logos = CardLayout.CreateGroup(canvas, "Logos", Color.FromArgb(116, 185, 34), 499, 172, 532, 457);
+        logos.Controls.Add(Viewer(new Point(6, 26), new Size(256, 256), "256 x 256", out _mainLogo));
+        logos.Controls.Add(Viewer(new Point(268, 26), new Size(200, 64), "200 x 64", out _bannerLogo));
+        logos.Controls.Add(Viewer(new Point(6, 305), new Size(512, 128), "512 x 128", out _wideLogo));
         _logoCaption.Location = new Point(268, 110);
         _logoCaption.Size = new Size(200, 16);
         _logoCaption.AutoEllipsis = true;
         _logoCaption.Font = LegacyFont;
         _logoCaption.TextAlign = ContentAlignment.MiddleCenter;
-        _logoCaption.ForeColor = Theme.Muted;
-        _logoCaption.BackColor = Theme.Panel;
+        _logoCaption.ForeColor = CardLayout.CardSubtle;
+        _logoCaption.BackColor = CardLayout.CardWhite;
         logos.Controls.Add(_logoCaption);
-        canvas.Controls.Add(logos);
 
-        // CM16 objective thresholds have no FC26 league-table counterpart, so
-        // they are intentionally omitted instead of showing fake disabled data.
-        var names = Group("Names and Other Information", new Point(3, 463), new Size(531, 197));
-        AddField(names, "leaguename", "Database Name", new Point(120, 15), 152);
-        AddMirrorField(names, "leaguename", "Name", new Point(120, 41), 152);
-        AddMirrorField(names, "leaguename", "Long Name", new Point(120, 67), 152);
-        AddField(names, "leagueid", "League Id", new Point(120, 93), 122);
-        AddField(names, "level", "Level", new Point(120, 119), 122);
-        AddCountryPicker(names, new Point(120, 145));
-        AddField(names, "leaguetype", "Prestige", new Point(120, 171), 152);
+        // ── Names card ────────────────────────────────────────────────────
+        var names = CardLayout.CreateGroup(canvas, "Names and Information", Color.FromArgb(94, 108, 57), 16, 640, 531, 197);
+        AddField(names, "leaguename", "Database Name", new Point(120, 23), 152);
+        AddMirrorField(names, "leaguename", "Name", new Point(120, 49), 152);
+        AddMirrorField(names, "leaguename", "Long Name", new Point(120, 75), 152);
+        AddField(names, "leagueid", "League Id", new Point(120, 101), 122);
+        AddField(names, "level", "Level", new Point(120, 127), 122);
+        AddCountryPicker(names, new Point(120, 153));
+        AddField(names, "leaguetype", "Prestige", new Point(120, 179), 152);
 
-        canvas.Controls.Add(names);
-
-        // FC26 has these real league presentation/competition fields; CM16's
-        // objective threshold boxes are not part of the FC26 leagues schema.
-        // Use the empty lower-right workspace instead of creating a sparse
-        // vertical form below the league details.
-        var fc26 = Group("League Settings", new Point(540, 463), new Size(532, 197));
-        AddLeagueFlag(fc26, "Women's competition", "iswomencompetition", new Point(12, 20));
-        AddLeagueFlag(fc26, "International league", "isinternationalleague", new Point(12, 46));
-        AddLeagueFlag(fc26, "Competition pole flags", "iscompetitionpoleflagenabled", new Point(12, 72));
-        AddLeagueFlag(fc26, "Within transfer window", "iswithintransferwindow", new Point(230, 20));
-        AddLeagueFlag(fc26, "Competition scarves", "iscompetitionscarfenabled", new Point(230, 46));
-        AddLeagueFlag(fc26, "Crowd cards", "iscompetitioncrowdcardsenabled", new Point(230, 72));
-        AddLeagueFlag(fc26, "Banner enabled", "isbannerenabled", new Point(230, 98));
-        canvas.Controls.Add(fc26);
+        // ── League settings card ──────────────────────────────────────────
+        var fc26 = CardLayout.CreateGroup(canvas, "League Settings", Color.FromArgb(205, 142, 16), 559, 640, 532, 197);
+        AddLeagueFlag(fc26, "Women's competition", "iswomencompetition", new Point(12, 28));
+        AddLeagueFlag(fc26, "International league", "isinternationalleague", new Point(12, 54));
+        AddLeagueFlag(fc26, "Competition pole flags", "iscompetitionpoleflagenabled", new Point(12, 80));
+        AddLeagueFlag(fc26, "Within transfer window", "iswithintransferwindow", new Point(230, 28));
+        AddLeagueFlag(fc26, "Competition scarves", "iscompetitionscarfenabled", new Point(230, 54));
+        AddLeagueFlag(fc26, "Crowd cards", "iscompetitioncrowdcardsenabled", new Point(230, 80));
+        AddLeagueFlag(fc26, "Banner enabled", "isbannerenabled", new Point(230, 106));
     }
 
     protected override void CreateNewRecord()
@@ -278,6 +289,19 @@ public sealed class LeaguesSection : SectionBase
         _logoCaption.Text = string.IsNullOrWhiteSpace(logo)
             ? (string.IsNullOrWhiteSpace(name) ? "No local league logo" : $"{name} · no local logo")
             : name;
+
+        // ── Populate header card ──────────────────────────────────────────
+        _leagueNameLabel.Text = name ?? string.Empty;
+        _leagueMetaLabel.Text = $"League ID {record.Get(Col(table, "leagueid"))}  ·  Level {record.Get(Col(table, "level"))}";
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(logo) && File.Exists(logo))
+                _leagueLogoPreview.Image = Image.FromFile(logo);
+            else
+                _leagueLogoPreview.Image = null;
+        }
+        catch { _leagueLogoPreview.Image = null; }
+
         _teams.Items.Clear();
         _leagueId = int.TryParse(record.Get(Col(table, "leagueid")), out var id) ? id : 0;
         PopulateTeamLinks();

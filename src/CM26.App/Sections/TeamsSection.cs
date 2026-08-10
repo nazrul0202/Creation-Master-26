@@ -53,6 +53,9 @@ public sealed class TeamsSection : SectionBase
     private int _activeLineupTeamId;
     private bool _syncPlayerReferencePickers;
     private bool _syncFormationView;
+    private readonly Label _teamNameLabel = new();
+    private readonly Label _teamMetaLabel = new();
+    private readonly PictureBox _teamCrestPreview = new();
 
     public override string SectionKey => "teams";
     public override string SectionTitle => "Teams";
@@ -436,41 +439,77 @@ public sealed class TeamsSection : SectionBase
         Text = text, Location = location, Size = size, Font = LegacyFont, UseVisualStyleBackColor = true
     };
 
+    private static Button CardLayoutButton(string text, Point location, Size size)
+    {
+        var btn = new Button
+        {
+            Text = text, Location = location, Size = size,
+            FlatStyle = FlatStyle.Flat, Font = Theme.BodyBold,
+            BackColor = CardLayout.CardWhite, ForeColor = CardLayout.CardText,
+            Cursor = Cursors.Hand,
+        };
+        btn.FlatAppearance.BorderColor = Color.FromArgb(190, 190, 182);
+        btn.FlatAppearance.MouseOverBackColor = CardLayout.CardFieldBg;
+        return btn;
+    }
+
     private void AddGenericTab()
     {
         var page = Page("Generic");
         var canvas = Canvas(page);
+        canvas.BackColor = CardLayout.CardBackground;
 
-        var logos = Group("Logos", new Point(3, 3), new Size(270, 320));
-        logos.Controls.Add(CrestViewer(new Point(6, 19), new Size(256, 256)));
-        LegacyAssetActions.Attach(Services, logos, _crestViewers[0], new Point(6, 277), () => ShowRecord(CurrentRecordIndex));
+        // ── Team header card ──────────────────────────────────────────────
+        var header = CardLayout.CreateHeader(1340, 142, Color.FromArgb(0, 120, 212));
+        _teamNameLabel.Location = new Point(150, 20);
+        _teamNameLabel.Size = new Size(460, 36);
+        _teamNameLabel.Font = new Font("Segoe UI", 20, FontStyle.Bold);
+        _teamNameLabel.ForeColor = CardLayout.CardText;
+        header.Controls.Add(_teamNameLabel);
+        _teamMetaLabel.Location = new Point(153, 63);
+        _teamMetaLabel.Size = new Size(500, 24);
+        _teamMetaLabel.Font = Theme.BodyBold;
+        _teamMetaLabel.ForeColor = CardLayout.CardMuted;
+        header.Controls.Add(_teamMetaLabel);
+        _teamCrestPreview.Location = new Point(16, 13);
+        _teamCrestPreview.Size = new Size(116, 116);
+        _teamCrestPreview.SizeMode = PictureBoxSizeMode.Zoom;
+        _teamCrestPreview.BackColor = Color.FromArgb(243, 245, 241);
+        _teamCrestPreview.BorderStyle = BorderStyle.None;
+        header.Controls.Add(_teamCrestPreview);
+        CardLayout.ApplyRounded(header, 14);
+        canvas.Controls.Add(header);
+
+        // ── Crest / logos card ────────────────────────────────────────────
+        var logos = CardLayout.CreateGroup(canvas, "Crest", Color.FromArgb(0, 120, 212), 16, 172, 280, 320);
+        logos.Controls.Add(CrestViewer(new Point(6, 26), new Size(256, 256)));
+        LegacyAssetActions.Attach(Services, logos, _crestViewers[0], new Point(6, 284), () => ShowRecord(CurrentRecordIndex));
         _crestCaption.Location = new Point(8, 306);
         _crestCaption.Size = new Size(252, 12);
         _crestCaption.TextAlign = ContentAlignment.MiddleCenter;
-        _crestCaption.ForeColor = Theme.Muted;
+        _crestCaption.ForeColor = CardLayout.CardSubtle;
         _crestCaption.Font = LegacyFont;
-        _crestCaption.BackColor = Theme.Panel;
+        _crestCaption.BackColor = CardLayout.CardWhite;
         logos.Controls.Add(_crestCaption);
-        canvas.Controls.Add(logos);
 
-        // Preserve the original CM16 TeamForm geometry. FC26's canonical name
-        // is mirrored into the legacy display-name slots by the adapter.
-        var name = Group("Name", new Point(3, 439), new Size(270, 174));
-        AddBoundFields(name, new[]
+        // ── Name card ─────────────────────────────────────────────────────
+        var nameGroup = CardLayout.CreateGroup(canvas, "Name", Color.FromArgb(94, 108, 57), 16, 502, 280, 174);
+        AddBoundFields(nameGroup, new[]
         {
             ("Database Name", "teamname"), ("Full Name", "teamname"), ("Name (15 chars)", "teamname"),
             ("Name (10 chars)", "teamname"), ("Name (7 chars)", "teamname"), ("Score Board", "teamname")
-        }, 10, 18, 110, 136, 26);
-        canvas.Controls.Add(name);
+        }, 10, 30, 110, 136, 26);
 
-        var manager = Group("Manager", new Point(3, 621), new Size(270, 70));
-        AddBoundFields(manager, new[] { ("First Name", "managerid"), ("Surname", "managerid") }, 10, 18, 98, 158, 26);
-        canvas.Controls.Add(manager);
+        // ── Manager card ──────────────────────────────────────────────────
+        var managerGroup = CardLayout.CreateGroup(canvas, "Manager", Color.FromArgb(105, 105, 105), 16, 686, 280, 70);
+        AddBoundFields(managerGroup, new[] { ("First Name", "managerid"), ("Surname", "managerid") }, 10, 30, 98, 158, 26);
 
-        var info = Group("Info", new Point(279, 3), new Size(270, 393));
+        // ── Team info card ────────────────────────────────────────────────
+        var info = CardLayout.CreateGroup(canvas, "Team Info", Color.FromArgb(0, 120, 212), 312, 172, 280, 393);
         for (var i = 0; i < 3; i++)
         {
-            var chip = new Panel { Location = new Point(98 + (i * 37), 13), Size = new Size(23, 23), BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle };
+            var chip = new Panel { Location = new Point(98 + (i * 37), 28), Size = new Size(23, 23), BackColor = CardLayout.CardFieldBg, BorderStyle = BorderStyle.FixedSingle };
+            CardLayout.ApplyRounded(chip, 4);
             _teamColorChips.Add(chip);
             info.Controls.Add(chip);
         }
@@ -480,81 +519,77 @@ public sealed class TeamsSection : SectionBase
             ("Domestic", "domesticprestige"), ("International", "internationalprestige"), ("Budget", "clubworth"),
             ("Overall Rating", "overallrating"), ("Attack Rating", "attackrating"), ("Midfield Rating", "midfieldrating"),
             ("Defence Rating", "defenserating"), ("Ball Number", "ballid")
-        }, 10, 44, 115, 141, 26);
-        var search = new TextBox { Location = new Point(105, 334), Size = new Size(84, 21), Font = LegacyFont };
+        }, 10, 56, 115, 141, 26);
+        var search = new TextBox { Location = new Point(105, 348), Size = new Size(84, 21), Font = LegacyFont };
         Theme.ApplyTextBox(search);
-        var find = LegacyButton("Find", new Point(195, 332), new Size(58, 24));
+        var find = CardLayoutButton("Find", new Point(195, 346), new Size(58, 24));
         find.Click += (_, _) => FindTeam(search.Text);
         search.KeyDown += (_, eventArgs) => { if (eventArgs.KeyCode == Keys.Enter) { FindTeam(search.Text); eventArgs.SuppressKeyPress = true; } };
-        info.Controls.Add(new Label { Text = "Find team record", Location = new Point(12, 336), Size = new Size(93, 20), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft });
+        info.Controls.Add(new Label { Text = "Find team record", Location = new Point(12, 350), Size = new Size(93, 20), Font = LegacyFont, TextAlign = ContentAlignment.MiddleLeft, ForeColor = CardLayout.CardFieldLabel, BackColor = CardLayout.CardWhite });
         info.Controls.Add(search);
         info.Controls.Add(find);
-        var importSquad = LegacyButton("Import Scraper Squad", new Point(12, 360), new Size(241, 27));
+        var importSquad = CardLayoutButton("Import Scraper Squad", new Point(12, 374), new Size(241, 27));
         importSquad.Click += (_, _) => ImportScraperSquad();
         info.Controls.Add(importSquad);
-        canvas.Controls.Add(info);
 
-        var lastYear = Group("Last Year Performance", new Point(279, 404), new Size(270, 96));
-        AddBoundFields(lastYear, new[] { ("League", "leagueid"), ("Position", "form"), ("Is Champion", "prev_el_champ") }, 10, 18, 110, 146, 26);
-        canvas.Controls.Add(lastYear);
+        // ── Last year / location card ─────────────────────────────────────
+        var lastYear = CardLayout.CreateGroup(canvas, "Last Year Performance", Color.FromArgb(205, 142, 16), 312, 575, 280, 96);
+        AddBoundFields(lastYear, new[] { ("League", "leagueid"), ("Position", "form"), ("Is Champion", "prev_el_champ") }, 10, 30, 110, 146, 26);
 
-        var location = Group("Location", new Point(279, 508), new Size(270, 96));
-        AddBoundFields(location, new[] { ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Offset", "utcoffset") }, 10, 18, 110, 140, 26);
-        canvas.Controls.Add(location);
+        var locationGroup = CardLayout.CreateGroup(canvas, "Location", Color.FromArgb(57, 160, 197), 312, 681, 280, 96);
+        AddBoundFields(locationGroup, new[] { ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Offset", "utcoffset") }, 10, 30, 110, 140, 26);
 
-        var traits = Group("Opponent Behaviour", new Point(555, 3), new Size(360, 98));
-        AddBoundFields(traits, new[] { ("Vs. weaker teams", "trait1vweak"), ("Vs. stronger teams", "trait1vstrong"), ("Vs. equal teams", "trait1vequal") }, 14, 22, 154, 150, 26);
+        // ── Opponent behaviour card ───────────────────────────────────────
+        var traits = CardLayout.CreateGroup(canvas, "Opponent Behaviour", Color.FromArgb(190, 95, 219), 608, 172, 360, 98);
+        AddBoundFields(traits, new[] { ("Vs. weaker teams", "trait1vweak"), ("Vs. stronger teams", "trait1vstrong"), ("Vs. equal teams", "trait1vequal") }, 14, 30, 154, 150, 26);
         ToolTip.SetToolTip(traits,
             "Internal behaviour bitmasks used to vary team tendencies against weaker, stronger, or evenly matched opponents.");
-        canvas.Controls.Add(traits);
 
-        var kitLinks = Group("Kit Links", new Point(555, 109), new Size(276, 50));
+        // ── Kit links card ────────────────────────────────────────────────
+        var kitLinks = CardLayout.CreateGroup(canvas, "Kit Links", Color.FromArgb(116, 185, 34), 608, 280, 360, 56);
         foreach (var link in new[] { "Home Kit", "Away Kit", "Keeper Kit", "3rd Kit" })
-            kitLinks.Controls.Add(new LinkLabel { Text = link, AutoSize = true, Location = new Point(12 + (kitLinks.Controls.Count * 64), 27), Font = LegacyFont });
-        canvas.Controls.Add(kitLinks);
+            kitLinks.Controls.Add(new LinkLabel { Text = link, AutoSize = true, Location = new Point(14 + (kitLinks.Controls.Count * 72), 34), Font = LegacyFont });
 
-        // CM16 keeps the day-to-day club record on one General/Generic surface.
-        // These are FC26 fields; only their placement changes here.
-        var club = Group("Club Details", new Point(555, 167), new Size(360, 228));
+        // ── Club details card ─────────────────────────────────────────────
+        var club = CardLayout.CreateGroup(canvas, "Club Details", Color.FromArgb(0, 120, 212), 608, 344, 360, 228);
         AddBoundFields(club, new[]
         {
             ("Founded", "foundationyear"), ("City", "cityid"), ("Gender", "gender"),
             ("Stadium Capacity", "teamstadiumcapacity"), ("Training Stadium", "trainingstadium"),
             ("Youth Development", "youthdevelopment"), ("Popularity", "popularity"), ("Profitability", "profitability")
-        }, 10, 20, 160, 150, 26);
-        canvas.Controls.Add(club);
+        }, 10, 30, 160, 150, 26);
 
-        var history = Group("Club History", new Point(555, 403), new Size(360, 124));
+        // ── Club history card ─────────────────────────────────────────────
+        var history = CardLayout.CreateGroup(canvas, "Club History", Color.FromArgb(205, 142, 16), 608, 580, 360, 124);
         AddBoundFields(history, new[]
         {
             ("League Titles", "leaguetitles"), ("Domestic Cups", "domesticcups"),
             ("UEFA Champions League", "uefa_cl_wins"), ("UEFA Europa League", "uefa_el_wins")
-        }, 10, 20, 170, 175, 26);
-        canvas.Controls.Add(history);
+        }, 10, 30, 170, 175, 26);
 
-        var ratings = Group("Matchday Ratings", new Point(921, 3), new Size(290, 152));
+        // ── Matchday ratings card ─────────────────────────────────────────
+        var ratings = CardLayout.CreateGroup(canvas, "Matchday Ratings", Color.FromArgb(59, 165, 199), 984, 172, 290, 152);
         AddBoundFields(ratings, new[]
         {
             ("Overall", "matchdayoverallrating"), ("Attack", "matchdayattackrating"),
             ("Midfield", "matchdaymidfieldrating"), ("Defence", "matchdaydefenserating"),
             ("Current Form", "form")
-        }, 15, 22, 116, 150, 26);
-        canvas.Controls.Add(ratings);
+        }, 15, 30, 116, 150, 26);
 
-        var tactics = Group("Team Tendency", new Point(921, 163), new Size(380, 126));
+        // ── Team tendency card ────────────────────────────────────────────
+        var tactics = CardLayout.CreateGroup(canvas, "Team Tendency", Color.FromArgb(224, 100, 79), 984, 332, 380, 126);
         AddBoundFields(tactics, new[]
         {
             ("Build Up Play", "buildupplay"), ("Defensive Depth", "defensivedepth"),
             ("Opponent Weak Threshold", "opponentweakthreshold"), ("Opponent Strong Threshold", "opponentstrongthreshold")
-        }, 14, 22, 190, 150, 26);
-        canvas.Controls.Add(tactics);
+        }, 14, 30, 190, 150, 26);
 
-        var stadiumDetails = Group("Stadium", new Point(1217, 3), new Size(310, 106));
+        // ── Stadium card ──────────────────────────────────────────────────
+        var stadiumDetails = CardLayout.CreateGroup(canvas, "Stadium", Color.FromArgb(210, 54, 62), 984, 466, 380, 106);
         AddBoundFields(stadiumDetails, new[]
         {
             ("Stadium Name", "stadiumid"), ("Corner Flag Pole", "cornerflagpolecolor")
-        }, 15, 22, 140, 155, 26);
-        canvas.Controls.Add(stadiumDetails);
+        }, 15, 30, 140, 155, 26);
     }
 
     private void AddAudioTab()
@@ -1600,6 +1635,19 @@ public sealed class TeamsSection : SectionBase
                 editor.ForeColor = Theme.Muted;
             }
         }
+
+        // ── Populate header card ──────────────────────────────────────────
+        _teamNameLabel.Text = name ?? string.Empty;
+        _teamMetaLabel.Text = $"Team ID {id}  ·  {ResolveLinkedValue("countryid", crestTeamId)}  ·  {ResolveLinkedValue("leagueid", crestTeamId)}";
+        try
+        {
+            var crestPath = Services.Assets.GetTeamLogo(crestTeamId);
+            if (!string.IsNullOrWhiteSpace(crestPath) && File.Exists(crestPath))
+                _teamCrestPreview.Image = Image.FromFile(crestPath);
+            else
+                _teamCrestPreview.Image = null;
+        }
+        catch { _teamCrestPreview.Image = null; }
 
         _teamPlayers.Items.Clear();
         try

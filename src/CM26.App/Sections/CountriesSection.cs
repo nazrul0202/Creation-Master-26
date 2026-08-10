@@ -26,6 +26,9 @@ public sealed class CountriesSection : SectionBase
     private readonly CheckBox _topTier = new();
     private readonly CheckBox _showAllDatabaseCountries = new();
     private readonly Button _openNationalTeam = new();
+    private readonly Label _countryNameLabel = new();
+    private readonly Label _countryMetaLabel = new();
+    private readonly PictureBox _countryFlagPreview = new();
     private bool _syncTopTier;
     private bool _suppressListReload;
 
@@ -41,29 +44,49 @@ public sealed class CountriesSection : SectionBase
         Tabs.Padding = new Point(3, 1);
 
         var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
-        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background };
+        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground };
         page.Controls.Add(canvas);
         Tabs.TabPages.Add(page);
 
-        // Exact CountryForm.cs grouping: identity at left; 256/512/card/mini
-        // image viewers in the centre; country map at the right.
-        var country = LegacyGroup("Country", new Point(3, 1), new Size(767, 533));
-        AddField(country, "nationname", "Database Name", new Point(130, 14), 105);
-        AddField(country, "nationid", "Country Id", new Point(130, 40), 105);
-        AddMirrorField(country, "nationname", "Name", new Point(130, 66), 105);
-        AddField(country, "nationstartingfirstletter", "Starting Letter", new Point(130, 92), 105);
-        AddField(country, "isocountrycode", "Abbreviation", new Point(130, 118), 105);
-        AddField(country, "confederation", "Confederation", new Point(130, 144), 105);
-        AddMirrorField(country, "isocountrycode", "ISO Country Code", new Point(130, 170), 105);
-        AddField(country, "groupid", "Level", new Point(130, 196), 105);
-        AddField(country, "streetdressing", "Street Dressing", new Point(130, 222), 105);
+        // ── Country header card ───────────────────────────────────────────
+        var header = CardLayout.CreateHeader(1340, 142, Color.FromArgb(0, 120, 212));
+        _countryNameLabel.Location = new Point(150, 20);
+        _countryNameLabel.Size = new Size(460, 36);
+        _countryNameLabel.Font = new Font("Segoe UI", 20, FontStyle.Bold);
+        _countryNameLabel.ForeColor = CardLayout.CardText;
+        header.Controls.Add(_countryNameLabel);
+        _countryMetaLabel.Location = new Point(153, 63);
+        _countryMetaLabel.Size = new Size(500, 24);
+        _countryMetaLabel.Font = Theme.BodyBold;
+        _countryMetaLabel.ForeColor = CardLayout.CardMuted;
+        header.Controls.Add(_countryMetaLabel);
+        _countryFlagPreview.Location = new Point(16, 13);
+        _countryFlagPreview.Size = new Size(116, 116);
+        _countryFlagPreview.SizeMode = PictureBoxSizeMode.Zoom;
+        _countryFlagPreview.BackColor = Color.FromArgb(243, 245, 241);
+        _countryFlagPreview.BorderStyle = BorderStyle.None;
+        header.Controls.Add(_countryFlagPreview);
+        CardLayout.ApplyRounded(header, 14);
+        canvas.Controls.Add(header);
+
+        // ── Country details card ──────────────────────────────────────────
+        var country = CardLayout.CreateGroup(canvas, "Country", Color.FromArgb(0, 120, 212), 16, 172, 767, 533);
+        AddField(country, "nationname", "Database Name", new Point(130, 22), 105);
+        AddField(country, "nationid", "Country Id", new Point(130, 48), 105);
+        AddMirrorField(country, "nationname", "Name", new Point(130, 74), 105);
+        AddField(country, "nationstartingfirstletter", "Starting Letter", new Point(130, 100), 105);
+        AddField(country, "isocountrycode", "Abbreviation", new Point(130, 126), 105);
+        AddField(country, "confederation", "Confederation", new Point(130, 152), 105);
+        AddMirrorField(country, "isocountrycode", "ISO Country Code", new Point(130, 178), 105);
+        AddField(country, "groupid", "Level", new Point(130, 204), 105);
+        AddField(country, "streetdressing", "Street Dressing", new Point(130, 230), 105);
 
         _topTier.Text = "Top tier";
-        _topTier.Location = new Point(11, 250);
+        _topTier.Location = new Point(11, 258);
         _topTier.Size = new Size(100, 22);
         _topTier.Font = LegacyFont;
-        _topTier.BackColor = Theme.Panel;
-        _topTier.ForeColor = Theme.Text;
+        _topTier.BackColor = CardLayout.CardWhite;
+        _topTier.ForeColor = CardLayout.CardText;
         _topTier.FlatStyle = FlatStyle.Flat;
         _topTier.Tag = "top_tier";
         _topTier.CheckedChanged += (_, _) =>
@@ -74,28 +97,14 @@ public sealed class CountriesSection : SectionBase
         };
         country.Controls.Add(_topTier);
 
-        var addCountry = new Button
-        {
-            Text = "Add Country to Game",
-            Location = new Point(16, 284),
-            Size = new Size(194, 29),
-            Font = LegacyFont,
-        };
-        Theme.ApplyButton(addCountry);
+        var addCountry = CardLayoutButton("Add Country to Game", new Point(16, 292), new Size(194, 29));
         addCountry.Click += (_, _) => CreateNewRecord();
         country.Controls.Add(addCountry);
-        var createNationalTeam = new Button
-        {
-            Text = "Create National Team",
-            Location = new Point(16, 318),
-            Size = new Size(194, 29),
-            Font = LegacyFont,
-        };
-        Theme.ApplyButton(createNationalTeam);
+        var createNationalTeam = CardLayoutButton("Create National Team", new Point(16, 326), new Size(194, 29));
         createNationalTeam.Click += (_, _) => CreateNationalTeam();
         country.Controls.Add(createNationalTeam);
         _openNationalTeam.Text = "Open National Team";
-        _openNationalTeam.Location = new Point(16, 352);
+        _openNationalTeam.Location = new Point(16, 360);
         _openNationalTeam.Size = new Size(194, 29);
         _openNationalTeam.Font = LegacyFont;
         _openNationalTeam.Enabled = false;
@@ -105,17 +114,18 @@ public sealed class CountriesSection : SectionBase
         country.Controls.Add(new Label
         {
             Text = "Create a country ID, then\nadd its national team,\ndomestic league and clubs\nbefore a Career save.",
-            Location = new Point(16, 386),
+            Location = new Point(16, 394),
             Size = new Size(215, 66),
             Font = LegacyFont,
-            ForeColor = Theme.Muted,
-            BackColor = Theme.Panel,
-        });        _showAllDatabaseCountries.Text = "Show countries awaiting setup";
-        _showAllDatabaseCountries.Location = new Point(16, 456);
+            ForeColor = CardLayout.CardMuted,
+            BackColor = CardLayout.CardWhite,
+        });
+        _showAllDatabaseCountries.Text = "Show countries awaiting setup";
+        _showAllDatabaseCountries.Location = new Point(16, 464);
         _showAllDatabaseCountries.Size = new Size(210, 23);
         _showAllDatabaseCountries.Font = LegacyFont;
-        _showAllDatabaseCountries.BackColor = Theme.Panel;
-        _showAllDatabaseCountries.ForeColor = Theme.Text;
+        _showAllDatabaseCountries.BackColor = CardLayout.CardWhite;
+        _showAllDatabaseCountries.ForeColor = CardLayout.CardText;
         _showAllDatabaseCountries.FlatStyle = FlatStyle.Flat;
         _showAllDatabaseCountries.CheckedChanged += (_, _) =>
         {
@@ -125,22 +135,18 @@ public sealed class CountriesSection : SectionBase
         ToolTip.SetToolTip(_showAllDatabaseCountries,
             "Off: show only playable countries. On: also show database countries that still need a league, clubs and Compdata.");
         country.Controls.Add(_showAllDatabaseCountries);
-        country.Controls.Add(CreateViewer(new Point(240, 13), new Size(256, 256), "256 x 256", out var largeFlag, out var largeCaption));
-        country.Controls.Add(CreateViewer(new Point(502, 13), new Size(256, 256), "512 x 512", out var crestFlag, out var crestCaption));
-        country.Controls.Add(CreateViewer(new Point(240, 318), new Size(150, 150), "256 x 128", out var cardFlag, out var cardCaption));
-        country.Controls.Add(CreateViewer(new Point(502, 318), new Size(64, 64), "64 x 64", out var miniFlag, out var miniCaption));
+        country.Controls.Add(CreateViewer(new Point(240, 21), new Size(256, 256), "256 x 256", out var largeFlag, out var largeCaption));
+        country.Controls.Add(CreateViewer(new Point(502, 21), new Size(256, 256), "512 x 512", out var crestFlag, out var crestCaption));
+        country.Controls.Add(CreateViewer(new Point(240, 326), new Size(150, 150), "256 x 128", out var cardFlag, out var cardCaption));
+        country.Controls.Add(CreateViewer(new Point(502, 326), new Size(64, 64), "64 x 64", out var miniFlag, out var miniCaption));
         _flagViewers.AddRange([largeFlag, crestFlag, cardFlag, miniFlag]);
         _flagCaptions.AddRange([largeCaption, crestCaption, cardCaption, miniCaption]);
-        // Keep the flag commands clear of the image captions and the card flag.
-        // The former location at y=275 overlapped both controls at normal DPI.
-        LegacyAssetActions.Attach(Services, country, largeFlag, new Point(16, 502), RefreshCurrentRecord);
+        LegacyAssetActions.Attach(Services, country, largeFlag, new Point(16, 510), RefreshCurrentRecord);
 
-        canvas.Controls.Add(country);
-
-        var map = LegacyGroup("Map (Shape)", new Point(776, 3), new Size(528, 533));
-        map.Controls.Add(CreateViewer(new Point(8, 15), new Size(512, 256), "512 x 256", out _mapViewer, out _));
-        LegacyAssetActions.Attach(Services, map, _mapViewer, new Point(8, 294), RefreshCurrentRecord);
-        canvas.Controls.Add(map);
+        // ── Map card ──────────────────────────────────────────────────────
+        var map = CardLayout.CreateGroup(canvas, "Map (Shape)", Color.FromArgb(57, 160, 197), 799, 172, 528, 533);
+        map.Controls.Add(CreateViewer(new Point(8, 23), new Size(512, 256), "512 x 256", out _mapViewer, out _));
+        LegacyAssetActions.Attach(Services, map, _mapViewer, new Point(8, 302), RefreshCurrentRecord);
 
         AddNationalAudioTab();
     }
@@ -396,6 +402,19 @@ public sealed class CountriesSection : SectionBase
         ShowFlag(Services.Assets.GetFlag(nationId), nationId, nationName);
         ShowNationalAudio(nationId);
         UpdateOpenNationalTeam(nationId);
+
+        // ── Populate header card ──────────────────────────────────────────
+        _countryNameLabel.Text = nationName ?? string.Empty;
+        _countryMetaLabel.Text = $"Nation ID {record.Get(Col(table, "nationid"))}  ·  {record.Get(Col(table, "isocountrycode"))}  ·  {record.Get(Col(table, "confederation"))}";
+        try
+        {
+            var flagPath = Services.Assets.GetFlag(nationId);
+            if (!string.IsNullOrWhiteSpace(flagPath) && File.Exists(flagPath))
+                _countryFlagPreview.Image = Image.FromFile(flagPath);
+            else
+                _countryFlagPreview.Image = null;
+        }
+        catch { _countryFlagPreview.Image = null; }
     }
 
     /// <summary>Finds the record index of the national team linked to a country.</summary>
@@ -572,13 +591,27 @@ public sealed class CountriesSection : SectionBase
         {
             Text = label, Location = new Point(11, location.Y + 3), Size = new Size(Math.Max(70, location.X - 17), 18),
             Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true,
-            ForeColor = Theme.Muted, BackColor = Theme.Panel
+            ForeColor = CardLayout.CardFieldLabel, BackColor = CardLayout.CardWhite
         });
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(editor);
         editor.Leave += (_, _) => Commit(editor);
         parent.Controls.Add(editor);
         _editors.Add(editor);
+    }
+
+    private static Button CardLayoutButton(string text, Point location, Size size)
+    {
+        var btn = new Button
+        {
+            Text = text, Location = location, Size = size,
+            FlatStyle = FlatStyle.Flat, Font = Theme.BodyBold,
+            BackColor = CardLayout.CardWhite, ForeColor = CardLayout.CardText,
+            Cursor = Cursors.Hand,
+        };
+        btn.FlatAppearance.BorderColor = Color.FromArgb(190, 190, 182);
+        btn.FlatAppearance.MouseOverBackColor = CardLayout.CardFieldBg;
+        return btn;
     }
 
     /// <summary>
