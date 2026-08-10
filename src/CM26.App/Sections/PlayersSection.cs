@@ -49,6 +49,15 @@ public sealed class PlayersSection : SectionBase
     private int _currentPlayerId;
     private int _currentHeadAssetId;
     private readonly Dictionary<string, ComboBox> _referencePickers = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly string[] PlaystyleNames =
+    [
+        "Finesse Shot", "Power Shot", "Dead Ball", "Chip Shot", "Power Header", "Pinged Pass", "Long Ball Pass", "Tiki Taka",
+        "Incisive Pass", "Whipped Pass", "First Touch", "Technical", "Rapid", "Quick Step", "Trickster", "Press Proven",
+        "Flair", "Relentless", "Trivela", "Block", "Intercept", "Anticipate", "Slide Tackle", "Bruiser", "Jockey", "Aerial",
+        "Acrobatic", "Far Reach", "Footwork", "Cross Claimer", "Rush Out", "Deflector", "1v1 Close Down", "Long Throw"
+    ];
+    private static readonly string[] RoleNames =
+    [ "Goalkeeper", "Sweeper Keeper", "Defender", "Stopper", "Ball-Playing Defender", "Wide Back", "Fullback", "Wingback", "Falseback", "Attacking Wingback", "Inverted Wingback", "Holding", "Deep-Lying Playmaker", "Box-to-Box", "Playmaker", "Half Winger", "Winger", "Wide Playmaker", "Inside Forward", "Poacher", "Advanced Forward", "False 9", "Target Forward" ];
 
     public override string SectionKey => "players";
     public override string SectionTitle => "Players";
@@ -266,6 +275,10 @@ public sealed class PlayersSection : SectionBase
         _overviewMeta.Font = Theme.BodyBold;
         _overviewMeta.ForeColor = Color.FromArgb(94, 108, 57);
         header.Controls.Add(_overviewMeta);
+        var editDetails = new Button { Text = "Edit player details…", Location = new Point(690, 20), Size = new Size(176, 32), FlatStyle = FlatStyle.Flat, Font = Theme.BodyBold };
+        editDetails.FlatAppearance.BorderColor = Color.FromArgb(116, 185, 34);
+        editDetails.Click += (_, _) => OpenSinglePlayerEditor();
+        header.Controls.Add(editDetails);
         AddHeaderMetric(header, "PAC", 150, Color.FromArgb(129, 204, 33), "acceleration", "sprintspeed");
         AddHeaderMetric(header, "SHO", 268, Color.FromArgb(232, 175, 33), "finishing", "shotpower", "longshots", "penalties", "volleys");
         AddHeaderMetric(header, "PAS", 386, Color.FromArgb(74, 173, 222), "shortpassing", "longpassing", "vision", "crossing", "curve");
@@ -284,10 +297,6 @@ public sealed class PlayersSection : SectionBase
         AddOverviewFact(facts, "Height", "height", 648, " cm");
         AddOverviewFact(facts, "Weight", "weight", 860, " kg");
         AddOverviewFact(facts, "Preferred foot", "preferredfoot", 1072);
-
-        // FCRadar-style display controls.  They alter how the single player
-        // workbench communicates the same FC26 database values; no duplicate
-        // Info/Skills/Face/Details pages are required.
 
         var headings = new Label { Text = "PLAYER ATTRIBUTES", Location = new Point(18, 282), Size = new Size(420, 22), Font = Theme.BodyBold, ForeColor = Color.FromArgb(45, 45, 42) };
         card.Controls.Add(headings);
@@ -308,8 +317,8 @@ public sealed class PlayersSection : SectionBase
         AddOverviewSupplement(card, "CONTRACT & VALUE", 455, 644,
             ("Contract until", "contractvaliduntil"), ("Value", "value"), ("Wage", "wage"), ("Reputation", "internationalrep"));
         AddOverviewSupplement(card, "PLAYING ROLES", 892, 644,
-            ("Role 1", "role1"), ("Role 2", "role2"), ("Role 3", "role3"), ("Role 4", "role4"));
-        _traitsPanel = new ModernGroupBox { Text = "Playstyles & Traits", Location = new Point(455, 804), Size = new Size(855, 84) };
+            ("Primary role", "role1"), ("Secondary role", "role2"), ("Third role", "role3"), ("Fourth role", "role4"));
+        _traitsPanel = new ModernGroupBox { Text = "PLAYSTYLES", Location = new Point(455, 804), Size = new Size(855, 86) };
         card.Controls.Add(_traitsPanel);
         var note = new Label { Text = "Read-only career overview · Edit all database values in the Info and Skills tabs.", Location = new Point(28, 550), Size = new Size(800, 24), ForeColor = Color.FromArgb(166, 184, 187), Font = Theme.Body };
         note.Visible = false;
@@ -1353,6 +1362,8 @@ public sealed class PlayersSection : SectionBase
     private string GetOverviewText(string field)
     {
         if (!_fields.TryGetValue(field, out var value)) return string.Empty;
+        if (field.StartsWith("role", StringComparison.OrdinalIgnoreCase) && int.TryParse(value.RawValue, out var role))
+            return role is > 0 and <= 23 ? RoleNames[role - 1] : string.Empty;
         return TryGetMappedDisplay(field, _currentPlayerId, value.RawValue, out var mapped) ? mapped : value.Value;
     }
 
@@ -1479,51 +1490,50 @@ public sealed class PlayersSection : SectionBase
         foreach (var editor in _traitEditors) _editors.Remove(editor);
         _traitEditors.Clear();
         _traitsPanel.Controls.Clear();
-        var traitFields = table.Columns
-            .Where(c => c.Name.Contains("trait", StringComparison.OrdinalIgnoreCase) ||
-                        c.Name.Contains("playstyle", StringComparison.OrdinalIgnoreCase) ||
-                        c.Name.Contains("speciality", StringComparison.OrdinalIgnoreCase))
-            .Select(c => c.Name)
-            .ToList();
-        var neededHeight = traitFields.Count == 0
-            ? 60
-            : 24 + ((traitFields.Count + 1) / 2) * 30 + 10;
-        if (_traitsPanel.Height != neededHeight) _traitsPanel.Height = neededHeight;
-        if (traitFields.Count == 0)
+        var chips = new FlowLayoutPanel
         {
-            _traitsPanel.Controls.Add(new Label
-            {
-                Text = "This database has no separate player trait or playstyle fields.",
-                Location = new Point(14, 24), Size = new Size(580, 36), Font = LegacyFont, ForeColor = Theme.Muted
-            });
-            return;
-        }
+            Location = new Point(12, 23), Size = new Size(690, 53), AutoScroll = true,
+            WrapContents = true, BackColor = Color.White, Padding = new Padding(2), Margin = Padding.Empty
+        };
+        var names = DecodePlaystyles();
+        if (names.Count == 0)
+            chips.Controls.Add(new Label { Text = "No active Playstyles", AutoSize = true, Padding = new Padding(7, 5, 7, 5), Font = Theme.Body, ForeColor = Theme.Muted });
+        else
+            foreach (var (name, plus) in names)
+                chips.Controls.Add(CreatePlaystyleChip(name, plus));
+        _traitsPanel.Controls.Add(chips);
 
-        for (var index = 0; index < traitFields.Count; index++)
+        var edit = new Button { Text = "Edit playstyles…", Location = new Point(714, 32), Size = new Size(126, 28), FlatStyle = FlatStyle.Flat, Font = Theme.Muted9 };
+        edit.FlatAppearance.BorderColor = Color.FromArgb(116, 185, 34);
+        edit.Click += (_, _) => OpenSinglePlayerEditor();
+        _traitsPanel.Controls.Add(edit);
+    }
+
+    private static Control CreatePlaystyleChip(string name, bool plus) => new Label
+    {
+        Text = plus ? name + " +" : name, AutoSize = true, Margin = new Padding(3, 2, 3, 2), Padding = new Padding(8, 4, 8, 4),
+        Font = Theme.BodyBold, ForeColor = plus ? Color.FromArgb(48, 112, 27) : Color.FromArgb(67, 67, 62),
+        BackColor = plus ? Color.FromArgb(225, 243, 213) : Color.FromArgb(239, 241, 236), BorderStyle = BorderStyle.FixedSingle
+    };
+
+    private List<(string Name, bool Plus)> DecodePlaystyles()
+    {
+        var result = new List<(string Name, bool Plus)>();
+        AddPlaystyleMask("trait1", 0, false, result);
+        AddPlaystyleMask("trait2", 32, false, result);
+        AddPlaystyleMask("icontrait1", 0, true, result);
+        AddPlaystyleMask("icontrait2", 32, true, result);
+        return result.Distinct().ToList();
+    }
+
+    private void AddPlaystyleMask(string field, int offset, bool plus, ICollection<(string Name, bool Plus)> output)
+    {
+        if (!_fields.TryGetValue(field, out var value) || !uint.TryParse(value.RawValue, out var mask)) return;
+        for (var bit = 0; bit < 32; bit++)
         {
-            var field = traitFields[index];
-            var x = 14 + ((index % 2) * 294);
-            var y = 24 + ((index / 2) * 30);
-            _traitsPanel.Controls.Add(new Label { Text = FieldLabel(field), Location = new Point(x, y + 4), Size = new Size(160, 18), Font = LegacyFont, ForeColor = Theme.Text });
-            var editor = new TextBox { Location = new Point(x + 165, y), Size = new Size(105, 20), Font = LegacyFont, Tag = field };
-            Theme.ApplyTextBox(editor);
-            editor.Leave += (_, _) => StageEdit(editor);
-            _editors.Add(editor);
-            _traitEditors.Add(editor);
-            if (_fields.TryGetValue(field, out var value))
-            {
-                editor.Text = value.Value;
-                editor.ReadOnly = !value.IsWritable;
-                editor.BackColor = value.IsWritable ? Theme.Input : Theme.Raised;
-                editor.ForeColor = Theme.Text;
-            }
-            else
-            {
-                editor.ReadOnly = true;
-                editor.BackColor = Theme.Raised;
-                editor.ForeColor = Theme.Text;
-            }
-            _traitsPanel.Controls.Add(editor);
+            var index = offset + bit;
+            if ((mask & (1u << bit)) == 0 || index >= PlaystyleNames.Length) continue;
+            output.Add((PlaystyleNames[index], plus));
         }
     }
 

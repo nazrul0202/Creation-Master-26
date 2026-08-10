@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.89 - named player card (2026-08-10)
+
+- The one-page player workbench no longer displays raw `trait`, `icontrait`, or `role` field names and values.
+- FC26 Playstyle bitfields render as named chips, including Playstyle+; player roles render as meaningful role names.
+- Added compact entry points for the complete player-detail and Playstyle editors, while keeping the main card clean and directly editable for ratings.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.89.
+
 ## Version 1.0.88 - single-page player workbench (2026-08-10)
 
 - Replaced the multi-tab Player screen with a single scrollable white player workbench: profile, ratings, player info, all rating groups, contract/value, roles and Playstyles & Traits.
