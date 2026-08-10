@@ -28,7 +28,7 @@ public sealed class PlayersSection : SectionBase
     private readonly Dictionary<string, Label> _overviewRatings = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Panel> _overviewBars = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Label> _overviewFacts = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, List<Label>> _overviewAttributeValues = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<TextBox>> _overviewAttributeValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<Panel>> _playerStatBars = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Button> _playerLayoutButtons = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Button> _playerCategoryButtons = new(StringComparer.OrdinalIgnoreCase);
@@ -63,6 +63,10 @@ public sealed class PlayersSection : SectionBase
         SafeCtorStep(Tabs, "Tabs font", () => Tabs.Font = LegacyFont);
         Tabs.Padding = new Point(4, 2);
         AddTabSafe("Player", AddOverviewTab);
+        AddTabSafe("Info", AddInfoTab);
+        AddTabSafe("Skills & Traits", AddSkillsTab);
+        AddTabSafe("Face", AddFaceTab);
+        AddTabSafe("Details & Roles", AddDetailsTab);
         // Callname tab removed — not needed for basic player editing.
     }
 
@@ -408,7 +412,20 @@ public sealed class PlayersSection : SectionBase
         {
             var yOffset = 38 + row * 20;
             group.Controls.Add(new Label { Text = label, Location = new Point(14, yOffset), Size = new Size(305, 18), Font = Theme.Body, ForeColor = Color.FromArgb(55, 55, 51) });
-            var value = new Label { Location = new Point(336, yOffset), Size = new Size(64, 18), TextAlign = ContentAlignment.MiddleRight, Font = Theme.BodyBold, ForeColor = Color.FromArgb(37, 37, 34) };
+            var value = new TextBox
+            {
+                Location = new Point(336, yOffset - 1), Size = new Size(64, 20),
+                BorderStyle = BorderStyle.None, TextAlign = HorizontalAlignment.Right,
+                Font = Theme.BodyBold, ForeColor = Color.FromArgb(37, 37, 34),
+                BackColor = Color.White, Tag = field
+            };
+            value.KeyDown += (_, e) =>
+            {
+                if (e.KeyCode != Keys.Enter) return;
+                CommitOverviewAttribute(value);
+                e.SuppressKeyPress = true;
+            };
+            value.Leave += (_, _) => CommitOverviewAttribute(value);
             group.Controls.Add(value);
             var track = new Panel { Location = new Point(218, yOffset + 5), Size = new Size(106, 8), BackColor = Color.FromArgb(223, 225, 219), Visible = false };
             var fill = new Panel { Location = Point.Empty, Size = new Size(1, 8), BackColor = accent };
@@ -423,6 +440,20 @@ public sealed class PlayersSection : SectionBase
             row++;
         }
         parent.Controls.Add(group);
+    }
+
+    private void CommitOverviewAttribute(TextBox editor)
+    {
+        if (_syncSkillSliders || CurrentRecordIndex < 0 || editor.Tag is not string field ||
+            !_fields.TryGetValue(field, out var value) || !value.IsWritable)
+            return;
+        if (!int.TryParse(editor.Text.Trim(), out var rating) || rating is < 0 or > 99)
+        {
+            editor.Text = GetOverviewNumber(field).ToString();
+            return;
+        }
+        if (StageField(TableName, CurrentRecordIndex, field, rating.ToString(), _stagingGrid))
+            ShowRecord(CurrentRecordIndex);
     }
 
     private void AddOverviewMetric(Control parent, string code, string[] fields, int x, int y, Color accent)
@@ -1265,7 +1296,14 @@ public sealed class PlayersSection : SectionBase
         {
             var value = GetOverviewNumber(field);
             foreach (var label in labels)
-                label.Text = value == 0 ? "—" : value.ToString();
+            {
+                var writable = _fields.TryGetValue(field, out var data) && data.IsWritable;
+                label.Text = value.ToString();
+                label.ReadOnly = !writable;
+                label.BackColor = writable ? Color.FromArgb(243, 250, 237) : Color.White;
+                label.ForeColor = writable ? Color.FromArgb(42, 111, 29) : Color.FromArgb(100, 100, 96);
+                ToolTip.SetToolTip(label, writable ? "Enter a value from 0 to 99, then press Enter." : "This FC26 field is not writable.");
+            }
         }
         foreach (var (field, bars) in _playerStatBars)
         {
