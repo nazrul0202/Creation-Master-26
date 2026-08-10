@@ -63,11 +63,9 @@ public sealed class PlayersSection : SectionBase
         // cannot accept a font never takes down the whole section — or the app.
         SafeCtorStep(Tabs, "Tabs font", () => Tabs.Font = LegacyFont);
         Tabs.Padding = new Point(4, 2);
+        Tabs.SizeMode = TabSizeMode.Fixed;
+        Tabs.ItemSize = new Size(0, 1);
         AddTabSafe("Player", AddOverviewTab);
-        AddTabSafe("Info", AddInfoTab);
-        AddTabSafe("Skills & Traits", AddSkillsTab);
-        AddTabSafe("Face", AddFaceTab);
-        AddTabSafe("Details & Roles", AddDetailsTab);
         // Callname tab removed — not needed for basic player editing.
     }
 
@@ -290,11 +288,6 @@ public sealed class PlayersSection : SectionBase
         // FCRadar-style display controls.  They alter how the single player
         // workbench communicates the same FC26 database values; no duplicate
         // Info/Skills/Face/Details pages are required.
-        AddLayoutButton(card, "Classic", 960);
-        AddLayoutButton(card, "FUT", 1040);
-        AddLayoutButton(card, "CM", 1100);
-        AddCategoryButton(card, "Numbers", 1170, false);
-        AddCategoryButton(card, "Bars", 1260, true);
 
         var headings = new Label { Text = "PLAYER ATTRIBUTES", Location = new Point(18, 282), Size = new Size(420, 22), Font = Theme.BodyBold, ForeColor = Color.FromArgb(45, 45, 42) };
         card.Controls.Add(headings);
@@ -313,19 +306,11 @@ public sealed class PlayersSection : SectionBase
         AddOverviewAttributeGroup(card, "GOALKEEPING", Color.FromArgb(210, 54, 62), 18, 644,
             ("GK diving", "gkdiving"), ("GK handling", "gkhandling"), ("GK kicking", "gkkicking"), ("GK positioning", "gkpositioning"), ("GK reflexes", "gkreflexes"));
         AddOverviewSupplement(card, "CONTRACT & VALUE", 455, 644,
-            ("Contract until", "contractvaliduntil"), ("Jersey number", "jerseynumber"), ("Reputation", "internationalrep"));
+            ("Contract until", "contractvaliduntil"), ("Value", "value"), ("Wage", "wage"), ("Reputation", "internationalrep"));
         AddOverviewSupplement(card, "PLAYING ROLES", 892, 644,
             ("Role 1", "role1"), ("Role 2", "role2"), ("Role 3", "role3"), ("Role 4", "role4"));
-        var traits = new Panel { Location = new Point(455, 804), Size = new Size(855, 82), BackColor = Color.White };
-        traits.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(855, 4), BackColor = Color.FromArgb(116, 185, 34) });
-        traits.Controls.Add(new Label { Text = "PLAYSTYLES & TRAITS", Location = new Point(14, 12), Size = new Size(240, 18), Font = Theme.BodyBold, ForeColor = Color.FromArgb(65, 105, 39) });
-        traits.Controls.Add(new Label { Text = "Edit traits and specialities in Skills & Traits. Edit roles in Details & Roles.", Location = new Point(14, 39), Size = new Size(810, 24), Font = Theme.Body, ForeColor = Color.FromArgb(92, 98, 88) });
-        card.Controls.Add(traits);
-        var edit = new Button { Text = "Edit player data...", Location = new Point(1088, 610), Size = new Size(158, 30), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(45, 70, 52), ForeColor = Color.White };
-        edit.FlatAppearance.BorderSize = 0;
-        edit.FlatAppearance.MouseOverBackColor = Color.FromArgb(73, 103, 78);
-        edit.Click += (_, _) => OpenSinglePlayerEditor();
-        card.Controls.Add(edit);
+        _traitsPanel = new ModernGroupBox { Text = "Playstyles & Traits", Location = new Point(455, 804), Size = new Size(855, 84) };
+        card.Controls.Add(_traitsPanel);
         var note = new Label { Text = "Read-only career overview · Edit all database values in the Info and Skills tabs.", Location = new Point(28, 550), Size = new Size(800, 24), ForeColor = Color.FromArgb(166, 184, 187), Font = Theme.Body };
         note.Visible = false;
         note.Location = new Point(18, 858);

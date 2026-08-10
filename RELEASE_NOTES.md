@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.88 - single-page player workbench (2026-08-10)
+
+- Replaced the multi-tab Player screen with a single scrollable white player workbench: profile, ratings, player info, all rating groups, contract/value, roles and Playstyles & Traits.
+- Removed the Stats Layout and Categories Layout controls entirely.
+- Playstyles & Traits now render the actual trait/playstyle fields supplied by the FC26 database and can be edited from the same page.
+- Full Portable and Lite packages are assembled to `Release\\` as v1.0.88.
+
 ## Version 1.0.87 - complete editable player workbench (2026-08-10)
 
 - Rebuilt the main Players screen as a white CM26 player card with profile, OVR/GRO/POT, key ratings, player info, contract, roles, traits guidance, and all six outfield categories plus goalkeeping.
