@@ -1,19 +1,17 @@
 # End User License Agreement — Creation Master 26
 
-**Version 1.0.49 · © 2026 Rizco98**
+**Version 1.0.93 · MIT License · © 2026 Rizco98**
 
-This software is **licensed, not sold**. By installing or using Creation Master 26
-you agree to the full terms in the [`LICENSE`](LICENSE) file. A plain-language
-summary follows; the license file is authoritative.
+This software is released under the **MIT License** — see [`LICENSE`](LICENSE).
+A plain-language summary follows; the license file is authoritative.
 
 ## What you may do
-- Install and use Creation Master 26 on your own computer.
+- Use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software.
 - Use it to edit a game installation that you already own and are licensed to use.
 
 ## What you may NOT do
-- Copy, redistribute, resell, or sublicense the Software.
-- Reverse engineer, decompile, or modify the Software.
-- Remove or alter its proprietary notices.
+- Remove or alter the copyright notice and license text.
+- Hold the author liable for any damages arising from the Software's use.
 
 ## Liability
 The Software is provided **"as is"** with **no warranty**. The author is not
