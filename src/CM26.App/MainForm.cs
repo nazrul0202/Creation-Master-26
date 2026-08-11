@@ -54,6 +54,8 @@ public sealed class MainForm : Form
         _registry = BuildRegistry();
         _services.NavigationRequested += NavigateTo;
         _services.RecordNavigationRequested += NavigateToRecord;
+        _services.OpenGameRequested += () => _ = OpenFc26Async();
+        _services.SaveDraftRequested += () => _ = SaveAsync();
         _services.ScraperSquadImportRequested += ImportScraperSquad;
 
         // ---- CM16-style application menu ----
@@ -1101,14 +1103,7 @@ public sealed class MainForm : Form
 
     private void ShowAbout()
     {
-        var text =
-            $"Creation Master 26\nVersion {Program.ProductVersion}\n\n" +
-            "Database, competition data and legacy asset editor for EA SPORTS FC 26.\n" +
-            "Unofficial, independent community tool by Rizco98.\n\n" +
-            "Use File > Open Game to begin. See the LICENSE file for terms.";
-        var result = MessageBox.Show(this, text, "About Creation Master 26",
-            MessageBoxButtons.OK, MessageBoxIcon.Information);
-        _ = result;
+        AboutDialog.Show(this);
     }
 
     private void ShowShortcuts()
@@ -1206,6 +1201,7 @@ public sealed class MainForm : Form
         _pendingLabel.ForeColor = Theme.Warning;
         _workspace.BackColor = Theme.Background;
         _welcome.BackColor = Theme.Background;
+        _welcome.ApplyTheme();
         Theme.ApplyControlTree(_welcome);
         if (_workspace.Controls.Count == 1 && _workspace.Controls[0] == _welcome)
             _welcome.Invalidate();

@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
+using CM26.App.Controls;
 
 namespace CM26.App.Theming;
 
@@ -65,6 +66,7 @@ public static class Theme
             _validationListBackground = Color.FromArgb(255, 250, 250);
             _validationText = Color.FromArgb(175, 32, 32);
         }
+        CardLayout.ApplyTheme();
     }
 
     private static Color _background = Color.FromArgb(36, 37, 41);
@@ -101,6 +103,12 @@ public static class Theme
     public static Color ValidationListBackground => _validationListBackground;
     public static Color ValidationText => _validationText;
 
+    // FC26 brand accent for primary actions (green #74B922 family).
+    public static Color Brand => Color.FromArgb(116, 185, 34);
+    public static Color BrandHover => Color.FromArgb(103, 168, 28);
+    public static Color BrandDown => Color.FromArgb(88, 146, 22);
+    public static Color BrandSoft => Color.FromArgb(235, 246, 220);
+
     // Typography
     public static readonly Font Body = new("Segoe UI", 9f, FontStyle.Regular, GraphicsUnit.Point);
     public static readonly Font BodyBold = new("Segoe UI", 9f, FontStyle.Bold, GraphicsUnit.Point);
@@ -123,8 +131,8 @@ public static class Theme
     {
         b.FlatStyle = FlatStyle.Flat;
         b.FlatAppearance.BorderSize = 1;
-        b.FlatAppearance.BorderColor = primary ? Accent : Border;
-        b.BackColor = primary ? Accent : Panel;
+        b.FlatAppearance.BorderColor = primary ? Brand : Border;
+        b.BackColor = primary ? Brand : Panel;
         b.ForeColor = primary ? Color.White : Text;
         b.Font = primary ? BodyBold : Body;
         // Keep explicit custom heights; only normalize the WinForms default 23px.
@@ -139,8 +147,8 @@ public static class Theme
         b.LostFocus += ButtonLostFocus;
         if (primary)
         {
-            b.FlatAppearance.MouseOverBackColor = AccentHover;
-            b.FlatAppearance.MouseDownBackColor = AccentHover;
+            b.FlatAppearance.MouseOverBackColor = BrandHover;
+            b.FlatAppearance.MouseDownBackColor = BrandDown;
         }
         else
         {

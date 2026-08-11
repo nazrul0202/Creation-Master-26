@@ -40,6 +40,10 @@ public sealed class AppServices : IDisposable
     public event Action<string, int>? RecordNavigationRequested;
     /// <summary>Imports a verified local CM26 Scraper workbook into a selected club.</summary>
     public event Action<int, string>? ScraperSquadImportRequested;
+    /// <summary>Requests the main window's File > Open Game flow (used by quick actions).</summary>
+    public event Action? OpenGameRequested;
+    /// <summary>Requests the main window's File > Save Draft flow (used by quick actions).</summary>
+    public event Action? SaveDraftRequested;
 
     public AppServices()
     {
@@ -156,10 +160,14 @@ public sealed class AppServices : IDisposable
 
     /// <summary>Lets a CM16-style child control open the matching operational module.</summary>
     public void RequestNavigation(string sectionKey) => NavigationRequested?.Invoke(sectionKey);
-
     /// <summary>Open a specific database row in another CM16-style editor module.</summary>
     public void RequestRecordNavigation(string sectionKey, int recordIndex) =>
         RecordNavigationRequested?.Invoke(sectionKey, recordIndex);
+
+    /// <summary>Quick-action: opens the game-data flow in the main window.</summary>
+    public void RequestOpenGame() => OpenGameRequested?.Invoke();
+    /// <summary>Quick-action: saves the staged draft in the main window.</summary>
+    public void RequestSaveDraft() => SaveDraftRequested?.Invoke();
 
     /// <summary>
     /// Refreshes name, team-link and section indexes after a structural edit.

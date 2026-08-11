@@ -9,10 +9,11 @@ namespace CM26.App.Sections;
 /// <summary>Application settings (stored locally, not in the database).</summary>
 public sealed class SettingsSection : SectionBase
 {
-    private readonly TextBox _assetBox;
-    private readonly TextBox _gameFolderBox;
-    private readonly Label _frostbiteStatus;
-    private readonly Label _logLabel;
+    private TextBox _assetBox = null!;
+    private TextBox _gameFolderBox = null!;
+    private Label _frostbiteStatus = null!;
+    private Label _logLabel = null!;
+    private readonly BufferedPanel _canvas;
     private bool _gameFolderLoading;
 
     public override string SectionKey => "settings";
@@ -22,19 +23,66 @@ public sealed class SettingsSection : SectionBase
 
     public SettingsSection(AppServices s) : base(s)
     {
-        var panel = new BufferedPanel { Dock = DockStyle.Fill, Padding = new Padding(8), BackColor = Theme.Background, AutoScroll = true };
+        _canvas = new BufferedPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = CardLayout.CardBackground,
+            Padding = new Padding(12),
+            AutoScroll = true,
+        };
+        var page = new TabPage("Settings") { BackColor = Theme.Background };
+        page.Controls.Add(_canvas);
+        Tabs.TabPages.Add(page);
+        Header.SetRecord("Settings", "Application preferences", IconService.Get("settings", 44));
 
-        var themeLabel = new Label { Text = "Appearance", Dock = DockStyle.Top, Height = 22, ForeColor = Theme.Text, Font = Theme.Label, Padding = new Padding(0, 10, 0, 0) };
-        var themeRow = new BufferedPanel { Dock = DockStyle.Top, Height = 32, BackColor = Theme.Background };
+        var flow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            BackColor = CardLayout.CardBackground,
+            Padding = new Padding(0),
+        };
+        _canvas.Controls.Add(flow);
+        _canvas.Resize += (_, _) => ReflowCards();
+
+        flow.Controls.Add(BuildAppearanceCard());
+        flow.Controls.Add(BuildGameDataCard());
+        flow.Controls.Add(BuildAssetCard());
+        flow.Controls.Add(BuildBackupCard());
+        flow.Controls.Add(BuildAboutCard());
+        ReflowCards();
+    }
+
+    private void ReflowCards()
+    {
+        // Keep every card at full canvas width (margins are simulated by the wrapper).
+        foreach (Control control in _canvas.Controls)
+        {
+            if (control is not FlowLayoutPanel flow) continue;
+            foreach (Control item in flow.Controls)
+            {
+                if (item is not Panel wrapper) continue;
+                wrapper.Width = Math.Max(0, _canvas.ClientSize.Width - 24);
+                foreach (Control inner in wrapper.Controls)
+                    inner.Width = Math.Max(0, wrapper.Width - 16);
+            }
+        }
+    }
+
+    private Panel BuildAppearanceCard()
+    {
+        var (wrapper, card) = StartCard(124);
+        AddCardTitle(card, "Appearance");
         var darkMode = new CheckBox
         {
             Text = "Dark theme",
             Checked = Theme.IsDark,
-            Dock = DockStyle.Left,
+            Location = new Point(16, 44),
             AutoSize = true,
-            Padding = new Padding(0, 6, 0, 0),
-            ForeColor = Theme.Text,
-            BackColor = Theme.Background,
+            ForeColor = CardLayout.CardText,
+            BackColor = CardLayout.CardWhite,
         };
         darkMode.CheckedChanged += (_, _) =>
         {
@@ -42,12 +90,40 @@ public sealed class SettingsSection : SectionBase
             Theme.IsDark = darkMode.Checked;
             Services.NotifyThemeChanged();
         };
-        themeRow.Controls.Add(darkMode);
+        card.Controls.Add(darkMode);
+        card.Controls.Add(new Label
+        {
+            Text = "Light matches the FC26 franchise look; dark is easier on the eyes in low light.",
+            Location = new Point(16, 74),
+            Size = new Size(600, 32),
+            Font = Theme.Body,
+            ForeColor = CardLayout.CardSubtle,
+        });
+        return wrapper;
+    }
 
-        var gameFolderLabel = new Label { Text = "Game folder (Frostbite Data / Patch)", Dock = DockStyle.Top, Height = 22, ForeColor = Theme.Text, Font = Theme.Body, Padding = new Padding(0, 10, 0, 0) };
-        var gameFolderRow = new BufferedPanel { Dock = DockStyle.Top, Height = 27, BackColor = Theme.Background };
-        _gameFolderBox = new TextBox { Dock = DockStyle.Fill, Text = SettingsService.FC26GameFolder, BackColor = Theme.Input, ForeColor = Theme.Text, Font = Theme.Body };
-        var gameBrowseBtn = new Button { Text = "Browse…", Dock = DockStyle.Right, Width = 84 };
+    private Panel BuildGameDataCard()
+    {
+        var (wrapper, card) = StartCard(182);
+        AddCardTitle(card, "FC26 Game Data");
+        var gameFolderLabel = new Label
+        {
+            Text = "Game folder (Frostbite Data / Patch)",
+            Location = new Point(16, 42),
+            Size = new Size(640, 18),
+            Font = Theme.Label,
+            ForeColor = CardLayout.CardFieldLabel,
+        };
+        _gameFolderBox = new TextBox
+        {
+            Location = new Point(16, 62),
+            Size = new Size(640, 26),
+            Text = SettingsService.FC26GameFolder,
+            BackColor = Theme.Input,
+            ForeColor = Theme.Text,
+            Font = Theme.Body,
+        };
+        var gameBrowseBtn = new Button { Text = "Browse…", Location = new Point(666, 61), Width = 84, Height = 27 };
         Theme.ApplyButton(gameBrowseBtn);
         gameBrowseBtn.Click += async (_, _) =>
         {
@@ -60,20 +136,52 @@ public sealed class SettingsSection : SectionBase
             }
         };
         _gameFolderBox.Leave += async (_, _) => await ApplyGameFolderAsync();
-        gameFolderRow.Controls.Add(_gameFolderBox);
-        gameFolderRow.Controls.Add(gameBrowseBtn);
-
         _frostbiteStatus = new Label
         {
-            Text = s.FrostbiteAssets.Status,
-            Dock = DockStyle.Top, Height = 30, ForeColor = Theme.Text,
-            Font = Theme.Body, AutoEllipsis = true,
+            Text = Services.FrostbiteAssets.Status,
+            Location = new Point(16, 96),
+            Size = new Size(734, 22),
+            ForeColor = Theme.Text,
+            Font = Theme.Body,
+            AutoEllipsis = true,
         };
+        card.Controls.Add(gameFolderLabel);
+        card.Controls.Add(_gameFolderBox);
+        card.Controls.Add(gameBrowseBtn);
+        card.Controls.Add(_frostbiteStatus);
+        card.Controls.Add(new Label
+        {
+            Text = "Edits are written directly to Data/Patch. After a Steam/EA update, launch the game once before editing.",
+            Location = new Point(16, 124),
+            Size = new Size(734, 32),
+            Font = Theme.Body,
+            ForeColor = CardLayout.CardSubtle,
+        });
+        return wrapper;
+    }
 
-        var assetLabel = new Label { Text = "Asset pack folder (minifaces / balls / stadiums / boots / flags)", Dock = DockStyle.Top, Height = 22, ForeColor = Theme.Text, Font = Theme.Body, Padding = new Padding(0, 10, 0, 0) };
-        var assetRow = new BufferedPanel { Dock = DockStyle.Top, Height = 27, BackColor = Theme.Background };
-        _assetBox = new TextBox { Dock = DockStyle.Fill, Text = SettingsService.AssetRoot, BackColor = Theme.Input, ForeColor = Theme.Text, Font = Theme.Body };
-        var browseBtn = new Button { Text = "Browse…", Dock = DockStyle.Right, Width = 84 };
+    private Panel BuildAssetCard()
+    {
+        var (wrapper, card) = StartCard(238);
+        AddCardTitle(card, "Preview Assets");
+        var assetLabel = new Label
+        {
+            Text = "Asset pack folder (minifaces / balls / stadiums / boots / flags)",
+            Location = new Point(16, 42),
+            Size = new Size(640, 18),
+            Font = Theme.Label,
+            ForeColor = CardLayout.CardFieldLabel,
+        };
+        _assetBox = new TextBox
+        {
+            Location = new Point(16, 62),
+            Size = new Size(640, 26),
+            Text = SettingsService.AssetRoot,
+            BackColor = Theme.Input,
+            ForeColor = Theme.Text,
+            Font = Theme.Body,
+        };
+        var browseBtn = new Button { Text = "Browse…", Location = new Point(666, 61), Width = 84, Height = 27 };
         Theme.ApplyButton(browseBtn);
         browseBtn.Click += (_, _) =>
         {
@@ -87,26 +195,32 @@ public sealed class SettingsSection : SectionBase
             }
         };
         _assetBox.Leave += (_, _) => ApplyAssetRoot();
-        assetRow.Controls.Add(_assetBox);
-        assetRow.Controls.Add(browseBtn);
 
-        var assetHint = new Label
+        var scraperLabel = new Label
         {
-            Text = "Optional fallback preview pack. Installed assets are used whenever available.",
-            Dock = DockStyle.Top, Height = 32, ForeColor = Theme.Muted, Font = Theme.Body, AutoEllipsis = true,
+            Text = "CM26 Scraper folder (Data Sync)",
+            Location = new Point(16, 108),
+            Size = new Size(640, 18),
+            Font = Theme.Label,
+            ForeColor = CardLayout.CardFieldLabel,
         };
-
+        var scraperBox = new TextBox
+        {
+            Location = new Point(16, 128),
+            Size = new Size(640, 26),
+            Text = SettingsService.ScraperRoot,
+            BackColor = Theme.Input,
+            ForeColor = Theme.Text,
+            Font = Theme.Body,
+        };
         var scraperHint = new Label
         {
-            Text = "Optional. The packaged copy under Tools\\CM26 Scraper and copies next to CM26 or at a drive root are detected automatically; this setting overrides that search.",
-            Dock = DockStyle.Top, Height = 32, ForeColor = Theme.Muted, Font = Theme.Body, AutoEllipsis = true,
+            Location = new Point(16, 164),
+            Size = new Size(734, 34),
+            Font = Theme.Body,
+            ForeColor = CardLayout.CardSubtle,
+            AutoEllipsis = true,
         };
-
-        var scraperLabel = new Label { Text = "CM26 Scraper folder (Data Sync)", Dock = DockStyle.Top, Height = 22, ForeColor = Theme.Text, Font = Theme.Body, Padding = new Padding(0, 10, 0, 0) };
-        var scraperRow = new BufferedPanel { Dock = DockStyle.Top, Height = 27, BackColor = Theme.Background };
-        var scraperBox = new TextBox { Dock = DockStyle.Fill, Text = SettingsService.ScraperRoot, BackColor = Theme.Input, ForeColor = Theme.Text, Font = Theme.Body };
-        var scraperBrowse = new Button { Text = "Browse…", Dock = DockStyle.Right, Width = 84 };
-        Theme.ApplyButton(scraperBrowse);
         void ApplyScraperRoot()
         {
             SettingsService.ScraperRoot = scraperBox.Text.Trim();
@@ -114,6 +228,8 @@ public sealed class SettingsSection : SectionBase
                 ? "Optional. The packaged copy under Tools\\CM26 Scraper and copies next to CM26 or at a drive root are detected automatically; this setting overrides that search."
                 : $"Scraper folder saved: {scraperBox.Text.Trim()}";
         }
+        var scraperBrowse = new Button { Text = "Browse…", Location = new Point(666, 127), Width = 84, Height = 27 };
+        Theme.ApplyButton(scraperBrowse);
         scraperBrowse.Click += (_, _) =>
         {
             using var dlg = new FolderBrowserDialog { Description = "Select the folder that contains CM26 Scraper.exe", UseDescriptionForTitle = true };
@@ -126,33 +242,45 @@ public sealed class SettingsSection : SectionBase
             }
         };
         scraperBox.Leave += (_, _) => ApplyScraperRoot();
-        scraperRow.Controls.Add(scraperBox);
-        scraperRow.Controls.Add(scraperBrowse);
 
-        var backupRow = new BufferedPanel { Dock = DockStyle.Top, Height = 32, BackColor = Theme.Background };
+        card.Controls.Add(assetLabel);
+        card.Controls.Add(_assetBox);
+        card.Controls.Add(browseBtn);
+        card.Controls.Add(scraperLabel);
+        card.Controls.Add(scraperBox);
+        card.Controls.Add(scraperBrowse);
+        card.Controls.Add(scraperHint);
+        return wrapper;
+    }
+
+    private Panel BuildBackupCard()
+    {
+        var (wrapper, card) = StartCard(200);
+        AddCardTitle(card, "Original Data Backup");
         var refreshBackup = new Button
         {
             Text = "Refresh CmModData",
-            Dock = DockStyle.Left,
+            Location = new Point(16, 44),
             Width = 160,
+            Height = 30,
         };
         Theme.ApplyButton(refreshBackup);
         var compressBackup = new Button
         {
             Text = "Compress CmModData",
-            Dock = DockStyle.Left,
+            Location = new Point(184, 44),
             Width = 160,
+            Height = 30,
         };
         Theme.ApplyButton(compressBackup);
         var compressionStatus = new Label
         {
             Text = "Optional transparent NTFS compression",
-            Dock = DockStyle.Fill,
+            Location = new Point(16, 84),
+            Size = new Size(734, 26),
             TextAlign = ContentAlignment.MiddleLeft,
-            Padding = new Padding(10, 0, 0, 0),
             AutoEllipsis = true,
-            ForeColor = Theme.Text,
-            BackColor = Theme.Background,
+            ForeColor = CardLayout.CardText,
         };
         compressBackup.Click += async (_, _) =>
         {
@@ -198,7 +326,7 @@ public sealed class SettingsSection : SectionBase
                 return;
 
             refreshBackup.Enabled = false;
-            compressionStatus.Text = "Creating fresh CmModData snapshotâ€¦";
+            compressionStatus.Text = "Creating fresh CmModData snapshot…";
             try
             {
                 var progress = new Progress<GameBackupService.RestoreProgress>(item =>
@@ -206,7 +334,7 @@ public sealed class SettingsSection : SectionBase
                     var percent = item.TotalBytes > 0
                         ? (int)Math.Clamp(item.CompletedBytes * 100 / item.TotalBytes, 0, 100)
                         : item.Total <= 0 ? 0 : item.Completed * 100 / item.Total;
-                    compressionStatus.Text = $"{item.Phase}: {percent}% â€“ {item.CurrentFile}";
+                    compressionStatus.Text = $"{item.Phase}: {percent}% – {item.CurrentFile}";
                 });
                 var result = await Task.Run(() =>
                     GameBackupService.RefreshAfterVanillaLaunch(gameRoot, progress));
@@ -225,59 +353,86 @@ public sealed class SettingsSection : SectionBase
                 if (!IsDisposed) refreshBackup.Enabled = true;
             }
         };
-        backupRow.Controls.Add(compressionStatus);
-        backupRow.Controls.Add(compressBackup);
-        backupRow.Controls.Add(refreshBackup);
-        var backupHint = new Label
+        card.Controls.Add(refreshBackup);
+        card.Controls.Add(compressBackup);
+        card.Controls.Add(compressionStatus);
+        card.Controls.Add(new Label
         {
             Text = "After an FC26 update, launch vanilla once, then refresh CmModData. Compression is optional.",
-            Dock = DockStyle.Top,
-            Height = 25,
-            ForeColor = Theme.Muted,
-        };
+            Location = new Point(16, 118),
+            Size = new Size(734, 34),
+            Font = Theme.Body,
+            ForeColor = CardLayout.CardSubtle,
+        });
+        return wrapper;
+    }
 
-        var nameNote = new Label
+    private Panel BuildAboutCard()
+    {
+        var (wrapper, card) = StartCard(196);
+        AddCardTitle(card, "About");
+        var about = new Label
         {
-            Text = "Player names are resolved read-only from the loaded database folder (players → playernames → eng_us.DB). " +
-                   "In the current database these names are protected by the publisher's text cipher (key not present), so the app " +
-                   "shows an honest 'Player {id}' and never fabricates a name.",
-            Dock = DockStyle.Top, Height = 46, ForeColor = Theme.Text, Font = Theme.Body, AutoEllipsis = true, Padding = new Padding(0, 8, 0, 0),
+            Text = $"Creation Master 26 · Version {Program.ProductVersion} — CM26_by_Rizco98\n\n" +
+                   "Save writes validated database and legacy changes directly to Data/Patch. " +
+                   "File > Restore Original Data restores the immutable CmModData backup.\n\n" +
+                   "Player names are resolved read-only from the loaded database folder. In the current database " +
+                   "they are protected by the publisher's text cipher, so the app shows an honest \"Player {id}\" " +
+                   "and never fabricates a name.",
+            Location = new Point(16, 42),
+            Size = new Size(734, 96),
+            Font = Theme.Body,
+            ForeColor = CardLayout.CardText,
         };
-
         _logLabel = new Label
         {
             Text = $"Log file: {Program.LogPath}",
-            Dock = DockStyle.Top, Height = 22, ForeColor = Theme.Muted, Font = Theme.Body, Padding = new Padding(0, 8, 0, 0),
+            Location = new Point(16, 148),
+            Size = new Size(734, 22),
+            Font = Theme.Mono,
+            ForeColor = CardLayout.CardSubtle,
+            AutoEllipsis = true,
         };
+        var aboutBtn = new Button { Text = "About…", Location = new Point(666, 144), Width = 84, Height = 27 };
+        Theme.ApplyButton(aboutBtn);
+        aboutBtn.Click += (_, _) => AboutDialog.Show(this);
+        card.Controls.Add(about);
+        card.Controls.Add(_logLabel);
+        card.Controls.Add(aboutBtn);
+        return wrapper;
+    }
 
-        var about = new Label
+    /// <summary>Creates a white rounded card plus the transparent wrapper that owns its width.</summary>
+    private (Panel Wrapper, Panel Card) StartCard(int height)
+    {
+        var wrapper = new Panel
         {
-            Text = $"Creation Master 26 · Version {Program.ProductVersion}\nCM26_by_Rizco98.exe\n\n" +
-                   "Save writes validated database and legacy changes directly to Data/Patch. " +
-                   "File > Restore Original Data restores the immutable CmModData backup.",
-            Dock = DockStyle.Top, Height = 110, ForeColor = Theme.Text, Font = Theme.Body, Padding = new Padding(0, 12, 0, 0),
+            Dock = DockStyle.Top,
+            Height = height + 12,
+            BackColor = CardLayout.CardBackground,
         };
+        var card = new Panel
+        {
+            Location = new Point(8, 6),
+            Size = new Size(Math.Max(400, _canvas.ClientSize.Width - 40), height),
+            BackColor = CardLayout.CardWhite,
+        };
+        CardLayout.ApplyRounded(card, 12);
+        card.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(4, height), BackColor = CardLayout.Fc26Green });
+        wrapper.Controls.Add(card);
+        return (wrapper, card);
+    }
 
-        panel.Controls.Add(about);
-        panel.Controls.Add(_logLabel);
-        panel.Controls.Add(nameNote);
-        panel.Controls.Add(assetHint);
-        panel.Controls.Add(assetRow);
-        panel.Controls.Add(assetLabel);
-        panel.Controls.Add(backupHint);
-        panel.Controls.Add(scraperHint);
-        panel.Controls.Add(scraperRow);
-        panel.Controls.Add(scraperLabel);
-        panel.Controls.Add(backupRow);
-        panel.Controls.Add(_frostbiteStatus);
-        panel.Controls.Add(gameFolderRow);
-        panel.Controls.Add(gameFolderLabel);
-        panel.Controls.Add(themeRow);
-        panel.Controls.Add(themeLabel);
-        for (int i = 0; i < panel.Controls.Count; i++) panel.Controls[i].Dock = DockStyle.Top;
-
-        Tabs.TabPages.Add(MakeTab("Settings", panel));
-        Header.SetRecord("Settings", "Application preferences", IconService.Get("settings", 44));
+    private static void AddCardTitle(Control card, string title)
+    {
+        card.Controls.Add(new Label
+        {
+            Text = title.ToUpperInvariant(),
+            Location = new Point(16, 12),
+            Size = new Size(700, 20),
+            Font = Theme.Label,
+            ForeColor = CardLayout.Fc26Green,
+        });
     }
 
     private void ApplyAssetRoot()

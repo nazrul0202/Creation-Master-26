@@ -12,14 +12,44 @@ namespace CM26.App.Controls;
 /// </summary>
 public static class CardLayout
 {
-    // Palette — matches the PlayersSection light card style.
-    public static readonly Color CardBackground = Color.FromArgb(235, 237, 234);
-    public static readonly Color CardWhite = Color.White;
-    public static readonly Color CardText = Color.FromArgb(37, 37, 34);
-    public static readonly Color CardMuted = Color.FromArgb(94, 108, 57);
-    public static readonly Color CardSubtle = Color.FromArgb(106, 110, 101);
-    public static readonly Color CardFieldLabel = Color.FromArgb(55, 55, 51);
-    public static readonly Color CardFieldBg = Color.FromArgb(246, 248, 244);
+    // Palette — matches the PlayersSection light card style. These are switched
+    // by ApplyTheme() so the card design follows the app-wide light/dark mode.
+    public static Color CardBackground = Color.FromArgb(235, 237, 234);
+    public static Color CardWhite = Color.White;
+    public static Color CardText = Color.FromArgb(37, 37, 34);
+    public static Color CardMuted = Color.FromArgb(94, 108, 57);
+    public static Color CardSubtle = Color.FromArgb(106, 110, 101);
+    public static Color CardFieldLabel = Color.FromArgb(55, 55, 51);
+    public static Color CardFieldBg = Color.FromArgb(246, 248, 244);
+
+    /// <summary>
+    /// Switches the card palette to match the current app theme. Sections are
+    /// rebuilt on a theme toggle, so this only needs to run once before any
+    /// card is created (the Theme palette hook keeps it in sync automatically).
+    /// </summary>
+    public static void ApplyTheme()
+    {
+        if (Theme.IsDark)
+        {
+            CardBackground = Color.FromArgb(30, 31, 35);
+            CardWhite = Color.FromArgb(43, 45, 51);
+            CardText = Color.FromArgb(224, 224, 224);
+            CardMuted = Color.FromArgb(158, 163, 148);
+            CardSubtle = Color.FromArgb(170, 172, 178);
+            CardFieldLabel = Color.FromArgb(205, 206, 210);
+            CardFieldBg = Color.FromArgb(51, 53, 60);
+        }
+        else
+        {
+            CardBackground = Color.FromArgb(235, 237, 234);
+            CardWhite = Color.White;
+            CardText = Color.FromArgb(37, 37, 34);
+            CardMuted = Color.FromArgb(94, 108, 57);
+            CardSubtle = Color.FromArgb(106, 110, 101);
+            CardFieldLabel = Color.FromArgb(55, 55, 51);
+            CardFieldBg = Color.FromArgb(246, 248, 244);
+        }
+    }
 
     // FC26 franchise accent colours
     public static readonly Color Fc26Green = Color.FromArgb(116, 185, 34);
@@ -286,7 +316,7 @@ public static class CardLayout
         {
             Location = new Point(x, 96),
             Size = new Size(106, 32),
-            BackColor = Lighten(accent, 235),
+            BackColor = Theme.IsDark ? accent : Lighten(accent, 235),
         };
         ApplyRounded(metric, 8);
         var value = new Label
