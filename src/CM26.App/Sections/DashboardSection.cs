@@ -18,8 +18,7 @@ public sealed class DashboardSection : SectionBase
 
     public DashboardSection(AppServices s) : base(s)
     {
-        // Hide the split browser; dashboard is a single pane.
-        _host = new BufferedPanel { Dock = DockStyle.Fill, BackColor = Theme.Background, Padding = new Padding(8), AutoScroll = true };
+        _host = new BufferedPanel { Dock = DockStyle.Fill, BackColor = CardLayout.CardBackground, Padding = new Padding(12), AutoScroll = true };
         var page = new TabPage("Overview") { BackColor = Theme.Background };
         page.Controls.Add(_host);
         Tabs.TabPages.Add(page);
@@ -27,13 +26,10 @@ public sealed class DashboardSection : SectionBase
     }
 
     protected override IReadOnlyList<RecordListItem> GetRecords() => Array.Empty<RecordListItem>();
-
     protected override void ShowRecord(int recordIndex) { }
 
     public override void ActivateSection()
     {
-        // Dashboard has no record browser. Calling the base implementation loads an
-        // empty browser and shows its EmptyState over this section's overview.
         RenderDashboard();
     }
 
@@ -52,57 +48,57 @@ public sealed class DashboardSection : SectionBase
             return;
         }
 
-        var flow = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = true };
+        var header = new Panel { Location = new Point(0, 0), Size = new Size(_host.Width - 24, 60), BackColor = CardLayout.CardBackground };
+        header.Controls.Add(new Label
+        {
+            Text = $"Database: {Services.Session.LoadedFolder}",
+            AutoSize = true, Location = new Point(0, 4), Font = Theme.Body, ForeColor = CardLayout.CardSubtle,
+        });
+        header.Controls.Add(new Label
+        {
+            Text = $"{Services.Pending.Count} pending changes",
+            AutoSize = true, Location = new Point(0, 24), Font = Theme.BodyBold,
+            ForeColor = Services.Pending.Count > 0 ? CardLayout.Fc26Yellow : CardLayout.CardMuted,
+        });
+        _host.Controls.Add(header);
 
-        flow.Controls.Add(StatCard("Tables", Services.Session.Tables.Count.ToString("N0"), null));
-        flow.Controls.Add(StatCard("Players", CountOf("players"), "players"));
-        flow.Controls.Add(StatCard("Teams", CountOf("teams"), "teams"));
-        flow.Controls.Add(StatCard("Leagues", CountOf("leagues"), "leagues"));
-        flow.Controls.Add(StatCard("Nations", CountOf("nations"), "countries"));
-        flow.Controls.Add(StatCard("Stadiums", CountOf("stadiums"), "stadiums"));
-        flow.Controls.Add(StatCard("Managers", CountOf("manager"), "managers"));
-        flow.Controls.Add(StatCard("Referees", CountOf("referee"), "referees"));
-        flow.Controls.Add(StatCard("Kits", CountOf("teamkits"), "kits"));
-        flow.Controls.Add(StatCard("Formations", CountOf("formations"), "formations"));
+        var flow = new FlowLayoutPanel { Location = new Point(0, 68), AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, BackColor = CardLayout.CardBackground };
+
+        flow.Controls.Add(Fc26StatCard("Tables", Services.Session.Tables.Count.ToString("N0"), null, CardLayout.Fc26Green));
+        flow.Controls.Add(Fc26StatCard("Players", CountOf("players"), "players", CardLayout.Fc26Blue));
+        flow.Controls.Add(Fc26StatCard("Teams", CountOf("teams"), "teams", CardLayout.Fc26Yellow));
+        flow.Controls.Add(Fc26StatCard("Leagues", CountOf("leagues"), "leagues", CardLayout.Fc26Purple));
+        flow.Controls.Add(Fc26StatCard("Nations", CountOf("nations"), "countries", CardLayout.Fc26Green));
+        flow.Controls.Add(Fc26StatCard("Stadiums", CountOf("stadiums"), "stadiums", CardLayout.Fc26Blue));
+        flow.Controls.Add(Fc26StatCard("Managers", CountOf("manager"), "managers", CardLayout.Fc26Yellow));
+        flow.Controls.Add(Fc26StatCard("Referees", CountOf("referee"), "referees", CardLayout.Fc26Orange));
+        flow.Controls.Add(Fc26StatCard("Kits", CountOf("teamkits"), "kits", CardLayout.Fc26Purple));
+        flow.Controls.Add(Fc26StatCard("Formations", CountOf("formations"), "formations", CardLayout.Fc26Red));
 
         _host.Controls.Add(flow);
-        _host.Controls.Add(InfoBar($"Database: {Services.Session.LoadedFolder}"));
-        _host.Controls.Add(InfoBar($"Pending changes: {Services.Pending.Count}"));
-        // correct dock order (top stack)
-        for (int i = 0; i < _host.Controls.Count; i++)
-            _host.Controls[i].Dock = DockStyle.Top;
         _host.ResumeLayout();
     }
 
     private string CountOf(string table) => (Services.Session.GetTable(table)?.RowCount ?? 0).ToString("N0");
 
-    private static Control InfoBar(string text) => new Label
+    private Control Fc26StatCard(string label, string value, string? navigateKey, Color accent)
     {
-        Text = text,
-        AutoSize = false,
-        Height = 26,
-        ForeColor = Theme.Text,
-        Font = Theme.Body,
-        Padding = new Padding(4, 4, 0, 0),
-    };
-
-    private Control StatCard(string label, string value, string? navigateKey)
-    {
-        var card = new BufferedPanel { Size = new Size(150, 72), BackColor = Theme.Raised, Margin = new Padding(4), BorderStyle = BorderStyle.FixedSingle };
-        if (navigateKey != null)
-            card.Cursor = Cursors.Hand;
-        var v = new Label { Text = value, Dock = DockStyle.Top, Height = 39, Font = Theme.RecordTitle, ForeColor = Theme.Text, TextAlign = ContentAlignment.MiddleCenter };
-        var l = new Label { Text = label, Dock = DockStyle.Fill, Font = Theme.Label, ForeColor = Theme.Muted, TextAlign = ContentAlignment.TopCenter };
+        var card = new Panel { Size = new Size(155, 80), BackColor = CardLayout.CardWhite, Margin = new Padding(4) };
+        CardLayout.ApplyRounded(card, 10);
+        card.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(155, 4), BackColor = accent });
+        var v = new Label { Text = value, Location = new Point(8, 10), Size = new Size(140, 32), Font = Theme.RecordTitle, ForeColor = CardLayout.CardText, TextAlign = ContentAlignment.MiddleCenter };
+        var l = new Label { Text = label, Location = new Point(8, 44), Size = new Size(140, 28), Font = Theme.Label, ForeColor = CardLayout.CardSubtle, TextAlign = ContentAlignment.TopCenter };
         card.Controls.Add(l);
         card.Controls.Add(v);
         if (navigateKey != null)
         {
+            card.Cursor = Cursors.Hand;
             var key = navigateKey;
             card.Click += (_, _) => Services.RequestNavigation(key);
             l.Click += (_, _) => Services.RequestNavigation(key);
             v.Click += (_, _) => Services.RequestNavigation(key);
-            card.MouseEnter += (_, _) => card.BackColor = Theme.Panel;
-            card.MouseLeave += (_, _) => card.BackColor = Theme.Raised;
+            card.MouseEnter += (_, _) => card.BackColor = CardLayout.CardFieldBg;
+            card.MouseLeave += (_, _) => card.BackColor = CardLayout.CardWhite;
         }
         return card;
     }

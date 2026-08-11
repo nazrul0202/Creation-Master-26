@@ -8,15 +8,15 @@ namespace CM26.App.Controls;
 public sealed class WelcomePanel : UserControl
 {
     public event EventHandler? OpenRequested;
-    /// <summary>Raised when the user picks a folder from the recent list.</summary>
     public event EventHandler<string>? FolderRequested;
 
     public WelcomePanel()
     {
         BackColor = Theme.Background;
-        var center = new BufferedPanel { Size = new Size(560, 320), BackColor = Color.Transparent };
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 5, ColumnCount = 1 };
+        var center = new BufferedPanel { Size = new Size(560, 360), BackColor = Color.Transparent };
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 6, ColumnCount = 1 };
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -30,6 +30,15 @@ public sealed class WelcomePanel : UserControl
             TextAlign = ContentAlignment.MiddleCenter,
             Dock = DockStyle.Fill,
         };
+        var version = new Label
+        {
+            Text = "v" + Program.ProductVersion,
+            Font = Theme.Body,
+            ForeColor = Theme.Muted,
+            TextAlign = ContentAlignment.MiddleCenter,
+            AutoSize = true,
+            Dock = DockStyle.Top,
+        };
         var subtitle = new Label
         {
             Text = "FC26 database editor — real data, validated edits, safe saves",
@@ -39,7 +48,7 @@ public sealed class WelcomePanel : UserControl
             AutoSize = true,
             Dock = DockStyle.Top,
         };
-        var open = new Button { Text = "📂  Open FC26", AutoSize = true, Anchor = AnchorStyles.None, Padding = new Padding(18, 10, 18, 10) };
+        var open = new Button { Text = "Open FC26", AutoSize = true, Anchor = AnchorStyles.None, Padding = new Padding(18, 10, 18, 10) };
         Theme.ApplyButton(open, primary: true);
         open.Font = Theme.ButtonLarge;
         open.Click += (_, _) => OpenRequested?.Invoke(this, EventArgs.Empty);
@@ -67,10 +76,11 @@ public sealed class WelcomePanel : UserControl
         recentPanel.Visible = false;
 
         layout.Controls.Add(title, 0, 0);
-        layout.Controls.Add(subtitle, 0, 1);
-        layout.Controls.Add(open, 0, 2);
-        layout.Controls.Add(hint, 0, 3);
-        layout.Controls.Add(recentPanel, 0, 4);
+        layout.Controls.Add(version, 0, 1);
+        layout.Controls.Add(subtitle, 0, 2);
+        layout.Controls.Add(open, 0, 3);
+        layout.Controls.Add(hint, 0, 4);
+        layout.Controls.Add(recentPanel, 0, 5);
         center.Controls.Add(layout);
         Controls.Add(center);
 

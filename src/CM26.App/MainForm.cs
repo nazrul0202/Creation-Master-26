@@ -171,8 +171,10 @@ public sealed class MainForm : Form
         {
             ("", new[] { "dashboard" }),
             ("World", new[] { "countries", "leagues", "teams", "players", "managers" }),
-            ("Venue", new[] { "stadiums" }),
-            ("Team", new[] { "kits", "competitions", "formations" }),
+            ("Venue", new[] { "stadiums", "stadiumaudio" }),
+            ("Team", new[] { "kits", "competitions", "formations", "balls", "boots", "gloves" }),
+            ("Media", new[] { "sponsors", "adboards", "scoreboard", "audio" }),
+            ("Tools", new[] { "transfers", "modmanager", "referees", "browser", "diagnostics" }),
             ("System", new[] { "settings" }),
         };
         foreach (var (label, keys) in categories)
