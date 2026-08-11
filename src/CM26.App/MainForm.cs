@@ -190,6 +190,7 @@ public sealed class MainForm : Form
                     Font = Theme.Label,
                     ForeColor = Theme.Muted,
                     Margin = new Padding(10, 12, 0, 2),
+                    BackColor = Theme.Background,
                 });
             }
             foreach (var key in keys)

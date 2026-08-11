@@ -383,10 +383,12 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
         _bankDetails.Text = "Parsing NewWave bank structure...";
         try
         {
+            var bankName = _selectedBank;
             var bank = await Task.Run(() =>
-                Services.FrostbiteAssets.InspectNewWaveBank(_selectedBank));
+                Services.FrostbiteAssets.InspectNewWaveBank(bankName));
             if (bank == null)
                 throw new InvalidDataException("The selected RES is not a supported NewWave bank.");
+            if (bankName != _selectedBank) return;  // user switched banks mid-inspection
             _extractedPath = bank.ExtractedPath;
             _dataSets.Items.Clear();
             foreach (var dataSet in bank.DataSets)

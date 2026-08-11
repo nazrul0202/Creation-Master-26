@@ -936,6 +936,8 @@ public sealed class TeamsSection : SectionBase
             const int faceSize = 70;
             if (Image != null)
             {
+                e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                e.Graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
                 var width = Math.Min(faceSize, Image.Width);
                 var height = Math.Min(faceSize, Image.Height);
                 e.Graphics.DrawImage(Image, new Rectangle((Width - width) / 2, 0, width, height));
@@ -1452,7 +1454,9 @@ public sealed class TeamsSection : SectionBase
     {
         var image = new Bitmap(diameter, diameter);
         using var graphics = Graphics.FromImage(image);
+        graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
         graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
         using var path = new System.Drawing.Drawing2D.GraphicsPath();
         path.AddEllipse(1, 1, diameter - 2, diameter - 2);
         graphics.SetClip(path);
@@ -1813,12 +1817,14 @@ public sealed class TeamsSection : SectionBase
         }
         catch { _teamManagerImg.Image = null; }
 
+        _rosterMinifaces.Images.Clear();
+        _pendingRosterMinifaces.Clear();
         _teamPlayers.Items.Clear();
         try
         {
             var roster = Services.RequireData().GetTeamRoster(int.TryParse(id, out var teamId) ? teamId : 0);
-            SelectFormationLayout(teamId);
             LoadLineup(teamId, roster);
+            SelectFormationLayout(teamId);
             PopulatePlayerReferencePickers(roster);
 
             // Categorize players: Starting XI, Substitutes, Reserves
@@ -1869,7 +1875,10 @@ public sealed class TeamsSection : SectionBase
             LoadSponsors(teamId);
             LoadAudioCatalogs();
         }
-        catch { /* Roster/sponsor loading failure must not prevent the record from loading. */ }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TeamsSection] Roster load error: {ex.Message}");
+        }
     }
 
     private void AddSectionHeader(string title, int count)

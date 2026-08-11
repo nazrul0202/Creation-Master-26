@@ -289,13 +289,14 @@ public sealed class LeaguesSection : SectionBase
         SetRatingBar(_leagueDefBar, record.Get(Col(table, "defenserating")), 99);
         _leagueDefVal.Text = record.Get(Col(table, "defenserating")) ?? "—";
         _leagueLevelLabel.Text = record.Get(Col(table, "level")) ?? "—";
-        _leagueClubsLabel.Text = _teams.Items.Count > 0 ? _teams.Items.Count.ToString() : "—";
-
+        _teamImages.Images.Clear();
+        _pendingTeamCrests.Clear();
         _teams.Items.Clear();
         _leagueId = int.TryParse(record.Get(Col(table, "leagueid")), out var id) ? id : 0;
         PopulateTeamLinks();
         PopulateTeamPicker();
         if (_teams.Items.Count == 0) _teams.Items.Add("No teams linked in leagueteamlinks");
+        _leagueClubsLabel.Text = _teams.Items.Count > 0 ? _teams.Items.Count.ToString() : "—";
     }
 
     private string ResolveCountryName()
@@ -843,7 +844,12 @@ public sealed class LeaguesSection : SectionBase
             finally { _teamCrestGate.Release(); }
         }).ContinueWith(task =>
         {
-            if (IsDisposed || task.Status != TaskStatus.RanToCompletion || task.Result == null) return;
+            if (IsDisposed) return;
+            if (task.Status != TaskStatus.RanToCompletion || task.Result == null)
+            {
+                _pendingTeamCrests.Remove(teamId);
+                return;
+            }
             var image = task.Result;
             var old = _teamImages.Images[key];
             _teamImages.Images.RemoveByKey(key);

@@ -179,6 +179,13 @@ internal static class FrostbitePreviewLoader
         catch { return null; }
     }
 
-    private static Image? CreatePreview(AppServices services, string? path, PictureBox viewer, bool linearColor) =>
-        CreatePreview(services, path, viewer.Width, viewer.Height, linearColor);
+    private static Image? CreatePreview(AppServices services, string? path, PictureBox viewer, bool linearColor)
+    {
+        // The app is PerMonitorV2 DPI-aware: viewer.Width/Height are LOGICAL pixels.
+        // Pre-scale to physical pixels so images stay sharp on 125%/150%/200% displays.
+        float scale = viewer.DeviceDpi / 96f;
+        int w = Math.Max(1, (int)(viewer.Width * scale));
+        int h = Math.Max(1, (int)(viewer.Height * scale));
+        return CreatePreview(services, path, w, h, linearColor);
+    }
 }

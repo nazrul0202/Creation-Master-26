@@ -148,6 +148,7 @@ public sealed class TexturePreviewService : ITexturePreviewService
     {
         double ratio = Math.Min((double)maxW / src.Width, (double)maxH / src.Height);
         // Never upscale beyond 2x to keep small icons crisp; always allow downscale.
+        ratio = Math.Min(ratio, 2.0);
         int w = Math.Max(1, (int)Math.Round(src.Width * ratio));
         int h = Math.Max(1, (int)Math.Round(src.Height * ratio));
         var dest = new Bitmap(w, h, PixelFormat.Format32bppArgb);

@@ -924,7 +924,7 @@ public sealed class KitsSection : ClassicEntitySection
             Size = new Size(128, 25),
             Font = LegacyFont,
         };
-        _loadTexture.Click += async (_, _) => await LoadFrostbitePreviewAsync();
+        _loadTexture.Click += async (_, _) => await LoadFrostbitePreviewAsync(_previewCancellation?.Token ?? default);
         texture.Controls.Add(_loadTexture);
         var importKit = new Button { Text = "Import", Location = new Point(142, 527), Size = new Size(72, 25), Font = LegacyFont };
         importKit.Click += (_, _) => ImportKitTexture();
