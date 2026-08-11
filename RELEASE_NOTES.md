@@ -1,5 +1,16 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.96 - FC26 green card layout across all sections (2026-08-11)
+
+- Converted every remaining legacy `ModernGroupBox` to the FC26 white-card design (green accent strip + rounded corners): Countries, Leagues, Teams, Players, Sponsors, Adboards, Audio, Generic tables, Formation preview, Face preview, Traits panel.
+- Editor wells now use the FC26 light palette: writable = white input, read-only = green-tinted `CardFieldBg`, resolved/absent fields = subtle grey text.
+- Database Browser and Compdata grids restyled with FC26 green column headers and white cells.
+- All release packages (Full Portable + Lite) assembled to `Release\` as v1.0.96.
+
+## Version 1.0.95 - OSS readiness polish (2026-08-11)
+
+- Polished README, sidebar, dashboard and welcome panel for open-source readiness.
+
 ## Version 1.0.94 - MIT open source license (2026-08-11)
 
 - Relicensed the project from proprietary EULA to the **MIT License**.
