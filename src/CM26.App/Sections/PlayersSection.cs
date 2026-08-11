@@ -257,46 +257,46 @@ public sealed class PlayersSection : SectionBase
         var page = Page("Player");
         var canvas = Canvas(page);
         canvas.AutoScrollMinSize = new Size(1370, 940);
-        canvas.BackColor = Color.FromArgb(235, 237, 234);
-        var card = new Panel { Location = new Point(12, 12), Size = new Size(1340, 910), BackColor = Color.FromArgb(235, 237, 234) };
+canvas.BackColor = CardLayout.CardBackground;
+        var card = new Panel { Location = new Point(12, 12), Size = new Size(1340, 910), BackColor = CardLayout.CardBackground };
         canvas.Controls.Add(card);
-        var header = new Panel { Location = new Point(16, 16), Size = new Size(1308, 142), BackColor = Color.White };
+        var header = new Panel { Location = new Point(16, 16), Size = new Size(1308, 142), BackColor = CardLayout.CardWhite };
         ApplyRoundedCorners(header, 14);
         card.Controls.Add(header);
-        header.Controls.Add(new Panel { Location = new Point(0, 0), Size = new Size(6, 142), BackColor = Color.FromArgb(116, 185, 34) });
+        header.Controls.Add(new Panel { Location = new Point(0, 0), Size = new Size(6, 142), BackColor = CardLayout.Fc26Green });
         _overviewFace.Location = new Point(16, 13);
         _overviewFace.Size = new Size(116, 116);
         _overviewFace.SizeMode = PictureBoxSizeMode.Zoom;
-        _overviewFace.BackColor = Color.FromArgb(243, 245, 241);
+        _overviewFace.BackColor = CardLayout.CardFieldBg;
         _overviewFace.BorderStyle = BorderStyle.None;
         header.Controls.Add(_overviewFace);
         _overviewName.Location = new Point(150, 20);
         _overviewName.Size = new Size(460, 36);
         _overviewName.Font = new Font("Segoe UI", 20, FontStyle.Bold);
-        _overviewName.ForeColor = Color.FromArgb(37, 37, 34);
+        _overviewName.ForeColor = CardLayout.CardText;
         header.Controls.Add(_overviewName);
         _overviewMeta.Location = new Point(153, 63);
         _overviewMeta.Size = new Size(500, 24);
         _overviewMeta.Font = Theme.BodyBold;
-        _overviewMeta.ForeColor = Color.FromArgb(94, 108, 57);
+        _overviewMeta.ForeColor = CardLayout.CardMuted;
         header.Controls.Add(_overviewMeta);
         var editDetails = new Button { Text = "Edit player details…", Location = new Point(690, 20), Size = new Size(176, 32), FlatStyle = FlatStyle.Flat, Font = Theme.BodyBold };
-        editDetails.FlatAppearance.BorderColor = Color.FromArgb(116, 185, 34);
+        editDetails.FlatAppearance.BorderColor = CardLayout.Fc26Green;
         editDetails.Click += (_, _) => OpenSinglePlayerEditor();
         header.Controls.Add(editDetails);
-        AddHeaderMetric(header, "PAC", 150, Color.FromArgb(129, 204, 33), "acceleration", "sprintspeed");
-        AddHeaderMetric(header, "SHO", 268, Color.FromArgb(232, 175, 33), "finishing", "shotpower", "longshots", "penalties", "volleys");
-        AddHeaderMetric(header, "PAS", 386, Color.FromArgb(74, 173, 222), "shortpassing", "longpassing", "vision", "crossing", "curve");
-        AddHeaderMetric(header, "DRI", 504, Color.FromArgb(190, 95, 219), "agility", "balance", "reactions", "ballcontrol", "dribbling", "composure");
-        AddHeaderMetric(header, "DEF", 622, Color.FromArgb(59, 165, 199), "interceptions", "headingaccuracy", "defensiveawareness", "standingtackle", "slidingtackle");
-        AddHeaderMetric(header, "PHY", 740, Color.FromArgb(224, 100, 79), "jumping", "stamina", "strength", "aggression");
-        AddOverviewTile(header, _overviewOverall, "OVR", 1050, Color.FromArgb(107, 184, 31));
-        AddOverviewTile(header, _overviewGrowth, "GRO", 940, Color.FromArgb(205, 142, 16));
-        AddOverviewTile(header, _overviewPotential, "POT", 1160, Color.FromArgb(72, 156, 29));
-        var facts = new Panel { Location = new Point(16, 172), Size = new Size(1308, 92), BackColor = Color.FromArgb(255, 255, 253) };
+AddHeaderMetric(header, "PAC", 150, CardLayout.Fc26Green, "acceleration", "sprintspeed");
+        AddHeaderMetric(header, "SHO", 268, CardLayout.Fc26Yellow, "finishing", "shotpower", "longshots", "penalties", "volleys");
+        AddHeaderMetric(header, "PAS", 386, CardLayout.Fc26Blue, "shortpassing", "longpassing", "vision", "crossing", "curve");
+        AddHeaderMetric(header, "DRI", 504, CardLayout.Fc26Purple, "agility", "balance", "reactions", "ballcontrol", "dribbling", "composure");
+        AddHeaderMetric(header, "DEF", 622, CardLayout.Fc26Blue, "interceptions", "headingaccuracy", "defensiveawareness", "standingtackle", "slidingtackle");
+        AddHeaderMetric(header, "PHY", 740, CardLayout.Fc26Orange, "jumping", "stamina", "strength", "aggression");
+AddOverviewTile(header, _overviewOverall, "OVR", 1050, CardLayout.Fc26Green);
+        AddOverviewTile(header, _overviewGrowth, "GRO", 940, CardLayout.Fc26Yellow);
+        AddOverviewTile(header, _overviewPotential, "POT", 1160, CardLayout.Fc26Green);
+var facts = new Panel { Location = new Point(16, 172), Size = new Size(1308, 92), BackColor = CardLayout.CardWhite };
         ApplyRoundedCorners(facts, 12);
         card.Controls.Add(facts);
-        facts.Controls.Add(new Label { Text = "PLAYER INFO", Location = new Point(12, 4), Size = new Size(180, 16), Font = Theme.Muted9, ForeColor = Color.FromArgb(106, 110, 101) });
+        facts.Controls.Add(new Label { Text = "PLAYER INFO", Location = new Point(12, 4), Size = new Size(180, 16), Font = Theme.Muted9, ForeColor = CardLayout.CardSubtle });
         AddOverviewFact(facts, "Position", "preferredposition1", 12);
         AddOverviewFact(facts, "Club", "club", 224);
         AddOverviewFact(facts, "Nation", "nationality", 436);
@@ -304,29 +304,29 @@ public sealed class PlayersSection : SectionBase
         AddOverviewFact(facts, "Weight", "weight", 860, " kg");
         AddOverviewFact(facts, "Preferred foot", "preferredfoot", 1072);
 
-        var headings = new Label { Text = "PLAYER ATTRIBUTES", Location = new Point(18, 282), Size = new Size(420, 22), Font = Theme.BodyBold, ForeColor = Color.FromArgb(45, 45, 42) };
+        var headings = new Label { Text = "PLAYER ATTRIBUTES", Location = new Point(18, 282), Size = new Size(420, 22), Font = Theme.BodyBold, ForeColor = CardLayout.CardText };
         card.Controls.Add(headings);
-        AddOverviewAttributeGroup(card, "ATTACKING", Color.FromArgb(229, 175, 43), 18, 316,
+        AddOverviewAttributeGroup(card, "ATTACKING", CardLayout.Fc26Yellow, 18, 316,
             ("Crossing", "crossing"), ("Finishing", "finishing"), ("Heading accuracy", "headingaccuracy"), ("Short passing", "shortpassing"), ("Volleys", "volleys"), ("Penalties", "penalties"));
-        AddOverviewAttributeGroup(card, "SKILL", Color.FromArgb(202, 112, 222), 455, 316,
+        AddOverviewAttributeGroup(card, "SKILL", CardLayout.Fc26Purple, 455, 316,
             ("Dribbling", "dribbling"), ("Curve", "curve"), ("Free-kick accuracy", "freekickaccuracy"), ("Long passing", "longpassing"), ("Ball control", "ballcontrol"), ("Composure", "composure"));
-        AddOverviewAttributeGroup(card, "MOVEMENT", Color.FromArgb(147, 216, 50), 892, 316,
+        AddOverviewAttributeGroup(card, "MOVEMENT", CardLayout.Fc26Green, 892, 316,
             ("Acceleration", "acceleration"), ("Sprint speed", "sprintspeed"), ("Agility", "agility"), ("Reactions", "reactions"), ("Balance", "balance"), ("Positioning", "positioning"));
-        AddOverviewAttributeGroup(card, "POWER", Color.FromArgb(224, 101, 79), 18, 480,
+        AddOverviewAttributeGroup(card, "POWER", CardLayout.Fc26Orange, 18, 480,
             ("Shot power", "shotpower"), ("Jumping", "jumping"), ("Stamina", "stamina"), ("Strength", "strength"), ("Long shots", "longshots"));
-        AddOverviewAttributeGroup(card, "MENTALITY", Color.FromArgb(81, 174, 237), 455, 480,
+        AddOverviewAttributeGroup(card, "MENTALITY", CardLayout.Fc26Blue, 455, 480,
             ("Vision", "vision"), ("Aggression", "aggression"), ("Interceptions", "interceptions"), ("Att. position", "positioning"), ("Reactions", "reactions"));
-        AddOverviewAttributeGroup(card, "DEFENDING", Color.FromArgb(57, 160, 197), 892, 480,
+        AddOverviewAttributeGroup(card, "DEFENDING", CardLayout.Fc26Blue, 892, 480,
             ("Def. awareness", "defensiveawareness"), ("Stand tackle", "standingtackle"), ("Slide tackle", "slidingtackle"), ("Heading accuracy", "headingaccuracy"), ("Strength", "strength"));
-        AddOverviewAttributeGroup(card, "GOALKEEPING", Color.FromArgb(210, 54, 62), 18, 644,
+        AddOverviewAttributeGroup(card, "GOALKEEPING", CardLayout.Fc26Red, 18, 644,
             ("GK diving", "gkdiving"), ("GK handling", "gkhandling"), ("GK kicking", "gkkicking"), ("GK positioning", "gkpositioning"), ("GK reflexes", "gkreflexes"));
-        AddOverviewSupplement(card, "CONTRACT & VALUE", 455, 644,
+AddOverviewSupplement(card, "CONTRACT & VALUE", 455, 644,
             ("Contract until", "contractvaliduntil"), ("Value", "value"), ("Wage", "wage"), ("Reputation", "internationalrep"));
         AddOverviewSupplement(card, "PLAYING ROLES", 892, 644,
             ("Primary role", "role1"), ("Secondary role", "role2"), ("Third role", "role3"), ("Fourth role", "role4"));
         _traitsPanel = new ModernGroupBox { Text = "PLAYSTYLES", Location = new Point(455, 804), Size = new Size(855, 86) };
         card.Controls.Add(_traitsPanel);
-        var note = new Label { Text = "Read-only career overview · Edit all database values in the Info and Skills tabs.", Location = new Point(28, 550), Size = new Size(800, 24), ForeColor = Color.FromArgb(166, 184, 187), Font = Theme.Body };
+        var note = new Label { Text = "Read-only career overview · Edit all database values in the Info and Skills tabs.", Location = new Point(28, 550), Size = new Size(800, 24), ForeColor = CardLayout.CardSubtle, Font = Theme.Body };
         note.Visible = false;
         note.Location = new Point(18, 858);
         card.Controls.Add(note);
@@ -393,12 +393,12 @@ public sealed class PlayersSection : SectionBase
         parent.Controls.Add(metric);
     }
 
-    private void AddOverviewFact(Control parent, string title, string field, int x, string suffix = "")
+private void AddOverviewFact(Control parent, string title, string field, int x, string suffix = "")
     {
-        var block = new Panel { Location = new Point(x, 22), Size = new Size(196, 58), BackColor = Color.FromArgb(246, 248, 244) };
+        var block = new Panel { Location = new Point(x, 22), Size = new Size(196, 58), BackColor = CardLayout.CardFieldBg };
         ApplyRoundedCorners(block, 8);
-        block.Controls.Add(new Label { Text = title.ToUpperInvariant(), Location = new Point(10, 6), Size = new Size(176, 16), Font = new Font(Theme.Body, FontStyle.Bold), ForeColor = Color.FromArgb(109, 109, 101) });
-        var value = new Label { Location = new Point(10, 25), Size = new Size(176, 26), Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = Color.FromArgb(41, 41, 38), AutoEllipsis = true, Tag = suffix };
+        block.Controls.Add(new Label { Text = title.ToUpperInvariant(), Location = new Point(10, 6), Size = new Size(176, 16), Font = new Font(Theme.Body, FontStyle.Bold), ForeColor = CardLayout.CardSubtle });
+        var value = new Label { Location = new Point(10, 25), Size = new Size(176, 26), Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = CardLayout.CardText, AutoEllipsis = true, Tag = suffix };
         block.Controls.Add(value);
         parent.Controls.Add(block);
         _overviewFacts[field] = value;
@@ -449,7 +449,7 @@ public sealed class PlayersSection : SectionBase
 
     private void AddOverviewAttributeGroup(Control parent, string title, Color accent, int x, int y, params (string Label, string Field)[] attributes)
     {
-        var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), BackColor = Color.White };
+var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), BackColor = CardLayout.CardWhite };
         ApplyRoundedCorners(group, 12);
         group.Controls.Add(new Panel { Location = new Point(0, 0), Size = new Size(418, 4), BackColor = accent });
         group.Controls.Add(new Label { Text = title, Location = new Point(14, 12), Size = new Size(250, 20), Font = Theme.BodyBold, ForeColor = accent });
@@ -457,13 +457,13 @@ public sealed class PlayersSection : SectionBase
         foreach (var (label, field) in attributes)
         {
             var yOffset = 38 + row * 20;
-            group.Controls.Add(new Label { Text = label, Location = new Point(14, yOffset), Size = new Size(305, 18), Font = Theme.Body, ForeColor = Color.FromArgb(55, 55, 51) });
+            group.Controls.Add(new Label { Text = label, Location = new Point(14, yOffset), Size = new Size(305, 18), Font = Theme.Body, ForeColor = CardLayout.CardFieldLabel });
             var value = new TextBox
             {
                 Location = new Point(336, yOffset - 1), Size = new Size(64, 20),
                 BorderStyle = BorderStyle.None, TextAlign = HorizontalAlignment.Right,
-                Font = Theme.BodyBold, ForeColor = Color.FromArgb(37, 37, 34),
-                BackColor = Color.White, Tag = field
+                Font = Theme.BodyBold, ForeColor = CardLayout.CardText,
+                BackColor = CardLayout.CardWhite, Tag = field
             };
             value.KeyDown += (_, e) =>
             {

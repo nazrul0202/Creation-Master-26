@@ -61,7 +61,7 @@ public sealed class LeaguesSection : SectionBase
         Tabs.TabPages.Add(page);
 
         // ── League header card ────────────────────────────────────────────
-        var header = CardLayout.CreateHeader(1340, 142, Color.FromArgb(0, 120, 212));
+        var header = CardLayout.CreateFc26Header(1340, 142);
         _leagueNameLabel.Location = new Point(150, 20);
         _leagueNameLabel.Size = new Size(460, 36);
         _leagueNameLabel.Font = new Font("Segoe UI", 20, FontStyle.Bold);
@@ -78,11 +78,10 @@ public sealed class LeaguesSection : SectionBase
         _leagueLogoPreview.BackColor = Color.FromArgb(243, 245, 241);
         _leagueLogoPreview.BorderStyle = BorderStyle.None;
         header.Controls.Add(_leagueLogoPreview);
-        CardLayout.ApplyRounded(header, 14);
         canvas.Controls.Add(header);
 
         // ── Teams card ────────────────────────────────────────────────────
-        var teamBox = CardLayout.CreateGroup(canvas, "Teams in League", Color.FromArgb(0, 120, 212), 16, 172, 467, 454);
+        var teamBox = CardLayout.CreateGroup(canvas, "Teams in League", CardLayout.Fc26Green, 16, 172, 467, 454);
         var teamTools = new ToolStrip { Location = new Point(4, 26), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = CardLayout.CardWhite, ForeColor = Theme.Text, Renderer = new DarkToolStripRenderer() };
         teamTools.Items.Add(_teamPicker);
         teamTools.Items.Add(_addTeam);
@@ -158,7 +157,7 @@ public sealed class LeaguesSection : SectionBase
         teamBox.Controls.Add(_teams);
 
         // ── Logos card ────────────────────────────────────────────────────
-        var logos = CardLayout.CreateGroup(canvas, "Logos", Color.FromArgb(116, 185, 34), 499, 172, 532, 457);
+        var logos = CardLayout.CreateGroup(canvas, "Logos", CardLayout.Fc26Green, 499, 172, 532, 457);
         logos.Controls.Add(Viewer(new Point(6, 26), new Size(256, 256), "256 x 256", out _mainLogo));
         logos.Controls.Add(Viewer(new Point(268, 26), new Size(200, 64), "200 x 64", out _bannerLogo));
         logos.Controls.Add(Viewer(new Point(6, 305), new Size(512, 128), "512 x 128", out _wideLogo));
@@ -172,7 +171,7 @@ public sealed class LeaguesSection : SectionBase
         logos.Controls.Add(_logoCaption);
 
         // ── Names card ────────────────────────────────────────────────────
-        var names = CardLayout.CreateGroup(canvas, "Names and Information", Color.FromArgb(94, 108, 57), 16, 640, 531, 197);
+        var names = CardLayout.CreateGroup(canvas, "Names and Information", CardLayout.CardMuted, 16, 640, 531, 197);
         AddField(names, "leaguename", "Database Name", new Point(120, 23), 152);
         AddMirrorField(names, "leaguename", "Name", new Point(120, 49), 152);
         AddMirrorField(names, "leaguename", "Long Name", new Point(120, 75), 152);
@@ -182,7 +181,7 @@ public sealed class LeaguesSection : SectionBase
         AddField(names, "leaguetype", "Prestige", new Point(120, 179), 152);
 
         // ── League settings card ──────────────────────────────────────────
-        var fc26 = CardLayout.CreateGroup(canvas, "League Settings", Color.FromArgb(205, 142, 16), 559, 640, 532, 197);
+        var fc26 = CardLayout.CreateGroup(canvas, "League Settings", CardLayout.Fc26Yellow, 559, 640, 532, 197);
         AddLeagueFlag(fc26, "Women's competition", "iswomencompetition", new Point(12, 28));
         AddLeagueFlag(fc26, "International league", "isinternationalleague", new Point(12, 54));
         AddLeagueFlag(fc26, "Competition pole flags", "iscompetitionpoleflagenabled", new Point(12, 80));

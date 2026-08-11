@@ -21,6 +21,15 @@ public static class CardLayout
     public static readonly Color CardFieldLabel = Color.FromArgb(55, 55, 51);
     public static readonly Color CardFieldBg = Color.FromArgb(246, 248, 244);
 
+    // FC26 franchise accent colours
+    public static readonly Color Fc26Green = Color.FromArgb(116, 185, 34);
+    public static readonly Color Fc26Red = Color.FromArgb(210, 54, 62);
+    public static readonly Color Fc26Blue = Color.FromArgb(57, 160, 197);
+    public static readonly Color Fc26Yellow = Color.FromArgb(232, 175, 33);
+    public static readonly Color Fc26Purple = Color.FromArgb(190, 95, 219);
+    public static readonly Color Fc26Orange = Color.FromArgb(224, 100, 79);
+    public static readonly Color Fc26Dark = Color.FromArgb(20, 42, 63);
+
     /// <summary>Creates the outermost card container that fills a scrollable canvas.</summary>
     public static Panel CreateCard(int width, int height)
     {
@@ -243,5 +252,62 @@ public static class CardLayout
             color.R + (255 - color.R) * amount / 255,
             color.G + (255 - color.G) * amount / 255,
             color.B + (255 - color.B) * amount / 255);
+    }
+
+    /// <summary>
+    /// FC26-style header: white rounded panel with left green accent bar,
+    /// logo/face picture, title, and meta line. Returns the header panel
+    /// so callers can add metric tiles or other elements inside it.
+    /// </summary>
+    public static Panel CreateFc26Header(int width, int height)
+    {
+        var header = new Panel
+        {
+            Location = new Point(16, 16),
+            Size = new Size(width, height),
+            BackColor = CardWhite,
+        };
+        ApplyRounded(header, 14);
+        header.Controls.Add(new Panel
+        {
+            Location = Point.Empty,
+            Size = new Size(6, height),
+            BackColor = Fc26Green,
+        });
+        return header;
+    }
+
+    /// <summary>
+    /// Adds an FC26-style metric tile (e.g. PAC, SHO, PAS) to the header.
+    /// </summary>
+    public static (Panel Tile, Label Value) AddFc26Metric(Control parent, string code, int x, Color accent)
+    {
+        var metric = new Panel
+        {
+            Location = new Point(x, 96),
+            Size = new Size(106, 32),
+            BackColor = Lighten(accent, 235),
+        };
+        ApplyRounded(metric, 8);
+        var value = new Label
+        {
+            Location = new Point(11, 4),
+            Size = new Size(40, 23),
+            Font = new Font("Segoe UI", 11, FontStyle.Bold),
+            ForeColor = Color.White,
+            TextAlign = ContentAlignment.MiddleLeft,
+        };
+        metric.Controls.Add(value);
+        metric.Controls.Add(new Label
+        {
+            Text = code,
+            Location = new Point(47, 5),
+            Size = new Size(52, 20),
+            Font = Theme.BodyBold,
+            ForeColor = Color.White,
+            TextAlign = ContentAlignment.MiddleRight,
+        });
+        parent.Controls.Add(metric);
+        return (metric, value);
     }
 }

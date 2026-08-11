@@ -49,7 +49,7 @@ public sealed class CountriesSection : SectionBase
         Tabs.TabPages.Add(page);
 
         // ── Country header card ───────────────────────────────────────────
-        var header = CardLayout.CreateHeader(1340, 142, Color.FromArgb(0, 120, 212));
+        var header = CardLayout.CreateFc26Header(1340, 142);
         _countryNameLabel.Location = new Point(150, 20);
         _countryNameLabel.Size = new Size(460, 36);
         _countryNameLabel.Font = new Font("Segoe UI", 20, FontStyle.Bold);
@@ -66,11 +66,10 @@ public sealed class CountriesSection : SectionBase
         _countryFlagPreview.BackColor = Color.FromArgb(243, 245, 241);
         _countryFlagPreview.BorderStyle = BorderStyle.None;
         header.Controls.Add(_countryFlagPreview);
-        CardLayout.ApplyRounded(header, 14);
         canvas.Controls.Add(header);
 
         // ── Country details card ──────────────────────────────────────────
-        var country = CardLayout.CreateGroup(canvas, "Country", Color.FromArgb(0, 120, 212), 16, 172, 767, 533);
+        var country = CardLayout.CreateGroup(canvas, "Country", CardLayout.Fc26Green, 16, 172, 767, 533);
         AddField(country, "nationname", "Database Name", new Point(130, 22), 105);
         AddField(country, "nationid", "Country Id", new Point(130, 48), 105);
         AddMirrorField(country, "nationname", "Name", new Point(130, 74), 105);
@@ -144,7 +143,7 @@ public sealed class CountriesSection : SectionBase
         LegacyAssetActions.Attach(Services, country, largeFlag, new Point(16, 510), RefreshCurrentRecord);
 
         // ── Map card ──────────────────────────────────────────────────────
-        var map = CardLayout.CreateGroup(canvas, "Map (Shape)", Color.FromArgb(57, 160, 197), 799, 172, 528, 533);
+        var map = CardLayout.CreateGroup(canvas, "Map (Shape)", CardLayout.Fc26Blue, 799, 172, 528, 533);
         map.Controls.Add(CreateViewer(new Point(8, 23), new Size(512, 256), "512 x 256", out _mapViewer, out _));
         LegacyAssetActions.Attach(Services, map, _mapViewer, new Point(8, 302), RefreshCurrentRecord);
 
