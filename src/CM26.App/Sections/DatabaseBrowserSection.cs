@@ -110,17 +110,17 @@ public sealed class DatabaseBrowserSection : SectionBase
             column.ToolTipText = c.IsWritable
                 ? "Editable: staged and validated before Save."
                 : "Read-only: unsupported by the validated database writer.";
-            column.HeaderCell.Style.BackColor = Theme.Raised;
-            column.HeaderCell.Style.ForeColor = Theme.Text;
+            column.HeaderCell.Style.BackColor = CardLayout.Fc26Green;
+            column.HeaderCell.Style.ForeColor = Color.White;
             column.HeaderCell.Style.Font = Theme.Label;
-            column.HeaderCell.Style.SelectionBackColor = Theme.Raised;
-            column.DefaultCellStyle.BackColor = Theme.Input;
-            column.DefaultCellStyle.ForeColor = Theme.Text;
+            column.HeaderCell.Style.SelectionBackColor = CardLayout.Fc26Green;
+            column.DefaultCellStyle.BackColor = CardLayout.CardWhite;
+            column.DefaultCellStyle.ForeColor = CardLayout.CardText;
             column.DefaultCellStyle.SelectionBackColor = Theme.Accent;
-            column.DefaultCellStyle.SelectionForeColor = Theme.Text;
+            column.DefaultCellStyle.SelectionForeColor = Color.White;
             column.DefaultCellStyle.Font = Theme.Body;
         }
-        _grid.BackgroundColor = Theme.Background;
+        _grid.BackgroundColor = CardLayout.CardBackground;
         _grid.EnableHeadersVisualStyles = false;
         int rows = Math.Min(table.RowCount - _pageStart, PageSize);
         for (int offset = 0; offset < rows; offset++)

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
+using CM26.App.Controls;
 using CM26.App.Theming;
 
 namespace CM26.App.Sections;
@@ -46,7 +47,7 @@ internal static class ThreeDViewerLauncher
             Size = surfaceSize,
             TextAlign = ContentAlignment.MiddleCenter,
             ForeColor = Theme.Muted,
-            BackColor = Theme.Raised,
+            BackColor = CardLayout.CardFieldBg,
             Font = Theme.Body,
             BorderStyle = BorderStyle.FixedSingle,
         };

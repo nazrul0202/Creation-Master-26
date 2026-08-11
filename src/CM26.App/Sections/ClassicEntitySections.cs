@@ -40,22 +40,42 @@ public abstract class ClassicEntitySection : SectionBase
     protected TabPage AddCanvasTab(string title)
     {
         var page = new TabPage(title) { BackColor = Theme.Background, Font = LegacyFont };
-        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background });
+        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground });
         Tabs.TabPages.Add(page);
         return page;
     }
 
     protected Panel Canvas(TabPage page) => (Panel)page.Controls[0];
 
-    protected GroupBox Group(string text, Point point, Size size)
+    protected Panel Group(string text, Point point, Size size)
     {
-        return new ModernGroupBox { Text = text, Location = point, Size = size };
+        var group = new Panel
+        {
+            Location = point,
+            Size = size,
+            BackColor = CardLayout.CardWhite,
+        };
+        CardLayout.ApplyRounded(group, 10);
+        group.Controls.Add(new Panel
+        {
+            Location = Point.Empty,
+            Size = new Size(size.Width, 4),
+            BackColor = CardLayout.Fc26Green,
+        });
+        group.Controls.Add(new Label
+        {
+            Text = text,
+            Location = new Point(10, 8),
+            Size = new Size(size.Width - 20, 16),
+            Font = Theme.BodyBold,
+            ForeColor = CardLayout.Fc26Green,
+            BackColor = CardLayout.CardWhite,
+        });
+        return group;
     }
 
     protected void AddField(Control parent, string field, string caption, Point point, int width = 150)
     {
-        // Uniform editor-grid geometry: the caption always ends 6 px before the
-        // editor, regardless of how narrow the group is.
         var captionWidth = Math.Clamp(point.X - 14, 40, 190);
         var captionX = point.X - captionWidth - 6;
         var label = new Label
@@ -66,8 +86,8 @@ public abstract class ClassicEntitySection : SectionBase
             Font = LegacyFont,
             TextAlign = ContentAlignment.MiddleRight,
             AutoEllipsis = true,
-            BackColor = Theme.Panel,
-            ForeColor = Theme.Muted,
+            BackColor = CardLayout.CardWhite,
+            ForeColor = CardLayout.CardFieldLabel,
         };
         parent.Controls.Add(label);
         ToolTip.SetToolTip(label, caption);
@@ -78,10 +98,6 @@ public abstract class ClassicEntitySection : SectionBase
         _editors.Add(box);
     }
 
-    /// <summary>
-    /// Read-only mirror of a field edited elsewhere on the form, so technical
-    /// identifiers never appear as a second writable editor for the same field.
-    /// </summary>
     protected void AddReadonlyField(Control parent, string field, string caption, Point point, int width = 150)
     {
         var captionWidth = Math.Clamp(point.X - 14, 40, 190);
@@ -94,30 +110,30 @@ public abstract class ClassicEntitySection : SectionBase
             Font = LegacyFont,
             TextAlign = ContentAlignment.MiddleRight,
             AutoEllipsis = true,
-            BackColor = Theme.Panel,
-            ForeColor = Theme.Muted,
+            BackColor = CardLayout.CardWhite,
+            ForeColor = CardLayout.CardFieldLabel,
         });
         var box = new TextBox { Location = point, Size = new Size(width, 20), Tag = field, ReadOnly = true, Font = LegacyFont, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(box);
-        box.BackColor = Theme.Raised;
-        box.ForeColor = Theme.Text;
+        box.BackColor = CardLayout.CardFieldBg;
+        box.ForeColor = CardLayout.CardText;
         parent.Controls.Add(box);
         _mirrors.Add(box);
     }
 
     protected PictureBox ImageSurface(Control parent, Point point, Size size, string caption)
     {
-        var holder = new Panel { Location = point, Size = new Size(size.Width, size.Height + 21), BackColor = Theme.Panel };
-        var pic = new PictureBox { Size = size, BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
+        var holder = new Panel { Location = point, Size = new Size(size.Width, size.Height + 21), BackColor = CardLayout.CardWhite };
+        var pic = new PictureBox { Size = size, BackColor = CardLayout.CardFieldBg, BorderStyle = BorderStyle.None, SizeMode = PictureBoxSizeMode.Zoom };
         holder.Controls.Add(pic);
-        holder.Controls.Add(new Label { Text = caption, Location = new Point(0, size.Height + 2), Size = new Size(size.Width, 18), Font = LegacyFont, ForeColor = Theme.Muted, TextAlign = ContentAlignment.MiddleCenter });
+        holder.Controls.Add(new Label { Text = caption, Location = new Point(0, size.Height + 2), Size = new Size(size.Width, 18), Font = LegacyFont, ForeColor = CardLayout.CardSubtle, TextAlign = ContentAlignment.MiddleCenter, BackColor = CardLayout.CardWhite });
         parent.Controls.Add(holder);
         return pic;
     }
 
     protected void AddReadonlyNote(Control parent, string text, Point point, Size size)
     {
-        parent.Controls.Add(new Label { Text = text, Location = point, Size = size, Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, TextAlign = ContentAlignment.MiddleCenter });
+        parent.Controls.Add(new Label { Text = text, Location = point, Size = size, Font = LegacyFont, ForeColor = CardLayout.CardSubtle, BackColor = CardLayout.CardWhite, TextAlign = ContentAlignment.MiddleCenter });
     }
 
     /// <summary>Loads a local image (including DDS) without locking its source file.</summary>
@@ -164,16 +180,16 @@ public abstract class ClassicEntitySection : SectionBase
             {
                 box.Text = value.Value;
                 box.ReadOnly = !value.IsWritable;
-                box.BackColor = value.IsWritable ? Theme.Input : Theme.Raised;
-                box.ForeColor = Theme.Text;
+                box.BackColor = value.IsWritable ? Theme.Input : CardLayout.CardFieldBg;
+                box.ForeColor = CardLayout.CardText;
                 ToolTip.SetToolTip(box, value.IsWritable ? value.FieldName : value.FieldName + " (read-only)");
             }
             else
             {
                 box.Text = "";
                 box.ReadOnly = true;
-                box.BackColor = Theme.Raised;
-                box.ForeColor = Theme.Muted;
+                box.BackColor = CardLayout.CardFieldBg;
+                box.ForeColor = CardLayout.CardSubtle;
                 ToolTip.SetToolTip(box, name + " is not present in this database");
             }
         }
@@ -184,16 +200,16 @@ public abstract class ClassicEntitySection : SectionBase
             {
                 box.Text = value.Value;
                 box.ReadOnly = true;
-                box.BackColor = Theme.Raised;
-                box.ForeColor = Theme.Text;
+                box.BackColor = CardLayout.CardFieldBg;
+                box.ForeColor = CardLayout.CardText;
                 ToolTip.SetToolTip(box, $"Read-only mirror of {value.FieldName} — edited in its section above.");
             }
             else
             {
                 box.Text = "";
                 box.ReadOnly = true;
-                box.BackColor = Theme.Raised;
-                box.ForeColor = Theme.Muted;
+                box.BackColor = CardLayout.CardFieldBg;
+                box.ForeColor = CardLayout.CardSubtle;
                 ToolTip.SetToolTip(box, name + " is not present in this database");
             }
         }
@@ -587,7 +603,7 @@ public sealed class FormationsSection : ClassicEntitySection
 {
     private readonly Panel _pitch;
     private readonly Label _pitchStatus;
-    private readonly GroupBox _pitchGroup;
+    private readonly Panel _pitchGroup;
     private readonly Dictionary<string, ComboBox> _formationPickers = new(StringComparer.OrdinalIgnoreCase);
     private readonly FieldEditorGrid _pickerStaging = new();
     private bool _syncFormationPickers;

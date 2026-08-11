@@ -60,17 +60,21 @@ public class GenericTableSection : SectionBase
             // The original CM16 forms place controls inside labelled group boxes
             // on a white canvas.  Retain the schema-driven editor, but present it
             // through that legacy form vocabulary instead of a modern property page.
-            var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background, Padding = new Padding(8) };
-            var group = new ModernGroupBox
+            var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground, Padding = new Padding(8) };
+            var group = new Panel
             {
-                Text = kv.Key,
-                // CM16 keeps the active editor compact at the top-left and
-                // leaves the rest of the document surface available for asset
-                // previews / future FC26-only controls.
                 Location = new Point(8, 8),
                 Size = new Size(620, 430),
-                Padding = new Padding(6, 18, 6, 6),
+                BackColor = CardLayout.CardWhite,
+                Padding = new Padding(6, 30, 6, 6),
             };
+            CardLayout.ApplyRounded(group, 10);
+            group.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(620, 4), BackColor = CardLayout.Fc26Green });
+            group.Controls.Add(new Label
+            {
+                Text = kv.Key, Location = new Point(10, 9), Size = new Size(590, 16),
+                Font = Theme.BodyBold, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
+            });
             grid.Dock = DockStyle.Fill;
             group.Controls.Add(grid);
             canvas.Controls.Add(group);

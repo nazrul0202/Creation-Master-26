@@ -346,16 +346,16 @@ public sealed class CountriesSection : SectionBase
             {
                 editor.Text = field.Value;
                 editor.ReadOnly = !field.IsWritable;
-                editor.BackColor = field.IsWritable ? Theme.Input : Theme.Raised;
-                editor.ForeColor = Theme.Text;
+                editor.BackColor = field.IsWritable ? Theme.Input : CardLayout.CardFieldBg;
+                editor.ForeColor = CardLayout.CardText;
                 ToolTip.SetToolTip(editor, field.IsWritable ? field.FieldName : $"{field.FieldName} (read-only)");
             }
             else
             {
                 editor.Text = string.Empty;
                 editor.ReadOnly = true;
-                editor.BackColor = Theme.Raised;
-                editor.ForeColor = Theme.Muted;
+                editor.BackColor = CardLayout.CardFieldBg;
+                editor.ForeColor = CardLayout.CardSubtle;
                 ToolTip.SetToolTip(editor, $"{fieldName} is not present in this database");
             }
         }
@@ -532,16 +532,16 @@ public sealed class CountriesSection : SectionBase
             {
                 editor.Text = string.Empty;
                 editor.ReadOnly = true;
-                editor.BackColor = Theme.Raised;
-                editor.ForeColor = Theme.Muted;
+                editor.BackColor = CardLayout.CardFieldBg;
+                editor.ForeColor = CardLayout.CardSubtle;
                 continue;
             }
             editor.Text = Services.Session.GetCell("audionation", row, field);
             var table = Services.Session.GetTable("audionation");
             var column = table?.Columns?.FirstOrDefault(x => x.Name.Equals(field, StringComparison.OrdinalIgnoreCase));
             editor.ReadOnly = column?.IsWritable != true;
-            editor.BackColor = editor.ReadOnly ? Theme.Raised : Theme.Input;
-            editor.ForeColor = Theme.Text;
+            editor.BackColor = editor.ReadOnly ? CardLayout.CardFieldBg : Theme.Input;
+            editor.ForeColor = CardLayout.CardText;
         }
     }
 
@@ -564,8 +564,18 @@ public sealed class CountriesSection : SectionBase
         return -1;
     }
 
-    private GroupBox LegacyGroup(string text, Point location, Size size) =>
-        new ModernGroupBox { Text = text, Location = location, Size = size };
+    private Panel LegacyGroup(string text, Point location, Size size)
+    {
+        var box = new Panel { Location = location, Size = size, BackColor = CardLayout.CardWhite };
+        CardLayout.ApplyRounded(box, 10);
+        box.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(size.Width, 4), BackColor = CardLayout.Fc26Green });
+        box.Controls.Add(new Label
+        {
+            Text = text, Location = new Point(10, 8), Size = new Size(size.Width - 20, 16),
+            Font = Theme.BodyBold, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
+        });
+        return box;
+    }
 
     private void AddField(Control parent, string fieldName, string label, Point location, int width)
     {
@@ -612,8 +622,8 @@ public sealed class CountriesSection : SectionBase
         ToolTip.SetToolTip(caption, label);
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, ReadOnly = true, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(editor);
-        editor.BackColor = Theme.Raised;
-        editor.ForeColor = Theme.Text;
+        editor.BackColor = CardLayout.CardFieldBg;
+        editor.ForeColor = CardLayout.CardText;
         parent.Controls.Add(editor);
         _editors.Add(editor);
         _mirrors.Add(editor);
@@ -625,8 +635,8 @@ public sealed class CountriesSection : SectionBase
         {
             var fieldName = mirror.Tag as string ?? string.Empty;
             mirror.ReadOnly = true;
-            mirror.BackColor = Theme.Raised;
-            mirror.ForeColor = Theme.Text;
+            mirror.BackColor = CardLayout.CardFieldBg;
+            mirror.ForeColor = CardLayout.CardText;
             ToolTip.SetToolTip(mirror, $"Read-only mirror of {fieldName} — edit it in its named field above.");
             if (_fields.TryGetValue(fieldName, out var field))
                 mirror.Text = field.Value;

@@ -47,7 +47,7 @@ public sealed class PlayersSection : SectionBase
     private readonly List<TextBox> _traitEditors = [];
     private readonly TextBox _callnameId = new();
     private readonly Label _callnameStatus = new();
-    private GroupBox? _traitsPanel;
+    private Panel? _traitsPanel;
     private bool _syncSkillSliders;
     private bool _syncReferencePickers;
     private int _currentPlayerId;
@@ -247,7 +247,18 @@ public sealed class PlayersSection : SectionBase
     }
 
     private static Panel Canvas(TabPage p) => (Panel)p.Controls[0];
-    private static GroupBox Box(string name, Point point, Size size) => new ModernGroupBox { Text = name, Location = point, Size = size };
+    private static Panel Box(string name, Point point, Size size)
+    {
+        var box = new Panel { Location = point, Size = size, BackColor = CardLayout.CardWhite };
+        CardLayout.ApplyRounded(box, 10);
+        box.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(size.Width, 4), BackColor = CardLayout.Fc26Green });
+        box.Controls.Add(new Label
+        {
+            Text = name, Location = new Point(10, 8), Size = new Size(size.Width - 20, 16),
+            Font = Theme.BodyBold, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
+        });
+        return box;
+    }
     private static PictureBox Viewer(Point point, Size size) => new() { Location = point, Size = size, BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
 
     // A read-only player card keeps the editable legacy form intact while
@@ -324,7 +335,7 @@ AddOverviewSupplement(card, "CONTRACT & VALUE", 455, 644,
             ("Contract until", "contractvaliduntil"), ("Value", "value"), ("Wage", "wage"), ("Reputation", "internationalrep"));
         AddOverviewSupplement(card, "PLAYING ROLES", 892, 644,
             ("Primary role", "role1"), ("Secondary role", "role2"), ("Third role", "role3"), ("Fourth role", "role4"));
-        _traitsPanel = new ModernGroupBox { Text = "PLAYSTYLES", Location = new Point(455, 804), Size = new Size(855, 86) };
+        _traitsPanel = Box("PLAYSTYLES", new Point(455, 804), new Size(855, 86));
         card.Controls.Add(_traitsPanel);
         var note = new Label { Text = "Read-only career overview · Edit all database values in the Info and Skills tabs.", Location = new Point(28, 550), Size = new Size(800, 24), ForeColor = CardLayout.CardSubtle, Font = Theme.Body };
         note.Visible = false;
@@ -708,7 +719,7 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
         var preview = Box("Face Preview", new Point(3, 3), new Size(1200, 451));
         _facePreview.Location = new Point(8, 20);
         _facePreview.Size = new Size(1183, 390);
-        _facePreview.BackColor = Theme.Raised;
+        _facePreview.BackColor = CardLayout.CardFieldBg;
         _facePreview.BorderStyle = BorderStyle.FixedSingle;
         _facePreview.SizeMode = PictureBoxSizeMode.Zoom;
         preview.Controls.Add(_facePreview);
@@ -1206,8 +1217,8 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
         {
             editor.Text = display;
             editor.ReadOnly = !writable;
-            editor.BackColor = writable ? Theme.Input : Theme.Raised;
-            editor.ForeColor = Theme.Text;
+            editor.BackColor = writable ? Theme.Input : CardLayout.CardFieldBg;
+            editor.ForeColor = CardLayout.CardText;
             ToolTip.SetToolTip(editor, writable ? field : field + " is a resolved value; edit its relationship in the appropriate picker.");
         }
     }
@@ -1263,8 +1274,8 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
                     edit.Text = display;
                     var editableDate = key is "birthdate" or "playerjointeamdate";
                     edit.ReadOnly = !editableDate || !value.IsWritable;
-                    edit.BackColor = edit.ReadOnly ? Theme.Raised : Theme.Input;
-                    edit.ForeColor = Theme.Text;
+                    edit.BackColor = edit.ReadOnly ? CardLayout.CardFieldBg : Theme.Input;
+                    edit.ForeColor = CardLayout.CardText;
                     ToolTip.SetToolTip(edit, editableDate
                         ? "Use YYYY-MM-DD. The value is converted to the database date format when staged."
                         : NameFieldTooltip(key, value.RawValue));
@@ -1273,8 +1284,8 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
                 {
                     edit.Text = value.Value;
                     edit.ReadOnly = !value.IsWritable;
-                    edit.BackColor = value.IsWritable ? Theme.Input : Theme.Raised;
-                    edit.ForeColor = Theme.Text;
+                    edit.BackColor = value.IsWritable ? Theme.Input : CardLayout.CardFieldBg;
+                    edit.ForeColor = CardLayout.CardText;
                     ToolTip.SetToolTip(edit, string.Empty);
                 }
             }
@@ -1282,8 +1293,8 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
             {
                 edit.Text = TryGetMappedDisplay(key, playerId, string.Empty, out var display) ? display : string.Empty;
                 edit.ReadOnly = true;
-                edit.BackColor = Theme.Raised;
-                edit.ForeColor = Theme.Muted;
+                edit.BackColor = CardLayout.CardFieldBg;
+                edit.ForeColor = CardLayout.CardSubtle;
                 ToolTip.SetToolTip(edit, NameFieldTooltip(key, string.Empty));
             }
         }
@@ -1321,8 +1332,8 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
             {
                 editor.Text = display;
                 editor.ReadOnly = !writable;
-                editor.BackColor = writable ? Theme.Input : Theme.Raised;
-                editor.ForeColor = Theme.Text;
+                editor.BackColor = writable ? Theme.Input : CardLayout.CardFieldBg;
+                editor.ForeColor = CardLayout.CardText;
                 ToolTip.SetToolTip(editor, writable ? field : field + " is a resolved value; edit its relationship in the appropriate picker.");
             }
         }

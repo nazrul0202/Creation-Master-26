@@ -337,9 +337,6 @@ public sealed class LeaguesSection : SectionBase
         parent.Controls.Add(valueLabel);
     }
 
-    private static GroupBox Group(string text, Point location, Size size) =>
-        new ModernGroupBox { Text = text, Location = location, Size = size };
-
     private Panel Viewer(Point location, Size size, string caption, out PictureBox picture)
     {
         var holder = new Panel { Location = location, Size = new Size(size.Width, size.Height + 21), BackColor = Theme.Panel };
@@ -569,8 +566,8 @@ public sealed class LeaguesSection : SectionBase
         });
         var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, ReadOnly = true, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(editor);
-        editor.BackColor = Theme.Raised;
-        editor.ForeColor = Theme.Text;
+        editor.BackColor = CardLayout.CardFieldBg;
+        editor.ForeColor = CardLayout.CardText;
         parent.Controls.Add(editor);
         _editors.Add(editor);
         _nameMirrors.Add(editor);
@@ -581,8 +578,8 @@ public sealed class LeaguesSection : SectionBase
         foreach (var mirror in _nameMirrors)
         {
             mirror.ReadOnly = true;
-            mirror.BackColor = Theme.Raised;
-            mirror.ForeColor = Theme.Text;
+            mirror.BackColor = CardLayout.CardFieldBg;
+            mirror.ForeColor = CardLayout.CardText;
             ToolTip.SetToolTip(mirror, "Read-only mirror of leaguename — edit it in the Database Name field.");
             if (_fields.TryGetValue(mirror.Tag as string ?? string.Empty, out var field))
                 mirror.Text = field.Value;
@@ -600,20 +597,20 @@ public sealed class LeaguesSection : SectionBase
             {
                 editor.Text = Services.Resolver?.NationName(nationId) ?? field.Value;
                 editor.ReadOnly = true;
-                editor.BackColor = Theme.Raised;
-                editor.ForeColor = Theme.Muted;
+                editor.BackColor = CardLayout.CardFieldBg;
+                editor.ForeColor = CardLayout.CardSubtle;
                 ToolTip.SetToolTip(editor, $"countryid = {field.RawValue} (resolved from nations)");
                 return;
             }
             editor.Text = field.Value;
             editor.ReadOnly = !field.IsWritable;
-            editor.BackColor = field.IsWritable ? Theme.Input : Theme.Raised;
-            editor.ForeColor = Theme.Text;
+            editor.BackColor = field.IsWritable ? Theme.Input : CardLayout.CardFieldBg;
+            editor.ForeColor = CardLayout.CardText;
             ToolTip.SetToolTip(editor, field.IsWritable ? field.FieldName : field.FieldName + " (read-only)");
         }
         else
         {
-            editor.Text = string.Empty; editor.ReadOnly = true; editor.BackColor = Theme.Raised; editor.ForeColor = Theme.Muted;
+            editor.Text = string.Empty; editor.ReadOnly = true; editor.BackColor = CardLayout.CardFieldBg; editor.ForeColor = CardLayout.CardSubtle;
             ToolTip.SetToolTip(editor, key + " is not present in this database");
         }
     }

@@ -107,21 +107,21 @@ public sealed class CompetitionsSection : ClassicEntitySection
         _compdataGrid.RowHeadersVisible = false;
         _compdataGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _compdataGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells;
-        _compdataGrid.BackgroundColor = Theme.Background;
+        _compdataGrid.BackgroundColor = CardLayout.CardBackground;
         _compdataGrid.BorderStyle = BorderStyle.None;
         _compdataGrid.EnableHeadersVisualStyles = false;
         _compdataGrid.ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableAlwaysIncludeHeaderText;
-        _compdataGrid.ColumnHeadersDefaultCellStyle.BackColor = Theme.Raised;
-        _compdataGrid.ColumnHeadersDefaultCellStyle.ForeColor = Theme.Text;
+        _compdataGrid.ColumnHeadersDefaultCellStyle.BackColor = CardLayout.Fc26Green;
+        _compdataGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
         _compdataGrid.ColumnHeadersDefaultCellStyle.Font = Theme.Label;
-        _compdataGrid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Theme.Raised;
+        _compdataGrid.ColumnHeadersDefaultCellStyle.SelectionBackColor = CardLayout.Fc26Green;
         _compdataGrid.ColumnHeadersHeight = 30;
-        _compdataGrid.DefaultCellStyle.BackColor = Theme.Input;
-        _compdataGrid.DefaultCellStyle.ForeColor = Theme.Text;
+        _compdataGrid.DefaultCellStyle.BackColor = CardLayout.CardWhite;
+        _compdataGrid.DefaultCellStyle.ForeColor = CardLayout.CardText;
         _compdataGrid.DefaultCellStyle.SelectionBackColor = Theme.Accent;
-        _compdataGrid.DefaultCellStyle.SelectionForeColor = Theme.Text;
+        _compdataGrid.DefaultCellStyle.SelectionForeColor = Color.White;
         _compdataGrid.DefaultCellStyle.Font = Theme.Body;
-        _compdataGrid.GridColor = Theme.Border;
+        _compdataGrid.GridColor = CardLayout.Lighten(CardLayout.Fc26Green, 200);
         workspace.Controls.Add(_compdataGrid);
         canvas.Controls.Add(workspace);
 
@@ -296,14 +296,14 @@ public sealed class CompetitionsSection : ClassicEntitySection
             _compdataGrid.EnableHeadersVisualStyles = false;
             foreach (DataGridViewColumn column in _compdataGrid.Columns)
             {
-                column.HeaderCell.Style.BackColor = Theme.Raised;
-                column.HeaderCell.Style.ForeColor = Theme.Text;
+                column.HeaderCell.Style.BackColor = CardLayout.Fc26Green;
+                column.HeaderCell.Style.ForeColor = Color.White;
                 column.HeaderCell.Style.Font = Theme.Label;
-                column.HeaderCell.Style.SelectionBackColor = Theme.Raised;
-                column.DefaultCellStyle.BackColor = Theme.Input;
-                column.DefaultCellStyle.ForeColor = Theme.Text;
+                column.HeaderCell.Style.SelectionBackColor = CardLayout.Fc26Green;
+                column.DefaultCellStyle.BackColor = CardLayout.CardWhite;
+                column.DefaultCellStyle.ForeColor = CardLayout.CardText;
                 column.DefaultCellStyle.SelectionBackColor = Theme.Accent;
-                column.DefaultCellStyle.SelectionForeColor = Theme.Text;
+                column.DefaultCellStyle.SelectionForeColor = Color.White;
                 column.DefaultCellStyle.Font = Theme.Body;
             }
             var limit = CompdataSchema.GetRowLimit(sheetName);

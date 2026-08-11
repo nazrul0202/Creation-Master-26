@@ -64,13 +64,17 @@ internal abstract class Fc26ExtensionSection : SectionBase
         _key = key; _title = title; _table = table; _fields = fields;
         Header.Visible = false;
         var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
-        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background };
-        var box = new ModernGroupBox { Text = group, Location = new Point(4, 4), Size = new Size(630, Math.Max(120, 25 + ((fields.Length + 1) / 2 * 26))) };
+        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground };
+        var boxHeight = Math.Max(120, 25 + ((fields.Length + 1) / 2 * 26));
+        var box = new Panel { Location = new Point(4, 4), Size = new Size(630, boxHeight), BackColor = CardLayout.CardWhite };
+        CardLayout.ApplyRounded(box, 10);
+        box.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(630, 4), BackColor = CardLayout.Fc26Green });
+        box.Controls.Add(new Label { Text = group, Location = new Point(10, 8), Size = new Size(610, 16), Font = Theme.BodyBold, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite });
         for (var i = 0; i < fields.Length; i++)
         {
             var col = i % 2; var row = i / 2;
-            var x = col == 0 ? 12 : 322; var y = 20 + (row * 26);
-            var label = new Label { Text = Label(fields[i]), Location = new Point(x, y + 3), Size = new Size(165, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true, ForeColor = Theme.Muted, BackColor = Theme.Panel };
+            var x = col == 0 ? 12 : 322; var y = 28 + (row * 26);
+            var label = new Label { Text = Label(fields[i]), Location = new Point(x, y + 3), Size = new Size(165, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true, ForeColor = CardLayout.CardFieldLabel, BackColor = CardLayout.CardWhite };
             box.Controls.Add(label);
             ToolTip.SetToolTip(label, Label(fields[i]));
             var editor = new TextBox { Location = new Point(x + 171, y), Size = new Size(145, 20), Font = LegacyFont, Tag = fields[i] };
@@ -89,9 +93,22 @@ internal abstract class Fc26ExtensionSection : SectionBase
     protected TabPage AddCanvasTab(string title)
     {
         var page = new TabPage(title) { BackColor = Theme.Background, Font = LegacyFont };
-        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background });
+        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground });
         Tabs.TabPages.Add(page);
         return page;
+    }
+
+    protected static Panel Card(string title, Point location, Size size)
+    {
+        var card = new Panel { Location = location, Size = size, BackColor = CardLayout.CardWhite };
+        CardLayout.ApplyRounded(card, 10);
+        card.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(size.Width, 4), BackColor = CardLayout.Fc26Green });
+        card.Controls.Add(new Label
+        {
+            Text = title, Location = new Point(10, 8), Size = new Size(Math.Max(60, size.Width - 20), 16),
+            Font = Theme.BodyBold, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
+        });
+        return card;
     }
 
     protected override IReadOnlyList<RecordListItem> GetRecords()
@@ -121,13 +138,13 @@ internal abstract class Fc26ExtensionSection : SectionBase
             if (_values.TryGetValue(key, out var value))
             {
                 editor.Text = value.Value; editor.ReadOnly = !value.IsWritable;
-                editor.BackColor = value.IsWritable ? Theme.Input : Theme.Raised;
-                editor.ForeColor = Theme.Text;
+                editor.BackColor = value.IsWritable ? Theme.Input : CardLayout.CardFieldBg;
+                editor.ForeColor = CardLayout.CardText;
                 ToolTip.SetToolTip(editor, value.IsWritable
                     ? Label(key)
                     : Label(key) + " (read-only)");
             }
-            else { editor.Text = ""; editor.ReadOnly = true; editor.BackColor = Theme.Raised; editor.ForeColor = Theme.Muted; }
+            else { editor.Text = ""; editor.ReadOnly = true; editor.BackColor = CardLayout.CardFieldBg; editor.ForeColor = CardLayout.CardSubtle; }
         }
         OnRecordShown();
     }
@@ -162,23 +179,19 @@ internal sealed class SponsorsSection : Fc26ExtensionSection
     {
         var page = AddCanvasTab("Preview");
         var canvas = (Panel)page.Controls[0];
-        var box = new ModernGroupBox
-        {
-            Text = "Sponsor Artwork", Location = new Point(4, 4),
-            Size = new Size(850, 520)
-        };
-        _preview.Location = new Point(12, 24);
+        var box = Card("Sponsor Artwork", new Point(4, 4), new Size(850, 520));
+        _preview.Location = new Point(12, 28);
         _preview.Size = new Size(825, 410);
-        _preview.BackColor = Theme.Input;
+        _preview.BackColor = CardLayout.CardFieldBg;
         _preview.BorderStyle = BorderStyle.FixedSingle;
         _preview.SizeMode = PictureBoxSizeMode.Zoom;
         box.Controls.Add(_preview);
-        _caption.Location = new Point(12, 442);
+        _caption.Location = new Point(12, 446);
         _caption.Size = new Size(825, 40);
         _caption.Font = LegacyFont;
         _caption.TextAlign = ContentAlignment.MiddleCenter;
         box.Controls.Add(_caption);
-        LegacyAssetActions.Attach(Services, box, _preview, new Point(12, 488), () => OnRecordShown());
+        LegacyAssetActions.Attach(Services, box, _preview, new Point(12, 492), () => OnRecordShown());
         canvas.Controls.Add(box);
     }
 
@@ -237,17 +250,14 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
     {
         var page = AddCanvasTab("NewWave Banks");
         var canvas = (Panel)page.Controls[0];
-        var box = new ModernGroupBox
-        {
-            Text = "NewWave Audio Banks", Location = new Point(4, 4),
-            Size = new Size(1120, 610)
-        };
+        var box = Card("NewWave Audio Banks", new Point(4, 4), new Size(1120, 610));
         box.Controls.Add(new Label
         {
-            Text = "Search", Location = new Point(12, 27), Size = new Size(54, 20),
-            TextAlign = ContentAlignment.MiddleRight
+            Text = "Search", Location = new Point(12, 31), Size = new Size(54, 20),
+            TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont,
+            ForeColor = CardLayout.CardFieldLabel, BackColor = CardLayout.CardWhite
         });
-        _query.Location = new Point(72, 26);
+        _query.Location = new Point(72, 30);
         _query.Size = new Size(430, 20);
         _query.Text = "sound/chants/newwaves";
         box.Controls.Add(_query);
@@ -465,23 +475,19 @@ internal sealed class AdboardsSection : Fc26ExtensionSection
     {
         var page = AddCanvasTab("Preview");
         var canvas = (Panel)page.Controls[0];
-        var box = new ModernGroupBox
-        {
-            Text = "Dynamic Adboard Artwork", Location = new Point(4, 4),
-            Size = new Size(850, 520)
-        };
-        _preview.Location = new Point(12, 24);
+        var box = Card("Dynamic Adboard Artwork", new Point(4, 4), new Size(850, 520));
+        _preview.Location = new Point(12, 28);
         _preview.Size = new Size(825, 410);
-        _preview.BackColor = Theme.Input;
+        _preview.BackColor = CardLayout.CardFieldBg;
         _preview.BorderStyle = BorderStyle.FixedSingle;
         _preview.SizeMode = PictureBoxSizeMode.Zoom;
         box.Controls.Add(_preview);
-        _caption.Location = new Point(12, 442);
+        _caption.Location = new Point(12, 446);
         _caption.Size = new Size(825, 40);
         _caption.Font = LegacyFont;
         _caption.TextAlign = ContentAlignment.MiddleCenter;
         box.Controls.Add(_caption);
-        LegacyAssetActions.Attach(Services, box, _preview, new Point(12, 488), () => OnRecordShown());
+        LegacyAssetActions.Attach(Services, box, _preview, new Point(12, 492), () => OnRecordShown());
         canvas.Controls.Add(box);
     }
 

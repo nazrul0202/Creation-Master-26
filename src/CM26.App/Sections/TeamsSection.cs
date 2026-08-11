@@ -446,8 +446,18 @@ public sealed class TeamsSection : SectionBase
 
     private static Panel Canvas(TabPage page) => (Panel)page.Controls[0];
 
-    private static GroupBox Group(string text, Point location, Size size) =>
-        new ModernGroupBox { Text = text, Location = location, Size = size };
+    private static Panel Group(string text, Point location, Size size)
+    {
+        var box = new Panel { Location = location, Size = size, BackColor = CardLayout.CardWhite };
+        CardLayout.ApplyRounded(box, 10);
+        box.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(size.Width, 4), BackColor = CardLayout.Fc26Green });
+        box.Controls.Add(new Label
+        {
+            Text = text, Location = new Point(10, 8), Size = new Size(size.Width - 20, 16),
+            Font = Theme.BodyBold, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
+        });
+        return box;
+    }
 
     private static PictureBox Viewer(Point location, Size size) => new()
     {
@@ -712,13 +722,13 @@ public sealed class TeamsSection : SectionBase
             _goalSongSlots, new Point(490, 322), 1501));
     }
 
-    private GroupBox CreateAudioCatalog(
+    private Panel CreateAudioCatalog(
         string title, string tableName, ListView list, Point location, int firstItemId)
     {
         var width = location.X < 100 ? 475 : 610;
         var box = Group(title, location, new Size(width, 311));
-        list.Location = new Point(10, 22);
-        list.Size = new Size(width - 20, 245);
+        list.Location = new Point(10, 30);
+        list.Size = new Size(width - 20, 235);
         list.View = View.Details;
         list.FullRowSelect = true;
         list.GridLines = true;
@@ -755,7 +765,7 @@ public sealed class TeamsSection : SectionBase
         // Matchday choices belong directly above the squad rail. Keeping them
         // in the roster workspace avoids a separate tall page and keeps the
         // frequently used captain/set-piece controls in view.
-        canvas.Controls.Add(CreateMatchdayPanel(new Point(1145, 3), new Size(500, 150)));
+        canvas.Controls.Add(CreateMatchdayPanel(new Point(1145, 3), new Size(500, 168)));
 
         // === VISUAL SQUAD LIST ===
         // Mirrors the provided formation-board layout: the pitch is the primary
@@ -768,7 +778,7 @@ public sealed class TeamsSection : SectionBase
         var squadCount = new Label
         {
             Text = "Squad (0 players)",
-            Location = new Point(10, 20),
+            Location = new Point(10, 30),
             Size = new Size(200, 18),
             Font = Theme.BodyBold,
             ForeColor = Theme.Text,
@@ -778,20 +788,20 @@ public sealed class TeamsSection : SectionBase
         _squadCountLabel = squadCount;
 
         // Tools section
-        var toolsGroup = Group("Tools", new Point(10, 42), new Size(475, 50));
-        var btnTransfer = LegacyButton("Transfer", new Point(8, 18), new Size(90, 26));
+        var toolsGroup = Group("Tools", new Point(10, 52), new Size(475, 62));
+        var btnTransfer = LegacyButton("Transfer", new Point(8, 30), new Size(90, 26));
         btnTransfer.Click += (_, _) => OpenTransferDialog();
         toolsGroup.Controls.Add(btnTransfer);
-        var btnLoan = LegacyButton("Loan", new Point(104, 18), new Size(90, 26));
+        var btnLoan = LegacyButton("Loan", new Point(104, 30), new Size(90, 26));
         btnLoan.Click += (_, _) => ShowLoanDetails();
-        toolsGroup.Controls.Add(btnLoan);
-        var btnFind = LegacyButton("Find", new Point(200, 18), new Size(70, 26));
+        squadGroup.Controls.Add(btnLoan);
+        var btnFind = LegacyButton("Find", new Point(200, 30), new Size(70, 26));
         btnFind.Click += (_, _) => FindSelectedPlayer();
-        toolsGroup.Controls.Add(btnFind);
+        squadGroup.Controls.Add(btnFind);
         squadGroup.Controls.Add(toolsGroup);
 
         // Compact squad ListView
-        _teamPlayers.Location = new Point(10, 98);
+        _teamPlayers.Location = new Point(10, 120);
         _teamPlayers.Size = new Size(475, 540);
         _teamPlayers.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
         _teamPlayers.View = View.Details;
@@ -825,8 +835,8 @@ public sealed class TeamsSection : SectionBase
         pitch.Anchor = AnchorStyles.Top | AnchorStyles.Left;
         var board = new Panel
         {
-            Location = new Point(8, 20),
-            Size = new Size(1115, 730),
+            Location = new Point(8, 28),
+            Size = new Size(1115, 722),
             BackColor = Color.FromArgb(106, 190, 87),
             BorderStyle = BorderStyle.FixedSingle,
             AllowDrop = true,
@@ -866,14 +876,14 @@ public sealed class TeamsSection : SectionBase
 
     }
 
-    private GroupBox CreateMatchdayPanel(Point location, Size size)
+    private Panel CreateMatchdayPanel(Point location, Size size)
     {
         var setPieces = Group("Matchday", location, size);
         AddPlayerReferencePickers(setPieces, new[] {
             ("Captain", "captainid"), ("Left Corner", "leftcornerkicktakerid"),
             ("Right Corner", "rightcornerkicktakerid"), ("Penalty", "penaltytakerid"),
             ("Free Kicks", "freekicktakerid")
-        }, 8, 18, pickerX: 104, pickerWidth: 380);
+        }, 8, 30, pickerX: 104, pickerWidth: 380);
         return setPieces;
     }
 
@@ -1458,7 +1468,7 @@ public sealed class TeamsSection : SectionBase
         var page = Page("Adboards");
         var canvas = Canvas(page);
         var sources = Group("Team Adboard Sources", new Point(3, 3), new Size(600, 621));
-        _adboardSources.Location = new Point(10, 23);
+        _adboardSources.Location = new Point(10, 30);
         _adboardSources.Size = new Size(580, 590);
         _adboardSources.View = View.Details;
         _adboardSources.FullRowSelect = true;
@@ -1475,7 +1485,7 @@ public sealed class TeamsSection : SectionBase
         canvas.Controls.Add(sources);
 
         var preview = Group("Adboard / Dynamic Sponsor Preview", new Point(610, 3), new Size(620, 420));
-        _adboardPreview.Location = new Point(10, 23);
+        _adboardPreview.Location = new Point(10, 30);
         _adboardPreview.Size = new Size(600, 320);
         _adboardPreview.BackColor = Theme.Input;
         _adboardPreview.BorderStyle = BorderStyle.FixedSingle;
@@ -1495,7 +1505,7 @@ public sealed class TeamsSection : SectionBase
         {
             Text = "Adboard content is driven by teamsponsorlinks and its dynamicimageid. " +
                    "This view shows the exact database links and resolves the corresponding installed artwork when available.",
-            Location = new Point(14, 25), Size = new Size(590, 95), Font = LegacyFont,
+            Location = new Point(14, 30), Size = new Size(590, 95), Font = LegacyFont,
             ForeColor = Theme.Muted, BackColor = Theme.Panel
         });
         canvas.Controls.Add(note);
@@ -1506,7 +1516,7 @@ public sealed class TeamsSection : SectionBase
         var page = Page("Sponsors");
         var canvas = Canvas(page);
         var links = Group("Team Sponsor Links", new Point(3, 3), new Size(1120, 629));
-        _teamSponsors.Location = new Point(12, 23);
+        _teamSponsors.Location = new Point(12, 30);
         _teamSponsors.Size = new Size(660, 565);
         _teamSponsors.View = View.Details;
         _teamSponsors.FullRowSelect = true;
@@ -1546,7 +1556,7 @@ public sealed class TeamsSection : SectionBase
         var page = Page("Flags");
         var canvas = Canvas(page);
         var texture = Group("Team Flags", new Point(3, 3), new Size(525, 346));
-        _teamFlagPreview.Location = new Point(10, 24);
+        _teamFlagPreview.Location = new Point(10, 30);
         _teamFlagPreview.Size = new Size(512, 256);
         _teamFlagPreview.BackColor = Theme.Input;
         _teamFlagPreview.BorderStyle = BorderStyle.FixedSingle;
@@ -1560,7 +1570,7 @@ public sealed class TeamsSection : SectionBase
         texture.Controls.Add(_teamFlagCaption);
         canvas.Controls.Add(texture);
         var flag = Group("Flags", new Point(534, 3), new Size(525, 346));
-        _nationFlagPreview.Location = new Point(10, 24);
+        _nationFlagPreview.Location = new Point(10, 30);
         _nationFlagPreview.Size = new Size(512, 256);
         _nationFlagPreview.BackColor = Theme.Input;
         _nationFlagPreview.BorderStyle = BorderStyle.FixedSingle;
@@ -1712,8 +1722,8 @@ public sealed class TeamsSection : SectionBase
             {
                 editor.Text = Services.Resolver?.PlayerNameByPlayerId(refPlayerId) ?? $"Player {refPlayerId}";
                 editor.ReadOnly = true;
-                editor.BackColor = Theme.Raised;
-                editor.ForeColor = Theme.Muted;
+                editor.BackColor = CardLayout.CardFieldBg;
+                editor.ForeColor = CardLayout.CardSubtle;
                 ToolTip.SetToolTip(editor, $"{key} = {pref.RawValue} (player id)");
             }
             else if (IsLinkedDisplayField(key))
@@ -1722,23 +1732,23 @@ public sealed class TeamsSection : SectionBase
                 // resolved name in the CM16-style form instead of an empty/-1 raw FK.
                 editor.Text = ResolveLinkedValue(key, int.TryParse(id, out var linkedTeamId) ? linkedTeamId : 0);
                 editor.ReadOnly = true;
-                editor.BackColor = Theme.Raised;
-                editor.ForeColor = Theme.Muted;
+                editor.BackColor = CardLayout.CardFieldBg;
+                editor.ForeColor = CardLayout.CardSubtle;
                 ToolTip.SetToolTip(editor, $"Resolved {key}; select the linked player or roster control to change it.");
             }
             else if (_fields.TryGetValue(key, out var value))
             {
                 editor.Text = value.Value;
                 editor.ReadOnly = !value.IsWritable;
-                editor.BackColor = value.IsWritable ? Theme.Input : Theme.Raised;
-                editor.ForeColor = Theme.Text;
+                editor.BackColor = value.IsWritable ? Theme.Input : CardLayout.CardFieldBg;
+                editor.ForeColor = CardLayout.CardText;
             }
             else
             {
                 editor.Text = ResolveLinkedValue(key, int.TryParse(id, out var linkedTeamId) ? linkedTeamId : 0);
                 editor.ReadOnly = true;
-                editor.BackColor = Theme.Raised;
-                editor.ForeColor = Theme.Muted;
+                editor.BackColor = CardLayout.CardFieldBg;
+                editor.ForeColor = CardLayout.CardSubtle;
             }
         }
 
