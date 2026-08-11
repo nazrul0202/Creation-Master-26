@@ -27,9 +27,9 @@ public sealed class LeaguesSection : SectionBase
     private readonly HashSet<int> _pendingTeamCrests = [];
     private readonly SemaphoreSlim _teamCrestGate = new(2, 2);
     private readonly Label _logoCaption = new();
-    private readonly PictureBox _mainLogo;
-    private readonly PictureBox _bannerLogo;
-    private readonly PictureBox _wideLogo;
+    private readonly PictureBox? _mainLogo;
+    private readonly PictureBox? _bannerLogo;
+    private readonly PictureBox? _wideLogo;
     private readonly ToolStripComboBox _teamPicker = new() { Width = 150, DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly ToolStripTextBox _teamSearch = new() { Width = 180, ToolTipText = "Search teams to add to this league" };
     private readonly ToolStripButton _addTeam = new("Add");
@@ -39,6 +39,16 @@ public sealed class LeaguesSection : SectionBase
     private readonly Label _leagueNameLabel = new();
     private readonly Label _leagueMetaLabel = new();
     private readonly PictureBox _leagueLogoPreview = new();
+    private readonly Label _leagueOverallLabel = new();
+    private readonly Panel _leagueOvrBar = new();
+    private readonly Panel _leagueAttBar = new();
+    private readonly Panel _leagueMidBar = new();
+    private readonly Panel _leagueDefBar = new();
+    private readonly Label _leagueAttVal = new();
+    private readonly Label _leagueMidVal = new();
+    private readonly Label _leagueDefVal = new();
+    private readonly Label _leagueLevelLabel = new();
+    private readonly Label _leagueClubsLabel = new();
     private int _leagueId;
     private bool _syncLeagueFlags;
     private bool _syncCountryPicker;
@@ -57,138 +67,116 @@ public sealed class LeaguesSection : SectionBase
 
         var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
         var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground };
+        canvas.AutoScrollMinSize = new Size(1370, 900);
         page.Controls.Add(canvas);
         Tabs.TabPages.Add(page);
 
-        // ── League header card ────────────────────────────────────────────
-        var header = CardLayout.CreateFc26Header(1340, 142);
-        _leagueNameLabel.Location = new Point(150, 20);
-        _leagueNameLabel.Size = new Size(460, 36);
-        _leagueNameLabel.Font = new Font("Segoe UI", 20, FontStyle.Bold);
+        // ═══════════════════════════════════════════════════════════════
+        //  LEAGUE PROFILE HEADER
+        // ═══════════════════════════════════════════════════════════════
+        var profile = new Panel { Location = new Point(12, 12), Size = new Size(1340, 220), BackColor = CardLayout.CardWhite };
+        CardLayout.ApplyRounded(profile, 14);
+        profile.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(6, 220), BackColor = CardLayout.Fc26Green });
+        _leagueLogoPreview.Location = new Point(24, 24);
+        _leagueLogoPreview.Size = new Size(140, 140);
+        _leagueLogoPreview.SizeMode = PictureBoxSizeMode.Zoom;
+        _leagueLogoPreview.BackColor = CardLayout.CardFieldBg;
+        _leagueLogoPreview.BorderStyle = BorderStyle.None;
+        profile.Controls.Add(_leagueLogoPreview);
+        _leagueNameLabel.Location = new Point(184, 30);
+        _leagueNameLabel.Size = new Size(500, 38);
+        _leagueNameLabel.Font = new Font("Segoe UI", 22, FontStyle.Bold);
         _leagueNameLabel.ForeColor = CardLayout.CardText;
-        header.Controls.Add(_leagueNameLabel);
-        _leagueMetaLabel.Location = new Point(153, 63);
-        _leagueMetaLabel.Size = new Size(500, 24);
+        profile.Controls.Add(_leagueNameLabel);
+        _leagueMetaLabel.Location = new Point(186, 74);
+        _leagueMetaLabel.Size = new Size(500, 22);
         _leagueMetaLabel.Font = Theme.BodyBold;
         _leagueMetaLabel.ForeColor = CardLayout.CardMuted;
-        header.Controls.Add(_leagueMetaLabel);
-        _leagueLogoPreview.Location = new Point(16, 13);
-        _leagueLogoPreview.Size = new Size(116, 116);
-        _leagueLogoPreview.SizeMode = PictureBoxSizeMode.Zoom;
-        _leagueLogoPreview.BackColor = Color.FromArgb(243, 245, 241);
-        _leagueLogoPreview.BorderStyle = BorderStyle.None;
-        header.Controls.Add(_leagueLogoPreview);
-        canvas.Controls.Add(header);
+        profile.Controls.Add(_leagueMetaLabel);
+        var ovrTile = CardLayout.CreateTile(profile, "OVR", 184, 108, CardLayout.Fc26Green, 110, 90);
+        _leagueOverallLabel.Text = "--";
+        ovrTile.Tile.Controls.Remove(ovrTile.Value);
+        _leagueOverallLabel.Location = new Point(5, 8);
+        _leagueOverallLabel.Size = new Size(100, 52);
+        _leagueOverallLabel.Font = new Font("Segoe UI", 26, FontStyle.Bold);
+        _leagueOverallLabel.TextAlign = ContentAlignment.MiddleCenter;
+        _leagueOverallLabel.ForeColor = Color.White;
+        ovrTile.Tile.Controls.Add(_leagueOverallLabel);
+        AddRatingBar(profile, "OVR", CardLayout.Fc26Green, _leagueOvrBar, _leagueOverallLabel, 310, 110);
+        AddRatingBar(profile, "ATT", CardLayout.Fc26Yellow, _leagueAttBar, _leagueAttVal, 310, 138);
+        AddRatingBar(profile, "MID", CardLayout.Fc26Blue, _leagueMidBar, _leagueMidVal, 310, 166);
+        AddRatingBar(profile, "DEF", CardLayout.Fc26Red, _leagueDefBar, _leagueDefVal, 310, 194);
+        canvas.Controls.Add(profile);
 
-        // ── Teams card ────────────────────────────────────────────────────
-        var teamBox = CardLayout.CreateGroup(canvas, "Teams in League", CardLayout.Fc26Green, 16, 172, 467, 454);
-        var teamTools = new ToolStrip { Location = new Point(4, 26), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = CardLayout.CardWhite, ForeColor = Theme.Text, Renderer = new DarkToolStripRenderer() };
+        // ═══════════════════════════════════════════════════════════════
+        //  QUICK INFO
+        // ═══════════════════════════════════════════════════════════════
+        var quickInfo = new Panel { Location = new Point(12, 244), Size = new Size(1340, 72), BackColor = CardLayout.CardBackground };
+        _leagueLevelLabel = CardLayout.CreateFact(quickInfo, "Level", 0, 0, 320);
+        _leagueClubsLabel = CardLayout.CreateFact(quickInfo, "Total Clubs", 336, 0, 320);
+        var countryFact = CardLayout.CreateFact(quickInfo, "Country", 672, 0, 320);
+        var prestigeFact = CardLayout.CreateFact(quickInfo, "Prestige", 1008, 0, 248);
+        canvas.Controls.Add(quickInfo);
+
+        // ═══════════════════════════════════════════════════════════════
+        //  LEAGUE INFO + SETTINGS
+        // ═══════════════════════════════════════════════════════════════
+        var info = CardLayout.CreateGroup(canvas, "League Information", CardLayout.Fc26Green, 12, 326, 660, 210);
+        AddField(info, "leaguename", "Database Name", new Point(120, 22), 152);
+        AddField(info, "leagueid", "League Id", new Point(120, 48), 122);
+        AddField(info, "level", "Level", new Point(120, 74), 122);
+        AddCountryPicker(info, new Point(120, 100));
+        AddField(info, "leaguetype", "Prestige", new Point(120, 126), 152);
+
+        var settings = CardLayout.CreateGroup(canvas, "League Settings", CardLayout.Fc26Yellow, 688, 326, 664, 210);
+        AddLeagueFlag(settings, "Women's competition", "iswomencompetition", new Point(12, 28));
+        AddLeagueFlag(settings, "International league", "isinternationalleague", new Point(12, 54));
+        AddLeagueFlag(settings, "Competition pole flags", "iscompetitionpoleflagenabled", new Point(12, 80));
+        AddLeagueFlag(settings, "Within transfer window", "iswithintransferwindow", new Point(12, 106));
+        AddLeagueFlag(settings, "Competition scarves", "iscompetitionscarfenabled", new Point(340, 28));
+        AddLeagueFlag(settings, "Crowd cards", "iscompetitioncrowdcardsenabled", new Point(340, 54));
+        AddLeagueFlag(settings, "Banner enabled", "isbannerenabled", new Point(340, 80));
+
+        // ═══════════════════════════════════════════════════════════════
+        //  TEAMS IN LEAGUE
+        // ═══════════════════════════════════════════════════════════════
+        var teamsCard = CardLayout.CreateGroup(canvas, "Clubs", CardLayout.Fc26Green, 12, 548, 1340, 340);
+        var teamTools = new ToolStrip { Location = new Point(4, 26), Size = new Size(1320, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = CardLayout.CardWhite, ForeColor = Theme.Text, Renderer = new DarkToolStripRenderer() };
         teamTools.Items.Add(_teamPicker);
         teamTools.Items.Add(_addTeam);
         teamTools.Items.Add(_removeTeam);
         var showTeamLogo = new ToolStripButton("Show Team Logo") { CheckOnClick = true, Checked = true, ForeColor = Theme.Text };
-        showTeamLogo.CheckedChanged += (_, _) =>
-        {
-            _showTeamLogos = showTeamLogo.Checked;
-            _teams.View = _showTeamLogos ? View.LargeIcon : View.List;
-        };
+        showTeamLogo.CheckedChanged += (_, _) => { _showTeamLogos = showTeamLogo.Checked; _teams.View = _showTeamLogos ? View.LargeIcon : View.List; };
         teamTools.Items.Add(showTeamLogo);
         _addTeam.Click += (_, _) => AddSelectedTeam();
         _removeTeam.Click += (_, _) => RemoveSelectedTeam();
-        foreach (ToolStripItem item in teamTools.Items)
-            if (item is not ToolStripComboBox && item is not ToolStripTextBox)
-                item.ForeColor = Theme.Text;
-        _teamPicker.ComboBox.BackColor = Theme.Input;
-        _teamPicker.ComboBox.ForeColor = Theme.Text;
-        var teamActions = new ToolStrip { Location = new Point(4, 52), Size = new Size(458, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = CardLayout.CardWhite, ForeColor = Theme.Text, Renderer = new DarkToolStripRenderer() };
+        foreach (ToolStripItem item in teamTools.Items) if (item is not ToolStripComboBox && item is not ToolStripTextBox) item.ForeColor = Theme.Text;
+        _teamPicker.ComboBox.BackColor = Theme.Input; _teamPicker.ComboBox.ForeColor = Theme.Text;
+        var teamActions = new ToolStrip { Location = new Point(4, 52), Size = new Size(1320, 25), GripStyle = ToolStripGripStyle.Hidden, Font = LegacyFont, BackColor = CardLayout.CardWhite, ForeColor = Theme.Text, Renderer = new DarkToolStripRenderer() };
         teamActions.Items.Add(new ToolStripLabel("Find club to add") { ForeColor = Theme.Muted });
         teamActions.Items.Add(_teamSearch);
-        var findTeam = new ToolStripButton("Find") { ForeColor = Theme.Text };
-        findTeam.Click += (_, _) => FindTeams();
+        var findTeam = new ToolStripButton("Find") { ForeColor = Theme.Text }; findTeam.Click += (_, _) => FindTeams();
         teamActions.Items.Add(findTeam);
-        var addNewLeague = new ToolStripButton("Add New League") { ForeColor = Theme.Text };
-        addNewLeague.Click += (_, _) => CreateNewRecord();
+        var addNewLeague = new ToolStripButton("Add New League") { ForeColor = Theme.Text }; addNewLeague.Click += (_, _) => CreateNewRecord();
         teamActions.Items.Add(addNewLeague);
-        foreach (ToolStripItem item in teamActions.Items)
-            if (item is not ToolStripComboBox && item is not ToolStripTextBox)
-                item.ForeColor = Theme.Text;
-        _teamSearch.TextBox.BackColor = Theme.Input;
-        _teamSearch.TextBox.ForeColor = Theme.Text;
-        _teamSearch.KeyDown += (_, e) =>
-        {
-            if (e.KeyCode != Keys.Enter) return;
-            FindTeams();
-            e.SuppressKeyPress = true;
-        };
-        _teams.Location = new Point(4, 78);
-        _teams.Size = new Size(458, 368);
-        _teams.View = View.LargeIcon;
-        _teams.LargeImageList = _teamImages;
-        _teams.MultiSelect = false;
-        _teams.GridLines = true;
-        _teams.Font = LegacyFont;
-        _teams.BackColor = Theme.Input;
-        _teams.ForeColor = Theme.Text;
+        foreach (ToolStripItem item in teamActions.Items) if (item is not ToolStripComboBox && item is not ToolStripTextBox) item.ForeColor = Theme.Text;
+        _teamSearch.TextBox.BackColor = Theme.Input; _teamSearch.TextBox.ForeColor = Theme.Text;
+        _teamSearch.KeyDown += (_, e) => { if (e.KeyCode != Keys.Enter) return; FindTeams(); e.SuppressKeyPress = true; };
+        _teams.Location = new Point(4, 78); _teams.Size = new Size(1328, 252);
+        _teams.View = View.LargeIcon; _teams.LargeImageList = _teamImages; _teams.MultiSelect = false; _teams.GridLines = true;
+        _teams.Font = LegacyFont; _teams.BackColor = Theme.Input; _teams.ForeColor = Theme.Text;
         _teams.SelectedIndexChanged += (_, _) => _removeTeam.Enabled = _teams.SelectedItems.Count > 0;
         _teams.DoubleClick += (_, _) => OpenSelectedTeam();
-        _teams.MouseUp += (_, e) =>
-        {
-            if (e.Button != MouseButtons.Right) return;
-            var hit = _teams.HitTest(e.Location);
-            if (hit.Item != null) _teams.SelectedIndices.Clear();
-            if (hit.Item != null) hit.Item.Selected = true;
-        };
+        _teams.MouseUp += (_, e) => { if (e.Button != MouseButtons.Right) return; var hit = _teams.HitTest(e.Location); if (hit.Item != null) _teams.SelectedIndices.Clear(); if (hit.Item != null) hit.Item.Selected = true; };
         var teamMenu = new ContextMenuStrip { Renderer = new DarkToolStripRenderer(), BackColor = Theme.Panel, ForeColor = Theme.Text };
         teamMenu.Items.Add("Add New Team", null, (_, _) => CreateAndLinkTeam());
         teamMenu.Items.Add("Add Existing Team", null, (_, _) => _teamSearch.Focus());
         teamMenu.Items.Add(new ToolStripSeparator());
         teamMenu.Items.Add("Open Team", null, (_, _) => OpenSelectedTeam());
         teamMenu.Items.Add("Remove from League", null, (_, _) => RemoveSelectedTeam());
-        teamMenu.Opening += (_, e) =>
-        {
-            var hasTeam = _teams.SelectedItems.Count > 0 && _teams.SelectedItems[0].Tag is LeagueTeamLink;
-            teamMenu.Items[3].Enabled = hasTeam;
-            teamMenu.Items[4].Enabled = hasTeam;
-            teamMenu.Items[0].Enabled = _leagueId > 0 && CurrentRecordIndex >= 0;
-        };
+        teamMenu.Opening += (_, e) => { var hasTeam = _teams.SelectedItems.Count > 0 && _teams.SelectedItems[0].Tag is LeagueTeamLink; teamMenu.Items[3].Enabled = hasTeam; teamMenu.Items[4].Enabled = hasTeam; teamMenu.Items[0].Enabled = _leagueId > 0 && CurrentRecordIndex >= 0; };
         _teams.ContextMenuStrip = teamMenu;
-        teamBox.Controls.Add(teamTools);
-        teamBox.Controls.Add(teamActions);
-        teamBox.Controls.Add(_teams);
-
-        // ── Logos card ────────────────────────────────────────────────────
-        var logos = CardLayout.CreateGroup(canvas, "Logos", CardLayout.Fc26Green, 499, 172, 532, 457);
-        logos.Controls.Add(Viewer(new Point(6, 26), new Size(256, 256), "256 x 256", out _mainLogo));
-        logos.Controls.Add(Viewer(new Point(268, 26), new Size(200, 64), "200 x 64", out _bannerLogo));
-        logos.Controls.Add(Viewer(new Point(6, 305), new Size(512, 128), "512 x 128", out _wideLogo));
-        _logoCaption.Location = new Point(268, 110);
-        _logoCaption.Size = new Size(200, 16);
-        _logoCaption.AutoEllipsis = true;
-        _logoCaption.Font = LegacyFont;
-        _logoCaption.TextAlign = ContentAlignment.MiddleCenter;
-        _logoCaption.ForeColor = CardLayout.CardSubtle;
-        _logoCaption.BackColor = CardLayout.CardWhite;
-        logos.Controls.Add(_logoCaption);
-
-        // ── Names card ────────────────────────────────────────────────────
-        var names = CardLayout.CreateGroup(canvas, "Names and Information", CardLayout.CardMuted, 16, 640, 531, 197);
-        AddField(names, "leaguename", "Database Name", new Point(120, 23), 152);
-        AddMirrorField(names, "leaguename", "Name", new Point(120, 49), 152);
-        AddMirrorField(names, "leaguename", "Long Name", new Point(120, 75), 152);
-        AddField(names, "leagueid", "League Id", new Point(120, 101), 122);
-        AddField(names, "level", "Level", new Point(120, 127), 122);
-        AddCountryPicker(names, new Point(120, 153));
-        AddField(names, "leaguetype", "Prestige", new Point(120, 179), 152);
-
-        // ── League settings card ──────────────────────────────────────────
-        var fc26 = CardLayout.CreateGroup(canvas, "League Settings", CardLayout.Fc26Yellow, 559, 640, 532, 197);
-        AddLeagueFlag(fc26, "Women's competition", "iswomencompetition", new Point(12, 28));
-        AddLeagueFlag(fc26, "International league", "isinternationalleague", new Point(12, 54));
-        AddLeagueFlag(fc26, "Competition pole flags", "iscompetitionpoleflagenabled", new Point(12, 80));
-        AddLeagueFlag(fc26, "Within transfer window", "iswithintransferwindow", new Point(230, 28));
-        AddLeagueFlag(fc26, "Competition scarves", "iscompetitionscarfenabled", new Point(230, 54));
-        AddLeagueFlag(fc26, "Crowd cards", "iscompetitioncrowdcardsenabled", new Point(230, 80));
-        AddLeagueFlag(fc26, "Banner enabled", "isbannerenabled", new Point(230, 106));
+        teamsCard.Controls.Add(teamTools); teamsCard.Controls.Add(teamActions); teamsCard.Controls.Add(_teams);
     }
 
     protected override void CreateNewRecord()
@@ -269,11 +257,7 @@ public sealed class LeaguesSection : SectionBase
             foreach (var (field, check) in _leagueFlags)
             {
                 if (_fields.TryGetValue(field, out var value))
-                {
-                    check.Checked = value.RawValue != "0";
-                    check.Enabled = value.IsWritable;
-                    ToolTip.SetToolTip(check, value.IsWritable ? field : field + " (read-only)");
-                }
+                { check.Checked = value.RawValue != "0"; check.Enabled = value.IsWritable; ToolTip.SetToolTip(check, value.IsWritable ? field : field + " (read-only)"); }
                 else { check.Checked = false; check.Enabled = false; }
             }
         }
@@ -284,29 +268,73 @@ public sealed class LeaguesSection : SectionBase
         var name = record.Get(Col(table, "leaguename"));
         var leagueId = Parse(record.Get(Col(table, "leagueid")));
         var logo = Services.Assets.GetLeagueLogo(leagueId);
-        ShowLeagueLogo(logo, name, leagueId);
-        _logoCaption.Text = string.IsNullOrWhiteSpace(logo)
-            ? (string.IsNullOrWhiteSpace(name) ? "No local league logo" : $"{name} · no local logo")
-            : name;
 
-        // ── Populate header card ──────────────────────────────────────────
         _leagueNameLabel.Text = name ?? string.Empty;
-        _leagueMetaLabel.Text = $"League ID {record.Get(Col(table, "leagueid"))}  ·  Level {record.Get(Col(table, "level"))}";
+        _leagueMetaLabel.Text = $"{ResolveCountryName()} · Level {record.Get(Col(table, "level"))}";
         try
         {
             if (!string.IsNullOrWhiteSpace(logo) && File.Exists(logo))
                 _leagueLogoPreview.Image = Image.FromFile(logo);
-            else
-                _leagueLogoPreview.Image = null;
+            else _leagueLogoPreview.Image = null;
         }
         catch { _leagueLogoPreview.Image = null; }
+
+        var ovr = record.Get(Col(table, "overallrating")) ?? "0";
+        _leagueOverallLabel.Text = ovr;
+        SetRatingBar(_leagueOvrBar, ovr, 99);
+        SetRatingBar(_leagueAttBar, record.Get(Col(table, "attackrating")), 99);
+        _leagueAttVal.Text = record.Get(Col(table, "attackrating")) ?? "—";
+        SetRatingBar(_leagueMidBar, record.Get(Col(table, "midfieldrating")), 99);
+        _leagueMidVal.Text = record.Get(Col(table, "midfieldrating")) ?? "—";
+        SetRatingBar(_leagueDefBar, record.Get(Col(table, "defenserating")), 99);
+        _leagueDefVal.Text = record.Get(Col(table, "defenserating")) ?? "—";
+        _leagueLevelLabel.Text = record.Get(Col(table, "level")) ?? "—";
+        _leagueClubsLabel.Text = _teams.Items.Count > 0 ? _teams.Items.Count.ToString() : "—";
 
         _teams.Items.Clear();
         _leagueId = int.TryParse(record.Get(Col(table, "leagueid")), out var id) ? id : 0;
         PopulateTeamLinks();
         PopulateTeamPicker();
-        if (_teams.Items.Count == 0)
-            _teams.Items.Add("No teams linked in leagueteamlinks");
+        if (_teams.Items.Count == 0) _teams.Items.Add("No teams linked in leagueteamlinks");
+    }
+
+    private string ResolveCountryName()
+    {
+        if (_fields.TryGetValue("countryid", out var f) && int.TryParse(f.RawValue, out var cid))
+        {
+            var nations = Services.Session.GetTable("nations");
+            if (nations != null)
+            {
+                var nc = Col(nations, "nationid");
+                for (int i = 0; i < nations.RowCount; i++)
+                {
+                    var r = Services.Session.GetRecord("nations", i);
+                    if (r != null && int.TryParse(r.Get(nc), out var nid) && nid == cid)
+                        return r.Get(Col(nations, "nationname")) ?? "Unknown";
+                }
+            }
+        }
+        return "Unknown";
+    }
+
+    private static void SetRatingBar(Panel bar, string? value, int max)
+    {
+        if (string.IsNullOrWhiteSpace(value) || !int.TryParse(value, out var num) || num <= 0) { bar.Width = 1; return; }
+        bar.Width = Math.Max(1, Math.Min(bar.Parent?.Width - 2 ?? 160, (int)((double)num / max * 160)));
+    }
+
+    private static void AddRatingBar(Control parent, string label, Color accent, Panel barFill, Label valueLabel, int x, int y)
+    {
+        var lbl = new Label { Text = label, Location = new Point(x, y), Size = new Size(36, 22), Font = Theme.BodyBold, ForeColor = accent, BackColor = CardLayout.CardWhite };
+        parent.Controls.Add(lbl);
+        var track = new Panel { Location = new Point(x + 40, y + 4), Size = new Size(160, 14), BackColor = CardLayout.CardFieldBg };
+        CardLayout.ApplyRounded(track, 7);
+        barFill.Location = Point.Empty; barFill.Size = new Size(1, 14); barFill.BackColor = accent;
+        track.Controls.Add(barFill);
+        parent.Controls.Add(track);
+        valueLabel.Location = new Point(x + 208, y); valueLabel.Size = new Size(40, 22); valueLabel.Font = Theme.BodyBold;
+        valueLabel.ForeColor = CardLayout.CardText; valueLabel.BackColor = CardLayout.CardWhite;
+        parent.Controls.Add(valueLabel);
     }
 
     private static GroupBox Group(string text, Point location, Size size) =>
