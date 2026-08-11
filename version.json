@@ -1,6 +1,6 @@
 {
-  "version": "1.0.96",
+  "version": "1.0.97",
   "name": "Creation Master 26",
-  "notes": "v1.0.96 - FC26 green card layout across remaining sections, editors and grids.",
+  "notes": "v1.0.97 - Fix sidebar label overlap, rating bar fill, formation stale-state, stadium image loading.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

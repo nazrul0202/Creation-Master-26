@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.97 - UI overlap, rating bars, formation and stadium fixes (2026-08-11)
+
+- Fixed sidebar category labels (World, Venue, Team, Media, Tools) overlapping the navigation buttons below them; labels now use a fixed height and resize with the sidebar.
+- Fixed OVR/ATT/MID/DEF rating bars appearing empty or 1px wide when no rating data exists; bars now show a visible coloured fill (or a dimmed stub) instead.
+- Teams formation board now shows all 11 lineup slots immediately on first load instead of only the goalkeeper.
+- Teams Overview stadium image now degrades gracefully when the stadium asset is missing instead of failing silently.
+- All release packages (Full Portable + Lite) assembled to `Release\` as v1.0.97.
+
 ## Version 1.0.96 - FC26 green card layout across all sections (2026-08-11)
 
 - Converted every remaining legacy `ModernGroupBox` to the FC26 white-card design (green accent strip + rounded corners): Countries, Leagues, Teams, Players, Sponsors, Adboards, Audio, Generic tables, Formation preview, Face preview, Traits panel.

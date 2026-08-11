@@ -186,11 +186,14 @@ public sealed class MainForm : Form
                 _sidebarList.Controls.Add(new Label
                 {
                     Text = label,
-                    AutoSize = true,
+                    AutoSize = false,
+                    Height = 20,
+                    Width = _sidebarList.ClientSize.Width - 16,
                     Font = Theme.Label,
                     ForeColor = Theme.Muted,
                     Margin = new Padding(10, 12, 0, 2),
                     BackColor = Theme.Background,
+                    TextAlign = ContentAlignment.MiddleLeft,
                 });
             }
             foreach (var key in keys)
@@ -320,6 +323,8 @@ public sealed class MainForm : Form
         var width = Math.Max(120, _sidebarList.ClientSize.Width - 16);
         foreach (SidebarNavButton button in _sidebarList.Controls.OfType<SidebarNavButton>())
             button.Width = width;
+        foreach (Label label in _sidebarList.Controls.OfType<Label>())
+            label.Width = width;
     }
 
     /// <summary>Lays out the filter bar: actions left, Filters caption + search + Go + prev/next right.</summary>

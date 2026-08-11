@@ -647,6 +647,7 @@ public sealed class TeamsSection : SectionBase
         barFill.Location = Point.Empty;
         barFill.Size = new Size(1, 14);
         barFill.BackColor = accent;
+        barFill.Tag = accent;
         track.Controls.Add(barFill);
         parent.Controls.Add(track);
         valueLabel.Location = new Point(x + 208, y);
@@ -1678,8 +1679,13 @@ public sealed class TeamsSection : SectionBase
     private static void SetRatingBar(Panel bar, string? value, int max)
     {
         if (string.IsNullOrWhiteSpace(value) || !int.TryParse(value, out var num) || num <= 0)
-        { bar.Width = 1; return; }
-        bar.Width = Math.Max(1, Math.Min(bar.Parent?.Width - 2 ?? 160, (int)((double)num / max * 160)));
+        {
+            bar.Width = Math.Max(8, (bar.Parent?.Width - 2 ?? 160) / 10);
+            bar.BackColor = Color.FromArgb(60, bar.BackColor);
+            return;
+        }
+        if (bar.Tag is Color accent) bar.BackColor = accent;
+        bar.Width = Math.Max(8, Math.Min(bar.Parent?.Width - 2 ?? 160, (int)((double)num / max * 160)));
     }
 
     private static void LoadKitPreview(PictureBox preview, string? path)
@@ -1800,7 +1806,10 @@ public sealed class TeamsSection : SectionBase
         try
         {
             var stadiumPath = Services.Assets.GetStadium(crestTeamId);
-            LoadKitPreview(_teamStadiumImg, stadiumPath);
+            if (!string.IsNullOrWhiteSpace(stadiumPath) && System.IO.File.Exists(stadiumPath))
+                LoadKitPreview(_teamStadiumImg, stadiumPath);
+            else
+                _teamStadiumImg.Image = null;
         }
         catch { _teamStadiumImg.Image = null; }
 
@@ -1825,6 +1834,16 @@ public sealed class TeamsSection : SectionBase
             var roster = Services.RequireData().GetTeamRoster(int.TryParse(id, out var teamId) ? teamId : 0);
             LoadLineup(teamId, roster);
             SelectFormationLayout(teamId);
+            // Force the formation board to repaint with all lineup slots.
+            foreach (var slot in _lineupSlots)
+            {
+                if (slot.PlayerId > 0)
+                {
+                    slot.Label.Visible = true;
+                    slot.Label.Invalidate();
+                }
+            }
+            _formationBoard?.Invalidate(true);
             PopulatePlayerReferencePickers(roster);
 
             // Categorize players: Starting XI, Substitutes, Reserves

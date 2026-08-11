@@ -320,8 +320,14 @@ public sealed class LeaguesSection : SectionBase
 
     private static void SetRatingBar(Panel bar, string? value, int max)
     {
-        if (string.IsNullOrWhiteSpace(value) || !int.TryParse(value, out var num) || num <= 0) { bar.Width = 1; return; }
-        bar.Width = Math.Max(1, Math.Min(bar.Parent?.Width - 2 ?? 160, (int)((double)num / max * 160)));
+        if (string.IsNullOrWhiteSpace(value) || !int.TryParse(value, out var num) || num <= 0)
+        {
+            bar.Width = Math.Max(8, (bar.Parent?.Width - 2 ?? 160) / 10);
+            bar.BackColor = Color.FromArgb(60, bar.BackColor);
+            return;
+        }
+        if (bar.Tag is Color accent) bar.BackColor = accent;
+        bar.Width = Math.Max(8, Math.Min(bar.Parent?.Width - 2 ?? 160, (int)((double)num / max * 160)));
     }
 
     private static void AddRatingBar(Control parent, string label, Color accent, Panel barFill, Label valueLabel, int x, int y)
@@ -330,7 +336,7 @@ public sealed class LeaguesSection : SectionBase
         parent.Controls.Add(lbl);
         var track = new Panel { Location = new Point(x + 40, y + 4), Size = new Size(160, 14), BackColor = CardLayout.CardFieldBg };
         CardLayout.ApplyRounded(track, 7);
-        barFill.Location = Point.Empty; barFill.Size = new Size(1, 14); barFill.BackColor = accent;
+        barFill.Location = Point.Empty; barFill.Size = new Size(1, 14); barFill.BackColor = accent; barFill.Tag = accent;
         track.Controls.Add(barFill);
         parent.Controls.Add(track);
         valueLabel.Location = new Point(x + 208, y); valueLabel.Size = new Size(40, 22); valueLabel.Font = Theme.BodyBold;
