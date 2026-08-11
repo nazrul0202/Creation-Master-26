@@ -1,5 +1,37 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.94 - MIT open source license (2026-08-11)
+
+- Relicensed the project from proprietary EULA to the **MIT License**.
+- Updated README, EULA, and KNOWN_LIMITATIONS to reflect the open-source license.
+- Added GitHub topics: fc26, frostbite, editor, modding-tools, winforms, csharp, database-editor, ea-sports-fc, football, career-mode.
+- Set repository homepage to the GitHub Releases page.
+
+## Version 1.0.93 - FC Tools Hub Leagues and Countries (2026-08-11)
+
+- Redesigned Leagues section with FC Tools Hub league profile header (logo, name, country, overall rating, OVR/ATT/MID/DEF bars).
+- Redesigned Countries section with profile header (flag, name, confederation, ISO code).
+- Added rating bar helper methods shared across all sections.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.93.
+
+## Version 1.0.92 - FC Tools Hub Teams section (2026-08-11)
+
+- Complete redesign of the Teams section to match FC Tools Hub club profile layout.
+- Club profile header: badge, name, league/nation, overall rating tile, ATT/MID/DEF rating bars.
+- Quick info cards: Founded, Worth, Stadium, Rival, Manager.
+- Kits preview section: Home, Away, Third, Goalkeeper.
+- Club Information: Identity, Financial, Trophies, Reputation sub-cards.
+- Stadium and Manager preview cards with images.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.92.
+
+## Version 1.0.91 - FC26 green theme consistency (2026-08-11)
+
+- Added shared CardLayout helper: Fc26Green, Fc26Red, Fc26Blue, Fc26Yellow, Fc26Purple, Fc26Orange colour palette.
+- Unified all sections (Players, Teams, Leagues, Countries) to use consistent FC26 green accent theme.
+- Teams section: FC26 header card with left green accent bar, all GroupBox panels replaced with card-style groups.
+- Leagues and Countries sections: applied card layout with FC26 green theme.
+- Full Portable and Lite packages are assembled to `Release\` as v1.0.91.
+
 ## Version 1.0.90 - player-card styling refresh (2026-08-10)
 
 - Refreshed the player card with rounded header, ratings, information and attribute panels.
@@ -408,6 +440,7 @@ invisible in normal use, but two of them affected every user.
 - **Commercial license.** Replaced the MIT open-source licence with a proprietary
   **End User License Agreement** (`LICENSE` + `EULA.md`). A first-run EULA dialog
   must be accepted before the app opens; acceptance is remembered.
+  *(Note: as of v1.0.94, the project has returned to the MIT license.)*
 - **Check for Updates** under the **Help** menu reads a version manifest and
   reports a newer public release. Throttled to once per day; fails gracefully
   when offline.
