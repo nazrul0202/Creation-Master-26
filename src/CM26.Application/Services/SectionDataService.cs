@@ -317,7 +317,10 @@ public sealed class SectionDataService
                 Subtitle = teamId > 0 ? _resolver.TeamName(teamId) : "Generic",
             });
         }
-        return list.OrderBy(x => x.Title).ToList();
+        return list
+            .OrderBy(x => string.IsNullOrWhiteSpace(x.Title) || x.Title.StartsWith("-NONE-", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+            .ThenBy(x => x.Title)
+            .ToList();
     }
 
     // ---------- Kits ----------

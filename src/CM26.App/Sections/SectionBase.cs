@@ -800,5 +800,5 @@ public abstract class SectionBase : UserControl
     }
 
     public void FocusSearchBox() => _recordSearch.Focus();
-    public void GoToRecord(int recordIndex) => Browser.SelectRecord(recordIndex);
+    public void GoToRecord(int recordIndex) => OnRecordSelected(recordIndex);
 }

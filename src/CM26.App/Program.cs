@@ -161,6 +161,16 @@ internal static class Program
             return;
         }
 
+        // Render every editor tab to PNG for human visual QA. The optional
+        // game root enables installed Frostbite previews during the capture.
+        if (args.Length >= 3 && args[0] == "--visual-audit")
+        {
+            Environment.ExitCode = HeadlessSmoke.VisualAudit(
+                args[1], args[2], args.Length >= 4 ? args[3] : null,
+                args.Length >= 5 ? args[4] : null);
+            return;
+        }
+
         if (args.Length >= 2 && args[0] == "--formation-test")
         {
             Environment.ExitCode = HeadlessSmoke.FormationTest(args[1]);

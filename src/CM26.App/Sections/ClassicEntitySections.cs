@@ -743,10 +743,28 @@ public sealed class FormationsSection : ClassicEntitySection
         {
             var column = i / 6;
             var row = i % 6;
-            var x = 116 + (column * 370);
+            var x = 22 + (column * 430);
             var y = 22 + (row * 42);
-            AddField(offsets, $"offset{i}x", $"Slot {i + 1} X", new Point(x, y), 80);
-            AddField(offsets, $"offset{i}y", "Y", new Point(x + 190, y), 80);
+            offsets.Controls.Add(new Label
+            {
+                Text = $"Slot {i + 1}", Location = new Point(x, y + 3), Size = new Size(56, 18),
+                Font = LegacyFont, ForeColor = CardLayout.CardFieldLabel,
+                BackColor = CardLayout.CardWhite, TextAlign = ContentAlignment.MiddleRight,
+            });
+            offsets.Controls.Add(new Label
+            {
+                Text = "X", Location = new Point(x + 66, y + 3), Size = new Size(18, 18),
+                Font = LegacyFont, ForeColor = CardLayout.CardFieldLabel,
+                BackColor = CardLayout.CardWhite, TextAlign = ContentAlignment.MiddleRight,
+            });
+            AddSlotEditor(offsets, $"offset{i}x", new Point(x + 90, y), 92);
+            offsets.Controls.Add(new Label
+            {
+                Text = "Y", Location = new Point(x + 194, y + 3), Size = new Size(18, 18),
+                Font = LegacyFont, ForeColor = CardLayout.CardFieldLabel,
+                BackColor = CardLayout.CardWhite, TextAlign = ContentAlignment.MiddleRight,
+            });
+            AddSlotEditor(offsets, $"offset{i}y", new Point(x + 218, y), 92);
         }
         AddReadonlyNote(offsets, "Coordinates control the marker positions shown in the Formation Preview.", new Point(16, 256), new Size(760, 22));
         lc.Controls.Add(offsets);

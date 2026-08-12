@@ -44,6 +44,8 @@ public sealed class LeaguesSection : SectionBase
     private readonly Label _leagueDefVal = new();
     private readonly Label _leagueLevelLabel = new();
     private readonly Label _leagueClubsLabel = new();
+    private readonly Label _leagueCountryLabel;
+    private readonly Label _leaguePrestigeLabel;
     private int _leagueId;
     private bool _syncLeagueFlags;
     private bool _syncCountryPicker;
@@ -91,8 +93,8 @@ public sealed class LeaguesSection : SectionBase
         var ovrTile = CardLayout.CreateTile(profile, "OVR", 184, 108, CardLayout.Fc26Green, 110, 90);
         _leagueOverallLabel.Text = "--";
         ovrTile.Tile.Controls.Remove(ovrTile.Value);
-        _leagueOverallLabel.Location = new Point(5, 8);
-        _leagueOverallLabel.Size = new Size(100, 52);
+        _leagueOverallLabel.Location = new Point(5, 4);
+        _leagueOverallLabel.Size = new Size(100, 43);
         _leagueOverallLabel.Font = new Font("Segoe UI", 26, FontStyle.Bold);
         _leagueOverallLabel.TextAlign = ContentAlignment.MiddleCenter;
         _leagueOverallLabel.ForeColor = Color.White;
@@ -109,8 +111,8 @@ public sealed class LeaguesSection : SectionBase
         var quickInfo = new Panel { Location = new Point(12, 244), Size = new Size(1340, 72), BackColor = CardLayout.CardBackground };
         _leagueLevelLabel = CardLayout.CreateFact(quickInfo, "Level", 0, 0, 320);
         _leagueClubsLabel = CardLayout.CreateFact(quickInfo, "Total Clubs", 336, 0, 320);
-        var countryFact = CardLayout.CreateFact(quickInfo, "Country", 672, 0, 320);
-        var prestigeFact = CardLayout.CreateFact(quickInfo, "Prestige", 1008, 0, 248);
+        _leagueCountryLabel = CardLayout.CreateFact(quickInfo, "Country", 672, 0, 320);
+        _leaguePrestigeLabel = CardLayout.CreateFact(quickInfo, "Prestige", 1008, 0, 248);
         canvas.Controls.Add(quickInfo);
 
         // ═══════════════════════════════════════════════════════════════
@@ -315,6 +317,8 @@ public sealed class LeaguesSection : SectionBase
         SetRatingBar(_leagueDefBar, record.Get(Col(table, "defenserating")), 99);
         _leagueDefVal.Text = record.Get(Col(table, "defenserating")) ?? "—";
         _leagueLevelLabel.Text = record.Get(Col(table, "level")) ?? "—";
+        _leagueCountryLabel.Text = ResolveCountryName();
+        _leaguePrestigeLabel.Text = record.Get(Col(table, "leaguetype")) ?? "—";
         _teamImages.Images.Clear();
         _pendingTeamCrests.Clear();
         _teams.Items.Clear();

@@ -1902,6 +1902,143 @@ internal static class HeadlessSmoke
         }
     }
 
+    /// <summary>
+    /// Produces real WinForms renders for every public section/tab at laptop
+    /// and desktop sizes. These PNGs expose visual defects that a no-exception
+    /// layout test cannot detect.
+    /// </summary>
+    public static int VisualAudit(string folder, string outputFolder, string? gameRoot, string? sectionFilter = null)
+    {
+        try
+        {
+            Directory.CreateDirectory(outputFolder);
+            using var services = new AppServices();
+            services.LoadDatabase(folder, gameRoot);
+            if (!string.IsNullOrWhiteSpace(gameRoot))
+            {
+                services.FrostbiteAssets.Open(gameRoot);
+                services.LegacyMods.Open(services.FrostbiteAssets.Fingerprint);
+            }
+
+            var factories = new (string key, Func<SectionBase> make)[]
+            {
+                ("dashboard", () => new DashboardSection(services)),
+                ("countries", () => new CountriesSection(services)),
+                ("leagues", () => new LeaguesSection(services)),
+                ("teams", () => new TeamsSection(services)),
+                ("players", () => new PlayersSection(services)),
+                ("managers", () => new ManagersSection(services)),
+                ("stadiums", () => new StadiumsSection(services)),
+                ("stadiumaudio", () => new StadiumAudioSection(services)),
+                ("kits", () => new KitsSection(services)),
+                ("competitions", () => new CompetitionsSection(services)),
+                ("formations", () => new FormationsSection(services)),
+                ("balls", () => new BallsSection(services)),
+                ("boots", () => new BootsSection(services)),
+                ("gloves", () => new GlovesSection(services)),
+                ("sponsors", () => new SponsorsSection(services)),
+                ("adboards", () => new AdboardsSection(services)),
+                ("audio", () => new AudioNationSection(services)),
+                ("scoreboard", () => new TvSection(services)),
+                ("referees", () => new RefereesSection(services)),
+                ("browser", () => new DatabaseBrowserSection(services)),
+                ("diagnostics", () => new DiagnosticsSection(services)),
+                ("settings", () => new SettingsSection(services)),
+            };
+
+            var captures = 0;
+            foreach (var (key, make) in factories.Where(item =>
+                         string.IsNullOrWhiteSpace(sectionFilter) ||
+                         item.key.Equals(sectionFilter, StringComparison.OrdinalIgnoreCase)))
+            {
+                using var host = new System.Windows.Forms.Form
+                {
+                    ShowInTaskbar = false,
+                    StartPosition = System.Windows.Forms.FormStartPosition.Manual,
+                    Location = new System.Drawing.Point(-30000, -30000),
+                };
+                using var section = make();
+                section.Dock = System.Windows.Forms.DockStyle.Fill;
+                host.Controls.Add(section);
+                host.Show();
+                section.ActivateSection();
+                // Capture representative licensed records with known visual
+                // families instead of synthetic alphabetic-first entries.
+                if (section is TeamsSection)
+                {
+                    var target = services.RequireData().GetTeams().FirstOrDefault(item =>
+                        item.Title.Contains("Bournemouth", StringComparison.OrdinalIgnoreCase));
+                    if (target != null) section.GoToRecord(target.RecordIndex);
+                }
+                else if (section is LeaguesSection)
+                {
+                    var target = services.RequireData().GetLeagues().FirstOrDefault(item =>
+                        item.Title.Contains("Premier League", StringComparison.OrdinalIgnoreCase));
+                    if (target != null) section.GoToRecord(target.RecordIndex);
+                }
+
+                var primary = Descendants(section).OfType<System.Windows.Forms.TabControl>().FirstOrDefault();
+                var pages = primary?.TabPages.Cast<System.Windows.Forms.TabPage>().ToArray();
+                var pageCount = Math.Max(1, pages?.Length ?? 0);
+                foreach (var size in new[]
+                         {
+                             new System.Drawing.Size(1366, 768),
+                             new System.Drawing.Size(1920, 1080),
+                         })
+                {
+                    host.ClientSize = size;
+                    for (var pageIndex = 0; pageIndex < pageCount; pageIndex++)
+                    {
+                        var page = pages != null && pages.Length > 0 ? pages[pageIndex] : null;
+                        if (page != null) primary!.SelectedTab = page;
+                        var until = Environment.TickCount64 + 350;
+                        do { System.Windows.Forms.Application.DoEvents(); }
+                        while (Environment.TickCount64 < until);
+                        if (key == "teams" && page?.Text == "Roster" && size.Width == 1366)
+                        {
+                            if (section is TeamsSection teamsSection)
+                            {
+                                teamsSection.RefreshFormationLayoutForAudit();
+                                System.Windows.Forms.Application.DoEvents();
+                                Console.WriteLine("    " + teamsSection.FormationLayoutSnapshot());
+                            }
+                            var pitch = Descendants(section).OfType<CM26.App.Theming.RatableBoard>().FirstOrDefault();
+                            if (pitch != null)
+                            {
+                                Console.WriteLine($"    roster pitch={pitch.ClientSize}, children={pitch.Controls.Count}");
+                                foreach (System.Windows.Forms.Control marker in pitch.Controls)
+                                    Console.WriteLine($"      marker visible={marker.Visible} bounds={marker.Bounds} text={Trunc(marker.Text.Replace('\n', ' '), 32)}");
+                            }
+                        }
+                        using var bitmap = new System.Drawing.Bitmap(size.Width, size.Height);
+                        host.DrawToBitmap(bitmap, new System.Drawing.Rectangle(System.Drawing.Point.Empty, size));
+                        var tabName = page == null ? "main" : SafeFilePart(page.Text);
+                        var path = Path.Combine(outputFolder,
+                            $"{key}__{tabName}__{size.Width}x{size.Height}.png");
+                        bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+                        captures++;
+                    }
+                }
+                host.Hide();
+                Console.WriteLine($"  [{key,-12}] {pageCount * 2} capture(s)");
+            }
+            Console.WriteLine($"VISUAL AUDIT: {captures} PNG files -> {outputFolder}");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("VISUAL AUDIT FAILED: " + ex);
+            return 46;
+        }
+    }
+
+    private static string SafeFilePart(string value)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var cleaned = new string(value.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray());
+        return string.IsNullOrWhiteSpace(cleaned) ? "main" : cleaned.Trim();
+    }
+
     private static string Trunc(string text, int max) =>
         text.Length <= max ? text : text[..(max - 1)] + "…";
 

@@ -76,6 +76,7 @@ public sealed class TeamsSection : SectionBase
     private readonly PictureBox _teamManagerImg = new();
     private Label _teamManagerName = new();
     private readonly Label _teamManagerNation = new();
+    private int _activeTeamPreviewId;
 
     public override string SectionKey => "teams";
     public override string SectionTitle => "Teams";
@@ -523,8 +524,8 @@ public sealed class TeamsSection : SectionBase
         var ovrTile = CardLayout.CreateTile(profile, "OVR", 184, 108, CardLayout.Fc26Green, 110, 90);
         _teamOverallLabel.Text = "--";
         ovrTile.Tile.Controls.Remove(ovrTile.Value);
-        _teamOverallLabel.Location = new Point(5, 8);
-        _teamOverallLabel.Size = new Size(100, 52);
+        _teamOverallLabel.Location = new Point(5, 4);
+        _teamOverallLabel.Size = new Size(100, 43);
         _teamOverallLabel.Font = new Font("Segoe UI", 26, FontStyle.Bold);
         _teamOverallLabel.TextAlign = ContentAlignment.MiddleCenter;
         _teamOverallLabel.ForeColor = Color.White;
@@ -607,7 +608,7 @@ public sealed class TeamsSection : SectionBase
         _teamManagerNation.ForeColor = CardLayout.CardMuted;
         _teamManagerNation.BackColor = CardLayout.CardWhite;
         manager.Controls.Add(_teamManagerNation);
-        AddBoundFields(manager, new[] { ("First Name", "managerid"), ("Surname", "managerid"), ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Offset", "utcoffset") }, 14, 186, 140, 155, 26);
+        AddBoundFields(manager, new[] { ("First Name", "managerfirstname"), ("Surname", "managersurname"), ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Offset", "utcoffset") }, 14, 186, 140, 155, 26);
 
         // ═══════════════════════════════════════════════════════════════
         //  PERFORMANCE CARDS
@@ -974,6 +975,17 @@ public sealed class TeamsSection : SectionBase
             if (_activeFormationChoice is { } choice && board.Width > 220 && board.Height > 140)
                 ApplyFormationLayout(choice);
         };
+        page.Enter += (_, _) =>
+        {
+            if (_formationView.SelectedItem is FormationChoice choice && board.Width > 220 && board.Height > 140)
+                BeginInvoke(() => ApplyFormationLayout(choice));
+        };
+        Tabs.SelectedIndexChanged += (_, _) =>
+        {
+            if (Tabs.SelectedTab == page && _formationView.SelectedItem is FormationChoice choice &&
+                board.Width > 220 && board.Height > 140)
+                BeginInvoke(() => ApplyFormationLayout(choice));
+        };
 
     }
 
@@ -1034,7 +1046,7 @@ public sealed class TeamsSection : SectionBase
             // never draw the parent manually from here.
             base.OnPaintBackground(e);
 
-            const int faceSize = 70;
+            const int faceSize = 52;
             if (Image != null)
             {
                 e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
@@ -1044,7 +1056,7 @@ public sealed class TeamsSection : SectionBase
                 e.Graphics.DrawImage(Image, new Rectangle((Width - width) / 2, 0, width, height));
             }
 
-            var textBounds = new Rectangle(1, 70, Math.Max(1, Width - 2), Math.Max(1, Height - 70));
+            var textBounds = new Rectangle(1, 52, Math.Max(1, Width - 2), Math.Max(1, Height - 52));
             const TextFormatFlags format = TextFormatFlags.HorizontalCenter | TextFormatFlags.Top |
                                             TextFormatFlags.WordBreak | TextFormatFlags.NoPadding;
             // A compact black shadow makes white names readable on every pitch
@@ -1064,7 +1076,7 @@ public sealed class TeamsSection : SectionBase
             // heavier than the rest of CM26 and could leave paint artefacts.
             var label = new LineupMarker
             {
-                Size = new Size(122, 104), BackColor = Color.Transparent,
+                Size = new Size(106, 84), BackColor = Color.Transparent,
                 BorderStyle = BorderStyle.None, TextAlign = ContentAlignment.BottomCenter,
                 Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
                 ForeColor = Color.White, AllowDrop = true, Tag = _lineupSlots.Count,
@@ -1444,7 +1456,25 @@ public sealed class TeamsSection : SectionBase
                 ClearLineupMiniface(slot);
             }
         }
+        // Content and miniface refreshes can occur after a hidden tab becomes
+        // visible. Reassert the tactical bounds on every render so WinForms
+        // cannot leave all child labels at their construction origin (0,0).
+        if (_activeFormationChoice != null)
+            ArrangeLineupInTacticalLanes();
+        foreach (var slot in _lineupSlots.Where(slot => slot.Label.Visible))
+            slot.Label.BringToFront();
     }
+
+    internal void RefreshFormationLayoutForAudit()
+    {
+        if (_formationView.SelectedItem is FormationChoice choice)
+            ApplyFormationLayout(choice);
+    }
+
+    internal string FormationLayoutSnapshot() =>
+        $"active={_activeFormationChoice?.Name ?? "<null>"}; selected={_formationView.SelectedItem}; " +
+        string.Join(" | ", _lineupSlots.Select((slot, index) =>
+            $"{index}:{slot.FormationPoint.X},{slot.FormationPoint.Y}->{slot.Label.Left},{slot.Label.Top}"));
 
     private static string DisplayLineupPosition(string position, string fallback)
     {
@@ -1487,7 +1517,7 @@ public sealed class TeamsSection : SectionBase
             slot.Label.Invalidate();
         }
         slot.LoadedMinifacePlayerId = playerId;
-        _ = Task.Run(async () => await LoadPlayerMinifaceAsync(playerId, 76))
+        _ = Task.Run(async () => await LoadPlayerMinifaceAsync(playerId, 60))
         .ContinueWith(task =>
         {
             var image = task.Status == TaskStatus.RanToCompletion ? task.Result : null;
@@ -1518,7 +1548,7 @@ public sealed class TeamsSection : SectionBase
             return;
         }
         var old = slot.Label.Image;
-        slot.Label.Image = CreateCircularMiniface(image, 76);
+        slot.Label.Image = CreateCircularMiniface(image, 52);
         slot.AppliedMinifacePlayerId = playerId;
         image.Dispose();
         old?.Dispose();
@@ -1859,7 +1889,13 @@ public sealed class TeamsSection : SectionBase
         // ── Populate FC Tools Hub club profile ──────────────────────────
         _teamNameLabel.Text = name ?? string.Empty;
         _teamMetaLabel.Text = $"{ResolveLinkedValue("leagueid", crestTeamId)} · {ResolveLinkedValue("countryid", crestTeamId)}";
+        _activeTeamPreviewId = crestTeamId;
+        ReplacePreviewImage(_teamKitHome, null);
+        ReplacePreviewImage(_teamKitAway, null);
+        ReplacePreviewImage(_teamKitThird, null);
+        ReplacePreviewImage(_teamKitGk, null);
         LoadProfileCrest(crestTeamId);
+        _ = LoadTeamKitPreviewsAsync(crestTeamId);
 
         // Overall rating
         var ovr = record.Get(Col(table, "overallrating"));
@@ -1878,16 +1914,6 @@ public sealed class TeamsSection : SectionBase
         _teamManagerNation.Text = "";
 
         // Kit previews — use crest as fallback since no kit asset resolver
-        try
-        {
-            var crestPath = Services.Assets.GetTeamLogo(crestTeamId);
-            LoadKitPreview(_teamKitHome, crestPath);
-            LoadKitPreview(_teamKitAway, crestPath);
-            LoadKitPreview(_teamKitThird, crestPath);
-            LoadKitPreview(_teamKitGk, crestPath);
-        }
-        catch (Exception ex) { Program.Log("Team kit preview failed: " + ex.Message); }
-
         // Stadium image
         try
         {
@@ -2660,8 +2686,41 @@ public sealed class TeamsSection : SectionBase
         "leagueid" => Services.Resolver?.TeamLeagueName(teamId) ?? string.Empty,
         "stadiumid" => Services.Resolver?.TeamStadiumName(teamId) ?? string.Empty,
         "managerid" => Services.Resolver?.TeamManagerName(teamId) ?? string.Empty,
+        "managerfirstname" => ResolveManagerField(teamId, "firstname"),
+        "managersurname" => ResolveManagerField(teamId, "surname"),
         _ => string.Empty,
     };
+
+    private string ResolveManagerField(int teamId, string field)
+    {
+        var teams = Services.Session.GetTable("teams");
+        var managers = Services.Session.GetTable("manager");
+        if (teams == null || managers == null) return string.Empty;
+        var teamIdColumn = Col(teams, "teamid");
+        var teamManagerColumn = Col(teams, "managerid");
+        var managerIdColumn = Col(managers, "managerid");
+        var managerFieldColumn = Col(managers, field);
+        if (teamIdColumn < 0 || teamManagerColumn < 0 || managerIdColumn < 0 || managerFieldColumn < 0)
+            return string.Empty;
+
+        var managerId = 0;
+        for (var row = 0; row < teams.RowCount; row++)
+        {
+            var record = Services.Session.GetRecord("teams", row);
+            if (record != null && Parse(record.Get(teamIdColumn)) == teamId)
+            {
+                managerId = Parse(record.Get(teamManagerColumn));
+                break;
+            }
+        }
+        for (var row = 0; row < managers.RowCount; row++)
+        {
+            var record = Services.Session.GetRecord("manager", row);
+            if (record != null && Parse(record.Get(managerIdColumn)) == managerId)
+                return record.Get(managerFieldColumn) ?? string.Empty;
+        }
+        return string.Empty;
+    }
 
     private void ShowCrest(string path, string teamName, int teamId)
     {
@@ -2719,11 +2778,52 @@ public sealed class TeamsSection : SectionBase
             {
                 if (IsDisposed) { image?.Dispose(); return; }
                 ReplacePreviewImage(_teamCrestPreview, image);
-                ReplacePreviewImage(_teamKitHome, image == null ? null : new Bitmap(image));
-                ReplacePreviewImage(_teamKitAway, image == null ? null : new Bitmap(image));
-                ReplacePreviewImage(_teamKitThird, image == null ? null : new Bitmap(image));
-                ReplacePreviewImage(_teamKitGk, image == null ? null : new Bitmap(image));
             });
+    }
+
+    /// <summary>Load the real installed FC26 jersey colour textures for the club profile.</summary>
+    private async Task LoadTeamKitPreviewsAsync(int teamId)
+    {
+        if (teamId <= 0 || !Services.FrostbiteAssets.IsAvailable) return;
+        var requests = new[]
+        {
+            (Variant: "home", Preview: _teamKitHome),
+            (Variant: "away", Preview: _teamKitAway),
+            (Variant: "third", Preview: _teamKitThird),
+            (Variant: "gk", Preview: _teamKitGk),
+        };
+        foreach (var request in requests)
+        {
+            try
+            {
+                var query = $"_{teamId}/{request.Variant}_";
+                var selected = (await Task.Run(() => Services.FrostbiteAssets.SearchAssets(query, "Res", 100)))
+                    .Where(match => match.ResType == 0x6BDE20BA &&
+                                    match.Name.EndsWith("_color", StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(match => KitTextureScore(match.Name))
+                    .FirstOrDefault();
+                if (selected == null || teamId != _activeTeamPreviewId) continue;
+                var path = await Task.Run(() => Services.FrostbiteAssets.ExportTexture(selected.Name));
+                if (string.IsNullOrWhiteSpace(path) || teamId != _activeTeamPreviewId) continue;
+                var image = await Task.Run(() => Services.Textures.CreatePreview(path, 300, 180));
+                if (image == null) continue;
+                if (teamId != _activeTeamPreviewId || IsDisposed) { image.Dispose(); continue; }
+                if (InvokeRequired) BeginInvoke(() => ReplacePreviewImage(request.Preview, image));
+                else ReplacePreviewImage(request.Preview, image);
+            }
+            catch (Exception ex)
+            {
+                Program.Log($"Team {teamId} {request.Variant} kit preview failed: {ex.Message}");
+            }
+        }
+    }
+
+    private static int KitTextureScore(string name)
+    {
+        var score = name.Contains("/jersey_", StringComparison.OrdinalIgnoreCase) ? 100 : 0;
+        if (name.Contains("_coeff", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("_normal", StringComparison.OrdinalIgnoreCase)) score -= 80;
+        return score - name.Length;
     }
 
     private static void ReplacePreviewImage(PictureBox preview, Image? image)
