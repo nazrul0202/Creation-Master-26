@@ -611,7 +611,33 @@ public sealed class FormationsSection : ClassicEntitySection
     public FormationsSection(AppServices s) : base(s, "formations", "Formations", "formations", () => s.RequireData().GetFormations(), LabelMaps.Formations)
     {
         var general = AddCanvasTab("Position"); var c = Canvas(general);
-        _pitchGroup = Group("Formation Preview", new Point(3, 3), new Size(575, 490));
+        // Keep the tactical board and its editors in a real split workspace.
+        // Fixed X/Y placement made the role map disappear or overlap the pitch
+        // when the window was restored on a smaller display.
+        c.AutoScroll = false;
+        var workspace = new SplitContainer
+        {
+            Dock = DockStyle.Fill,
+            Orientation = Orientation.Vertical,
+            FixedPanel = FixedPanel.None,
+            SplitterWidth = 6,
+            Panel1MinSize = 360,
+            Panel2MinSize = 590,
+            BackColor = CardLayout.CardBackground,
+        };
+        workspace.Panel1.Padding = new Padding(3);
+        workspace.Panel2.Padding = new Padding(3);
+        workspace.Panel1.BackColor = CardLayout.CardBackground;
+        workspace.Panel2.BackColor = CardLayout.CardBackground;
+        workspace.SizeChanged += (_, _) =>
+        {
+            if (workspace.Width >= 956)
+                workspace.SplitterDistance = Math.Clamp((int)(workspace.Width * 0.43), 360, workspace.Width - workspace.Panel2MinSize - workspace.SplitterWidth);
+        };
+        c.Controls.Add(workspace);
+
+        _pitchGroup = Group("Formation Preview", Point.Empty, new Size(520, 490));
+        _pitchGroup.Dock = DockStyle.Fill;
         _pitch = new Panel { Location = new Point(8, 20), Size = new Size(558, 430), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom, BackColor = Color.FromArgb(43, 132, 82), BorderStyle = BorderStyle.FixedSingle };
         _pitch.Paint += (_, e) =>
         {
@@ -627,9 +653,10 @@ public sealed class FormationsSection : ClassicEntitySection
         _pitchStatus.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
         _pitchGroup.Controls.Add(_pitchStatus);
         _pitchGroup.SizeChanged += (_, _) => ResizePitchPreview();
-        c.Controls.Add(_pitchGroup);
+        workspace.Panel1.Controls.Add(_pitchGroup);
 
-        var info = Group("Formation", new Point(584, 3), new Size(370, 302));
+        var info = Group("Formation", Point.Empty, new Size(600, 302));
+        info.Dock = DockStyle.Top;
         AddField(info, "formationid", "Formation Id", new Point(150, 22), 160);
         AddField(info, "formationname", "Database Name", new Point(150, 48), 160);
         AddField(info, "formationfullnameid", "Full Name Id", new Point(150, 74), 160);
@@ -640,9 +667,11 @@ public sealed class FormationsSection : ClassicEntitySection
         AddField(info, "midfielders", "Midfielders", new Point(150, 204), 160);
         AddField(info, "defenders", "Defenders", new Point(150, 230), 160);
         AddField(info, "offensiverating", "Offensive Rating", new Point(150, 256), 160);
-        c.Controls.Add(info);
+        workspace.Panel2.Controls.Add(info);
 
-        var roles = Group("Position Map", new Point(584, 311), new Size(720, 278));
+        var roles = Group("Position Map", Point.Empty, new Size(720, 278));
+        roles.Dock = DockStyle.Fill;
+        roles.AutoScroll = true;
         for (var i = 0; i < 11; i++)
         {
             var column = i / 6;
@@ -674,9 +703,11 @@ public sealed class FormationsSection : ClassicEntitySection
             });
             AddFormationDropdown(roles, $"pos{i}role", new Point(x + 154, y), 78, RoleOptions());
         }
-        c.Controls.Add(roles);
+        workspace.Panel2.Controls.Add(roles);
 
         var layout = AddCanvasTab("Layout"); var lc = Canvas(layout);
+        lc.AutoScroll = true;
+        lc.AutoScrollMinSize = new Size(920, 300);
         var offsets = Group("Position Coordinates", new Point(3, 3), new Size(900, 278));
         for (var i = 0; i < 11; i++)
         {
