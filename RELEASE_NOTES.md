@@ -1,5 +1,15 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.101 - Commercial UI and mapping pass (2026-08-13)
+
+- Added an automated 98-screenshot visual audit across every public section at 1366x768 and 1920x1080.
+- Repaired the Teams roster pitch so all 11 starters use formation coordinates and remain readable after resize or tab activation.
+- Reworked Formation Position and Layout pages to expose a complete pitch map and non-overlapping slot/X/Y editors.
+- Restored responsive Settings cards and corrected card accent, label, viewer and compact-layout overflow issues.
+- Mapped live Frostbite team crests, league logos, country flags, kits, stadiums and manager previews through the installed-game asset cache.
+- Corrected team-manager joins and direct record navigation; added league country/prestige facts and meaningful default formation selection.
+- Expanded label, layout, navigation and visual release gates to include Data Sync and Mod Manager.
+
 ## Version 1.0.100 - Live asset and formation repair (2026-08-12)
 
 - Added installed-Frostbite fallback loading for League and Team profile crests instead of showing a blank tile when loose asset packs are absent.

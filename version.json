@@ -1,6 +1,6 @@
 {
-  "version": "1.0.100",
+  "version": "1.0.101",
   "name": "Creation Master 26",
-  "notes": "v1.0.100 - Fix Frostbite crest/logo previews, Teams card clipping and roster formation board layout after live verification.",
+  "notes": "v1.0.101 - Commercial UI pass: responsive section cards, complete visual audit gate, mapped team/league/country previews, and repaired roster/formation layouts.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
