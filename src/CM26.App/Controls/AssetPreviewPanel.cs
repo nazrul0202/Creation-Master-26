@@ -180,7 +180,8 @@ public sealed class AssetPreviewPanel : UserControl
     private void CancelPending()
     {
         Interlocked.Increment(ref _requestSerial);
-        try { _cts?.Cancel(); } catch { }
+        try { _cts?.Cancel(); }
+        catch (ObjectDisposedException ex) { System.Diagnostics.Debug.WriteLine("Preview cancellation already disposed: " + ex.Message); }
         _cts?.Dispose();
         _cts = null;
     }

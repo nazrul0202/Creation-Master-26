@@ -99,7 +99,11 @@ internal static class DdsDecoder
         }
         catch (System.AccessViolationException)
         {
-            if (!unlocked) { try { bmp.UnlockBits(data); } catch { } }
+            if (!unlocked)
+            {
+                try { bmp.UnlockBits(data); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("DDS bitmap cleanup failed: " + ex.Message); }
+            }
             bmp.Dispose();
             return null;
         }

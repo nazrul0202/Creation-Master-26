@@ -76,7 +76,7 @@ internal sealed class ManagerForm : Form
         var root = GameRoot(); if (root == null) return;
         var packages = CM26ModLibraryService.EnabledPackages();
         if (packages.Count == 0) { MessageBox.Show(this, "Enable at least one CM26 mod first.", Text); return; }
-        if (MessageBox.Show(this, "Build an isolated CM26ModData overlay? This can require over 100 GB free space. Original FC26 files remain untouched until you choose Launch with Mods.", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        if (MessageBox.Show(this, "Build a lightweight CM26ModData symbolic-link overlay? Only modified CAS/TOC files are copied. Windows may require Administrator access or Developer Mode. Original FC26 files remain untouched.", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
         button.Enabled = false;
         try
         {

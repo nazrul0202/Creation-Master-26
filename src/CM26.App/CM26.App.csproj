@@ -72,8 +72,8 @@
     <ItemGroup>
       <ThreeDViewerFiles Include="..\..\publish_3d_viewer\**\*" />
     </ItemGroup>
-    <Warning Condition="'@(ThreeDViewerFiles)' == ''"
-             Text="publish_3d_viewer is empty or missing: this build will have no bundled 3D viewer under Tools\CM26.3DViewer." />
+    <Message Condition="'@(ThreeDViewerFiles)' == ''" Importance="high"
+             Text="publish_3d_viewer is empty or missing: ordinary builds omit the optional viewer; release publishing still requires it." />
     <Copy SourceFiles="@(ThreeDViewerFiles)"
           DestinationFiles="@(ThreeDViewerFiles->'$(OutDir)Tools\CM26.3DViewer\%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />

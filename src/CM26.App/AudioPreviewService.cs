@@ -35,7 +35,9 @@ internal static class AudioPreviewService
 
     public static void Stop()
     {
-        try { mciSendString($"stop {Alias}", null, 0, IntPtr.Zero); } catch { }
-        try { mciSendString($"close {Alias}", null, 0, IntPtr.Zero); } catch { }
+        try { mciSendString($"stop {Alias}", null, 0, IntPtr.Zero); }
+        catch (Exception ex) { Program.Log("Audio preview stop failed: " + ex.Message); }
+        try { mciSendString($"close {Alias}", null, 0, IntPtr.Zero); }
+        catch (Exception ex) { Program.Log("Audio preview close failed: " + ex.Message); }
     }
 }

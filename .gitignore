@@ -40,6 +40,20 @@ artifacts/
 _audit_backup_*/
 _structural_writer_backup_*/
 LocaleDiagnosticsOutput/
+_temp/
+_temp_legacy/
+.freebuff/
+startup.ini
+skills-lock.json
+.agents/
+screenshots/
+docs/AUDIT_5STAR_README.md
+docs/FET_MODMANAGER_RDBM26_REFERENCE.md
+docs/GPT56_*_PROMPT.md
+CascadeSmokeTest.exe
+EngineSmokeTest*.exe
+Structural*Test.exe
+database_engine*.obj
 
 # Local tooling, nested clones and reference projects (not part of the release source)
 GitHub_CM26/

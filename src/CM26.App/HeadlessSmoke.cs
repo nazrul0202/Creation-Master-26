@@ -55,9 +55,9 @@ internal static class HeadlessSmoke
         finally
         {
             try { if (!string.IsNullOrWhiteSpace(output) && File.Exists(output)) File.Delete(output); }
-            catch { }
+            catch (Exception ex) { Console.Error.WriteLine("Compdata workbook cleanup failed: " + ex.Message); }
             try { if (!string.IsNullOrWhiteSpace(textOutput) && Directory.Exists(textOutput)) Directory.Delete(textOutput, true); }
-            catch { }
+            catch (Exception ex) { Console.Error.WriteLine("Compdata text cleanup failed: " + ex.Message); }
         }
     }
 
@@ -91,7 +91,8 @@ internal static class HeadlessSmoke
         }
         finally
         {
-            try { if (!string.IsNullOrWhiteSpace(output) && File.Exists(output)) File.Delete(output); } catch { }
+            try { if (!string.IsNullOrWhiteSpace(output) && File.Exists(output)) File.Delete(output); }
+            catch (Exception ex) { Console.Error.WriteLine("Compdata builder cleanup failed: " + ex.Message); }
         }
     }
 
@@ -931,7 +932,8 @@ internal static class HeadlessSmoke
         {
             if (probeFolder != null && Directory.Exists(probeFolder))
             {
-                try { Directory.Delete(probeFolder, true); } catch { }
+                try { Directory.Delete(probeFolder, true); }
+                catch (Exception ex) { Console.Error.WriteLine("Create-team probe cleanup failed: " + ex.Message); }
             }
         }
     }
@@ -1111,7 +1113,8 @@ internal static class HeadlessSmoke
         {
             if (probeFolder != null && Directory.Exists(probeFolder))
             {
-                try { Directory.Delete(probeFolder, true); } catch { }
+                try { Directory.Delete(probeFolder, true); }
+                catch (Exception ex) { Console.Error.WriteLine("Squad probe cleanup failed: " + ex.Message); }
             }
         }
     }
@@ -2135,7 +2138,8 @@ internal static class HeadlessSmoke
         {
             if (!keepForInspection)
             {
-                try { if (Directory.Exists(probeFolder)) Directory.Delete(probeFolder, true); } catch { }
+                try { if (Directory.Exists(probeFolder)) Directory.Delete(probeFolder, true); }
+                catch (Exception ex) { Console.Error.WriteLine("Malaysia probe cleanup failed: " + ex.Message); }
             }
         }
     }

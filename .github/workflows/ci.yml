@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+      - uses: microsoft/setup-msbuild@v2
+      - name: Build native database bridge
+        run: msbuild src-native/CM26.EngineBridge/CM26.EngineBridge.vcxproj /m /p:Configuration=Release /p:Platform=x64
+      - name: Restore
+        run: dotnet restore CM26.slnx
+      - name: Build
+        run: dotnet build CM26.slnx -c Release --no-restore -warnaserror -p:ContinuousIntegrationBuild=true
+      - name: Test
+        run: dotnet test tests/CM26.Tests/CM26.Tests.csproj -c Release --no-build --no-restore

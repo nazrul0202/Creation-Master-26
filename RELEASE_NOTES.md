@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.98 - Responsive UI, lightweight overlay and automated quality gate (2026-08-12)
+
+- Reworked Teams, Leagues and Countries to reflow at laptop and desktop widths; fixed SplitContainer constructor crashes in Team and Formation workspaces.
+- Restored the Players Info/Skills/Face/Details/Callname tabs and Teams Sponsors/Adboards/Flags/Audio tabs.
+- Added a shared resize-safe formation board, clear-slot actions and copy-on-write NTFS symlink overlays that avoid duplicating the full FC26 install.
+- Added 27 offline xUnit tests, multi-resolution all-section smoke coverage and a Windows GitHub Actions build/test workflow.
+- Hardened Transfermarkt URL validation, shared-client retry handling, database-browser reload state and disposable resource cleanup.
+
 ## Version 1.0.97 - UI overlap, rating bars, formation and stadium fixes (2026-08-11)
 
 - Fixed sidebar category labels (World, Venue, Team, Media, Tools) overlapping the navigation buttons below them; labels now use a fixed height and resize with the sidebar.

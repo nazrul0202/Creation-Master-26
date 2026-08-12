@@ -27,7 +27,6 @@ public sealed class TeamsSection : SectionBase
     private readonly ImageList _rosterMinifaces = new() { ImageSize = new Size(32, 32), ColorDepth = ColorDepth.Depth32Bit };
     private readonly HashSet<int> _pendingRosterMinifaces = [];
     private readonly SemaphoreSlim _minifaceLoadGate = new(1, 1);
-    private readonly ListView _availablePlayers = new();
     private readonly ListView _teamSponsors = new();
     private readonly PictureBox _sponsorPreview = new();
     private readonly Label _sponsorPreviewCaption = new();
@@ -68,14 +67,6 @@ public sealed class TeamsSection : SectionBase
     private Label _teamWorthLabel = new();
     private Label _teamStadiumLabel = new();
     private Label _teamRivalLabel = new();
-    private Label _teamLeagueTitles = new();
-    private Label _teamDomesticCups = new();
-    private Label _teamContinentals = new();
-    private Label _teamPrestigeDom = new();
-    private Label _teamPrestigeInt = new();
-    private Label _teamPopularity = new();
-    private Label _teamYouthDev = new();
-    private Label _teamProfitability = new();
     private readonly PictureBox _teamKitHome = new();
     private readonly PictureBox _teamKitAway = new();
     private readonly PictureBox _teamKitThird = new();
@@ -99,7 +90,10 @@ public sealed class TeamsSection : SectionBase
         Tabs.Padding = new Point(4, 2);
         AddGenericTab();
         AddRosterTab();
-        // Sponsors, Adboards, Flags, Audio tabs removed — not needed for basic team editing.
+        AddSponsorsTab();
+        AddAdboardsTab();
+        AddFlagsTab();
+        AddAudioTab();
     }
 
     protected override IReadOnlyList<RecordListItem> GetRecords() => Services.RequireData().GetTeams();
@@ -496,7 +490,7 @@ public sealed class TeamsSection : SectionBase
         var page = Page("Overview");
         var canvas = Canvas(page);
         canvas.BackColor = CardLayout.CardBackground;
-        canvas.AutoScrollMinSize = new Size(1370, 1100);
+        canvas.AutoScrollMinSize = new Size(0, 1100);
 
         // ═══════════════════════════════════════════════════════════════
         //  CLUB PROFILE HEADER (FC Tools Hub style)
@@ -623,19 +617,62 @@ public sealed class TeamsSection : SectionBase
         var tendency = CardLayout.CreateGroup(canvas, "Team Tendency", CardLayout.Fc26Orange, 924, 870, 428, 160);
         AddBoundFields(tendency, new[] { ("Build Up Play", "buildupplay"), ("Defensive Depth", "defensivedepth"), ("Opponent Weak", "opponentweakthreshold"), ("Opponent Strong", "opponentstrongthreshold") }, 14, 30, 190, 170, 26);
 
-        // Search and import (compact)
+        // Import action. Record search is already provided by SectionBase.
         var findActions = new Panel { Location = new Point(12, 1042), Size = new Size(1340, 32), BackColor = CardLayout.CardBackground };
-        var search = new TextBox { Location = new Point(0, 2), Size = new Size(140, 24), Font = LegacyFont, PlaceholderText = "Find team…" };
-        Theme.ApplyTextBox(search);
-        var find = CardLayoutButton("Find", new Point(146, 2), new Size(58, 26));
-        find.Click += (_, _) => FindTeam(search.Text);
-        search.KeyDown += (_, eventArgs) => { if (eventArgs.KeyCode == Keys.Enter) { FindTeam(search.Text); eventArgs.SuppressKeyPress = true; } };
-        var importSquad = CardLayoutButton("Import Scraper Squad", new Point(212, 2), new Size(180, 26));
+        var importSquad = CardLayoutButton("Import Scraper Squad", new Point(0, 2), new Size(180, 26));
         importSquad.Click += (_, _) => ImportScraperSquad();
-        findActions.Controls.Add(search);
-        findActions.Controls.Add(find);
         findActions.Controls.Add(importSquad);
         canvas.Controls.Add(findActions);
+
+        void ReflowOverview()
+        {
+            var width = Math.Max(760, canvas.ClientSize.Width - 28);
+            profile.Width = width;
+            quickInfo.Width = width;
+            var factWidth = Math.Max(140, (width - 64) / 5);
+            for (var index = 0; index < quickInfo.Controls.Count; index++)
+                quickInfo.Controls[index].Bounds = new Rectangle(index * (factWidth + 16), 0, factWidth, 72);
+            kits.Width = width;
+
+            var nextY = 478;
+            if (width >= 1240)
+            {
+                infoGroup.Bounds = new Rectangle(12, nextY, width / 2 - 18, 380);
+                stadium.Bounds = new Rectangle(infoGroup.Right + 16, nextY, (width - infoGroup.Width - 32) / 2, 380);
+                manager.Bounds = new Rectangle(stadium.Right + 16, nextY, width - (stadium.Right - 12) - 16, 380);
+                nextY += 392;
+            }
+            else
+            {
+                infoGroup.Bounds = new Rectangle(12, nextY, width, 380);
+                nextY += 392;
+                var half = (width - 16) / 2;
+                stadium.Bounds = new Rectangle(12, nextY, half, 380);
+                manager.Bounds = new Rectangle(12 + half + 16, nextY, width - half - 16, 380);
+                nextY += 392;
+            }
+
+            if (width >= 1320)
+            {
+                perf.Bounds = new Rectangle(12, nextY, 440, 160);
+                ratings.Bounds = new Rectangle(468, nextY, 440, 160);
+                tendency.Bounds = new Rectangle(924, nextY, width - 912, 160);
+                nextY += 172;
+            }
+            else
+            {
+                var half = (width - 16) / 2;
+                perf.Bounds = new Rectangle(12, nextY, half, 160);
+                ratings.Bounds = new Rectangle(12 + half + 16, nextY, width - half - 16, 160);
+                nextY += 172;
+                tendency.Bounds = new Rectangle(12, nextY, width, 160);
+                nextY += 172;
+            }
+            findActions.Bounds = new Rectangle(12, nextY, width, 32);
+            canvas.AutoScrollMinSize = new Size(0, nextY + 48);
+        }
+        canvas.ClientSizeChanged += (_, _) => ReflowOverview();
+        ReflowOverview();
     }
 
     private void AddRatingBar(Control parent, string label, Color accent, Panel barFill, Label valueLabel, int x, int y)
@@ -770,7 +807,6 @@ public sealed class TeamsSection : SectionBase
             FixedPanel = FixedPanel.Panel2,
             SplitterWidth = 6,
             BackColor = CardLayout.CardBackground,
-            Panel2MinSize = 310,
         };
         workspace.Panel1.Padding = new Padding(3);
         workspace.Panel2.Padding = new Padding(3);
@@ -780,7 +816,10 @@ public sealed class TeamsSection : SectionBase
         {
             // Keep a useful pitch even when Windows restores a narrow window.
             if (workspace.Width > 720)
-                workspace.SplitterDistance = Math.Clamp(workspace.Width - 420, 390, workspace.Width - workspace.Panel2MinSize - workspace.SplitterWidth);
+            {
+                workspace.Panel2MinSize = 310;
+                workspace.SplitterDistance = Math.Clamp(workspace.Width - 420, 390, workspace.Width - 310 - workspace.SplitterWidth);
+            }
         };
         canvas.Controls.Add(workspace);
 
@@ -866,7 +905,7 @@ public sealed class TeamsSection : SectionBase
         var pitch = Group("Formation Board", Point.Empty, new Size(700, 600));
         pitch.Dock = DockStyle.Fill;
         workspace.Panel1.Controls.Add(pitch);
-        var board = new Panel
+        var board = new RatableBoard
         {
             Location = new Point(8, 28),
             Size = new Size(600, 400),
@@ -874,15 +913,6 @@ public sealed class TeamsSection : SectionBase
             BorderStyle = BorderStyle.FixedSingle,
             AllowDrop = true,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom
-        };
-        board.Paint += (_, e) =>
-        {
-            try
-            {
-                if (e.Graphics != null && board.ClientSize.Width > 0 && board.ClientSize.Height > 0)
-                    DrawPitch(e.Graphics, board.ClientRectangle);
-            }
-            catch { /* A pitch redraw fault must never take down the message loop. */ }
         };
         board.DragEnter += (_, e) => e.Effect = e.Data?.GetDataPresent(typeof(int)) == true ? DragDropEffects.Copy : DragDropEffects.None;
         board.DragDrop += (_, e) => AssignDroppedPlayer(e, board);
@@ -1018,53 +1048,6 @@ public sealed class TeamsSection : SectionBase
             _lineupSlots.Add(new LineupSlot { Label = label, PlayerField = $"playerid{_lineupSlots.Count}" });
         }
         foreach (var slot in _lineupSlots) slot.Label.Visible = false;
-    }
-
-    private static void DrawPitch(Graphics graphics, Rectangle bounds)
-    {
-        graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        var playable = Rectangle.Inflate(bounds, -10, -10);
-
-        // Classic green pitch with subtle mowing bands.
-        using (var turf = new System.Drawing.Drawing2D.LinearGradientBrush(playable,
-                   Color.FromArgb(0, 110, 50), Color.FromArgb(0, 130, 60),
-                   System.Drawing.Drawing2D.LinearGradientMode.Vertical))
-        {
-            graphics.FillRectangle(turf, playable);
-        }
-        using var band = new SolidBrush(Color.FromArgb(20, 255, 255, 255));
-        var bandHeight = Math.Max(1, playable.Height / 10);
-        for (var row = 0; row < 10; row += 2)
-            graphics.FillRectangle(band, playable.Left, playable.Top + (row * bandHeight),
-                playable.Width, bandHeight);
-
-        // White lines.
-        using var line = new Pen(Color.FromArgb(210, Color.White), 1.5f);
-        graphics.DrawRectangle(line, playable);
-        var centerY = playable.Top + (playable.Height / 2);
-        graphics.DrawLine(line, playable.Left, centerY, playable.Right, centerY);
-
-        var circleRadius = Math.Max(30, Math.Min(playable.Width, playable.Height) / 9);
-        var cx = playable.Left + (playable.Width / 2);
-        graphics.DrawEllipse(line, cx - circleRadius, centerY - circleRadius, circleRadius * 2, circleRadius * 2);
-        graphics.FillEllipse(Brushes.White, cx - 3, centerY - 3, 6, 6);
-
-        var penaltyWidth = Math.Max(140, playable.Width / 3);
-        var penaltyHeight = Math.Max(50, playable.Height / 7);
-        var penaltyLeft = playable.Left + ((playable.Width - penaltyWidth) / 2);
-        graphics.DrawRectangle(line, penaltyLeft, playable.Top, penaltyWidth, penaltyHeight);
-        graphics.DrawRectangle(line, penaltyLeft, playable.Bottom - penaltyHeight, penaltyWidth, penaltyHeight);
-
-        var sixWidth = Math.Max(70, playable.Width / 7);
-        var sixHeight = Math.Max(22, playable.Height / 18);
-        var sixLeft = playable.Left + ((playable.Width - sixWidth) / 2);
-        graphics.DrawRectangle(line, sixLeft, playable.Top, sixWidth, sixHeight);
-        graphics.DrawRectangle(line, sixLeft, playable.Bottom - sixHeight, sixWidth, sixHeight);
-
-        // Penalty spots.
-        using var dot = new SolidBrush(Color.White);
-        graphics.FillEllipse(dot, cx - 3, playable.Top + penaltyHeight - 3, 6, 6);
-        graphics.FillEllipse(dot, cx - 3, playable.Bottom - penaltyHeight - 3, 6, 6);
     }
 
     private void AssignDroppedPlayer(DragEventArgs e, Control target)
@@ -1731,13 +1714,18 @@ public sealed class TeamsSection : SectionBase
 
     private static void LoadKitPreview(PictureBox preview, string? path)
     {
+        var old = preview.Image;
         preview.Image = null;
+        old?.Dispose();
         try
         {
             if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
-                preview.Image = Image.FromFile(path);
+            {
+                using var source = Image.FromFile(path);
+                preview.Image = new Bitmap(source);
+            }
         }
-        catch { }
+        catch (Exception ex) { Program.Log("Kit preview failed: " + ex.Message); }
     }
 
     protected override void ShowRecord(int recordIndex)
@@ -1841,7 +1829,7 @@ public sealed class TeamsSection : SectionBase
             LoadKitPreview(_teamKitThird, crestPath);
             LoadKitPreview(_teamKitGk, crestPath);
         }
-        catch { }
+        catch (Exception ex) { Program.Log("Team kit preview failed: " + ex.Message); }
 
         // Stadium image
         try
@@ -2648,9 +2636,19 @@ public sealed class TeamsSection : SectionBase
                     ? $"{teamName}\r\nNo crest available"
                     : $"{teamName}\r\n{source}";
         }
-        catch (System.AccessViolationException) { }
-        catch { }
+        catch (System.AccessViolationException ex) { Program.Log("Team crest preview access violation: " + ex.Message); }
+        catch (Exception ex) { Program.Log("Team crest preview failed: " + ex.Message); }
     }, resolvedPath => LegacyAssetActions.SetTarget(
         viewer, new LegacyAssetEditTarget(resolvedPath, 256, 256)));
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _minifaceLoadGate.Dispose();
+            _rosterMinifaces.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }

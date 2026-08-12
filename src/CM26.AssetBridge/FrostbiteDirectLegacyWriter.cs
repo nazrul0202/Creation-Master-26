@@ -617,6 +617,15 @@ internal static class FrostbiteDirectLegacyWriter
         var tocStages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var plannedLocations = new Dictionary<Guid, FrostbiteCasLocation>();
 
+        // CM26ModData starts as a file-symlink mirror of the installed game.
+        // Break only links that this transaction will mutate. Without this
+        // copy-on-write step, appending to a CAS link would modify the original
+        // FC26 archive through the reparse point.
+        foreach (var path in writes.Select(x => ResolveCasPath(root, catalogs, x.Original))
+                     .Concat(tocLocations.Values.Select(x => x.Path))
+                     .Distinct(StringComparer.OrdinalIgnoreCase))
+            MaterializeSymbolicLink(path);
+
         foreach (var group in writes.GroupBy(x => ResolveCasPath(root, catalogs, x.Original)))
         {
             var casPath = group.Key;
@@ -698,6 +707,25 @@ internal static class FrostbiteDirectLegacyWriter
         }
     }
 
+    private static void MaterializeSymbolicLink(string path)
+    {
+        var file = new FileInfo(path);
+        if (file.LinkTarget is null) return;
+        var target = file.ResolveLinkTarget(returnFinalTarget: true)
+            ?? throw new IOException("CM26 could not resolve overlay link: " + path);
+        var materialized = path + ".cm26-cow-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            File.Copy(target.FullName, materialized, overwrite: false);
+            File.Delete(path);
+            File.Move(materialized, path);
+        }
+        finally
+        {
+            if (File.Exists(materialized)) File.Delete(materialized);
+        }
+    }
+
     private static void VerifyTocPlan(
         string root,
         IReadOnlyDictionary<uint, string> catalogs,
@@ -745,7 +773,7 @@ internal static class FrostbiteDirectLegacyWriter
         finally
         {
             try { if (Directory.Exists(temporaryRoot)) Directory.Delete(temporaryRoot, recursive: true); }
-            catch { }
+            catch (Exception ex) { Debug.WriteLine("CM26 TOC verification cleanup failed: " + ex.Message); }
         }
     }
 

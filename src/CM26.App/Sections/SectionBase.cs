@@ -510,21 +510,43 @@ public abstract class SectionBase : UserControl
         var column = table.FindColumn(idField)
             ?? throw new InvalidOperationException($"Field '{idField}' is unavailable.");
         var used = new HashSet<int>();
-        var max = column.RangeLow;
         for (var row = 0; row < table.RowCount; row++)
         {
             if (!int.TryParse(Services.Session.GetCell(tableName, row, idField), out var id)) continue;
             used.Add(id);
-            if (id > max) max = id;
         }
+        return FindNextAvailableId(used, column.RangeLow, column.RangeHigh, idField);
+    }
 
-        var minimum = Math.Max(column.RangeLow, 1);
-        if (max < column.RangeHigh && !used.Contains(max + 1))
-            return Math.Max(minimum, max + 1);
-        for (var id = minimum; id <= column.RangeHigh; id++)
-            if (!used.Contains(id))
-                return id;
+    internal static int FindNextAvailableId(
+        IEnumerable<int> existingIds, int rangeLow, int rangeHigh, string idField = "id")
+    {
+        var used = existingIds.ToHashSet();
+        var minimum = Math.Max(rangeLow, 1);
+        for (var id = minimum; id <= rangeHigh; id++)
+            if (!used.Contains(id)) return id;
         throw new InvalidOperationException($"No unused {idField} remains in the supported range.");
+    }
+
+    internal static int FindSafeTeamId(
+        IReadOnlyCollection<int> existingTeamIds, IReadOnlyCollection<int> mappedCrestIds)
+    {
+        var used = existingTeamIds.ToHashSet();
+        var crestGroupMax = mappedCrestIds
+            .Where(id => id > 0)
+            .GroupBy(id => id / 10)
+            .ToDictionary(group => group.Key, group => group.Max());
+        var candidate = Math.Max(used.DefaultIfEmpty(0).Max() + 1, 1);
+        while (true)
+        {
+            if (crestGroupMax.TryGetValue(candidate / 10, out var crestUpTo) && candidate <= crestUpTo)
+            {
+                candidate = crestUpTo + 1;
+                continue;
+            }
+            if (!used.Contains(candidate)) return candidate;
+            candidate++;
+        }
     }
 
     /// <summary>
@@ -595,7 +617,7 @@ public abstract class SectionBase : UserControl
             throw new InvalidOperationException(duplicate.Message);
         // The native engine inserts the duplicated row directly after the
         // source row (index sourceRow + 1), never at the end of the table.
-        var newRow = sourceRow + 1;
+        var newRow = InsertedRowAfter(sourceRow);
         // Refresh the row count so id pickers see the shifted table (the last
         // original row moved down one position after the insert).
         Services.Session.RefreshSchema();
@@ -635,23 +657,25 @@ public abstract class SectionBase : UserControl
         return id;
     }
 
+    internal static int InsertedRowAfter(int sourceRow) => checked(sourceRow + 1);
+
     protected void SelectRecord(int recordIndex) => OnRecordSelected(recordIndex);
 
-    private static readonly string[] DefaultSquadPositions =
+    internal static readonly string[] DefaultSquadPositions =
     {
         "GK", "RB", "CB", "CB", "CB", "LB", "CDM", "CM", "CM", "CAM",
         "ST", "GK", "LB", "CB", "CM", "RM", "LM", "ST", "ST", "CM",
         "RM", "LM", "RW",
     };
 
-    private static readonly string[] PositionLabels =
+    internal static readonly string[] PositionLabels =
     {
         "GK", "SW", "RWB", "RB", "RCB", "CB", "LCB", "LB", "LWB",
         "RDM", "CDM", "LDM", "RM", "RCM", "CM", "LCM", "LM",
         "RAM", "CAM", "LAM", "RF", "CF", "LF", "RW", "RS", "ST", "LS", "LW",
     };
 
-    protected static bool TryPositionCode(string label, out int code)
+    internal static bool TryPositionCode(string label, out int code)
     {
         code = Array.IndexOf(PositionLabels, label.ToUpperInvariant());
         return code >= 0;

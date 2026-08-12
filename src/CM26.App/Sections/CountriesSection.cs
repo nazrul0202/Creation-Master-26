@@ -45,7 +45,7 @@ public sealed class CountriesSection : SectionBase
 
         var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
         var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground };
-        canvas.AutoScrollMinSize = new Size(1370, 900);
+        canvas.AutoScrollMinSize = new Size(0, 900);
         page.Controls.Add(canvas);
         Tabs.TabPages.Add(page);
 
@@ -129,6 +129,28 @@ public sealed class CountriesSection : SectionBase
         var map = CardLayout.CreateGroup(canvas, "Map (Shape)", CardLayout.Fc26Blue, 12, 556, 1340, 340);
         map.Controls.Add(CreateViewer(new Point(8, 26), new Size(512, 256), "512 x 256", out _mapViewer, out _));
         LegacyAssetActions.Attach(Services, map, _mapViewer, new Point(8, 302), RefreshCurrentRecord);
+
+        void ReflowCountry()
+        {
+            var width = Math.Max(680, canvas.ClientSize.Width - 28);
+            profile.Width = width;
+            var mapY = 556;
+            if (width >= 1320)
+            {
+                details.Bounds = new Rectangle(12, 204, 560, 340);
+                flags.Bounds = new Rectangle(588, 204, width - 576, 340);
+            }
+            else
+            {
+                details.Bounds = new Rectangle(12, 204, width, 340);
+                flags.Bounds = new Rectangle(12, 556, width, 340);
+                mapY = 908;
+            }
+            map.Bounds = new Rectangle(12, mapY, width, 340);
+            canvas.AutoScrollMinSize = new Size(0, map.Bottom + 12);
+        }
+        canvas.ClientSizeChanged += (_, _) => ReflowCountry();
+        ReflowCountry();
 
         AddNationalAudioTab();
     }

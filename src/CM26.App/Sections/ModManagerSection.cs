@@ -48,7 +48,7 @@ public sealed class ModManagerSection : SectionBase
         var actions = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = Theme.Background };
         actions.Controls.Add(refresh); actions.Controls.Add(restore); actions.Controls.Add(launch); actions.Controls.Add(build); actions.Controls.Add(import);
         var hint = new Label { Dock = DockStyle.Top, Height = 52, ForeColor = Theme.Muted,
-            Text = "Library: " + CM26ModLibraryService.Root + "  |  CM26 uses FET-style -dataPath CM26ModData; the installed Data/Patch folders are never swapped.",
+            Text = "Library: " + CM26ModLibraryService.Root + "  |  Lightweight symbolic-link overlay; only changed CAS/TOC files are copied. Original Data/Patch remains untouched.",
             Padding = new Padding(0, 8, 0, 0) };
         var page = new TabPage("CM26 Mods") { BackColor = Theme.Background, Padding = new Padding(8) };
         page.Controls.Add(_mods); page.Controls.Add(_status); page.Controls.Add(hint); page.Controls.Add(actions);
@@ -98,10 +98,11 @@ public sealed class ModManagerSection : SectionBase
             return;
         }
         if (MessageBox.Show(this,
-                "CM26 will build a separate CM26ModData overlay from the original game. " +
-                "This can require over 100 GB free space. FET folders will not be used. Continue?",
+                "CM26 will build a lightweight CM26ModData symbolic-link overlay. Only files that " +
+                "CM26 changes are copied, so it does not duplicate the full game. Windows may require " +
+                "Administrator access or Developer Mode to create links. FET folders will not be used. Continue?",
                 "Build CM26ModData", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
-        button.Enabled = false; _status.Text = "Building isolated CM26ModData overlay...";
+        button.Enabled = false; _status.Text = "Building lightweight CM26ModData symbolic-link overlay...";
         try
         {
             var progress = new Progress<string>(value => _status.Text = value);

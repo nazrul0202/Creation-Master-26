@@ -15,6 +15,7 @@ namespace CM26.App.Sections;
 /// </summary>
 public sealed class TransfersSection : SectionBase
 {
+    private static readonly HttpClient TransfermarktClient = CreateTransfermarktClient();
     private readonly TextBox _url = new();
     private readonly Button _fetch = new();
     private readonly Button _export = new();
@@ -294,12 +295,7 @@ public sealed class TransfersSection : SectionBase
         _players.Clear();
         try
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(35) };
-            client.DefaultRequestHeaders.UserAgent.ParseAdd(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-                "Chrome/126.0 Safari/537.36 CreationMaster26/1.0");
-            client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en-GB,en;q=0.9");
-            var html = await client.GetStringAsync(uri);
+            var html = await GetTransfermarktHtmlAsync(uri);
             var result = ParseHtml(html);
             _team.Text = string.IsNullOrWhiteSpace(result.TeamName)
                 ? "Transfermarkt squad"
@@ -327,6 +323,36 @@ public sealed class TransfersSection : SectionBase
         {
             _fetch.Enabled = true;
         }
+    }
+
+    private static HttpClient CreateTransfermarktClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(35) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+            "Chrome/126.0 Safari/537.36 CreationMaster26/1.0");
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en-GB,en;q=0.9");
+        return client;
+    }
+
+    private static async Task<string> GetTransfermarktHtmlAsync(Uri uri)
+    {
+        Exception? lastError = null;
+        for (var attempt = 1; attempt <= 3; attempt++)
+        {
+            try
+            {
+                using var response = await TransfermarktClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadAsStringAsync();
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            {
+                lastError = ex;
+                if (attempt < 3) await Task.Delay(TimeSpan.FromMilliseconds(350 * attempt));
+            }
+        }
+        throw new HttpRequestException("Transfermarkt did not respond after three attempts.", lastError);
     }
 
     private void ExportCsv()
@@ -417,15 +443,22 @@ public sealed class TransfersSection : SectionBase
         catch { /* the window may already be closing */ }
     }
 
-    private static bool TryValidateUrl(string text, out Uri uri)
+    internal static bool TryValidateUrl(string text, out Uri uri)
     {
         uri = null!;
         if (!Uri.TryCreate(text, UriKind.Absolute, out var parsed) ||
             parsed.Scheme != Uri.UriSchemeHttps)
             return false;
-        var host = parsed.Host.ToLowerInvariant();
-        if (!(host == "transfermarkt.com" || host.StartsWith("www.transfermarkt.") ||
-              host.StartsWith("www.transfermarkt.co.") || host.StartsWith("transfermarkt.")))
+        var host = parsed.IdnHost.ToLowerInvariant();
+        var allowedHosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "transfermarkt.com", "www.transfermarkt.com", "www.transfermarkt.de",
+            "www.transfermarkt.co.uk", "www.transfermarkt.fr", "www.transfermarkt.it",
+            "www.transfermarkt.es", "www.transfermarkt.nl", "www.transfermarkt.pt",
+            "www.transfermarkt.pl", "www.transfermarkt.us", "www.transfermarkt.com.tr",
+            "www.transfermarkt.com.br", "www.transfermarkt.co.za", "www.transfermarkt.co.in",
+        };
+        if (!allowedHosts.Contains(host))
             return false;
         uri = parsed;
         return true;
@@ -479,6 +512,12 @@ public sealed class TransfersSection : SectionBase
         return (parsed.TeamName, parsed.Players.Count);
     }
 
+    internal static (string TeamName, IReadOnlyList<(string Id, string Name)> Players) ParseForTest(string html)
+    {
+        var parsed = ParseHtml(html);
+        return (parsed.TeamName, parsed.Players.Select(player => (player.Id, player.Name)).ToArray());
+    }
+
     private static string Nationality(string block, string playerName)
     {
         foreach (Match match in Regex.Matches(block,
@@ -503,10 +542,10 @@ public sealed class TransfersSection : SectionBase
         WebUtility.HtmlDecode(Regex.Replace(text ?? "", "<[^>]+>", " "))
             .Replace('\u00a0', ' ').Trim();
 
-    private static string Csv(string value) => "\"" + (value ?? "").Replace("\"", "\"\"") + "\"";
+    internal static string Csv(string value) => "\"" + (value ?? "").Replace("\"", "\"\"") + "\"";
     private static string Cell(System.Data.DataRow row, string column) => row.Table.Columns.Contains(column)
         ? Convert.ToString(row[column])?.Trim() ?? string.Empty : string.Empty;
-    private static string SafeFileName(string value) =>
+    internal static string SafeFileName(string value) =>
         string.Concat((string.IsNullOrWhiteSpace(value) ? "transfermarkt" : value)
             .Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
 

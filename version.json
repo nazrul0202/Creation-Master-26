@@ -1,6 +1,6 @@
 {
-  "version": "1.0.97",
+  "version": "1.0.98",
   "name": "Creation Master 26",
-  "notes": "v1.0.97 - Fix sidebar label overlap, rating bar fill, formation stale-state, stadium image loading.",
+  "notes": "v1.0.98 - Responsive all-section UI, symlink-backed mod overlay, restored editors, automated tests and CI.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

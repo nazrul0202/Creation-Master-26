@@ -229,7 +229,9 @@ internal sealed class SponsorsSection : Fc26ExtensionSection
 }
 internal sealed class AudioNationSection : Fc26ExtensionSection
 {
-    private const uint NewWaveResourceType = 2999215606;
+    // Frostbite NewWaveAsset RES type used by FC26 audio resources (0xB2C465F6),
+    // matching FET's ResourceType.NewWaveAsset catalog filter.
+    private const uint NewWaveResourceType = 0xB2C465F6;
     private readonly TextBox _query = new();
     private readonly ListView _banks = new();
     private readonly ListView _dataSets = new();
@@ -456,9 +458,10 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
         }
     }
 
-    private static string FormatSize(uint bytes) =>
-        bytes >= 1024 * 1024 ? $"{bytes / 1024d / 1024d:N1} MB" :
-        bytes >= 1024 ? $"{bytes / 1024d:N1} KB" : $"{bytes:N0} B";
+    internal static string FormatSize(uint bytes) =>
+        bytes >= 1024 * 1024 ? (bytes / 1024d / 1024d).ToString("N1", System.Globalization.CultureInfo.InvariantCulture) + " MB" :
+        bytes >= 1024 ? (bytes / 1024d).ToString("N1", System.Globalization.CultureInfo.InvariantCulture) + " KB" :
+        bytes.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) + " B";
 }
 // FC26's broadcastleague table maps broadcast presentation to team/league/nation
 // IDs. It does not contain an overlay asset path, so label it accurately instead

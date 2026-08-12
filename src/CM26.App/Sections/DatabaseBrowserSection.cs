@@ -101,45 +101,51 @@ public sealed class DatabaseBrowserSection : SectionBase
         _activeTable = table;
         _binding = true;
         _grid.SuspendLayout();
-        _grid.Columns.Clear();
-        _grid.Rows.Clear();
-        foreach (var c in table.Columns)
+        try
         {
-            var column = _grid.Columns[_grid.Columns.Add(c.Name, c.Name)];
-            column.ReadOnly = !c.IsWritable;
-            column.ToolTipText = c.IsWritable
-                ? "Editable: staged and validated before Save."
-                : "Read-only: unsupported by the validated database writer.";
-            column.HeaderCell.Style.BackColor = CardLayout.Fc26Green;
-            column.HeaderCell.Style.ForeColor = Color.White;
-            column.HeaderCell.Style.Font = Theme.Label;
-            column.HeaderCell.Style.SelectionBackColor = CardLayout.Fc26Green;
-            column.DefaultCellStyle.BackColor = CardLayout.CardWhite;
-            column.DefaultCellStyle.ForeColor = CardLayout.CardText;
-            column.DefaultCellStyle.SelectionBackColor = Theme.Accent;
-            column.DefaultCellStyle.SelectionForeColor = Color.White;
-            column.DefaultCellStyle.Font = Theme.Body;
+            _grid.Columns.Clear();
+            _grid.Rows.Clear();
+            foreach (var c in table.Columns)
+            {
+                var column = _grid.Columns[_grid.Columns.Add(c.Name, c.Name)];
+                column.ReadOnly = !c.IsWritable;
+                column.ToolTipText = c.IsWritable
+                    ? "Editable: staged and validated before Save."
+                    : "Read-only: unsupported by the validated database writer.";
+                column.HeaderCell.Style.BackColor = CardLayout.Fc26Green;
+                column.HeaderCell.Style.ForeColor = Color.White;
+                column.HeaderCell.Style.Font = Theme.Label;
+                column.HeaderCell.Style.SelectionBackColor = CardLayout.Fc26Green;
+                column.DefaultCellStyle.BackColor = CardLayout.CardWhite;
+                column.DefaultCellStyle.ForeColor = CardLayout.CardText;
+                column.DefaultCellStyle.SelectionBackColor = Theme.Accent;
+                column.DefaultCellStyle.SelectionForeColor = Color.White;
+                column.DefaultCellStyle.Font = Theme.Body;
+            }
+            _grid.BackgroundColor = CardLayout.CardBackground;
+            _grid.EnableHeadersVisualStyles = false;
+            int rows = Math.Min(table.RowCount - _pageStart, PageSize);
+            for (int offset = 0; offset < rows; offset++)
+            {
+                int r = _pageStart + offset;
+                var rec = Services.Session.GetRecord(table.Name, r);
+                if (rec == null) continue;
+                var row = _grid.Rows.Add(rec.Values.Cast<object>().ToArray());
+                _grid.Rows[row].Tag = r;
+            }
+            _previousPage.Enabled = _pageStart > 0;
+            _nextPage.Enabled = _pageStart + rows < table.RowCount;
+            _duplicateRow.Enabled = _grid.Rows.Count > 0;
+            _deleteRow.Enabled = _grid.Rows.Count > 0;
+            _info.Text = table.RowCount == 0
+                ? "0 rows. Editable cells are staged, validated, and saved with Ctrl+S."
+                : $"Rows {_pageStart + 1:N0}-{_pageStart + rows:N0} of {table.RowCount:N0}. Editable cells are staged, validated, and saved with Ctrl+S.";
         }
-        _grid.BackgroundColor = CardLayout.CardBackground;
-        _grid.EnableHeadersVisualStyles = false;
-        int rows = Math.Min(table.RowCount - _pageStart, PageSize);
-        for (int offset = 0; offset < rows; offset++)
+        finally
         {
-            int r = _pageStart + offset;
-            var rec = Services.Session.GetRecord(table.Name, r);
-            if (rec == null) continue;
-            var row = _grid.Rows.Add(rec.Values.Cast<object>().ToArray());
-            _grid.Rows[row].Tag = r;
+            _grid.ResumeLayout();
+            _binding = false;
         }
-        _previousPage.Enabled = _pageStart > 0;
-        _nextPage.Enabled = _pageStart + rows < table.RowCount;
-        _duplicateRow.Enabled = _grid.Rows.Count > 0;
-        _deleteRow.Enabled = _grid.Rows.Count > 0;
-        _info.Text = table.RowCount == 0
-            ? "0 rows. Editable cells are staged, validated, and saved with Ctrl+S."
-            : $"Rows {_pageStart + 1:N0}-{_pageStart + rows:N0} of {table.RowCount:N0}. Editable cells are staged, validated, and saved with Ctrl+S.";
-        _grid.ResumeLayout();
-        _binding = false;
     }
 
     private void ChangePage(int direction)
@@ -187,7 +193,7 @@ public sealed class DatabaseBrowserSection : SectionBase
         if (!result.Success) { MessageBox.Show(this, result.Message, "Duplicate record", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
         Services.Pending.MarkStructuralChange();
         Services.Session.RefreshSchema();
-        LoadData();
+        ReloadActiveTable();
         // The base reload keeps the current table selected; this message must be
         // set after LoadData because the reload re-renders the pager info text.
         _info.Text = "Record duplicated in memory. Change key fields before Ctrl+S; relationship cleanup is manual.";
@@ -201,8 +207,17 @@ public sealed class DatabaseBrowserSection : SectionBase
         if (!result.Success) { MessageBox.Show(this, result.Message, "Delete record", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
         Services.Pending.MarkStructuralChange();
         Services.Session.RefreshSchema();
-        LoadData();
+        ReloadActiveTable();
         // Keep the deletion notice visible after the reload re-renders the pager.
         _info.Text = result.Message + ". Ctrl+S creates backups, saves and reload-verifies.";
+    }
+
+    private void ReloadActiveTable()
+    {
+        var tableName = _activeTable?.Name;
+        LoadData();
+        if (string.IsNullOrWhiteSpace(tableName)) return;
+        var index = _ordered.FindIndex(table => table.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
+        if (index >= 0) GoToRecord(index);
     }
 }

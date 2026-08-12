@@ -4,6 +4,7 @@
   <img src="https://img.shields.io/github/stars/nazrul0202/Creation-Master-26?style=for-the-badge&color=74B922" alt="GitHub stars">
   <img src="https://img.shields.io/github/forks/nazrul0202/Creation-Master-26?style=for-the-badge&color=74B922" alt="GitHub forks">
   <img src="https://img.shields.io/github/v/release/nazrul0202/Creation-Master-26?style=for-the-badge&color=74B922" alt="Release">
+  <img src="https://img.shields.io/github/actions/workflow/status/nazrul0202/Creation-Master-26/ci.yml?branch=main&style=for-the-badge" alt="CI">
   <img src="https://img.shields.io/badge/license-MIT-brightgreen?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge" alt=".NET 8">
   <img src="https://img.shields.io/badge/platform-Windows%20x64-lightgrey?style=for-the-badge" alt="Platform">
@@ -32,7 +33,7 @@
 | **Full Portable** | ~76 MB | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite** | ~11 MB | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: [`SHA256SUMS_v1.0.96.txt`](Release/SHA256SUMS_v1.0.96.txt)
+Checksums: `SHA256SUMS_v1.0.98.txt` is included with the v1.0.98 release assets.
 
 ---
 
@@ -46,6 +47,7 @@ Checksums: [`SHA256SUMS_v1.0.96.txt`](Release/SHA256SUMS_v1.0.96.txt)
 - **Managers · Stadiums · Kits · Competitions · Formations · Balls · Boots · Gloves · Referees · Transfers** — full FC26 schema coverage
 - **Sponsors · Adboards · Audio** — FC26-only tables with artwork preview & NewWave bank browser
 - **Database Browser** — browse any table in the game database
+- **Restored specialist tabs** — Players includes Info, Skills, Face, Details and Callname; Teams includes Sponsors, Adboards, Flags and Audio
 
 ### Data & assets
 - **Compdata workbook editor** — league/cup builder, promotion & relegation links, TXT export
@@ -58,14 +60,15 @@ Checksums: [`SHA256SUMS_v1.0.96.txt`](Release/SHA256SUMS_v1.0.96.txt)
 - **CmModData backup** — immutable copy of your original game state on first open, restorable anytime
 - **CM26 Project files** (`.fifaproject`) — share editable snapshots without touching live game files
 - **FIFA Mod Manager export** — generate `.fifamod` packages for the mod-manager workflow
+- **Lightweight CM26ModData overlay** — NTFS symlinks mirror unchanged FC26 archives; copy-on-write materialises only modified CAS/TOC files
+- **Automated quality gate** — xUnit regression suite, all-section multi-resolution layout smoke test and GitHub Actions CI
 
 ---
 
 ## 🖼️ Screenshots
 
-> Screenshots and a demo video are coming soon. In the meantime, clone the repo and run
-> `CM26_by_Rizco98.exe --release-selftest` to see the release checks, or open the app
-> against your FC26 install to explore every section.
+The responsive workspace is verified automatically at common laptop and desktop sizes.
+Run `CM26_by_Rizco98.exe --release-selftest` for the offline release checks.
 
 ---
 
@@ -98,12 +101,13 @@ See [`docs/BUILDING.md`](docs/BUILDING.md) for the full build & packaging pipeli
 
 ```
 src/CM26.App/            # WinForms app (UI, sections, validation, staging)
-src/CM26.EngineBridge/   # C++/CLI bridge to the Frostbite engine parser
+src-native/CM26.EngineBridge/ # C++/CLI bridge to the Frostbite engine parser
 src/CM26.AssetBridge/    # Separate asset-process bridge
 src/CM26.MeshKit/        # FBX mesh export
+tests/CM26.Tests/        # Offline xUnit regression suite and fixtures
 docs/BUILDING.md         # Build & release pipeline
 docs/reports/            # Reverse-engineering research reports (30+ documents)
-Release/                 # Assembled release packages + SHA256SUMS
+Release/                 # Local-only assembled release packages + SHA256SUMS
 ```
 
 ---

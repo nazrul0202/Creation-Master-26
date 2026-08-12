@@ -168,7 +168,8 @@ public sealed class TexturePreviewService : ITexturePreviewService
     private static string CacheKey(string path, int w, int h)
     {
         long ticks = 0;
-        try { ticks = File.GetLastWriteTimeUtc(path).Ticks; } catch { }
+        try { ticks = File.GetLastWriteTimeUtc(path).Ticks; }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Texture timestamp unavailable: " + ex.Message); }
         return $"{path}|{w}x{h}|{ticks}";
     }
 

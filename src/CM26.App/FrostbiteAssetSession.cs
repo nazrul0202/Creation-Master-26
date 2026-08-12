@@ -107,7 +107,8 @@ public sealed class FrostbiteAssetSession
             var errorTask = process.StandardError.ReadToEndAsync();
             if (!process.WaitForExit(120_000))
             {
-                try { process.Kill(entireProcessTree: true); } catch { }
+                try { process.Kill(entireProcessTree: true); }
+                catch (Exception ex) { Program.Log("Asset bridge timeout cleanup failed: " + ex.Message); }
                 Status = "CM26 Asset Bridge timed out";
                 return false;
             }
@@ -411,7 +412,8 @@ public sealed class FrostbiteAssetSession
             }
             catch
             {
-                try { if (_bridgeProcess is { HasExited: false }) _bridgeProcess.Kill(entireProcessTree: true); } catch { }
+                try { if (_bridgeProcess is { HasExited: false }) _bridgeProcess.Kill(entireProcessTree: true); }
+                catch (Exception ex) { Program.Log("Asset bridge shutdown failed: " + ex.Message); }
                 _bridgeProcess?.Dispose();
                 _bridgeProcess = null; _bridgeInput = null; _bridgeOutput = null;
                 return null;

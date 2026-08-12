@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.Diagnostics;
 using System.Windows.Forms;
 using CM26.App.Controls;
 using CM26.App.Theming;
@@ -26,10 +25,6 @@ public sealed class LeaguesSection : SectionBase
     private readonly ImageList _teamImages = new() { ImageSize = new Size(56, 56), ColorDepth = ColorDepth.Depth32Bit };
     private readonly HashSet<int> _pendingTeamCrests = [];
     private readonly SemaphoreSlim _teamCrestGate = new(2, 2);
-    private readonly Label _logoCaption = new();
-    private readonly PictureBox? _mainLogo;
-    private readonly PictureBox? _bannerLogo;
-    private readonly PictureBox? _wideLogo;
     private readonly ToolStripComboBox _teamPicker = new() { Width = 150, DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly ToolStripTextBox _teamSearch = new() { Width = 180, ToolTipText = "Search teams to add to this league" };
     private readonly ToolStripButton _addTeam = new("Add");
@@ -67,7 +62,7 @@ public sealed class LeaguesSection : SectionBase
 
         var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
         var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground };
-        canvas.AutoScrollMinSize = new Size(1370, 900);
+        canvas.AutoScrollMinSize = new Size(0, 900);
         page.Controls.Add(canvas);
         Tabs.TabPages.Add(page);
 
@@ -177,6 +172,41 @@ public sealed class LeaguesSection : SectionBase
         teamMenu.Opening += (_, e) => { var hasTeam = _teams.SelectedItems.Count > 0 && _teams.SelectedItems[0].Tag is LeagueTeamLink; teamMenu.Items[3].Enabled = hasTeam; teamMenu.Items[4].Enabled = hasTeam; teamMenu.Items[0].Enabled = _leagueId > 0 && CurrentRecordIndex >= 0; };
         _teams.ContextMenuStrip = teamMenu;
         teamsCard.Controls.Add(teamTools); teamsCard.Controls.Add(teamActions); teamsCard.Controls.Add(_teams);
+
+        teamsCard.Padding = new Padding(4, 26, 4, 4);
+        _teams.Dock = DockStyle.Fill;
+        _teams.Margin = new Padding(4);
+        teamActions.Dock = DockStyle.Top;
+        teamTools.Dock = DockStyle.Top;
+        _teams.BringToFront();
+
+        void ReflowLeague()
+        {
+            var width = Math.Max(680, canvas.ClientSize.Width - 28);
+            profile.Width = width;
+            quickInfo.Width = width;
+            var factWidth = Math.Max(140, (width - 48) / 4);
+            for (var index = 0; index < quickInfo.Controls.Count; index++)
+                quickInfo.Controls[index].Bounds = new Rectangle(index * (factWidth + 16), 0, factWidth, 72);
+
+            var teamsY = 548;
+            if (width >= 1120)
+            {
+                var half = (width - 16) / 2;
+                info.Bounds = new Rectangle(12, 326, half, 210);
+                settings.Bounds = new Rectangle(12 + half + 16, 326, width - half - 16, 210);
+            }
+            else
+            {
+                info.Bounds = new Rectangle(12, 326, width, 210);
+                settings.Bounds = new Rectangle(12, 548, width, 210);
+                teamsY = 770;
+            }
+            teamsCard.Bounds = new Rectangle(12, teamsY, width, 340);
+            canvas.AutoScrollMinSize = new Size(0, teamsCard.Bottom + 12);
+        }
+        canvas.ClientSizeChanged += (_, _) => ReflowLeague();
+        ReflowLeague();
     }
 
     protected override void CreateNewRecord()
@@ -342,135 +372,6 @@ public sealed class LeaguesSection : SectionBase
         valueLabel.Location = new Point(x + 208, y); valueLabel.Size = new Size(40, 22); valueLabel.Font = Theme.BodyBold;
         valueLabel.ForeColor = CardLayout.CardText; valueLabel.BackColor = CardLayout.CardWhite;
         parent.Controls.Add(valueLabel);
-    }
-
-    private Panel Viewer(Point location, Size size, string caption, out PictureBox picture)
-    {
-        var holder = new Panel { Location = location, Size = new Size(size.Width, size.Height + 21), BackColor = Theme.Panel };
-        picture = new PictureBox { Location = Point.Empty, Size = size, BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
-        var targetPicture = picture;
-        holder.Controls.Add(picture);
-        var view = new LinkLabel { Text = "view", Location = new Point(0, size.Height + 2), AutoSize = true, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Link };
-        var import = new LinkLabel { Text = "import", Location = new Point(35, size.Height + 2), AutoSize = true, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Link };
-        var remove = new LinkLabel { Text = "remove", Location = new Point(82, size.Height + 2), AutoSize = true, Font = LegacyFont, BackColor = Theme.Panel, ForeColor = Theme.Danger };
-        view.LinkClicked += (_, _) => ViewAsset(targetPicture);
-        import.LinkClicked += (_, _) => ImportAsset(targetPicture);
-        remove.LinkClicked += (_, _) => RemoveAsset(targetPicture);
-        holder.Controls.Add(view);
-        holder.Controls.Add(import);
-        holder.Controls.Add(remove);
-        holder.Controls.Add(new Label
-        {
-            Text = caption, Location = new Point(135, size.Height + 2),
-            Size = new Size(Math.Max(30, size.Width - 135), 18), Font = LegacyFont,
-            TextAlign = ContentAlignment.TopRight, ForeColor = Theme.Muted, BackColor = Theme.Panel
-        });
-        return holder;
-    }
-
-    private void ShowLeagueLogo(string path, string name, int leagueId)
-    {
-        // Load the primary logo first. The wide preview can then reliably use it
-        // as a fallback when a league does not ship a dedicated 512x128 texture.
-        LoadLeagueLogo(_mainLogo, name, leagueId, "league", 256, 256, updateCaption: true,
-            completed: () =>
-            {
-                LoadLeagueLogo(_bannerLogo, name, leagueId, "leagueLogos_tiny", 200, 64);
-                LoadLeagueLogo(_wideLogo, name, leagueId, "league512x128", 512, 128, fallbackToMain: true);
-            });
-    }
-
-    private void LoadLeagueLogo(
-        PictureBox viewer,
-        string name,
-        int leagueId,
-        string collection,
-        int width,
-        int height,
-        bool updateCaption = false,
-        bool fallbackToMain = false,
-        Action? completed = null)
-    {
-        var darkPath = $"data/ui/imgAssets/{collection}/dark/l{leagueId}.dds";
-        var lightPath = $"data/ui/imgAssets/{collection}/light/l{leagueId}.dds";
-        var candidates = new[] { darkPath, lightPath };
-        var stagedPath = candidates.FirstOrDefault(candidate =>
-            !string.IsNullOrWhiteSpace(Services.LegacyMods.GetReplacement(candidate)));
-
-        // Older versions always targeted light. Clear that stale target until
-        // the installed game tells us which variant actually exists.
-        LegacyAssetActions.ClearTarget(viewer);
-        FrostbitePreviewLoader.LoadLegacyUiAssetCandidates(viewer, Services, null, candidates,
-            (image, source) =>
-            {
-                if (IsDisposed) { image?.Dispose(); return; }
-                if (image == null && fallbackToMain && _mainLogo.Image != null)
-                    image = new Bitmap(_mainLogo.Image);
-
-                var old = viewer.Image;
-                viewer.Image = image;
-                old?.Dispose();
-                completed?.Invoke();
-                if (updateCaption && image != null) _logoCaption.Text = $"{name} · {source}";
-            },
-            resolvedPath =>
-            {
-                if (!string.IsNullOrWhiteSpace(stagedPath) &&
-                    !string.Equals(stagedPath, resolvedPath, StringComparison.OrdinalIgnoreCase))
-                    Services.LegacyMods.MoveReplacement(stagedPath, resolvedPath);
-                LegacyAssetActions.SetTarget(viewer, new LegacyAssetEditTarget(resolvedPath, width, height));
-            });
-    }
-
-    private void ImportAsset(PictureBox picture)
-    {
-        if (LegacyAssetActions.GetTarget(picture) is not { } target) return;
-        using var dialog = new OpenFileDialog
-        {
-            Title = $"Import {target.LegacyPath}",
-            Filter = "Texture files (*.dds;*.png;*.jpg;*.jpeg;*.bmp)|*.dds;*.png;*.jpg;*.jpeg;*.bmp|All files (*.*)|*.*"
-        };
-        if (dialog.ShowDialog(this) != DialogResult.OK) return;
-        try
-        {
-            var replacement = Services.LegacyMods.StageImage(
-                target.LegacyPath, dialog.FileName, target.Width, target.Height);
-            using var source = Services.Textures.CreatePreview(
-                replacement, target.Width, target.Height);
-            picture.Image?.Dispose();
-            picture.Image = source == null ? null : new Bitmap(source);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "Import league logo",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-    }
-
-    private void RemoveAsset(PictureBox picture)
-    {
-        if (LegacyAssetActions.GetTarget(picture) is not { } target) return;
-        if (!Services.LegacyMods.Remove(target.LegacyPath))
-        {
-            MessageBox.Show(this, "This logo has no staged replacement. The installed asset is retained.",
-                "Remove league logo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            return;
-        }
-        ShowRecord(CurrentRecordIndex);
-    }
-
-    private void ViewAsset(PictureBox picture)
-    {
-        if (LegacyAssetActions.GetTarget(picture) is not { } target) return;
-        var path = Services.LegacyMods.GetReplacement(target.LegacyPath)
-            ?? Services.FrostbiteAssets.ExportLegacyAsset(target.LegacyPath);
-        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return;
-        try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "View league logo",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-        }
     }
 
     private sealed record CountryItem(int NationId, string Name)
@@ -887,5 +788,15 @@ public sealed class LeaguesSection : SectionBase
         var height = Math.Max(1, (int)Math.Round(crest.Height * scale));
         graphics.DrawImage(crest, new Rectangle((56 - width) / 2, (56 - height) / 2, width, height));
         return image;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _teamCrestGate.Dispose();
+            _teamImages.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }

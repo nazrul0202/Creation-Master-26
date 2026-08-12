@@ -27,23 +27,15 @@ public sealed class PlayersSection : SectionBase
     private readonly Dictionary<string, List<TextBox>> _summaryValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, TrackBar> _skillSliders = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Label> _overviewRatings = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, Panel> _overviewBars = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Label> _overviewFacts = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<TextBox>> _overviewAttributeValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<Label>> _overviewSupplementValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<Panel>> _playerStatBars = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, List<Panel>> _overviewAttributeBadges = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, Panel> _overviewMetricTiles = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, Panel> _overviewRatingTiles = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, Button> _playerLayoutButtons = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, Button> _playerCategoryButtons = new(StringComparer.OrdinalIgnoreCase);
     private readonly Label _overviewName = new();
     private readonly Label _overviewMeta = new();
     private readonly Label _overviewOverall = new();
     private readonly Label _overviewPotential = new();
     private readonly Label _overviewGrowth = new();
-    private string _playerStatsLayout = "CM";
-    private bool _playerUseBars = true;
     private readonly List<TextBox> _traitEditors = [];
     private readonly TextBox _callnameId = new();
     private readonly Label _callnameStatus = new();
@@ -79,7 +71,11 @@ public sealed class PlayersSection : SectionBase
         Tabs.SizeMode = TabSizeMode.Fixed;
         Tabs.ItemSize = new Size(0, 1);
         AddTabSafe("Player", AddOverviewTab);
-        // Callname tab removed — not needed for basic player editing.
+        AddTabSafe("Info", AddInfoTab);
+        AddTabSafe("Skills", AddSkillsTab);
+        AddTabSafe("Face", AddFaceTab);
+        AddTabSafe("Details", AddDetailsTab);
+        AddTabSafe("Callname", AddCallnameTab);
     }
 
     private void AddTabSafe(string name, Action build)
@@ -351,7 +347,6 @@ AddOverviewSupplement(card, "CONTRACT & VALUE", 455, 644,
         tile.Controls.Add(value);
         tile.Controls.Add(new Label { Text = title, Location = new Point(4, 73), Size = new Size(82, 20), TextAlign = ContentAlignment.MiddleCenter, Font = Theme.BodyBold, ForeColor = Color.White });
         parent.Controls.Add(tile);
-        _overviewRatingTiles[title] = tile;
     }
 
     private static Color Lighten(Color color, int amount)
@@ -400,7 +395,6 @@ AddOverviewSupplement(card, "CONTRACT & VALUE", 455, 644,
         metric.Controls.Add(value);
         metric.Controls.Add(new Label { Text = code, Location = new Point(47, 5), Size = new Size(52, 20), Font = Theme.BodyBold, ForeColor = Color.White, TextAlign = ContentAlignment.MiddleRight });
         _overviewRatings[code] = value;
-        _overviewMetricTiles[code] = metric;
         parent.Controls.Add(metric);
     }
 
@@ -413,26 +407,6 @@ private void AddOverviewFact(Control parent, string title, string field, int x, 
         block.Controls.Add(value);
         parent.Controls.Add(block);
         _overviewFacts[field] = value;
-    }
-
-    private void AddLayoutButton(Control parent, string mode, int x)
-    {
-        var button = new Button { Text = mode, Location = new Point(x, 278), Size = new Size(66, 26), FlatStyle = FlatStyle.Flat, Font = Theme.Muted9 };
-        button.FlatAppearance.BorderSize = 1;
-        button.FlatAppearance.BorderColor = Color.FromArgb(190, 190, 182);
-        button.Click += (_, _) => { _playerStatsLayout = mode; RefreshOverview(); };
-        _playerLayoutButtons[mode] = button;
-        parent.Controls.Add(button);
-    }
-
-    private void AddCategoryButton(Control parent, string text, int x, bool bars)
-    {
-        var button = new Button { Text = text, Location = new Point(x, 278), Size = new Size(78, 26), FlatStyle = FlatStyle.Flat, Font = Theme.Muted9 };
-        button.FlatAppearance.BorderSize = 1;
-        button.FlatAppearance.BorderColor = Color.FromArgb(190, 190, 182);
-        button.Click += (_, _) => { _playerUseBars = bars; RefreshOverview(); };
-        _playerCategoryButtons[text] = button;
-        parent.Controls.Add(button);
     }
 
     private void OpenSinglePlayerEditor()
@@ -531,23 +505,6 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
             values.Add(value);
         }
         parent.Controls.Add(group);
-    }
-
-    private void AddOverviewMetric(Control parent, string code, string[] fields, int x, int y, Color accent)
-    {
-        var box = new Panel { Location = new Point(x, y), Size = new Size(418, 118), BackColor = Color.FromArgb(18, 27, 29) };
-        var value = new Label { Location = new Point(14, 12), Size = new Size(64, 36), Font = new Font("Segoe UI", 18, FontStyle.Bold), ForeColor = accent, TextAlign = ContentAlignment.MiddleCenter };
-        box.Controls.Add(value);
-        box.Controls.Add(new Label { Text = code, Location = new Point(84, 20), Size = new Size(72, 20), Font = Theme.BodyBold, ForeColor = Color.White });
-        var label = new Label { Location = new Point(14, 54), Size = new Size(390, 20), ForeColor = Color.FromArgb(190, 205, 207), Font = Theme.Body };
-        box.Controls.Add(label);
-        var track = new Panel { Location = new Point(14, 88), Size = new Size(390, 10), BackColor = Color.FromArgb(54, 72, 74) };
-        var fill = new Panel { Location = Point.Empty, Size = new Size(1, 10), BackColor = accent };
-        track.Controls.Add(fill); box.Controls.Add(track); parent.Controls.Add(box);
-        _overviewRatings[code] = value;
-        _overviewBars[code] = fill;
-        value.Tag = fields;
-        label.Tag = fields;
     }
 
     private void AddInfoTab()
@@ -1357,18 +1314,6 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
         _overviewOverall.Text = GetOverviewNumber("overallrating").ToString();
         _overviewPotential.Text = GetOverviewNumber("potential").ToString();
         _overviewGrowth.Text = $"+{Math.Max(0, GetOverviewNumber("potential") - GetOverviewNumber("overallrating"))}";
-        foreach (var (mode, button) in _playerLayoutButtons)
-        {
-            var active = string.Equals(mode, _playerStatsLayout, StringComparison.OrdinalIgnoreCase);
-            button.BackColor = active ? Color.FromArgb(137, 202, 35) : Color.White;
-            button.ForeColor = Color.FromArgb(42, 42, 39);
-        }
-        foreach (var (name, button) in _playerCategoryButtons)
-        {
-            var active = (name == "Bars") == _playerUseBars;
-            button.BackColor = active ? Color.FromArgb(246, 183, 36) : Color.White;
-            button.ForeColor = Color.FromArgb(42, 42, 39);
-        }
         foreach (var (field, label) in _overviewFacts)
         {
             var value = string.Equals(field, "club", StringComparison.OrdinalIgnoreCase)
@@ -1400,19 +1345,17 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
             var score = GetOverviewNumber(field);
             foreach (var track in bars)
             {
-                track.Visible = _playerUseBars;
+                track.Visible = true;
                 if (track.Controls.Count > 0)
                     track.Controls[0].Width = Math.Max(1, (int)Math.Round(track.Width * Math.Clamp(score, 0, 99) / 99d));
             }
         }
-        foreach (var (code, value) in _overviewRatings)
+        foreach (var value in _overviewRatings.Values)
         {
             var fields = value.Tag as string[] ?? [];
             var available = fields.Select(GetOverviewNumber).Where(number => number > 0).ToArray();
             var rating = available.Length == 0 ? 0 : (int)Math.Round(available.Average());
             value.Text = rating == 0 ? "—" : rating.ToString();
-            if (_overviewBars.TryGetValue(code, out var fill))
-                fill.Width = Math.Max(1, (int)Math.Round(390 * Math.Clamp(rating, 0, 99) / 99d));
         }
     }
 

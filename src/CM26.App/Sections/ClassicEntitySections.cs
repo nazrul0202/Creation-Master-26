@@ -243,7 +243,7 @@ public sealed class ManagersSection : ClassicEntitySection
         AddField(identity, "birthdate", "Birthdate", new Point(254, 150), 130);
         // Keep the team relationship below the portrait action buttons. The
         // previous y=190 placed its caption over the Import/Remove/Export row.
-        AddField(identity, "teamid", "Playing for", new Point(254, 176), 130);
+        AddField(identity, "teamid", "Playing for", new Point(560, 176), 130);
         c.Controls.Add(identity);
 
         var body = Group("Body and Look", new Point(4, 231), new Size(750, 150));
@@ -621,8 +621,6 @@ public sealed class FormationsSection : ClassicEntitySection
             Orientation = Orientation.Vertical,
             FixedPanel = FixedPanel.None,
             SplitterWidth = 6,
-            Panel1MinSize = 360,
-            Panel2MinSize = 590,
             BackColor = CardLayout.CardBackground,
         };
         workspace.Panel1.Padding = new Padding(3);
@@ -632,13 +630,17 @@ public sealed class FormationsSection : ClassicEntitySection
         workspace.SizeChanged += (_, _) =>
         {
             if (workspace.Width >= 956)
-                workspace.SplitterDistance = Math.Clamp((int)(workspace.Width * 0.43), 360, workspace.Width - workspace.Panel2MinSize - workspace.SplitterWidth);
+            {
+                workspace.Panel1MinSize = 360;
+                workspace.Panel2MinSize = 590;
+                workspace.SplitterDistance = Math.Clamp((int)(workspace.Width * 0.43), 360, workspace.Width - 590 - workspace.SplitterWidth);
+            }
         };
         c.Controls.Add(workspace);
 
         _pitchGroup = Group("Formation Preview", Point.Empty, new Size(520, 490));
         _pitchGroup.Dock = DockStyle.Fill;
-        _pitch = new Panel { Location = new Point(8, 20), Size = new Size(558, 430), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom, BackColor = Color.FromArgb(43, 132, 82), BorderStyle = BorderStyle.FixedSingle };
+        _pitch = new RatableBoard { DrawBasePitch = false, Location = new Point(8, 20), Size = new Size(558, 430), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom, BackColor = Color.FromArgb(43, 132, 82), BorderStyle = BorderStyle.FixedSingle };
         _pitch.Paint += (_, e) =>
         {
             // GDI+ drawing runs inside the WinForms message pump. A native fault
@@ -702,6 +704,19 @@ public sealed class FormationsSection : ClassicEntitySection
                 ForeColor = Theme.Text,
             });
             AddFormationDropdown(roles, $"pos{i}role", new Point(x + 154, y), 78, RoleOptions());
+            var clearSlot = new Button
+            {
+                Text = "×",
+                Location = new Point(x + 240, y - 1),
+                Size = new Size(28, 23),
+                FlatStyle = FlatStyle.Flat,
+                Font = Theme.BodyBold,
+                AccessibleName = $"Clear formation slot {i + 1}",
+            };
+            Theme.ApplyButton(clearSlot);
+            var slot = i;
+            clearSlot.Click += (_, _) => ClearFormationSlot(slot);
+            roles.Controls.Add(clearSlot);
         }
         workspace.Panel2.Controls.Add(roles);
 
@@ -806,6 +821,18 @@ public sealed class FormationsSection : ClassicEntitySection
         StageField("formations", CurrentRowIndex, value.FieldName, option.Value, _pickerStaging);
     }
 
+    private void ClearFormationSlot(int slot)
+    {
+        if (CurrentRowIndex < 0 || slot is < 0 or > 10) return;
+        foreach (var (field, value) in new[] { ($"position{slot}", "-1"), ($"pos{slot}role", "0") })
+        {
+            if (CurrentValues.TryGetValue(field, out var target) && target.IsWritable)
+                StageField("formations", CurrentRowIndex, target.FieldName, value, _pickerStaging);
+        }
+        RefreshFormationPickers();
+        _pitch.Invalidate();
+    }
+
     private void RefreshFormationPickers()
     {
         _syncFormationPickers = true;
@@ -839,31 +866,8 @@ public sealed class FormationsSection : ClassicEntitySection
     private void DrawFormationPitch(object? sender, PaintEventArgs e)
     {
         var g = e.Graphics;
-        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        g.Clear(Color.FromArgb(43, 132, 82));
+        var field = RatableBoard.DrawPitch(g, _pitch.ClientRectangle, Color.FromArgb(43, 132, 82));
         if (_pitch.ClientSize.Width < 100 || _pitch.ClientSize.Height < 100) return;
-        var field = new Rectangle(9, 9, Math.Max(1, _pitch.ClientSize.Width - 19), Math.Max(1, _pitch.ClientSize.Height - 19));
-        using (var stripe = new SolidBrush(Color.FromArgb(18, 255, 255, 255)))
-        {
-            var stripeHeight = Math.Max(1, field.Height / 8);
-            for (var i = 0; i < 8; i += 2)
-                g.FillRectangle(stripe, field.Left, field.Top + (i * stripeHeight), field.Width, stripeHeight);
-        }
-        using var pen = new Pen(Color.FromArgb(225, Color.White), 2);
-        g.DrawRectangle(pen, field);
-        var centre = new Point(field.Left + (field.Width / 2), field.Top + (field.Height / 2));
-        var circle = Math.Max(30, Math.Min(90, Math.Min(field.Width, field.Height) / 5));
-        g.DrawEllipse(pen, centre.X - (circle / 2), centre.Y - (circle / 2), circle, circle);
-        g.FillEllipse(Brushes.White, centre.X - 3, centre.Y - 3, 6, 6);
-        g.DrawLine(pen, field.Left, centre.Y, field.Right, centre.Y);
-        var penaltyWidth = Math.Max(70, Math.Min(230, field.Width / 3));
-        var penaltyHeight = Math.Max(30, Math.Min(64, field.Height / 6));
-        var sixWidth = Math.Max(40, Math.Min(105, field.Width / 7));
-        var sixHeight = Math.Max(16, Math.Min(25, field.Height / 14));
-        g.DrawRectangle(pen, centre.X - (penaltyWidth / 2), field.Top, penaltyWidth, penaltyHeight);
-        g.DrawRectangle(pen, centre.X - (sixWidth / 2), field.Top, sixWidth, sixHeight);
-        g.DrawRectangle(pen, centre.X - (penaltyWidth / 2), field.Bottom - penaltyHeight, penaltyWidth, penaltyHeight);
-        g.DrawRectangle(pen, centre.X - (sixWidth / 2), field.Bottom - sixHeight, sixWidth, sixHeight);
         var occupied = new List<Rectangle>();
         for (var i = 0; i < 11; i++)
         {
@@ -884,7 +888,7 @@ public sealed class FormationsSection : ClassicEntitySection
             var maxTop = Math.Max(minTop, field.Bottom - boxHeight - 3);
             var left = Math.Clamp(centreX - (boxWidth / 2), minLeft, maxLeft);
             var top = Math.Clamp(centreY - (boxHeight / 2), minTop, maxTop);
-            var box = FindFreeFormationBox(left, top, boxWidth, boxHeight, occupied);
+            var box = FindFreeFormationBox(left, top, boxWidth, boxHeight, occupied, _pitch.ClientSize);
             occupied.Add(box);
             var marker = new Rectangle(box.Left + 27, box.Top, 34, 34);
             using var shadow = new SolidBrush(Color.FromArgb(70, Color.Black));
@@ -902,12 +906,13 @@ public sealed class FormationsSection : ClassicEntitySection
         }
     }
 
-    private Rectangle FindFreeFormationBox(int left, int top, int width, int height, IReadOnlyList<Rectangle> occupied)
+    internal static Rectangle FindFreeFormationBox(
+        int left, int top, int width, int height, IReadOnlyList<Rectangle> occupied, Size pitchSize)
     {
-        var minX = Math.Min(12, Math.Max(0, _pitch.Width - width));
-        var maxX = Math.Max(minX, _pitch.Width - width - 12);
-        var minY = Math.Min(12, Math.Max(0, _pitch.Height - height));
-        var maxY = Math.Max(minY, _pitch.Height - height - 12);
+        var minX = Math.Min(12, Math.Max(0, pitchSize.Width - width));
+        var maxX = Math.Max(minX, pitchSize.Width - width - 12);
+        var minY = Math.Min(12, Math.Max(0, pitchSize.Height - height));
+        var maxY = Math.Max(minY, pitchSize.Height - height - 12);
         var candidate = new Rectangle(left, top, width, height);
         if (!occupied.Any(box => box.IntersectsWith(candidate))) return candidate;
 
