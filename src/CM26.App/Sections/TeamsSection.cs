@@ -756,24 +756,48 @@ public sealed class TeamsSection : SectionBase
     {
         var page = Page("Roster");
         var canvas = Canvas(page);
-        // The roster is intentionally beside the formation, not right-anchored.
-        // Right anchoring inside an AutoScroll canvas made WinForms reposition the
-        // control beyond the virtual area on some resolutions. That hid the SUB /
-        // RES list and leaked child text over the application navigation.
+        // This is deliberately a docked workspace rather than a set of controls
+        // positioned on a large virtual canvas.  The latter looked acceptable at
+        // 1920px but put the squad rail outside the visible area at common laptop
+        // widths, and it caused child controls to overlap while scrolling.
         canvas.AutoScroll = false;
-        canvas.AutoScrollMinSize = new Size(1650, 820);
+        canvas.AutoScrollMinSize = Size.Empty;
 
-        // Matchday choices belong directly above the squad rail. Keeping them
-        // in the roster workspace avoids a separate tall page and keeps the
-        // frequently used captain/set-piece controls in view.
-        canvas.Controls.Add(CreateMatchdayPanel(new Point(1145, 3), new Size(500, 168)));
+        var workspace = new SplitContainer
+        {
+            Dock = DockStyle.Fill,
+            Orientation = Orientation.Vertical,
+            FixedPanel = FixedPanel.Panel2,
+            SplitterWidth = 6,
+            BackColor = CardLayout.CardBackground,
+            Panel2MinSize = 310,
+        };
+        workspace.Panel1.Padding = new Padding(3);
+        workspace.Panel2.Padding = new Padding(3);
+        workspace.Panel1.BackColor = CardLayout.CardBackground;
+        workspace.Panel2.BackColor = CardLayout.CardBackground;
+        workspace.SizeChanged += (_, _) =>
+        {
+            // Keep a useful pitch even when Windows restores a narrow window.
+            if (workspace.Width > 720)
+                workspace.SplitterDistance = Math.Clamp(workspace.Width - 420, 390, workspace.Width - workspace.Panel2MinSize - workspace.SplitterWidth);
+        };
+        canvas.Controls.Add(workspace);
+
+        // The matchday roles belong directly above the squad rail, making the
+        // common "pick player, assign role, drag to XI" workflow predictable.
+        var matchday = CreateMatchdayPanel(Point.Empty, new Size(0, 168));
+        matchday.Dock = DockStyle.Top;
+        matchday.Height = 168;
+        workspace.Panel2.Controls.Add(matchday);
 
         // === VISUAL SQUAD LIST ===
         // Mirrors the provided formation-board layout: the pitch is the primary
         // canvas on the left and the searchable squad sits as a visual rail on
         // the right, with a miniface beside each player.
-        var squadGroup = Group("Squad", new Point(1145, 160), new Size(500, 650));
-        squadGroup.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Bottom;
+        var squadGroup = Group("Squad", Point.Empty, new Size(400, 600));
+        squadGroup.Dock = DockStyle.Fill;
+        workspace.Panel2.Controls.Add(squadGroup);
 
         // Player count label
         var squadCount = new Label
@@ -789,21 +813,22 @@ public sealed class TeamsSection : SectionBase
         _squadCountLabel = squadCount;
 
         // Tools section
-        var toolsGroup = Group("Tools", new Point(10, 52), new Size(475, 62));
+        var toolsGroup = Group("Tools", new Point(10, 52), new Size(300, 62));
+        toolsGroup.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
         var btnTransfer = LegacyButton("Transfer", new Point(8, 30), new Size(90, 26));
         btnTransfer.Click += (_, _) => OpenTransferDialog();
         toolsGroup.Controls.Add(btnTransfer);
         var btnLoan = LegacyButton("Loan", new Point(104, 30), new Size(90, 26));
         btnLoan.Click += (_, _) => ShowLoanDetails();
-        squadGroup.Controls.Add(btnLoan);
+        toolsGroup.Controls.Add(btnLoan);
         var btnFind = LegacyButton("Find", new Point(200, 30), new Size(70, 26));
         btnFind.Click += (_, _) => FindSelectedPlayer();
-        squadGroup.Controls.Add(btnFind);
+        toolsGroup.Controls.Add(btnFind);
         squadGroup.Controls.Add(toolsGroup);
 
         // Compact squad ListView
         _teamPlayers.Location = new Point(10, 120);
-        _teamPlayers.Size = new Size(475, 540);
+        _teamPlayers.Size = new Size(10, 10);
         _teamPlayers.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
         _teamPlayers.View = View.Details;
         _teamPlayers.FullRowSelect = true;
@@ -827,17 +852,24 @@ public sealed class TeamsSection : SectionBase
         };
         _teamPlayers.DoubleClick += (_, _) => OpenSelectedRosterPlayer();
         squadGroup.Controls.Add(_teamPlayers);
-        canvas.Controls.Add(squadGroup);
+        squadGroup.SizeChanged += (_, _) =>
+        {
+            var width = Math.Max(240, squadGroup.ClientSize.Width - 20);
+            toolsGroup.Width = width;
+            _teamPlayers.Width = width;
+            _teamPlayers.Height = Math.Max(140, squadGroup.ClientSize.Height - _teamPlayers.Top - 10);
+        };
 
         // === FORMATION / PITCH ===
         // The roster is a one-screen workspace. A compact pitch plus the
         // dedicated caption strip keeps the exact FC26 coordinates readable.
-        var pitch = Group("Formation Board", new Point(3, 3), new Size(1135, 810));
-        pitch.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+        var pitch = Group("Formation Board", Point.Empty, new Size(700, 600));
+        pitch.Dock = DockStyle.Fill;
+        workspace.Panel1.Controls.Add(pitch);
         var board = new Panel
         {
             Location = new Point(8, 28),
-            Size = new Size(1115, 722),
+            Size = new Size(600, 400),
             BackColor = Color.FromArgb(106, 190, 87),
             BorderStyle = BorderStyle.FixedSingle,
             AllowDrop = true,
@@ -859,8 +891,9 @@ public sealed class TeamsSection : SectionBase
         pitch.Controls.Add(board);
 
         // Formation selector (bottom of pitch group)
-        pitch.Controls.Add(new Label { Text = "Formation", Location = new Point(10, 762), Size = new Size(65, 20), Font = LegacyFont });
-        _formationView.Location = new Point(80, 760);
+        var formationLabel = new Label { Text = "Formation", Size = new Size(65, 20), Font = LegacyFont, BackColor = CardLayout.CardWhite };
+        pitch.Controls.Add(formationLabel);
+        _formationView.Location = new Point(80, 0);
         _formationView.Size = new Size(180, 21);
         _formationView.Font = LegacyFont;
         _formationView.DropDownHeight = 340;
@@ -870,10 +903,18 @@ public sealed class TeamsSection : SectionBase
                 SelectTeamFormation(choice);
         };
         pitch.Controls.Add(_formationView);
-        _formationStatus = new Label { Location = new Point(270, 762), Size = new Size(850, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, Visible = false };
+        _formationStatus = new Label { Location = new Point(270, 0), Size = new Size(850, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = CardLayout.CardWhite, Visible = true, AutoEllipsis = true };
         pitch.Controls.Add(_formationStatus);
         ToolTip.SetToolTip(_formationView, "Choose a formation template for this team.");
-        canvas.Controls.Add(pitch);
+        pitch.SizeChanged += (_, _) =>
+        {
+            var bottom = Math.Max(80, pitch.ClientSize.Height - 48);
+            board.Bounds = new Rectangle(8, 28, Math.Max(220, pitch.ClientSize.Width - 16), Math.Max(140, bottom - 28));
+            formationLabel.Location = new Point(10, bottom + 8);
+            _formationView.Location = new Point(80, bottom + 6);
+            _formationStatus.Location = new Point(270, bottom + 8);
+            _formationStatus.Width = Math.Max(80, pitch.ClientSize.Width - 280);
+        };
 
     }
 
