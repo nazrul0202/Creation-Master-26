@@ -1,5 +1,11 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.100 - Live asset and formation repair (2026-08-12)
+
+- Added installed-Frostbite fallback loading for League and Team profile crests instead of showing a blank tile when loose asset packs are absent.
+- Fixed Teams Overview field cards clipping their final row and corrected the stadium preview lookup to use the real stadium ID.
+- Fixed Roster formation markers being calculated while the pitch had zero size; FC26 formation coordinates are reapplied after measurement, with an honest visual roster fallback for incomplete default team sheets.
+
 ## Version 1.0.99 - Live UI collision repair (2026-08-12)
 
 - Fixed the shared card header band that painted group titles over the first editable row in legacy and FC26 section layouts.

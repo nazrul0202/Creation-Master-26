@@ -47,6 +47,7 @@ public sealed class TeamsSection : SectionBase
     private readonly ComboBox _formationView = new() { DropDownStyle = ComboBoxStyle.DropDownList };
     private Panel? _formationBoard;
     private Label? _formationStatus;
+    private FormationChoice? _activeFormationChoice;
     private int _activeTeamFormationRow = -1;
     private int _activeTeamSheetRow = -1;
     private int _activeLineupTeamId;
@@ -565,7 +566,7 @@ public sealed class TeamsSection : SectionBase
             ("Team Id", "teamid"), ("Country", "countryid"), ("League", "leagueid"),
             ("Gender", "gender"), ("Ball Number", "ballid"));
         // Financial
-        AddFieldCard(infoGroup, "Financial", 14, 180,
+        AddFieldCard(infoGroup, "Financial", 14, 204,
             ("Budget", "clubworth"), ("Domestic", "domesticprestige"),
             ("International", "internationalprestige"), ("Training Stadium", "trainingstadium"));
         // Trophies
@@ -573,7 +574,7 @@ public sealed class TeamsSection : SectionBase
             ("League Titles", "leaguetitles"), ("Domestic Cups", "domesticcups"),
             ("UCL Wins", "uefa_cl_wins"), ("UEL Wins", "uefa_el_wins"));
         // Reputation
-        AddFieldCard(infoGroup, "Reputation", 340, 180,
+        AddFieldCard(infoGroup, "Reputation", 340, 204,
             ("Domestic Prestige", "domesticprestige"), ("Intl Prestige", "internationalprestige"),
             ("Popularity", "popularity"), ("Youth Dev", "youthdevelopment"),
             ("Profitability", "profitability"));
@@ -710,7 +711,9 @@ public sealed class TeamsSection : SectionBase
 
     private void AddFieldCard(Control parent, string title, int x, int y, params (string Label, string Field)[] fields)
     {
-        var block = new Panel { Location = new Point(x, y), Size = new Size(300, 140), BackColor = CardLayout.CardFieldBg };
+        // Five editable rows need 164px; the former 140px card clipped its
+        // final field in the real Teams overview.
+        var block = new Panel { Location = new Point(x, y), Size = new Size(300, 164), BackColor = CardLayout.CardFieldBg };
         CardLayout.ApplyRounded(block, 8);
         block.Controls.Add(new Label { Text = title.ToUpperInvariant(), Location = new Point(10, 6), Size = new Size(280, 16), Font = new Font(Theme.Body, FontStyle.Bold), ForeColor = CardLayout.CardSubtle });
         var row = 0;
@@ -944,6 +947,14 @@ public sealed class TeamsSection : SectionBase
             _formationView.Location = new Point(80, bottom + 6);
             _formationStatus.Location = new Point(270, bottom + 8);
             _formationStatus.Width = Math.Max(80, pitch.ClientSize.Width - 280);
+        };
+        board.SizeChanged += (_, _) =>
+        {
+            // ShowRecord can run while this tab is not yet measured. Reapply
+            // normalized FC26 coordinates once the real pitch size exists;
+            // otherwise all eleven markers stay stacked at the top-left.
+            if (_activeFormationChoice is { } choice && board.Width > 220 && board.Height > 140)
+                ApplyFormationLayout(choice);
         };
 
     }
@@ -1179,14 +1190,49 @@ public sealed class TeamsSection : SectionBase
                 break;
             }
         }
+        PopulateVisualLineupFallback(roster);
         RenderLineup();
     }
+
+    /// <summary>
+    /// Some FC26 team sheets intentionally contain only a goalkeeper or are
+    /// absent entirely. The roster still has the authoritative teamplayerlinks
+    /// mapping, so fill only empty display slots from it. This is visual-only:
+    /// no database field is staged until the user explicitly drags a player.
+    /// </summary>
+    private void PopulateVisualLineupFallback(IReadOnlyList<TeamRosterItem> roster)
+    {
+        var used = _lineupSlots.Where(slot => slot.PlayerId > 0).Select(slot => slot.PlayerId).ToHashSet();
+        var candidates = roster
+            .Where(player => player.PlayerId > 0 && !used.Contains(player.PlayerId))
+            .OrderBy(player => PositionOrder(player.Position))
+            .ThenByDescending(player => Parse(player.Overall))
+            .ToList();
+        foreach (var slot in _lineupSlots.Where(slot => slot.PlayerId <= 0))
+        {
+            var match = candidates.FirstOrDefault(player =>
+                string.Equals(player.Position, slot.ExpectedPosition, StringComparison.OrdinalIgnoreCase))
+                ?? candidates.FirstOrDefault(player => IsCompatibleLineupPosition(player.Position, slot.ExpectedPosition))
+                ?? candidates.FirstOrDefault();
+            if (match == null) break;
+            slot.PlayerId = match.PlayerId;
+            candidates.Remove(match);
+        }
+    }
+
+    private static bool IsCompatibleLineupPosition(string playerPosition, string slotPosition) =>
+        (IsDefender(playerPosition) && IsDefender(slotPosition)) ||
+        (playerPosition.ToUpperInvariant() is "CDM" or "CM" or "CAM" or "LM" or "RM") &&
+        (slotPosition.ToUpperInvariant() is "CDM" or "CM" or "CAM" or "LM" or "RM") ||
+        (playerPosition.ToUpperInvariant() is "ST" or "CF" or "LW" or "RW") &&
+        (slotPosition.ToUpperInvariant() is "ST" or "CF" or "LW" or "RW");
 
     private void ApplyFormationLayout(FormationChoice choice, string? status = null)
     {
         var table = Services.Session.GetTable("formations");
         var record = table == null ? null : Services.Session.GetRecord("formations", choice.RecordIndex);
         if (table == null || record == null || _formationBoard == null) return;
+        _activeFormationChoice = choice;
         for (var i = 0; i < _lineupSlots.Count; i++)
         {
             var x = ReadFormationOffset(table, record, $"offset{i}x", _formationBoard.Width);
@@ -1328,6 +1374,7 @@ public sealed class TeamsSection : SectionBase
         if (_formationView.SelectedItem is FormationChoice initial) ApplyFormationLayout(initial);
         else
         {
+            _activeFormationChoice = null;
             foreach (var slot in _lineupSlots) slot.Label.Visible = false;
             _formationStatus!.Text = "No formation is linked to this team.";
         }
@@ -1794,15 +1841,7 @@ public sealed class TeamsSection : SectionBase
         // ── Populate FC Tools Hub club profile ──────────────────────────
         _teamNameLabel.Text = name ?? string.Empty;
         _teamMetaLabel.Text = $"{ResolveLinkedValue("leagueid", crestTeamId)} · {ResolveLinkedValue("countryid", crestTeamId)}";
-        try
-        {
-            var crestPath = Services.Assets.GetTeamLogo(crestTeamId);
-            if (!string.IsNullOrWhiteSpace(crestPath) && File.Exists(crestPath))
-                _teamCrestPreview.Image = Image.FromFile(crestPath);
-            else
-                _teamCrestPreview.Image = null;
-        }
-        catch { _teamCrestPreview.Image = null; }
+        LoadProfileCrest(crestTeamId);
 
         // Overall rating
         var ovr = record.Get(Col(table, "overallrating"));
@@ -1834,7 +1873,8 @@ public sealed class TeamsSection : SectionBase
         // Stadium image
         try
         {
-            var stadiumPath = Services.Assets.GetStadium(crestTeamId);
+            var stadiumId = Parse(record.Get(Col(table, "stadiumid")));
+            var stadiumPath = Services.Assets.GetStadium(stadiumId);
             if (!string.IsNullOrWhiteSpace(stadiumPath) && System.IO.File.Exists(stadiumPath))
                 LoadKitPreview(_teamStadiumImg, stadiumPath);
             else
@@ -2640,6 +2680,39 @@ public sealed class TeamsSection : SectionBase
         catch (Exception ex) { Program.Log("Team crest preview failed: " + ex.Message); }
     }, resolvedPath => LegacyAssetActions.SetTarget(
         viewer, new LegacyAssetEditTarget(resolvedPath, 256, 256)));
+    }
+
+    /// <summary>
+    /// Uses the canonical FC26 crest paths for the profile and kit fallback.
+    /// Loose asset packs are optional; the installed Frostbite asset is the
+    /// normal source when they are not present.
+    /// </summary>
+    private void LoadProfileCrest(int teamId)
+    {
+        var local = Services.Assets.GetTeamLogo(teamId);
+        var candidates = new[]
+        {
+            $"data/ui/imgAssets/crest/dark/l{teamId}.dds",
+            $"data/ui/imgAssets/crest/light/l{teamId}.dds",
+            $"data/ui/imgAssets/crest/l{teamId}.dds"
+        };
+        FrostbitePreviewLoader.LoadLegacyUiAssetCandidates(_teamCrestPreview, Services, local, candidates,
+            (image, _) =>
+            {
+                if (IsDisposed) { image?.Dispose(); return; }
+                ReplacePreviewImage(_teamCrestPreview, image);
+                ReplacePreviewImage(_teamKitHome, image == null ? null : new Bitmap(image));
+                ReplacePreviewImage(_teamKitAway, image == null ? null : new Bitmap(image));
+                ReplacePreviewImage(_teamKitThird, image == null ? null : new Bitmap(image));
+                ReplacePreviewImage(_teamKitGk, image == null ? null : new Bitmap(image));
+            });
+    }
+
+    private static void ReplacePreviewImage(PictureBox preview, Image? image)
+    {
+        var old = preview.Image;
+        preview.Image = image;
+        old?.Dispose();
     }
 
     protected override void Dispose(bool disposing)

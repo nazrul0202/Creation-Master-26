@@ -1,6 +1,6 @@
 {
-  "version": "1.0.99",
+  "version": "1.0.100",
   "name": "Creation Master 26",
-  "notes": "v1.0.99 - Fix card-title/content collisions and duplicate sidebar painting found during live UI verification.",
+  "notes": "v1.0.100 - Fix Frostbite crest/logo previews, Teams card clipping and roster formation board layout after live verification.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

@@ -303,13 +303,7 @@ public sealed class LeaguesSection : SectionBase
 
         _leagueNameLabel.Text = name ?? string.Empty;
         _leagueMetaLabel.Text = $"{ResolveCountryName()} · Level {record.Get(Col(table, "level"))}";
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(logo) && File.Exists(logo))
-                _leagueLogoPreview.Image = Image.FromFile(logo);
-            else _leagueLogoPreview.Image = null;
-        }
-        catch { _leagueLogoPreview.Image = null; }
+        LoadLeagueLogo(leagueId, logo);
 
         var ovr = record.Get(Col(table, "overallrating")) ?? "0";
         _leagueOverallLabel.Text = ovr;
@@ -329,6 +323,31 @@ public sealed class LeaguesSection : SectionBase
         PopulateTeamPicker();
         if (_teams.Items.Count == 0) _teams.Items.Add("No teams linked in leagueteamlinks");
         _leagueClubsLabel.Text = _teams.Items.Count > 0 ? _teams.Items.Count.ToString() : "—";
+    }
+
+    /// <summary>
+    /// League logos are stored in the installed FC26 UI archive, not only in
+    /// optional loose logo packs.  Use the same asynchronous legacy loader as
+    /// crests so a valid league never renders as an empty white square.
+    /// </summary>
+    private void LoadLeagueLogo(int leagueId, string localPath)
+    {
+        var candidates = new[]
+        {
+            $"data/ui/imgAssets/league/dark/l{leagueId}.dds",
+            $"data/ui/imgAssets/league/light/l{leagueId}.dds",
+            $"data/ui/imgAssets/league/l{leagueId}.dds",
+            $"data/ui/imgAssets/leaguelogos_sm/dark/l{leagueId}.dds",
+            $"data/ui/imgAssets/leaguelogos_sm/light/l{leagueId}.dds"
+        };
+        FrostbitePreviewLoader.LoadLegacyUiAssetCandidates(_leagueLogoPreview, Services, localPath, candidates,
+            (image, _) =>
+            {
+                if (IsDisposed) { image?.Dispose(); return; }
+                var old = _leagueLogoPreview.Image;
+                _leagueLogoPreview.Image = image;
+                old?.Dispose();
+            });
     }
 
     private string ResolveCountryName()
