@@ -63,6 +63,7 @@ public sealed class MainForm : Form
         var fileMenu = new ToolStripMenuItem("File");
         fileMenu.DropDownItems.Add("Open Game", null, async (_, _) => await OpenFc26Async());
         fileMenu.DropDownItems.Add("Save Draft for FIFA Mod", null, async (_, _) => await SaveAsync());
+        fileMenu.DropDownItems.Add("Apply Directly to FC26 (offline)...", null, async (_, _) => await SaveDirectAsync());
         fileMenu.DropDownItems.Add("Export CM26 Project (.fifaproject)...", null, async (_, _) => await ExportProjectAsync());
         fileMenu.DropDownItems.Add("Import CM26 Project (.fifaproject)...", null, async (_, _) => await ImportProjectAsync());
         fileMenu.DropDownItems.Add("Export FIFA Mod (.fifamod)...", null, async (_, _) => await ExportModAsync());
@@ -724,6 +725,81 @@ public sealed class MainForm : Form
         {
             SetBusy(false, null);
         }
+    }
+
+    /// <summary>
+    /// Applies an explicitly confirmed offline edit to the installed Frostbite
+    /// archives.  This remains separate from Save Draft so normal editing never
+    /// mutates FC26 by accident.
+    /// </summary>
+    private async Task SaveDirectAsync()
+    {
+        if (!_services.Pending.HasChanges && !_services.LegacyMods.HasChanges)
+        {
+            SetStatus("No staged changes to apply directly.");
+            return;
+        }
+        if (new[] { "FC26", "FC26_Trial", "FC26_Showcase" }.Any(name => Process.GetProcessesByName(name).Length > 0))
+        {
+            MessageBox.Show(this, "Close FC26 before applying a direct offline edit.", "Direct edit",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        var issues = _services.Validation.ValidateAll(_services.Pending.Changes);
+        if (issues.Any(issue => issue.IsError))
+        {
+            MessageBox.Show(this, "Resolve validation errors before applying a direct edit.", "Direct edit",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        var gameRoot = _services.ActiveGameRoot;
+        var backup = GameBackupService.Inspect(gameRoot, verifyContent: true);
+        if (!backup.IsReady)
+        {
+            MessageBox.Show(this, "Direct edit requires a verified CmModData backup.\n\n" + backup.Message,
+                "Direct edit", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        var baseline = GameBackupService.InspectLiveBaseline(gameRoot);
+        if (!baseline.IsMatch)
+        {
+            MessageBox.Show(this, baseline.Message, "Direct edit blocked",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        var confirm = MessageBox.Show(this,
+            $"Apply {_services.Pending.Count + _services.LegacyMods.Count} staged change(s) directly to FC26 Data/Patch?\n\n" +
+            "Use this only for offline modding. CM26 verifies the original CmModData snapshot, writes archive metadata atomically, and restores the previous TOCs if the transaction fails.\n\n" +
+            "The live game files will change; File > Restore Original Data reverses the edit.",
+            "Confirm direct offline edit", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+        if (confirm != DialogResult.Yes) return;
+
+        SetBusy(true, "Preparing direct Frostbite transaction...");
+        try
+        {
+            if (_services.Pending.HasChanges)
+            {
+                var stagingFolder = Path.Combine(Path.GetTempPath(), "CM26-direct-save-" + Guid.NewGuid().ToString("N"));
+                var saved = await Task.Run(() => _services.Save.SaveToDirectory(stagingFolder));
+                if (!saved.Success) throw new InvalidOperationException(saved.Message);
+                _services.LegacyMods.StageDatabase(
+                    stagingFolder,
+                    includeLocale: _services.Pending.Changes.Any(change => change.IsLocale));
+            }
+            if (await ApplyDirectChangesAsync(reloadAfterApply: true, confirmApply: false))
+            {
+                _services.Pending.MarkSaved();
+                SetStatus("Direct FC26 offline edit applied and reloaded.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Program.Log("Direct save failed: " + ex);
+            MessageBox.Show(this, ex.Message, "Direct edit failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            SetStatus("Direct edit failed; the live transaction was not completed.");
+        }
+        finally { SetBusy(false, null); }
     }
 
     // Direct writes to a live FC26 installation are intentionally retired.
