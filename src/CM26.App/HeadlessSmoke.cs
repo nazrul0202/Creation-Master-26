@@ -1756,6 +1756,13 @@ internal static class HeadlessSmoke
                             host.Size = new System.Drawing.Size(w, h);
                             section.ActivateSection();
                             System.Windows.Forms.Application.DoEvents();
+                            var collisions = FindCardTitleCollisions(section);
+                            if (collisions.Count > 0)
+                            {
+                                fail++;
+                                Console.WriteLine($"  [{key}] {w}x{h} title collision: {string.Join("; ", collisions.Take(3))}");
+                                continue;
+                            }
                             pass++;
                         }
                         catch (Exception ex)
@@ -2031,6 +2038,32 @@ internal static class HeadlessSmoke
             Console.WriteLine("ROSTER TEST FAILED: " + ex);
             return 44;
         }
+    }
+
+    /// <summary>
+    /// Detects the visual defect a bounds-only test misses: controls painted on
+    /// top of a card title.  CM26 card groups have a 4px accent bar and a title
+    /// label in their top band; every other direct child must begin below it.
+    /// </summary>
+    private static List<string> FindCardTitleCollisions(Control root)
+    {
+        var collisions = new List<string>();
+        foreach (var parent in Descendants(root).OfType<Panel>())
+        {
+            var title = parent.Controls.OfType<Label>()
+                .FirstOrDefault(label => label.Visible && !string.IsNullOrWhiteSpace(label.Text) && label.Top <= 12 && label.Bottom <= 24);
+            var accent = parent.Controls.OfType<Panel>()
+                .FirstOrDefault(panel => panel.Visible && panel.Left == 0 && panel.Top == 0 && panel.Height <= 4);
+            if (title == null || accent == null) continue;
+
+            foreach (Control child in parent.Controls)
+            {
+                if (!child.Visible || ReferenceEquals(child, title) || ReferenceEquals(child, accent)) continue;
+                if (child.Bounds.IntersectsWith(title.Bounds))
+                    collisions.Add($"{title.Text}/{child.GetType().Name}@{child.Left},{child.Top}");
+            }
+        }
+        return collisions;
     }
 
     /// <summary>Restores the verified CmModData snapshot to the live game folders.</summary>

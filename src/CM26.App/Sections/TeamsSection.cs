@@ -447,8 +447,8 @@ public sealed class TeamsSection : SectionBase
         box.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(size.Width, 4), BackColor = CardLayout.Fc26Green });
         box.Controls.Add(new Label
         {
-            Text = text, Location = new Point(10, 8), Size = new Size(size.Width - 20, 16),
-            Font = Theme.BodyBold, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
+            Text = text, Location = new Point(10, 6), Size = new Size(size.Width - 20, 13),
+            Font = Theme.Muted9, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
         });
         return box;
     }

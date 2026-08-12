@@ -116,13 +116,16 @@ public static class CardLayout
             Size = new Size(width, 4),
             BackColor = accent,
         });
-        // Title
+        // Keep the title entirely above the first content row.  Several legacy
+        // editors deliberately start their first field at Y=20; the previous
+        // 12..32 title band painted over those fields after a real record was
+        // loaded.  This compact 6..20 band is the shared content contract.
         group.Controls.Add(new Label
         {
             Text = title,
-            Location = new Point(14, 12),
-            Size = new Size(width - 28, 20),
-            Font = Theme.BodyBold,
+            Location = new Point(14, 6),
+            Size = new Size(width - 28, 14),
+            Font = Theme.Muted9,
             ForeColor = accent,
         });
         parent.Controls.Add(group);

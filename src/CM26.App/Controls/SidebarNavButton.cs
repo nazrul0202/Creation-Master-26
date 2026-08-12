@@ -8,24 +8,32 @@ namespace CM26.App.Controls;
 /// FC-Editor-style vertical sidebar navigation button. Active state draws a
 /// blue left accent bar on a tinted background; hover draws the raised surface.
 /// </summary>
-public sealed class SidebarNavButton : Button
+public sealed class SidebarNavButton : Panel
 {
     private bool _checked;
     private bool _hovered;
+    private Image? _image;
 
     public SidebarNavButton()
     {
-        FlatStyle = FlatStyle.Flat;
-        FlatAppearance.BorderSize = 0;
-        FlatAppearance.MouseOverBackColor = Color.Transparent;
-        FlatAppearance.MouseDownBackColor = Color.Transparent;
         Height = 34;
         Margin = new Padding(0, 1, 0, 1);
         Padding = new Padding(0);
-        TextAlign = ContentAlignment.MiddleLeft;
         Cursor = Cursors.Hand;
+        TabStop = true;
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer |
-                 ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
+                 ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
+    }
+
+    /// <summary>
+    /// A Panel is used deliberately instead of the native Button control: a
+    /// Button can paint its own text in addition to custom painting on some
+    /// Windows themes, producing the duplicate sidebar captions seen in-app.
+    /// </summary>
+    public Image? Image
+    {
+        get => _image;
+        set { _image = value; Invalidate(); }
     }
 
     public bool Checked
@@ -69,11 +77,11 @@ public sealed class SidebarNavButton : Button
         }
 
         var textX = 10;
-        if (Image != null)
+        if (_image != null)
         {
             var size = 18;
             var imageRect = new Rectangle(12, (rect.Height - size) / 2, size, size);
-            g.DrawImage(Image, imageRect);
+            g.DrawImage(_image, imageRect);
             textX = imageRect.Right + 8;
         }
         var textRect = new Rectangle(textX, 0, Math.Max(0, rect.Width - textX - 6), rect.Height);

@@ -65,9 +65,11 @@ public abstract class ClassicEntitySection : SectionBase
         group.Controls.Add(new Label
         {
             Text = text,
-            Location = new Point(10, 8),
-            Size = new Size(size.Width - 20, 16),
-            Font = Theme.BodyBold,
+            // Field-based legacy panels commonly begin at Y=18/20.  The title
+            // therefore occupies a compact header band which ends before row 1.
+            Location = new Point(10, 6),
+            Size = new Size(size.Width - 20, 13),
+            Font = Theme.Muted9,
             ForeColor = CardLayout.Fc26Green,
             BackColor = CardLayout.CardWhite,
         });

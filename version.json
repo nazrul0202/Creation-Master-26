@@ -1,6 +1,6 @@
 {
-  "version": "1.0.98",
+  "version": "1.0.99",
   "name": "Creation Master 26",
-  "notes": "v1.0.98 - Responsive all-section UI, symlink-backed mod overlay, restored editors, automated tests and CI.",
+  "notes": "v1.0.99 - Fix card-title/content collisions and duplicate sidebar painting found during live UI verification.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

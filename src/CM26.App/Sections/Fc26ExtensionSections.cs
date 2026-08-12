@@ -69,7 +69,7 @@ internal abstract class Fc26ExtensionSection : SectionBase
         var box = new Panel { Location = new Point(4, 4), Size = new Size(630, boxHeight), BackColor = CardLayout.CardWhite };
         CardLayout.ApplyRounded(box, 10);
         box.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(630, 4), BackColor = CardLayout.Fc26Green });
-        box.Controls.Add(new Label { Text = group, Location = new Point(10, 8), Size = new Size(610, 16), Font = Theme.BodyBold, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite });
+        box.Controls.Add(new Label { Text = group, Location = new Point(10, 6), Size = new Size(610, 13), Font = Theme.Muted9, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite });
         for (var i = 0; i < fields.Length; i++)
         {
             var col = i % 2; var row = i / 2;
@@ -105,8 +105,8 @@ internal abstract class Fc26ExtensionSection : SectionBase
         card.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(size.Width, 4), BackColor = CardLayout.Fc26Green });
         card.Controls.Add(new Label
         {
-            Text = title, Location = new Point(10, 8), Size = new Size(Math.Max(60, size.Width - 20), 16),
-            Font = Theme.BodyBold, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
+            Text = title, Location = new Point(10, 6), Size = new Size(Math.Max(60, size.Width - 20), 13),
+            Font = Theme.Muted9, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
         });
         return card;
     }

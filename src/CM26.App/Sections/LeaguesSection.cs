@@ -117,20 +117,22 @@ public sealed class LeaguesSection : SectionBase
         //  LEAGUE INFO + SETTINGS
         // ═══════════════════════════════════════════════════════════════
         var info = CardLayout.CreateGroup(canvas, "League Information", CardLayout.Fc26Green, 12, 326, 660, 210);
-        AddField(info, "leaguename", "Database Name", new Point(120, 22), 152);
-        AddField(info, "leagueid", "League Id", new Point(120, 48), 122);
-        AddField(info, "level", "Level", new Point(120, 74), 122);
-        AddCountryPicker(info, new Point(120, 100));
-        AddField(info, "leaguetype", "Prestige", new Point(120, 126), 152);
+        // Start below the shared card title band.  These rows previously
+        // overlapped the "League Information" heading in the real UI.
+        AddField(info, "leaguename", "Database Name", new Point(120, 30), 152);
+        AddField(info, "leagueid", "League Id", new Point(120, 58), 122);
+        AddField(info, "level", "Level", new Point(120, 86), 122);
+        AddCountryPicker(info, new Point(120, 114));
+        AddField(info, "leaguetype", "Prestige", new Point(120, 142), 152);
 
         var settings = CardLayout.CreateGroup(canvas, "League Settings", CardLayout.Fc26Yellow, 688, 326, 664, 210);
-        AddLeagueFlag(settings, "Women's competition", "iswomencompetition", new Point(12, 28));
-        AddLeagueFlag(settings, "International league", "isinternationalleague", new Point(12, 54));
-        AddLeagueFlag(settings, "Competition pole flags", "iscompetitionpoleflagenabled", new Point(12, 80));
-        AddLeagueFlag(settings, "Within transfer window", "iswithintransferwindow", new Point(12, 106));
-        AddLeagueFlag(settings, "Competition scarves", "iscompetitionscarfenabled", new Point(340, 28));
-        AddLeagueFlag(settings, "Crowd cards", "iscompetitioncrowdcardsenabled", new Point(340, 54));
-        AddLeagueFlag(settings, "Banner enabled", "isbannerenabled", new Point(340, 80));
+        AddLeagueFlag(settings, "Women's competition", "iswomencompetition", new Point(12, 30));
+        AddLeagueFlag(settings, "International league", "isinternationalleague", new Point(12, 58));
+        AddLeagueFlag(settings, "Competition pole flags", "iscompetitionpoleflagenabled", new Point(12, 86));
+        AddLeagueFlag(settings, "Within transfer window", "iswithintransferwindow", new Point(12, 114));
+        AddLeagueFlag(settings, "Competition scarves", "iscompetitionscarfenabled", new Point(340, 30));
+        AddLeagueFlag(settings, "Crowd cards", "iscompetitioncrowdcardsenabled", new Point(340, 58));
+        AddLeagueFlag(settings, "Banner enabled", "isbannerenabled", new Point(340, 86));
 
         // ═══════════════════════════════════════════════════════════════
         //  TEAMS IN LEAGUE

@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.99 - Live UI collision repair (2026-08-12)
+
+- Fixed the shared card header band that painted group titles over the first editable row in legacy and FC26 section layouts.
+- Corrected League Information and League Settings row spacing after live-record verification.
+- Replaced the custom-painted native sidebar button with a deterministic panel control, preventing duplicate icon/text painting on affected Windows themes.
+- Strengthened the layout smoke test to fail on title/content collisions, not only exceptions and out-of-bounds controls.
+
 ## Version 1.0.98 - Responsive UI, lightweight overlay and automated quality gate (2026-08-12)
 
 - Reworked Teams, Leagues and Countries to reflow at laptop and desktop widths; fixed SplitContainer constructor crashes in Team and Formation workspaces.
