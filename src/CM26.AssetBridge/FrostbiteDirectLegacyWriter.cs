@@ -71,6 +71,11 @@ internal static class FrostbiteDirectLegacyWriter
         var edits = new List<ResolvedEdit>();
         foreach (var item in plan.Replacements ?? [])
         {
+            // A missing staged payload is an export-integrity failure, not an
+            // optional game asset.  Treating it as a skipped legacy path could
+            // otherwise create a valid-looking but incomplete .fifamod.
+            if (!File.Exists(item.SourcePath))
+                throw new FileNotFoundException("Staged legacy replacement was not found.", item.SourcePath);
             try
             {
                 var target = FrostbiteLegacyAssetResolver.ResolveTarget(root, layout.Catalogs, item.LegacyPath);
