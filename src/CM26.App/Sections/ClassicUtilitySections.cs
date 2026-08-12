@@ -549,7 +549,7 @@ public sealed class BallsSection : ClassicEntitySection
         LegacyAssetActions.Attach(Services, texture, _texture, new Point(8, 545), () => OnRecordShown());
         c.Controls.Add(texture);
         var model = Group("3D Model", new Point(728, 3), new Size(1165, 550));
-        ThreeDViewerLauncher.AttachPlaceholder(model, new Point(5, 20), new Size(1145, 520), "ball",
+        ThreeDViewerLauncher.AttachPlaceholder(model, new Point(5, 20), new Size(1145, 495), "ball",
             () => new[] { Value("ballid").ToString(), "ball_" + Value("ballid") },
             () => Services.FrostbiteAssets.ExportMeshForQuery(new[] { $"ball_{Value("ballid")}" }));
         c.Controls.Add(model);
@@ -614,7 +614,7 @@ public sealed class BootsSection : ClassicEntitySection
         LegacyAssetActions.Attach(Services, texture, _texture, new Point(8, 545), () => OnRecordShown());
         c.Controls.Add(texture);
         var model = Group("3D Model", new Point(524, 3), new Size(1360, 790));
-        ThreeDViewerLauncher.AttachPlaceholder(model, new Point(5, 20), new Size(1340, 760), "boot",
+        ThreeDViewerLauncher.AttachPlaceholder(model, new Point(5, 20), new Size(1340, 730), "boot",
             () => new[]
             {
                 Value("shoetype").ToString(), "item_" + Value("shoetype") + "_" + Value("shoedesign"),

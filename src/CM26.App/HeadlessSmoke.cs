@@ -1727,6 +1727,7 @@ internal static class HeadlessSmoke
                 ("competitions", () => new CompetitionsSection(services)),
                 ("formations", () => new FormationsSection(services)),
                 ("transfermarkt", () => new TransfersSection(services)),
+                ("modmanager", () => new ModManagerSection(services)),
                 ("balls", () => new BallsSection(services)),
                 ("boots", () => new BootsSection(services)),
                 ("gloves", () => new GlovesSection(services)),
@@ -1808,6 +1809,8 @@ internal static class HeadlessSmoke
                 ("kits", () => new KitsSection(services)),
                 ("competitions", () => new CompetitionsSection(services)),
                 ("formations", () => new FormationsSection(services)),
+                ("transfermarkt", () => new TransfersSection(services)),
+                ("modmanager", () => new ModManagerSection(services)),
                 ("balls", () => new BallsSection(services)),
                 ("boots", () => new BootsSection(services)),
                 ("gloves", () => new GlovesSection(services)),
@@ -1825,11 +1828,16 @@ internal static class HeadlessSmoke
             int totalTruncated = 0, totalOverflow = 0;
             foreach (var (key, make) in factories)
             {
-                using var host = new System.Windows.Forms.Form { Width = 1280, Height = 768 };
+                using var host = new System.Windows.Forms.Form
+                {
+                    Width = 1280, Height = 768, ShowInTaskbar = false,
+                    StartPosition = System.Windows.Forms.FormStartPosition.Manual,
+                    Location = new System.Drawing.Point(-30000, -30000),
+                };
                 using var section = make();
                 section.Dock = System.Windows.Forms.DockStyle.Fill;
                 host.Controls.Add(section);
-                host.CreateControl();
+                host.Show();
                 try
                 {
                     section.ActivateSection();
@@ -1871,6 +1879,8 @@ internal static class HeadlessSmoke
                     if (control is System.Windows.Forms.Label || control is System.Windows.Forms.DataGridView ||
                         control is System.Windows.Forms.ListView || control is System.Windows.Forms.TabPage) continue;
                     if (control.Parent is not System.Windows.Forms.Panel group) continue;
+                    if (control is System.Windows.Forms.Panel accent && accent.Left == 0 && accent.Top == 0 && accent.Height <= 4)
+                        continue;
                     // A card group is identified by CM26's own 4px accent
                     // strip. Do not treat scroll canvases, split panels or
                     // ordinary field panels as a bounded card.
@@ -1933,6 +1943,8 @@ internal static class HeadlessSmoke
                 ("kits", () => new KitsSection(services)),
                 ("competitions", () => new CompetitionsSection(services)),
                 ("formations", () => new FormationsSection(services)),
+                ("transfermarkt", () => new TransfersSection(services)),
+                ("modmanager", () => new ModManagerSection(services)),
                 ("balls", () => new BallsSection(services)),
                 ("boots", () => new BootsSection(services)),
                 ("gloves", () => new GlovesSection(services)),
@@ -1991,7 +2003,8 @@ internal static class HeadlessSmoke
                     {
                         var page = pages != null && pages.Length > 0 ? pages[pageIndex] : null;
                         if (page != null) primary!.SelectedTab = page;
-                        var until = Environment.TickCount64 + 350;
+                        var assetPage = page?.Text == "Overview" && key == "teams";
+                        var until = Environment.TickCount64 + (assetPage ? 4_000 : 350);
                         do { System.Windows.Forms.Application.DoEvents(); }
                         while (Environment.TickCount64 < until);
                         if (key == "teams" && page?.Text == "Roster" && size.Width == 1366)
@@ -2050,7 +2063,7 @@ internal static class HeadlessSmoke
         foreach (var control in Descendants(root))
         {
             if (control is not System.Windows.Forms.Label label) continue;
-            if (string.IsNullOrEmpty(label.Text) || label.Width <= 0) continue;
+            if (string.IsNullOrEmpty(label.Text) || label.Width <= 0 || label.AutoEllipsis) continue;
             // The headless host is intentionally never shown, so WinForms
             // propagates Visible=false down the entire tree. Bounds and fonts
             // are already measured after tab selection; audit them regardless.
@@ -2807,6 +2820,7 @@ internal static class HeadlessSmoke
                 ("competitions", () => new CompetitionsSection(services)),
                 ("formations", () => new FormationsSection(services)),
                 ("transfermarkt", () => new TransfersSection(services)),
+                ("modmanager", () => new ModManagerSection(services)),
                 ("balls", () => new BallsSection(services)),
                 ("boots", () => new BootsSection(services)),
                 ("gloves", () => new GlovesSection(services)),

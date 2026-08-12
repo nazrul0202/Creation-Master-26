@@ -115,6 +115,7 @@ public static class CardLayout
             Location = Point.Empty,
             Size = new Size(width, 4),
             BackColor = accent,
+            Dock = DockStyle.Top,
         });
         // Keep the title entirely above the first content row.  Several legacy
         // editors deliberately start their first field at Y=20; the previous

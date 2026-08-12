@@ -61,6 +61,7 @@ public abstract class ClassicEntitySection : SectionBase
             Location = Point.Empty,
             Size = new Size(size.Width, 4),
             BackColor = CardLayout.Fc26Green,
+            Dock = DockStyle.Top,
         });
         group.Controls.Add(new Label
         {
@@ -666,7 +667,7 @@ public sealed class FormationsSection : ClassicEntitySection
             catch { /* A pitch redraw fault must never take down the message loop. */ }
         };
         _pitchGroup.Controls.Add(_pitch);
-        _pitchStatus = new Label { Location = new Point(12, 455), Size = new Size(550, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel };
+        _pitchStatus = new Label { Location = new Point(12, 455), Size = new Size(550, 28), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, AutoEllipsis = true };
         _pitchStatus.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
         _pitchGroup.Controls.Add(_pitchStatus);
         _pitchGroup.SizeChanged += (_, _) => ResizePitchPreview();
@@ -693,14 +694,14 @@ public sealed class FormationsSection : ClassicEntitySection
         {
             var column = i / 6;
             var row = i % 6;
-            var x = 92 + (column * 348);
+            var x = 92 + (column * 340);
             var y = 22 + (row * 42);
             // Hand-placed captions: AddField's auto-caption would collide with
             // the adjacent slot editor at this narrow column pitch.
             roles.Controls.Add(new Label
             {
                 Text = $"Slot {i + 1}",
-                Location = new Point(column == 0 ? 10 : 358, y + 3),
+                Location = new Point(column == 0 ? 10 : 350, y + 3),
                 Size = new Size(74, 18),
                 Font = LegacyFont,
                 TextAlign = ContentAlignment.MiddleRight,
@@ -889,7 +890,7 @@ public sealed class FormationsSection : ClassicEntitySection
     {
         if (_pitchGroup.Width <= 0 || _pitchGroup.Height <= 0) return;
         var width = Math.Max(260, _pitchGroup.ClientSize.Width - 16);
-        var statusHeight = 22;
+        var statusHeight = 28;
         var height = Math.Max(190, _pitchGroup.ClientSize.Height - 20 - statusHeight - 8);
         _pitch.Bounds = new Rectangle(8, 20, width, height);
         _pitchStatus.Bounds = new Rectangle(12, _pitch.Bottom + 4, Math.Max(100, _pitchGroup.ClientSize.Width - 24), statusHeight);

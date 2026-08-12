@@ -1895,7 +1895,7 @@ public sealed class TeamsSection : SectionBase
         ReplacePreviewImage(_teamKitThird, null);
         ReplacePreviewImage(_teamKitGk, null);
         LoadProfileCrest(crestTeamId);
-        _ = LoadTeamKitPreviewsAsync(crestTeamId);
+        _ = LoadTeamKitPreviewsAfterIdentityAsync(crestTeamId);
 
         // Overall rating
         var ovr = record.Get(Col(table, "overallrating"));
@@ -1914,30 +1914,8 @@ public sealed class TeamsSection : SectionBase
         _teamManagerNation.Text = "";
 
         // Kit previews — use crest as fallback since no kit asset resolver
-        // Stadium image
-        try
-        {
-            var stadiumId = Parse(record.Get(Col(table, "stadiumid")));
-            var stadiumPath = Services.Assets.GetStadium(stadiumId);
-            if (!string.IsNullOrWhiteSpace(stadiumPath) && System.IO.File.Exists(stadiumPath))
-                LoadKitPreview(_teamStadiumImg, stadiumPath);
-            else
-                _teamStadiumImg.Image = null;
-        }
-        catch { _teamStadiumImg.Image = null; }
-
-        // Manager image
-        try
-        {
-            var mgrId = record.Get(Col(table, "managerid"));
-            if (int.TryParse(mgrId, out var mid) && mid > 0)
-            {
-                var mgrPath = Services.Assets.GetManagerFace(mid);
-                LoadKitPreview(_teamManagerImg, mgrPath);
-            }
-            else _teamManagerImg.Image = null;
-        }
-        catch { _teamManagerImg.Image = null; }
+        LoadTeamStadiumPreview(crestTeamId, Parse(record.Get(Col(table, "stadiumid"))));
+        LoadTeamManagerPreview(crestTeamId);
 
         _rosterMinifaces.Images.Clear();
         _pendingRosterMinifaces.Clear();
@@ -2693,33 +2671,75 @@ public sealed class TeamsSection : SectionBase
 
     private string ResolveManagerField(int teamId, string field)
     {
-        var teams = Services.Session.GetTable("teams");
         var managers = Services.Session.GetTable("manager");
-        if (teams == null || managers == null) return string.Empty;
-        var teamIdColumn = Col(teams, "teamid");
-        var teamManagerColumn = Col(teams, "managerid");
-        var managerIdColumn = Col(managers, "managerid");
+        if (managers == null) return string.Empty;
+        var managerTeamColumn = Col(managers, "teamid");
         var managerFieldColumn = Col(managers, field);
-        if (teamIdColumn < 0 || teamManagerColumn < 0 || managerIdColumn < 0 || managerFieldColumn < 0)
+        if (managerTeamColumn < 0 || managerFieldColumn < 0)
             return string.Empty;
-
-        var managerId = 0;
-        for (var row = 0; row < teams.RowCount; row++)
-        {
-            var record = Services.Session.GetRecord("teams", row);
-            if (record != null && Parse(record.Get(teamIdColumn)) == teamId)
-            {
-                managerId = Parse(record.Get(teamManagerColumn));
-                break;
-            }
-        }
         for (var row = 0; row < managers.RowCount; row++)
         {
             var record = Services.Session.GetRecord("manager", row);
-            if (record != null && Parse(record.Get(managerIdColumn)) == managerId)
+            if (record != null && Parse(record.Get(managerTeamColumn)) == teamId)
                 return record.Get(managerFieldColumn) ?? string.Empty;
         }
         return string.Empty;
+    }
+
+    private void LoadTeamManagerPreview(int teamId)
+    {
+        var managers = Services.Session.GetTable("manager");
+        if (managers == null) { ReplacePreviewImage(_teamManagerImg, null); return; }
+        var teamColumn = Col(managers, "teamid");
+        var managerIdColumn = Col(managers, "managerid");
+        var headColumn = Col(managers, "headassetid");
+        for (var row = 0; row < managers.RowCount; row++)
+        {
+            var record = Services.Session.GetRecord("manager", row);
+            if (record == null || Parse(record.Get(teamColumn)) != teamId) continue;
+            var managerId = Parse(record.Get(managerIdColumn));
+            var portraitId = headColumn >= 0 ? Parse(record.Get(headColumn)) : 0;
+            if (portraitId <= 0) portraitId = managerId;
+            var local = Services.Assets.GetManagerFace(portraitId);
+            FrostbitePreviewLoader.LoadLegacyUiAsset(_teamManagerImg, Services, local,
+                $"data/ui/imgAssets/heads_staff/heads_staff_{portraitId}.dds", (image, _) =>
+                {
+                    if (IsDisposed) { image?.Dispose(); return; }
+                    ReplacePreviewImage(_teamManagerImg, image);
+                });
+            return;
+        }
+        ReplacePreviewImage(_teamManagerImg, null);
+    }
+
+    private void LoadTeamStadiumPreview(int teamId, int fallbackStadiumId)
+    {
+        var stadiumId = fallbackStadiumId;
+        var links = Services.Session.GetTable("teamstadiumlinks");
+        if (links != null)
+        {
+            var teamColumn = Col(links, "teamid");
+            var stadiumColumn = Col(links, "stadiumid");
+            for (var row = 0; row < links.RowCount; row++)
+            {
+                var record = Services.Session.GetRecord("teamstadiumlinks", row);
+                if (record != null && Parse(record.Get(teamColumn)) == teamId)
+                { stadiumId = Parse(record.Get(stadiumColumn)); break; }
+            }
+        }
+        var candidates = new[]
+        {
+            $"data/ui/imgAssets/stadium/stadium_{stadiumId}_0.dds",
+            $"data/ui/external/ion_fut/imgAssets/stadiums/stadium_{stadiumId}.dds",
+            $"data/ui/external/ion_fut/imgAssets/cards/stadium/stadium_{stadiumId}.dds",
+            $"data/ui/imgAssets/clubInfo/stadium/st_{stadiumId}.dds",
+        };
+        FrostbitePreviewLoader.LoadLegacyUiAssetCandidates(_teamStadiumImg, Services,
+            Services.Assets.GetStadium(stadiumId), candidates, (image, _) =>
+            {
+                if (IsDisposed) { image?.Dispose(); return; }
+                ReplacePreviewImage(_teamStadiumImg, image);
+            });
     }
 
     private void ShowCrest(string path, string teamName, int teamId)
@@ -2782,6 +2802,16 @@ public sealed class TeamsSection : SectionBase
     }
 
     /// <summary>Load the real installed FC26 jersey colour textures for the club profile.</summary>
+    private async Task LoadTeamKitPreviewsAfterIdentityAsync(int teamId)
+    {
+        // Give the small crest/identity request first access to the bridge and
+        // UI continuation. Four large jersey exports must never make the club
+        // identity look broken while the page is opening.
+        await Task.Delay(250);
+        if (teamId == _activeTeamPreviewId && !IsDisposed)
+            await LoadTeamKitPreviewsAsync(teamId);
+    }
+
     private async Task LoadTeamKitPreviewsAsync(int teamId)
     {
         if (teamId <= 0 || !Services.FrostbiteAssets.IsAvailable) return;
@@ -2792,7 +2822,9 @@ public sealed class TeamsSection : SectionBase
             (Variant: "third", Preview: _teamKitThird),
             (Variant: "gk", Preview: _teamKitGk),
         };
-        foreach (var request in requests)
+        await Task.WhenAll(requests.Select(LoadOneAsync));
+
+        async Task LoadOneAsync((string Variant, PictureBox Preview) request)
         {
             try
             {
@@ -2802,12 +2834,12 @@ public sealed class TeamsSection : SectionBase
                                     match.Name.EndsWith("_color", StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(match => KitTextureScore(match.Name))
                     .FirstOrDefault();
-                if (selected == null || teamId != _activeTeamPreviewId) continue;
+                if (selected == null || teamId != _activeTeamPreviewId) return;
                 var path = await Task.Run(() => Services.FrostbiteAssets.ExportTexture(selected.Name));
-                if (string.IsNullOrWhiteSpace(path) || teamId != _activeTeamPreviewId) continue;
+                if (string.IsNullOrWhiteSpace(path) || teamId != _activeTeamPreviewId) return;
                 var image = await Task.Run(() => Services.Textures.CreatePreview(path, 300, 180));
-                if (image == null) continue;
-                if (teamId != _activeTeamPreviewId || IsDisposed) { image.Dispose(); continue; }
+                if (image == null) return;
+                if (teamId != _activeTeamPreviewId || IsDisposed) { image.Dispose(); return; }
                 if (InvokeRequired) BeginInvoke(() => ReplacePreviewImage(request.Preview, image));
                 else ReplacePreviewImage(request.Preview, image);
             }

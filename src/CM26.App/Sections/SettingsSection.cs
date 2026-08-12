@@ -37,8 +37,9 @@ public sealed class SettingsSection : SectionBase
 
         var flow = new FlowLayoutPanel
         {
-            Dock = DockStyle.Top,
-            AutoSize = true,
+            Dock = DockStyle.Fill,
+            AutoSize = false,
+            AutoScroll = true,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
             BackColor = CardLayout.CardBackground,
@@ -64,7 +65,7 @@ public sealed class SettingsSection : SectionBase
             foreach (Control item in flow.Controls)
             {
                 if (item is not Panel wrapper) continue;
-                wrapper.Width = Math.Max(0, _canvas.ClientSize.Width - 24);
+                wrapper.Width = Math.Max(400, flow.ClientSize.Width - 24);
                 foreach (Control inner in wrapper.Controls)
                     inner.Width = Math.Max(0, wrapper.Width - 16);
             }
@@ -407,9 +408,10 @@ public sealed class SettingsSection : SectionBase
     {
         var wrapper = new Panel
         {
-            Dock = DockStyle.Top,
+            Dock = DockStyle.None,
             Height = height + 12,
             BackColor = CardLayout.CardBackground,
+            Margin = new Padding(0, 0, 0, 6),
         };
         var card = new Panel
         {
@@ -440,6 +442,16 @@ public sealed class SettingsSection : SectionBase
         var path = _assetBox.Text.Trim();
         SettingsService.AssetRoot = path;
         Services.RefreshAssetRoot();
+    }
+
+    public override void ActivateSection()
+    {
+        // Settings is a local workflow, not a database record list. Calling
+        // SectionBase.LoadData would display its empty-record state over the
+        // cards and made the entire page appear blank.
+        Tabs.Visible = true;
+        EmptyState.Visible = false;
+        ReflowCards();
     }
 
     private async Task ApplyGameFolderAsync()

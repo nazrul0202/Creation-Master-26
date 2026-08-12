@@ -120,7 +120,7 @@ public sealed class CountriesSection : SectionBase
         flags.Controls.Add(CreateViewer(new Point(10, 26), new Size(256, 256), "256 x 256", out var largeFlag, out var largeCaption));
         flags.Controls.Add(CreateViewer(new Point(276, 26), new Size(256, 256), "512 x 512", out var crestFlag, out var crestCaption));
         flags.Controls.Add(CreateViewer(new Point(542, 26), new Size(150, 150), "256 x 128", out var cardFlag, out var cardCaption));
-        flags.Controls.Add(CreateViewer(new Point(10, 288), new Size(64, 64), "64 x 64", out var miniFlag, out var miniCaption));
+        flags.Controls.Add(CreateViewer(new Point(692, 26), new Size(64, 64), "64 x 64", out var miniFlag, out var miniCaption));
         _flagViewers.AddRange([largeFlag, crestFlag, cardFlag, miniFlag]);
         _flagCaptions.AddRange([largeCaption, crestCaption, cardCaption, miniCaption]);
         LegacyAssetActions.Attach(Services, flags, largeFlag, new Point(10, 310), RefreshCurrentRecord);
@@ -707,16 +707,31 @@ public sealed class CountriesSection : SectionBase
             }
             if (image != null)
             {
+                if (!_countryFlagPreview.IsDisposed)
+                {
+                    var previousHeader = _countryFlagPreview.Image;
+                    _countryFlagPreview.Image = new Bitmap(image);
+                    previousHeader?.Dispose();
+                }
                 foreach (var label in _flagCaptions)
                 {
                     if (label.IsDisposed) continue;
                     label.Text = source ?? "Flag preview";
                 }
             }
-            else foreach (var label in _flagCaptions)
+            else
             {
-                if (label.IsDisposed) continue;
-                label.Text = $"No flag available ({nationId})";
+                if (!_countryFlagPreview.IsDisposed)
+                {
+                    _countryFlagPreview.Image?.Dispose();
+                    _countryFlagPreview.Image = null;
+                }
+                foreach (var label in _flagCaptions)
+                {
+                    if (label.IsDisposed) continue;
+                    label.Text = label.Width < 100 ? "Unavailable" : $"No flag available ({nationId})";
+                    ToolTip.SetToolTip(label, $"No flag asset is available for country {nationId}.");
+                }
             }
         });
 

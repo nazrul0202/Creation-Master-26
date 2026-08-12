@@ -296,6 +296,16 @@ public sealed class FrostbiteAssetSession
     public string? ExportLegacyAsset(string legacyPath)
     {
         if (!IsAvailable || string.IsNullOrWhiteSpace(GameRoot) || string.IsNullOrWhiteSpace(legacyPath)) return null;
+        // The bridge preserves the canonical legacy path below this cache.
+        // Reuse an already-extracted preview immediately; launching the bridge
+        // for every crest/miniface made valid assets appear blank for several
+        // seconds whenever an editor record was selected.
+        var cachedPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Creation Master 26", "legacy-assets",
+            legacyPath.Replace('/', Path.DirectorySeparatorChar));
+        if (File.Exists(cachedPath) && new FileInfo(cachedPath).Length > 0)
+            return cachedPath;
         return _legacyCache.GetOrAdd(legacyPath, path => new Lazy<string?>(() =>
         {
             var response = RunBridge(["--legacy", GameRoot, path], timeoutMilliseconds: 60_000);
