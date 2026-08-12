@@ -15,7 +15,10 @@ public static class IconService
     // unique letter badge so every module has a visually distinct marker.
     private static readonly Dictionary<string, string> ResourceByKey = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["dashboard"] = "CM26.App.Assets.Logo.brand.png",
+        // The full CM26 brand mark has an opaque black background.  At the
+        // 18px sidebar size it rendered as a distracting black rectangle, so
+        // navigation-only modules use the clean vector badge fallback.
+        ["dashboard"] = "",
         ["players"] = "CM26.App.Assets.Icons.Player.png",
         ["teams"] = "CM26.App.Assets.Icons.Kit.png",
         ["leagues"] = "CM26.App.Assets.Icons.League.png",
@@ -37,9 +40,9 @@ public static class IconService
         ["stadiumaudio"] = "",
         ["scoreboard"] = "",
         ["referees"] = "",
-        ["browser"] = "CM26.App.Assets.Logo.brand.png",
-        ["diagnostics"] = "CM26.App.Assets.Logo.brand.png",
-        ["settings"] = "CM26.App.Assets.Logo.brand.png",
+        ["browser"] = "",
+        ["diagnostics"] = "",
+        ["settings"] = "",
     };
 
     /// <summary>Distinct accent colour per section used for the letter badge fallback.</summary>
