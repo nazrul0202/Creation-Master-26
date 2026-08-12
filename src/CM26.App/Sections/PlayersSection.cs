@@ -640,7 +640,9 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
         };
         for (var c = 0; c < columns.Length; c++)
         {
-            var group = Box(columns[c].Item1, new Point(3 + (c * 160), 3), new Size(153, 318));
+            // Native TrackBar enforces a taller preferred size on some Windows
+            // builds; 318px clipped the final slider in six-row skill cards.
+            var group = Box(columns[c].Item1, new Point(3 + (c * 160), 3), new Size(153, 340));
             var y = 25;
             foreach (var field in columns[c].Item2)
             {
@@ -660,7 +662,7 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
             canvas.Controls.Add(group);
         }
 
-        _traitsPanel = Box("Player Traits", new Point(3, 327), new Size(1280, 300));
+        _traitsPanel = Box("Player Traits", new Point(3, 349), new Size(1280, 300));
         _traitsPanel.Controls.Add(new Label
         {
             Text = "Trait bitmasks are shown only when the loaded database provides them.",

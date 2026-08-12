@@ -552,10 +552,13 @@ public sealed class TeamsSection : SectionBase
         //  KITS SECTION
         // ═══════════════════════════════════════════════════════════════
         var kits = CardLayout.CreateGroup(canvas, "Kits", CardLayout.Fc26Green, 12, 326, 1340, 140);
-        AddKitPreview(kits, _teamKitHome, "Home", 20, 30);
-        AddKitPreview(kits, _teamKitAway, "Away", 223, 30);
-        AddKitPreview(kits, _teamKitThird, "Third", 426, 30);
-        AddKitPreview(kits, _teamKitGk, "Goalkeeper", 629, 30);
+        var kitHolders = new[]
+        {
+            AddKitPreview(kits, _teamKitHome, "Home", 20, 30),
+            AddKitPreview(kits, _teamKitAway, "Away", 223, 30),
+            AddKitPreview(kits, _teamKitThird, "Third", 426, 30),
+            AddKitPreview(kits, _teamKitGk, "Goalkeeper", 629, 30),
+        };
 
         // ═══════════════════════════════════════════════════════════════
         //  CLUB INFORMATION (Identity · Financial · Trophies · Reputation)
@@ -634,8 +637,22 @@ public sealed class TeamsSection : SectionBase
             for (var index = 0; index < quickInfo.Controls.Count; index++)
                 quickInfo.Controls[index].Bounds = new Rectangle(index * (factWidth + 16), 0, factWidth, 72);
             kits.Width = width;
+            var kitsPerRow = width >= 830 ? 4 : 2;
+            var kitWidth = Math.Min(180, Math.Max(140, (width - 40) / kitsPerRow));
+            for (var index = 0; index < kitHolders.Length; index++)
+            {
+                var row = index / kitsPerRow;
+                var column = index % kitsPerRow;
+                kitHolders[index].Location = new Point(20 + column * (kitWidth + 23), 30 + row * 100);
+                kitHolders[index].Width = kitWidth;
+                var image = kitHolders[index].Controls.OfType<PictureBox>().FirstOrDefault();
+                if (image != null) image.Width = Math.Max(110, kitWidth - 20);
+                var caption = kitHolders[index].Controls.OfType<Label>().FirstOrDefault();
+                if (caption != null) caption.Width = kitWidth;
+            }
+            kits.Height = kitsPerRow == 4 ? 140 : 240;
 
-            var nextY = 478;
+            var nextY = kits.Bottom + 12;
             if (width >= 1240)
             {
                 infoGroup.Bounds = new Rectangle(12, nextY, width / 2 - 18, 380);
@@ -696,7 +713,7 @@ public sealed class TeamsSection : SectionBase
         parent.Controls.Add(valueLabel);
     }
 
-    private void AddKitPreview(Control parent, PictureBox preview, string label, int x, int y)
+    private static Panel AddKitPreview(Control parent, PictureBox preview, string label, int x, int y)
     {
         var holder = new Panel { Location = new Point(x, y), Size = new Size(180, 96), BackColor = CardLayout.CardWhite };
         preview.Location = new Point(10, 4);
@@ -707,6 +724,7 @@ public sealed class TeamsSection : SectionBase
         holder.Controls.Add(preview);
         holder.Controls.Add(new Label { Text = label, Location = new Point(0, 78), Size = new Size(180, 16), Font = Theme.Muted9, TextAlign = ContentAlignment.MiddleCenter, ForeColor = CardLayout.CardSubtle, BackColor = CardLayout.CardWhite });
         parent.Controls.Add(holder);
+        return holder;
     }
 
     private void AddFieldCard(Control parent, string title, int x, int y, params (string Label, string Field)[] fields)

@@ -66,10 +66,12 @@ internal abstract class Fc26ExtensionSection : SectionBase
         var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
         var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground };
         var boxHeight = Math.Max(120, 25 + ((fields.Length + 1) / 2 * 26));
-        var box = new Panel { Location = new Point(4, 4), Size = new Size(630, boxHeight), BackColor = CardLayout.CardWhite };
+        // Second-column editors end at X=638. The former 630px card clipped
+        // their border by eight pixels in Sponsor/Adboard/Audio style pages.
+        var box = new Panel { Location = new Point(4, 4), Size = new Size(646, boxHeight), BackColor = CardLayout.CardWhite };
         CardLayout.ApplyRounded(box, 10);
-        box.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(630, 4), BackColor = CardLayout.Fc26Green });
-        box.Controls.Add(new Label { Text = group, Location = new Point(10, 6), Size = new Size(610, 13), Font = Theme.Muted9, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite });
+        box.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(646, 4), BackColor = CardLayout.Fc26Green });
+        box.Controls.Add(new Label { Text = group, Location = new Point(10, 6), Size = new Size(626, 13), Font = Theme.Muted9, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite });
         for (var i = 0; i < fields.Length; i++)
         {
             var col = i % 2; var row = i / 2;

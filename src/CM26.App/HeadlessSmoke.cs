@@ -1863,13 +1863,21 @@ internal static class HeadlessSmoke
                 }
                 // Ensure every page measured at least once even if a tab enum changed.
                 MeasureAll(section, null, ref visibleLabels);
-                // Controls (editors) that stick out of their GroupBox client area.
+                // Controls (editors) that stick out of their card client area.
+                // CM26 uses Panels for rounded cards, not GroupBox; limiting
+                // this to GroupBox made the former audit silently miss the UI.
                 foreach (var control in Descendants(section))
                 {
                     if (control is System.Windows.Forms.Label || control is System.Windows.Forms.DataGridView ||
                         control is System.Windows.Forms.ListView || control is System.Windows.Forms.TabPage) continue;
-                    if (control.Parent is not System.Windows.Forms.GroupBox group) continue;
-                    if (!control.Visible || !group.Visible) continue;
+                    if (control.Parent is not System.Windows.Forms.Panel group) continue;
+                    // A card group is identified by CM26's own 4px accent
+                    // strip. Do not treat scroll canvases, split panels or
+                    // ordinary field panels as a bounded card.
+                    var isCard = group.Controls.OfType<System.Windows.Forms.Panel>()
+                        .Any(panel => panel.Left == 0 && panel.Top == 0 && panel.Height <= 4 && panel.Width >= group.ClientSize.Width - 2);
+                    if (!isCard) continue;
+                    if (group.ClientSize.Width <= 0 || group.ClientSize.Height <= 0) continue;
                     var right = control.Left + control.Width;
                     var bottom = control.Top + control.Height;
                     if (right > group.ClientSize.Width + 2 || bottom > group.ClientSize.Height + 2)
@@ -1906,9 +1914,9 @@ internal static class HeadlessSmoke
         {
             if (control is not System.Windows.Forms.Label label) continue;
             if (string.IsNullOrEmpty(label.Text) || label.Width <= 0) continue;
-            // Visible=true on the active page; a page that was never switched to
-            // (e.g. GroupBox-hosted labels) still has a size, so measure it.
-            if (!label.Visible && control.Parent is not System.Windows.Forms.GroupBox) continue;
+            // The headless host is intentionally never shown, so WinForms
+            // propagates Visible=false down the entire tree. Bounds and fonts
+            // are already measured after tab selection; audit them regardless.
             visibleLabels++;
             if (truncated == null) continue;
             // Measure with the label's real width so wrapping is accounted for.

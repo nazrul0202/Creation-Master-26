@@ -631,11 +631,24 @@ public sealed class FormationsSection : ClassicEntitySection
         workspace.Panel2.BackColor = CardLayout.CardBackground;
         workspace.SizeChanged += (_, _) =>
         {
-            if (workspace.Width >= 956)
+            // Setting either MinSize first makes WinForms immediately validate
+            // the old splitter distance. At construction/restoration that
+            // distance can still be zero, producing the fatal
+            // "SplitterDistance must be between..." exception seen in live UI.
+            // Establish a safe distance first, then apply both constraints.
+            var available = workspace.Width - workspace.SplitterWidth;
+            if (available < 956) return;
+            var target = Math.Clamp((int)(workspace.Width * 0.43), 360, workspace.Width - 590 - workspace.SplitterWidth);
+            try
             {
+                workspace.SplitterDistance = target;
                 workspace.Panel1MinSize = 360;
                 workspace.Panel2MinSize = 590;
-                workspace.SplitterDistance = Math.Clamp((int)(workspace.Width * 0.43), 360, workspace.Width - 590 - workspace.SplitterWidth);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // A transient zero-size layout pass can race resize. The next
+                // SizeChanged event will apply the same safe configuration.
             }
         };
         c.Controls.Add(workspace);
