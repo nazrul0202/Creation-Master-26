@@ -204,7 +204,7 @@ public sealed class DashboardSection : SectionBase
             }
             catch { /* cannot open explorer */ }
         };
-        _saveHeroBtn = new Button { Text = "Save Draft", Location = new Point(hero.Width - 172, 20), Size = new Size(120, 30) };
+        _saveHeroBtn = new Button { Text = "Save", Location = new Point(hero.Width - 172, 20), Size = new Size(120, 30) };
         Theme.ApplyButton(_saveHeroBtn, primary: true);
         _saveHeroBtn.Enabled = Services.Pending.Count > 0;
         _saveHeroBtn.Click += (_, _) => Services.RequestSaveDraft();

@@ -55,15 +55,15 @@ public sealed class MainForm : Form
         _services.NavigationRequested += NavigateTo;
         _services.RecordNavigationRequested += NavigateToRecord;
         _services.OpenGameRequested += () => _ = OpenFc26Async();
-        _services.SaveDraftRequested += () => _ = SaveAsync();
+        _services.SaveDraftRequested += () => _ = SaveDirectAsync();
         _services.ScraperSquadImportRequested += ImportScraperSquad;
 
         // ---- CM16-style application menu ----
         _menu = new MenuStrip { Dock = DockStyle.Top, BackColor = Theme.Background, ForeColor = Theme.Text, Font = Theme.Body, Renderer = new DarkToolStripRenderer() };
         var fileMenu = new ToolStripMenuItem("File");
         fileMenu.DropDownItems.Add("Open Game", null, async (_, _) => await OpenFc26Async());
-        fileMenu.DropDownItems.Add("Save Draft for FIFA Mod", null, async (_, _) => await SaveAsync());
-        fileMenu.DropDownItems.Add("Apply Directly to FC26 (offline)...", null, async (_, _) => await SaveDirectAsync());
+        fileMenu.DropDownItems.Add("Save", null, async (_, _) => await SaveDirectAsync());
+        fileMenu.DropDownItems.Add("Save Draft for FIFA Mod...", null, async (_, _) => await SaveAsync());
         fileMenu.DropDownItems.Add("Export CM26 Project (.fifaproject)...", null, async (_, _) => await ExportProjectAsync());
         fileMenu.DropDownItems.Add("Import CM26 Project (.fifaproject)...", null, async (_, _) => await ImportProjectAsync());
         fileMenu.DropDownItems.Add("Export FIFA Mod (.fifamod)...", null, async (_, _) => await ExportModAsync());
@@ -98,7 +98,7 @@ public sealed class MainForm : Form
             Padding = new Padding(Theme.Space, 8, Theme.Space, 8),
         };
         _openBtn = MakeActionButton("Open Game", "Detect the game and load its database and assets automatically (Ctrl+O)");
-        _saveBtn = MakeActionButton("Save Draft", "Save changes for FIFA Mod export (Ctrl+S). It never writes FC26 Data/Patch.", primary: true);
+        _saveBtn = MakeActionButton("Save", "Apply staged changes directly to FC26 for offline use (Ctrl+S).", primary: true);
         _undoBtn = MakeActionButton("Undo", "Undo last change (Ctrl+Z)");
         _redoBtn = MakeActionButton("Redo", "Redo the last undone change (Ctrl+Y)");
         _validateBtn = MakeActionButton("Validate", "Validate staged changes");
@@ -230,7 +230,7 @@ public sealed class MainForm : Form
 
         // Events
         _openBtn.Click += async (_, _) => await OpenFc26Async();
-        _saveBtn.Click += async (_, _) => await SaveAsync();
+        _saveBtn.Click += async (_, _) => await SaveDirectAsync();
         _undoBtn.Click += (_, _) => Undo();
         _redoBtn.Click += (_, _) => Redo();
         _validateBtn.Click += (_, _) => ValidateAll();
@@ -1377,7 +1377,7 @@ public sealed class MainForm : Form
         switch (keyData)
         {
             case Keys.Control | Keys.O: _ = OpenFc26Async(); return true;
-            case Keys.Control | Keys.S: _ = SaveAsync(); return true;
+            case Keys.Control | Keys.S: _ = SaveDirectAsync(); return true;
             case Keys.Control | Keys.Z: Undo(); return true;
             case Keys.Control | Keys.Y: Redo(); return true;
             case Keys.Control | Keys.F:
