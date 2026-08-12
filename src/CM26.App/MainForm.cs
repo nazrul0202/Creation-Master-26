@@ -943,6 +943,15 @@ public sealed class MainForm : Form
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
+        // Exporting is read-only for the installed game, but require the game
+        // to be closed so the generated package always reflects one stable
+        // FC26 layout and cannot race a running launcher/game process.
+        if (new[] { "FC26", "FC26_Trial", "FC26_Showcase" }.Any(name => Process.GetProcessesByName(name).Length > 0))
+        {
+            MessageBox.Show(this, "Close FC26 before exporting a FIFA Mod.", "Export FIFA Mod",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
         using var dialog = new SaveFileDialog
         {
             Title = "Export FIFA Mod",
