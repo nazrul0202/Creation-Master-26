@@ -957,7 +957,7 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
                     if (!string.IsNullOrWhiteSpace(match))
                         return Path.GetDirectoryName(match);
                 }
-                catch { /* An inaccessible optional export folder is skipped. */ }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Player export folder scan failed: {ex.Message}"); /* An inaccessible optional export folder is skipped. */ }
             }
         }
         return null;
@@ -990,7 +990,7 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
                 .Where(option => int.TryParse(option.Value, out var nationId) && nationId > 0)
                 .DistinctBy(option => option.Value));
         }
-        catch { /* Section can be constructed before a database is attached. */ }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Nation options load failed: {ex.Message}"); /* Section can be constructed before a database is attached. */ }
         return options;
     }
 
@@ -1109,7 +1109,7 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
             values.Add(value);
             parent.Controls.Add(value);
         }
-        catch (ArgumentException) { /* Skip field if font or layout is invalid on this system. */ }
+        catch (ArgumentException ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Summary field layout skipped: {ex.Message}"); /* Skip field if font or layout is invalid on this system. */ }
     }
 
     private void StageEdit(TextBox editor)

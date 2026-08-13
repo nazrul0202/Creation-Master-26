@@ -473,7 +473,7 @@ public sealed class FrostbiteAssetSession
             foreach (var pattern in patterns)
             {
                 try { count += Directory.EnumerateFiles(root, pattern, SearchOption.AllDirectories).Count(); }
-                catch { /* A locked optional container must not block database loading. */ }
+                catch (Exception ex) { Program.Log($"[CM26] Container file count failed: {ex.Message}"); /* A locked optional container must not block database loading. */ }
             }
         return count;
     }

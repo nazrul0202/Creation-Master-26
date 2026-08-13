@@ -228,8 +228,9 @@ public abstract class SectionBase : UserControl
         {
             Services.Pending.DiscardForRow(TableName, row);
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CM26] Discard staged edits skipped: {ex.Message}");
             // Workflow pages (e.g. Settings) have no real table; just re-read.
         }
         Services.NotifyPendingChanged();
@@ -261,8 +262,9 @@ public abstract class SectionBase : UserControl
             }
             ClampSplitter();
         }
-        catch (ArgumentOutOfRangeException)
+        catch (ArgumentOutOfRangeException ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CM26] Splitter initial layout transient: {ex.Message}");
             // Transient layout state; the next resize re-applies.
         }
     }
@@ -280,7 +282,7 @@ public abstract class SectionBase : UserControl
             if (_split.SplitterDistance < min) _split.SplitterDistance = min;
             else if (_split.SplitterDistance > max) _split.SplitterDistance = max;
         }
-        catch (ArgumentOutOfRangeException) { /* ignore transient states */ }
+        catch (ArgumentOutOfRangeException ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Splitter distance clamp failed: {ex.Message}"); /* ignore transient states */ }
     }
 
     /// <summary>Called once when the section becomes visible / DB loaded. Loads list data.</summary>

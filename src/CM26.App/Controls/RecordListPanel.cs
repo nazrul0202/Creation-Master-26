@@ -118,7 +118,7 @@ public sealed class RecordListPanel : UserControl
             {
                 row.Selected = true;
                 try { _grid.FirstDisplayedScrollingRowIndex = Math.Max(0, row.Index - 4); }
-                catch (InvalidOperationException) { }
+                catch (InvalidOperationException ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Record scroll failed: {ex.Message}"); }
                 break;
             }
         }

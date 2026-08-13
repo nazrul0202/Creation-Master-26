@@ -52,7 +52,7 @@ internal static class AppDependencyCheck
                 }
             }
         }
-        catch { /* fall through to the dotnet probe */ }
+        catch (Exception ex) { Program.Log($"[CM26] Runtime directory probe failed: {ex.Message}"); /* fall through to the dotnet probe */ }
 
         // Fallback: ask the .NET host itself (covers non-standard install locations).
         return ProbeViaDotnetListRuntimes();
@@ -76,7 +76,7 @@ internal static class AppDependencyCheck
             foreach (var line in output.Split('\n'))
                 if (line.Contains("Microsoft.WindowsDesktop.App 8.")) return true;
         }
-        catch { /* dotnet CLI not present */ }
+        catch (Exception ex) { Program.Log($"[CM26] dotnet runtime probe failed: {ex.Message}"); /* dotnet CLI not present */ }
         return false;
     }
 
@@ -98,6 +98,6 @@ internal static class AppDependencyCheck
             if (r == DialogResult.OK)
                 Process.Start(new ProcessStartInfo(DownloadUrl) { UseShellExecute = true });
         }
-        catch { /* never crash the dependency handler */ }
+        catch (Exception ex) { Program.Log($"[CM26] Failed to show missing runtime message: {ex.Message}"); /* never crash the dependency handler */ }
     }
 }

@@ -83,8 +83,9 @@ internal static class ThreeDViewerLauncher
             {
                 launchPath = await Task.Run(meshExporter).ConfigureAwait(true) ?? string.Empty;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[CM26] Mesh export failed: {ex.Message}");
                 // Mesh resolution/export is best-effort; the fallbacks below
                 // keep the viewer button usable even without the game assets.
             }
@@ -146,7 +147,7 @@ internal static class ThreeDViewerLauncher
                         .FirstOrDefault();
                     if (hit != null) return hit.FullName;
                 }
-                catch { /* an inaccessible optional export folder is skipped. */ }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Viewer export folder scan failed: {ex.Message}"); /* an inaccessible optional export folder is skipped. */ }
             }
         }
         return string.Empty;

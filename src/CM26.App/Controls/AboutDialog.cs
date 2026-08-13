@@ -138,7 +138,7 @@ public static class AboutDialog
             {
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             }
-            catch { /* cannot open browser */ }
+            catch (Exception ex) { Program.Log($"[CM26] Could not open browser: {ex.Message}"); /* cannot open browser */ }
         };
         return link;
     }

@@ -149,8 +149,8 @@ public abstract class ClassicEntitySection : SectionBase
         {
             viewer.Image = Services.Textures.CreatePreview(path, viewer.Width, viewer.Height);
         }
-        catch (System.AccessViolationException) { /* empty means unavailable */ }
-        catch { /* empty means unavailable */ }
+        catch (System.AccessViolationException ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Texture preview unavailable: {ex.Message}"); /* empty means unavailable */ }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Texture preview unavailable: {ex.Message}"); /* empty means unavailable */ }
     }
 
     /// <summary>Prefer a loose preview, then resolve an equivalent read-only texture from FC26.</summary>
@@ -646,8 +646,9 @@ public sealed class FormationsSection : ClassicEntitySection
                 workspace.Panel1MinSize = 360;
                 workspace.Panel2MinSize = 590;
             }
-            catch (ArgumentOutOfRangeException)
+            catch (ArgumentOutOfRangeException ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[CM26] Stadium workspace splitter transient: {ex.Message}");
                 // A transient zero-size layout pass can race resize. The next
                 // SizeChanged event will apply the same safe configuration.
             }
@@ -664,7 +665,7 @@ public sealed class FormationsSection : ClassicEntitySection
             // surface as the Windows "Exception Processing Message 0xc0000005"
             // dialog, so paint defensively and never let it escape the WndProc.
             try { if (e.Graphics != null) DrawFormationPitch(null, e); }
-            catch { /* A pitch redraw fault must never take down the message loop. */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Pitch redraw failed: {ex.Message}"); /* A pitch redraw fault must never take down the message loop. */ }
         };
         _pitchGroup.Controls.Add(_pitch);
         _pitchStatus = new Label { Location = new Point(12, 455), Size = new Size(550, 28), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, AutoEllipsis = true };
@@ -818,7 +819,7 @@ public sealed class FormationsSection : ClassicEntitySection
                     if (int.TryParse(Services.Session.GetCell("formations", row, name), out var parsedRole)) values.Add(parsedRole);
             }
         }
-        catch { /* Keep the safe zero option when a partial schema is loaded. */ }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Formation role enumeration failed: {ex.Message}"); /* Keep the safe zero option when a partial schema is loaded. */ }
         return new[] { new FormationOption("Not set", "0") }
             .Concat(values.Where(role => role > 0).OrderBy(role => role)
                 .Select(role => new FormationOption($"Role {role}", role.ToString())))
@@ -1196,8 +1197,9 @@ public sealed class KitsSection : ClassicEntitySection
             old?.Dispose();
             SetAssetStatus(selected.Name);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CM26] Kit preview superseded: {ex.Message}");
             // Selecting another kit supersedes this preview request.
         }
         catch (Exception ex)

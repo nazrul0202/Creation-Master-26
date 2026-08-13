@@ -42,7 +42,7 @@ public sealed class MainForm : Form
         ForeColor = Theme.Text;
         KeyPreview = true;
         try { Icon = new Icon(Path.Combine(AppContext.BaseDirectory, "Assets", "Logo", "Creation Master 26.ico")); }
-        catch { /* icon optional at runtime */ }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Icon load failed: {ex.Message}"); /* icon optional at runtime */ }
 
         // Best-effort immersive dark/light mode for the window chrome + scrollbars.
         HandleCreated += (_, _) =>
@@ -91,7 +91,7 @@ public sealed class MainForm : Form
         helpMenu.DropDownItems.Add("Discord Support", null, (_, _) =>
         {
             try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://discord.gg/T75DFSuSU") { UseShellExecute = true }); }
-            catch { /* cannot open browser */ }
+            catch (Exception ex) { Program.Log($"[CM26] Could not open Discord link: {ex.Message}"); /* cannot open browser */ }
         });
         helpMenu.DropDownItems.Add(new ToolStripSeparator());
         helpMenu.DropDownItems.Add("About", null, (_, _) => ShowAbout());
@@ -643,7 +643,7 @@ public sealed class MainForm : Form
         if (InvokeRequired)
         {
             try { BeginInvoke((Action)OnDatabaseLoaded); }
-            catch (InvalidOperationException) { /* form is closing */ }
+            catch (InvalidOperationException ex) { System.Diagnostics.Debug.WriteLine($"[CM26] BeginInvoke while form closing: {ex.Message}"); /* form is closing */ }
             return;
         }
         var path = string.IsNullOrWhiteSpace(_services.ActiveGameRoot)
@@ -669,7 +669,7 @@ public sealed class MainForm : Form
         if (IsDisposed || Disposing) return;
         if (InvokeRequired)
         {
-            try { BeginInvoke((Action)OnFrostbiteAssetsReady); } catch (InvalidOperationException) { }
+            try { BeginInvoke((Action)OnFrostbiteAssetsReady); } catch (InvalidOperationException ex) { System.Diagnostics.Debug.WriteLine($"[CM26] BeginInvoke while form closing: {ex.Message}"); }
             return;
         }
         _assetStatus.Text = _services.FrostbiteAssets.IsAvailable
@@ -1259,7 +1259,7 @@ public sealed class MainForm : Form
                     "Check for Updates", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                 if (answer == DialogResult.Yes)
                     try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(UpdateChecker.ManifestUrl) { UseShellExecute = true }); }
-                    catch { /* cannot open browser */ }
+                    catch (Exception ex) { Program.Log($"[CM26] Could not open update link: {ex.Message}"); /* cannot open browser */ }
                 SetStatus($"Update v{result.LatestVersion} available.");
             }
             else

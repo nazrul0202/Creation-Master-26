@@ -440,7 +440,7 @@ public sealed class TransfersSection : SectionBase
         {
             BeginInvoke((Action)(() => DetectScraperOutput(showMissingMessage: false)));
         }
-        catch (InvalidOperationException) { /* the window may already be closing */ }
+        catch (InvalidOperationException ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Scraper output detection skipped while closing: {ex.Message}"); /* the window may already be closing */ }
     }
 
     internal static bool TryValidateUrl(string text, out Uri uri)

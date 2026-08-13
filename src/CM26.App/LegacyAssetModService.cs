@@ -50,7 +50,7 @@ public sealed class LegacyAssetModService
                         _replacements[item.LegacyPath] = item;
             }
         }
-        catch { /* A corrupt optional edit state starts empty. */ }
+        catch (Exception ex) { Program.Log($"[CM26] Failed to load legacy edit state: {ex.Message}"); /* A corrupt optional edit state starts empty. */ }
         Changed?.Invoke(this, EventArgs.Empty);
     }
 

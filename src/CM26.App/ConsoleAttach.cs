@@ -37,13 +37,15 @@ internal static class ConsoleAttach
             var stderr = new StreamWriter(Console.OpenStandardError()) { AutoFlush = true };
             Console.SetError(stderr);
         }
-        catch (IOException)
+        catch (IOException ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CM26] Console attach IO error: {ex.Message}");
             // No console is obtainable (e.g. output already redirected); the original
             // stdout still works for redirection, so continue silently.
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CM26] Console attach access denied: {ex.Message}");
         }
     }
 }

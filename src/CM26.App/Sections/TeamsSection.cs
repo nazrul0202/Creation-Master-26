@@ -195,7 +195,7 @@ public sealed class TeamsSection : SectionBase
                         }
                     }
                 }
-                catch { /* Non-critical: team created without league link */ }
+                catch (Exception ex) { Program.Log($"[CM26] Team league link failed: {ex.Message}"); /* Non-critical: team created without league link */ }
             }
 
             var squad = FillTeamSquad(id);
@@ -1842,7 +1842,7 @@ public sealed class TeamsSection : SectionBase
         {
             ShowCrest(Services.Assets.GetTeamLogo(crestTeamId), name, crestTeamId);
         }
-        catch { /* Crest preview failure must not prevent the record from loading. */ }
+        catch (Exception ex) { Program.Log($"[CM26] Team crest preview failed: {ex.Message}"); /* Crest preview failure must not prevent the record from loading. */ }
         _fields.Clear();
         foreach (var field in Services.RequireData().GetFields(TableName, recordIndex, LabelMaps.Teams))
             _fields[field.FieldName] = field;
@@ -1852,7 +1852,7 @@ public sealed class TeamsSection : SectionBase
         {
             ShowTeamFlags(crestTeamId, countryColumn >= 0 ? Parse(record.Get(countryColumn)) : 0);
         }
-        catch { /* Flag preview failure must not prevent the record from loading. */ }
+        catch (Exception ex) { Program.Log($"[CM26] Team flag preview failed: {ex.Message}"); /* Flag preview failure must not prevent the record from loading. */ }
 
         foreach (var editor in _editors)
         {

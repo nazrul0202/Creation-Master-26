@@ -1414,7 +1414,7 @@ internal static class HeadlessSmoke
                         f.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
                         _opened.Add(f);
             }
-            catch { /* best effort */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Local player name scan failed: {ex.Message}"); /* best effort */ }
         }
         public void Dispose() { }
     }
@@ -1556,7 +1556,7 @@ internal static class HeadlessSmoke
             if (!string.IsNullOrWhiteSpace(smokeFolder) && Directory.Exists(smokeFolder))
             {
                 try { Directory.Delete(smokeFolder, recursive: true); }
-                catch { /* Best-effort cleanup of isolated test data. */ }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Smoke folder cleanup failed: {ex.Message}"); /* Best-effort cleanup of isolated test data. */ }
             }
         }
     }
@@ -1843,7 +1843,7 @@ internal static class HeadlessSmoke
                     section.ActivateSection();
                     System.Windows.Forms.Application.DoEvents();
                 }
-                catch { /* record selection may fail without data; layout still valid */ }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Section activation during layout audit failed: {ex.Message}"); /* record selection may fail without data; layout still valid */ }
 
                 var truncated = new List<string>();
                 var overflow = new List<string>();

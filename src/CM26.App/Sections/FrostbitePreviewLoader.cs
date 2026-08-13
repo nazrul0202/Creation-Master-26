@@ -97,16 +97,19 @@ internal static class FrostbitePreviewLoader
                     var path = services.FrostbiteAssets.ExportLegacyAsset(legacyPath);
                     if (!string.IsNullOrWhiteSpace(path)) return (FilePath: path, LegacyPath: legacyPath);
                 }
-                catch (FileNotFoundException)
+                catch (FileNotFoundException ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[CM26] Preview asset not found: {ex.Message}");
                     // Try the next UI variant (for example dark before light).
                 }
-                catch (DirectoryNotFoundException)
+                catch (DirectoryNotFoundException ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[CM26] Preview asset directory missing: {ex.Message}");
                     // The collection is not present in this FC installation.
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[CM26] Preview asset bridge unavailable: {ex.Message}");
                     // Asset bridge unavailable for this candidate; preserve the rest.
                 }
             }

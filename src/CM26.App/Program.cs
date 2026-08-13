@@ -346,7 +346,7 @@ internal static class Program
                 $"An unexpected error occurred ({context}).\n\n{ex?.Message}\n\nDetails were written to:\n{LogPath}",
                 "Creation Master 26", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
-        catch { /* never crash the handler */ }
+        catch (Exception handlerEx) { System.Diagnostics.Debug.WriteLine($"[CM26] Fatal message box failed: {handlerEx.Message}"); /* never crash the handler */ }
     }
 
     public static void Log(string message)

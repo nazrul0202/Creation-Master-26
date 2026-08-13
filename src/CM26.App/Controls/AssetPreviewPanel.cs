@@ -134,7 +134,7 @@ public sealed class AssetPreviewPanel : UserControl
             if (cts.IsCancellationRequested) { img?.Dispose(); return; }
             TextureMetadata meta = new();
             try { meta = _textures.ReadMetadata(filePath); }
-            catch { /* metadata is optional */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Texture metadata read failed: {ex.Message}"); /* metadata is optional */ }
             try
             {
                 BeginInvoke(() =>
@@ -169,7 +169,7 @@ public sealed class AssetPreviewPanel : UserControl
                     }
                 });
             }
-            catch (InvalidOperationException) { }
+            catch (InvalidOperationException ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Preview BeginInvoke failed: {ex.Message}"); }
         }, cts.Token);
         lock (_ctsGate) { _cts = cts; }
     }
@@ -189,9 +189,9 @@ public sealed class AssetPreviewPanel : UserControl
         lock (_ctsGate) { cts = _cts; _cts = null; }
         if (cts == null) return;
         try { cts.Cancel(); }
-        catch (ObjectDisposedException) { }
+        catch (ObjectDisposedException ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Cancel pending disposed: {ex.Message}"); }
         try { cts.Dispose(); }
-        catch (ObjectDisposedException) { }
+        catch (ObjectDisposedException ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Cancel dispose disposed: {ex.Message}"); }
     }
 
     private void CancelAndDispose()

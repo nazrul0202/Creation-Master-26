@@ -81,12 +81,14 @@ internal static class ExternalToolLocator
                 if (!drive.IsReady) continue;
                 results.Add(drive.RootDirectory.FullName);
             }
-            catch (IOException)
+            catch (IOException ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[CM26] Drive probe IO error: {ex.Message}");
                 // Drive disappeared or is unreadable between enumeration and probing.
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[CM26] Drive probe access denied: {ex.Message}");
                 // No permission to inspect this volume.
             }
         }

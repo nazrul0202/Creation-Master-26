@@ -202,7 +202,7 @@ public sealed class DashboardSection : SectionBase
             {
                 if (Directory.Exists(root)) Process.Start(new ProcessStartInfo("explorer.exe", $"\"{root}\"") { UseShellExecute = true });
             }
-            catch { /* cannot open explorer */ }
+            catch (Exception ex) { Program.Log($"[CM26] Could not open game folder: {ex.Message}"); /* cannot open explorer */ }
         };
         _saveHeroBtn = new Button { Text = "Save", Location = new Point(hero.Width - 172, 20), Size = new Size(120, 30) };
         Theme.ApplyButton(_saveHeroBtn, primary: true);

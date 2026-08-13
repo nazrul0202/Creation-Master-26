@@ -256,8 +256,9 @@ public sealed class CompetitionsSection : ClassicEntitySection
                 File.Copy(output, cached, overwrite: true);
                 exported++;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[CM26] Compdata CAS export skipped: {ex.Message}");
                 // A single missing compdata file must not abort the import.
             }
         }

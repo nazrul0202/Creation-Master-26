@@ -136,7 +136,7 @@ public static class SettingsService
                 if (Directory.Exists(fceditor))
                     return root;
             }
-            catch { /* keep looking */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Asset root candidate skipped: {ex.Message}"); /* keep looking */ }
         }
         return null;
     }
@@ -153,7 +153,7 @@ public static class SettingsService
                     if (idx > 0) dict[line[..idx].Trim()] = line[(idx + 1)..].Trim();
                 }
         }
-        catch { /* best effort */ }
+        catch (Exception ex) { Program.Log($"[CM26] Settings load failed: {ex.Message}"); /* best effort */ }
         return dict;
     }
 
@@ -164,6 +164,6 @@ public static class SettingsService
             Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
             File.WriteAllLines(SettingsPath, _values.Select(kv => $"{kv.Key}={kv.Value}"));
         }
-        catch { /* best effort */ }
+        catch (Exception ex) { Program.Log($"[CM26] Settings save failed: {ex.Message}"); /* best effort */ }
     }
 }

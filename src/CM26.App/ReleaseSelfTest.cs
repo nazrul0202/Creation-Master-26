@@ -110,7 +110,8 @@ internal static class ReleaseSelfTest
             finally
             {
                 SettingsService.ScraperRoot = previous;
-                try { Directory.Delete(temp, true); } catch { /* temp cleanup is best-effort */ }
+                try { Directory.Delete(temp, true); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Self-test temp cleanup failed: {ex.Message}"); /* temp cleanup is best-effort */ }
             }
         });
 
