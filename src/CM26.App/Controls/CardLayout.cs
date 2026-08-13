@@ -320,7 +320,7 @@ public static class CardLayout
         {
             Location = new Point(x, 96),
             Size = new Size(106, 32),
-            BackColor = Theme.IsDark ? accent : Lighten(accent, 235),
+            BackColor = accent,
         };
         ApplyRounded(metric, 8);
         var value = new Label

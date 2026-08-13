@@ -39,6 +39,7 @@ public sealed class PlayersSection : SectionBase
     private readonly List<TextBox> _traitEditors = [];
     private readonly TextBox _callnameId = new();
     private readonly Label _callnameStatus = new();
+    private Panel? _overviewTraitsPanel;
     private Panel? _traitsPanel;
     private bool _syncSkillSliders;
     private bool _syncReferencePickers;
@@ -68,8 +69,6 @@ public sealed class PlayersSection : SectionBase
         // cannot accept a font never takes down the whole section — or the app.
         SafeCtorStep(Tabs, "Tabs font", () => Tabs.Font = LegacyFont);
         Tabs.Padding = new Point(4, 2);
-        Tabs.SizeMode = TabSizeMode.Fixed;
-        Tabs.ItemSize = new Size(0, 1);
         AddTabSafe("Player", AddOverviewTab);
         AddTabSafe("Info", AddInfoTab);
         AddTabSafe("Skills", AddSkillsTab);
@@ -331,8 +330,8 @@ AddOverviewSupplement(card, "CONTRACT & VALUE", 455, 644,
             ("Contract until", "contractvaliduntil"), ("Value", "value"), ("Wage", "wage"), ("Reputation", "internationalrep"));
         AddOverviewSupplement(card, "PLAYING ROLES", 892, 644,
             ("Primary role", "role1"), ("Secondary role", "role2"), ("Third role", "role3"), ("Fourth role", "role4"));
-        _traitsPanel = Box("PLAYSTYLES", new Point(455, 804), new Size(855, 86));
-        card.Controls.Add(_traitsPanel);
+        _overviewTraitsPanel = Box("PLAYSTYLES", new Point(455, 804), new Size(855, 86));
+        card.Controls.Add(_overviewTraitsPanel);
         var note = new Label { Text = "Read-only career overview · Edit all database values in the Info and Skills tabs.", Location = new Point(28, 550), Size = new Size(800, 24), ForeColor = CardLayout.CardSubtle, Font = Theme.Body };
         note.Visible = false;
         note.Location = new Point(18, 858);
@@ -347,15 +346,6 @@ AddOverviewSupplement(card, "CONTRACT & VALUE", 455, 644,
         tile.Controls.Add(value);
         tile.Controls.Add(new Label { Text = title, Location = new Point(4, 73), Size = new Size(82, 20), TextAlign = ContentAlignment.MiddleCenter, Font = Theme.BodyBold, ForeColor = Color.White });
         parent.Controls.Add(tile);
-    }
-
-    private static Color Lighten(Color color, int amount)
-    {
-        amount = Math.Clamp(amount, 0, 255);
-        return Color.FromArgb(
-            color.R + (255 - color.R) * amount / 255,
-            color.G + (255 - color.G) * amount / 255,
-            color.B + (255 - color.B) * amount / 255);
     }
 
     /// <summary>FUT-style rating grade used for the fcradar-style colored badges (0-99 scale).</summary>
@@ -389,7 +379,7 @@ AddOverviewSupplement(card, "CONTRACT & VALUE", 455, 644,
 
     private void AddHeaderMetric(Control parent, string code, int x, Color accent, params string[] fields)
     {
-        var metric = new Panel { Location = new Point(x, 96), Size = new Size(106, 32), BackColor = Lighten(accent, 235) };
+        var metric = new Panel { Location = new Point(x, 96), Size = new Size(106, 32), BackColor = accent };
         ApplyRoundedCorners(metric, 8);
         var value = new Label { Location = new Point(11, 4), Size = new Size(40, 23), Font = new Font("Segoe UI", 11, FontStyle.Bold), ForeColor = Color.White, TextAlign = ContentAlignment.MiddleLeft, Tag = fields };
         metric.Controls.Add(value);
@@ -1490,10 +1480,25 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
 
     private void RenderDatabaseTraits(DbTable table)
     {
-        if (_traitsPanel == null) return;
         foreach (var editor in _traitEditors) _editors.Remove(editor);
         _traitEditors.Clear();
-        _traitsPanel.Controls.Clear();
+        _overviewTraitsPanel?.Controls.Clear();
+        _traitsPanel?.Controls.Clear();
+        var chips = BuildPlaystyleChips();
+        _overviewTraitsPanel?.Controls.Add(ClonePlaystyleChips(chips));
+
+        var edit = new Button { Text = "Edit playstyles…", Location = new Point(714, 32), Size = new Size(126, 28), FlatStyle = FlatStyle.Flat, Font = Theme.Muted9 };
+        edit.FlatAppearance.BorderColor = Color.FromArgb(116, 185, 34);
+        edit.Click += (_, _) => OpenSinglePlayerEditor();
+        if (_traitsPanel != null)
+        {
+            _traitsPanel.Controls.Add(ClonePlaystyleChips(chips));
+            _traitsPanel.Controls.Add(edit);
+        }
+    }
+
+    private FlowLayoutPanel BuildPlaystyleChips()
+    {
         var chips = new FlowLayoutPanel
         {
             Location = new Point(12, 23), Size = new Size(690, 53), AutoScroll = true,
@@ -1505,12 +1510,31 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
         else
             foreach (var (name, plus) in names)
                 chips.Controls.Add(CreatePlaystyleChip(name, plus));
-        _traitsPanel.Controls.Add(chips);
+        return chips;
+    }
 
-        var edit = new Button { Text = "Edit playstyles…", Location = new Point(714, 32), Size = new Size(126, 28), FlatStyle = FlatStyle.Flat, Font = Theme.Muted9 };
-        edit.FlatAppearance.BorderColor = Color.FromArgb(116, 185, 34);
-        edit.Click += (_, _) => OpenSinglePlayerEditor();
-        _traitsPanel.Controls.Add(edit);
+    private static FlowLayoutPanel ClonePlaystyleChips(FlowLayoutPanel source)
+    {
+        var clone = new FlowLayoutPanel
+        {
+            Location = source.Location, Size = source.Size, AutoScroll = source.AutoScroll,
+            WrapContents = source.WrapContents, BackColor = source.BackColor,
+            Padding = source.Padding, Margin = source.Margin
+        };
+        foreach (Control control in source.Controls)
+        {
+            if (control is Label label)
+            {
+                clone.Controls.Add(new Label
+                {
+                    Text = label.Text, AutoSize = label.AutoSize,
+                    Padding = label.Padding, Margin = label.Margin,
+                    Font = label.Font, ForeColor = label.ForeColor,
+                    BackColor = label.BackColor, BorderStyle = label.BorderStyle
+                });
+            }
+        }
+        return clone;
     }
 
     private static Control CreatePlaystyleChip(string name, bool plus) => new Label

@@ -90,6 +90,8 @@ public sealed class TeamsSection : SectionBase
     {
         Tabs.Font = LegacyFont;
         Tabs.Padding = new Point(4, 2);
+        Tabs.SizeMode = TabSizeMode.Fixed;
+        Tabs.ItemSize = new Size(110, 28);
         AddGenericTab();
         AddRosterTab();
         AddSponsorsTab();
@@ -1220,7 +1222,6 @@ public sealed class TeamsSection : SectionBase
                 break;
             }
         }
-        PopulateVisualLineupFallback(roster);
         RenderLineup();
     }
 
@@ -1229,6 +1230,8 @@ public sealed class TeamsSection : SectionBase
     /// absent entirely. The roster still has the authoritative teamplayerlinks
     /// mapping, so fill only empty display slots from it. This is visual-only:
     /// no database field is staged until the user explicitly drags a player.
+    /// Must be called after the formation layout has been applied so each slot's
+    /// ExpectedPosition is known and position-aware matching can succeed.
     /// </summary>
     private void PopulateVisualLineupFallback(IReadOnlyList<TeamRosterItem> roster)
     {
@@ -1925,6 +1928,13 @@ public sealed class TeamsSection : SectionBase
             var roster = Services.RequireData().GetTeamRoster(int.TryParse(id, out var teamId) ? teamId : 0);
             LoadLineup(teamId, roster);
             SelectFormationLayout(teamId);
+            // Formation layout must be applied before the fallback so ExpectedPosition
+            // is set and empty slots can be matched by position.
+            if (_activeFormationChoice != null)
+            {
+                PopulateVisualLineupFallback(roster);
+                RenderLineup();
+            }
             // Force the formation board to repaint with all lineup slots.
             foreach (var slot in _lineupSlots)
             {
@@ -2763,20 +2773,18 @@ public sealed class TeamsSection : SectionBase
         {
             try
             {
-                if (!viewer.IsDisposed)
-                {
-                    var old = viewer.Image;
-                    viewer.Image = image;
-                    old?.Dispose();
-                    _crestCaption.Text = image == null
-                        ? $"{teamName}\r\nNo crest available"
-                        : $"{teamName}\r\n{source}";
-                }
-        }
-        catch (System.AccessViolationException ex) { Program.Log("Team crest preview access violation: " + ex.Message); }
-        catch (Exception ex) { Program.Log("Team crest preview failed: " + ex.Message); }
-    }, resolvedPath => LegacyAssetActions.SetTarget(
-        viewer, new LegacyAssetEditTarget(resolvedPath, 256, 256)));
+                if (viewer.IsDisposed) { image?.Dispose(); return; }
+                var old = viewer.Image;
+                viewer.Image = image;
+                old?.Dispose();
+                _crestCaption.Text = image == null
+                    ? $"{teamName}\r\nNo crest available"
+                    : $"{teamName}\r\n{source}";
+            }
+            catch (System.AccessViolationException ex) { Program.Log("Team crest preview access violation: " + ex.Message); }
+            catch (Exception ex) { Program.Log("Team crest preview failed: " + ex.Message); }
+        }, resolvedPath => LegacyAssetActions.SetTarget(
+            viewer, new LegacyAssetEditTarget(resolvedPath, 256, 256)));
     }
 
     /// <summary>
