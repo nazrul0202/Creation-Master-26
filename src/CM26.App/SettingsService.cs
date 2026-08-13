@@ -69,10 +69,10 @@ public static class SettingsService
         set { _values["Language"] = value; Save(); }
     }
 
-    /// <summary>Visual theme mode: true = dark (optional), false = light (default, FC Editor style).</summary>
+    /// <summary>Visual theme mode: true = dark (default), false = explicit light mode.</summary>
     public static bool DarkMode
     {
-        get => _values.TryGetValue("DarkMode", out var v) && v == "1";
+        get => !_values.TryGetValue("DarkMode", out var v) || v != "0";
         set { _values["DarkMode"] = value ? "1" : "0"; Save(); }
     }
 

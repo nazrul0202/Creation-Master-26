@@ -287,8 +287,8 @@ internal static class Program
         // Apply the saved UI language (defaults to the OS UI culture).
         Localization.SetCulture(SettingsService.Language);
 
-        // Apply the saved visual theme (dark default) before any window is created.
-        CM26.App.Theming.Theme.IsDark = SettingsService.DarkMode;
+        // CM26 Studio uses the dark scouting workspace as its primary visual mode.
+        CM26.App.Theming.Theme.IsDark = true;
 
         // First-run End User License Agreement. If the user declines, do not continue.
         // Recover a CM26-owned folder swap before any editor/archive session is

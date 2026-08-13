@@ -442,10 +442,12 @@ public static class Theme
                         label.ForeColor = label.ForeColor == SystemColors.GrayText ? Muted : Text;
                     if (label.BackColor == SystemColors.Control)
                         label.BackColor = Color.Transparent;
+                    if (IsDark && label.BackColor == Color.White)
+                        label.BackColor = Panel;
                     label.Font = label.Font.FontFamily.Name.Equals("Segoe UI", StringComparison.OrdinalIgnoreCase) ? Body : label.Font;
                     break;
                 case Panel panel when control is not PictureBox:
-                    if (panel.BackColor == SystemColors.Control)
+                    if (panel.BackColor == SystemColors.Control || (IsDark && panel.BackColor == Color.White))
                         panel.BackColor = Background;
                     if (panel.ForeColor == SystemColors.ControlText || panel.ForeColor == SystemColors.WindowText)
                         panel.ForeColor = Text;
