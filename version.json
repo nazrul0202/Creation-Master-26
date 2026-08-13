@@ -1,6 +1,6 @@
 {
-  "version": "1.0.104",
+  "version": "1.0.105",
   "name": "Creation Master 26",
-  "notes": "v1.0.104 - CM26 Studio visual redesign: dark scouting dashboard shell, denser dashboard statistics, refined sidebar and tabs, compact player attribute rows, and tighter team kit overview layout.",
+  "notes": "v1.0.105 - CM26 Studio visual redesign: enforced dark scouting workspace across legacy controls, corrected theme persistence, and refined dashboard, player and team density.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
