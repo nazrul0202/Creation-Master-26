@@ -430,7 +430,7 @@ public sealed class TransfersSection : SectionBase
         {
             await process.WaitForExitAsync();
         }
-        catch { /* the scraper may already have been closed or killed */ }
+        catch (Exception ex) { Program.Log("Scraper wait failed: " + ex.Message); }
         finally
         {
             process.Dispose();
@@ -440,7 +440,7 @@ public sealed class TransfersSection : SectionBase
         {
             BeginInvoke((Action)(() => DetectScraperOutput(showMissingMessage: false)));
         }
-        catch { /* the window may already be closing */ }
+        catch (InvalidOperationException) { /* the window may already be closing */ }
     }
 
     internal static bool TryValidateUrl(string text, out Uri uri)

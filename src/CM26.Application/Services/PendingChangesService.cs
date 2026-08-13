@@ -28,6 +28,7 @@ public sealed class PendingChangesService
     public void MarkStructuralChange()
     {
         _hasStructuralChanges = true;
+        _changes.Clear();
         _redo.Clear();
         Changed?.Invoke(this, EventArgs.Empty);
     }

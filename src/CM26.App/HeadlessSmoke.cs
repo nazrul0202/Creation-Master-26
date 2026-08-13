@@ -1242,9 +1242,9 @@ internal static class HeadlessSmoke
                     {
                         var rec = services.Session.GetRecord("players", row);
                         if (rec == null || playerIdCol < 0 || rec.Get(playerIdCol) != targetId.ToString()) continue;
-                        var first = firstNameCol >= 0 ? int.Parse(rec.Get(firstNameCol)) : 0;
-                        var last = lastNameCol >= 0 ? int.Parse(rec.Get(lastNameCol)) : 0;
-                        var common = commonNameCol >= 0 ? int.Parse(rec.Get(commonNameCol)) : 0;
+                        var first = firstNameCol >= 0 && int.TryParse(rec.Get(firstNameCol), out var f) ? f : 0;
+                        var last = lastNameCol >= 0 && int.TryParse(rec.Get(lastNameCol), out var l) ? l : 0;
+                        var common = commonNameCol >= 0 && int.TryParse(rec.Get(commonNameCol), out var c) ? c : 0;
                         report.Add($"Player {targetId} name IDs: first={first} last={last} common={common}; resolved={resolver.PlayerDisplayName(targetId, first, last, common)}");
                         foreach (var nameId in new[] { first, last, common }.Where(id => id > 0))
                             report.Add($"  nameid={nameId}: {DescribePlayerName(services.Session, nameId)}");

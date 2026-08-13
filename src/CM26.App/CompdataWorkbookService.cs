@@ -277,7 +277,7 @@ internal sealed class CompdataWorkbookService
                 var value = CellText(source, shared);
                 if (!value.StartsWith("=", StringComparison.Ordinal)) row[column] = value;
             }
-            catch { /* Keep the original formula visible if its reference is invalid. */ }
+            catch (Exception ex) { Program.Log($"Compdata formula resolution failed: {ex.Message}"); }
         }
     }
 

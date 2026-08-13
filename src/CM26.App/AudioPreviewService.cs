@@ -6,6 +6,7 @@ namespace CM26.App;
 internal static class AudioPreviewService
 {
     private const string Alias = "cm26_audio_preview";
+    private static readonly object Gate = new();
 
     [DllImport("winmm.dll", CharSet = CharSet.Unicode)]
     private static extern int mciSendString(
@@ -15,29 +16,35 @@ internal static class AudioPreviewService
     {
         if (!File.Exists(filePath))
             throw new FileNotFoundException("Audio file was not found.", filePath);
-        Stop();
-        var escaped = filePath.Replace("\"", "\"\"");
-        var result = mciSendString($"open \"{escaped}\" type mpegvideo alias {Alias}", null, 0, IntPtr.Zero);
-        if (result != 0)
-            result = mciSendString($"open \"{escaped}\" alias {Alias}", null, 0, IntPtr.Zero);
-        if (result != 0)
+        lock (Gate) Stop();
+        lock (Gate)
         {
-            Stop();
-            throw new InvalidOperationException($"The selected audio format is not supported by Windows Media Control. (MCI {result})");
-        }
-        result = mciSendString($"play {Alias}", null, 0, IntPtr.Zero);
-        if (result != 0)
-        {
-            Stop();
-            throw new InvalidOperationException($"Audio playback could not be started. (MCI {result})");
+            var escaped = filePath.Replace("\"", "\"\"");
+            var result = mciSendString($"open \"{escaped}\" type mpegvideo alias {Alias}", null, 0, IntPtr.Zero);
+            if (result != 0)
+                result = mciSendString($"open \"{escaped}\" alias {Alias}", null, 0, IntPtr.Zero);
+            if (result != 0)
+            {
+                Stop();
+                throw new InvalidOperationException($"The selected audio format is not supported by Windows Media Control. (MCI {result})");
+            }
+            result = mciSendString($"play {Alias}", null, 0, IntPtr.Zero);
+            if (result != 0)
+            {
+                Stop();
+                throw new InvalidOperationException($"Audio playback could not be started. (MCI {result})");
+            }
         }
     }
 
     public static void Stop()
     {
-        try { mciSendString($"stop {Alias}", null, 0, IntPtr.Zero); }
-        catch (Exception ex) { Program.Log("Audio preview stop failed: " + ex.Message); }
-        try { mciSendString($"close {Alias}", null, 0, IntPtr.Zero); }
-        catch (Exception ex) { Program.Log("Audio preview close failed: " + ex.Message); }
+        lock (Gate)
+        {
+            try { mciSendString($"stop {Alias}", null, 0, IntPtr.Zero); }
+            catch (Exception ex) { Program.Log("Audio preview stop failed: " + ex.Message); }
+            try { mciSendString($"close {Alias}", null, 0, IntPtr.Zero); }
+            catch (Exception ex) { Program.Log("Audio preview close failed: " + ex.Message); }
+        }
     }
 }

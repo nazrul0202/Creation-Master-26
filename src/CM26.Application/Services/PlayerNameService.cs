@@ -45,7 +45,7 @@ public sealed class PlayerNameService
     public string DisplayName(int playerId, int firstNameId, int lastNameId, int commonNameId)
     {
         var parts = Resolve(playerId, firstNameId, lastNameId, commonNameId);
-        return parts.KnownAs ?? $"Player {playerId}";
+        return string.IsNullOrWhiteSpace(parts.KnownAs) ? $"Player {playerId}" : parts.KnownAs;
     }
 }
 
