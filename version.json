@@ -1,6 +1,6 @@
 {
-  "version": "1.0.101",
+  "version": "1.0.102",
   "name": "Creation Master 26",
-  "notes": "v1.0.101 - Commercial UI pass: responsive section cards, complete visual audit gate, mapped team/league/country previews, and repaired roster/formation layouts.",
+  "notes": "v1.0.102 - Reliability fixes: icon cache thread-safety and size cap, process deadlock prevention, silent-failure logging, fire-and-forget exception handling, preview race-condition guard, and crest disposal safety.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

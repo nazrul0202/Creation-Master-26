@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.102 - Reliability and stability fixes (2026-08-13)
+
+- Hardened `IconService` against concurrent access and capped its cache at 200 entries to prevent unbounded memory growth.
+- Fixed potential deadlocks when draining redirected process output in backup compression and Frostbite asset scanning.
+- Added diagnostic logging for previously silent failure paths in mod library, workspace, asset session and localization lookups.
+- Wrapped fire-and-forget async handlers in `MainForm` so unhandled exceptions are logged instead of being lost.
+- Protected `AssetPreviewPanel.BeginInvoke` against `InvalidOperationException` during control disposal races.
+- Moved team crest caption updates inside the disposed-check guard to avoid cross-thread control access.
+
 ## Version 1.0.101 - Commercial UI and mapping pass (2026-08-13)
 
 - Added an automated 98-screenshot visual audit across every public section at 1366x768 and 1920x1080.
