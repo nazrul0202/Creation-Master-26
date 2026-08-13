@@ -1,6 +1,6 @@
 {
-  "version": "1.0.102",
+  "version": "1.0.103",
   "name": "Creation Master 26",
-  "notes": "v1.0.102 - Reliability fixes: icon cache thread-safety and size cap, process deadlock prevention, silent-failure logging, fire-and-forget exception handling, preview race-condition guard, and crest disposal safety.",
+  "notes": "v1.0.103 - Full app audit and bug sweep: fixed binary serialization corruption in asset index/FETM writer, removed hardcoded D: drive mod-library path, resolved mklink pipe deadlock, corrected player attribute badges and playstyles panel, fixed formation board fallback ordering, added null checks to prevent crashes in ShowRecord, disposed shared theme fonts and UI timers, fixed cancellation race in asset preview, hardened mesh bounds/overflow, and added logging across all previously silent catch blocks.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
