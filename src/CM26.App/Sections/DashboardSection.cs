@@ -65,16 +65,17 @@ public sealed class DashboardSection : SectionBase
         }
 
         _hero = BuildHero();
-        _hero.Size = new Size(_host.ClientSize.Width - 24, 118);
+        _hero.Size = new Size(Math.Max(520, _host.ClientSize.Width - 24), 118);
         _host.Controls.Add(_hero);
 
         _flow = new FlowLayoutPanel
         {
-            Location = new Point(0, _hero.Bottom + 8),
+            Location = new Point(0, _hero.Bottom + 12),
             AutoSize = true,
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = true,
             BackColor = CardLayout.CardBackground,
+            Padding = new Padding(2),
         };
         _flow.Controls.Add(Fc26StatCard("Tables", Services.Session.Tables.Count.ToString("N0"), null, CardLayout.Fc26Green));
         _flow.Controls.Add(Fc26StatCard("Players", CountOf("players"), "players", CardLayout.Fc26Blue));
@@ -217,11 +218,11 @@ public sealed class DashboardSection : SectionBase
 
     private Control Fc26StatCard(string label, string value, string? navigateKey, Color accent)
     {
-        var card = new Panel { Size = new Size(155, 80), BackColor = CardLayout.CardWhite, Margin = new Padding(4) };
+        var card = new Panel { Size = new Size(148, 72), BackColor = CardLayout.CardWhite, Margin = new Padding(3) };
         CardLayout.ApplyRounded(card, 10);
-        card.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(155, 4), BackColor = accent });
-        var v = new Label { Text = value, Location = new Point(8, 10), Size = new Size(140, 32), Font = Theme.RecordTitle, ForeColor = CardLayout.CardText, TextAlign = ContentAlignment.MiddleCenter };
-        var l = new Label { Text = label, Location = new Point(8, 44), Size = new Size(140, 28), Font = Theme.Label, ForeColor = CardLayout.CardSubtle, TextAlign = ContentAlignment.TopCenter };
+        card.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(148, 4), BackColor = accent });
+        var v = new Label { Text = value, Location = new Point(8, 7), Size = new Size(132, 30), Font = Theme.RecordTitle, ForeColor = CardLayout.CardText, TextAlign = ContentAlignment.MiddleCenter };
+        var l = new Label { Text = label, Location = new Point(8, 39), Size = new Size(132, 24), Font = Theme.Label, ForeColor = CardLayout.CardSubtle, TextAlign = ContentAlignment.TopCenter };
         card.Controls.Add(l);
         card.Controls.Add(v);
         if (navigateKey != null)

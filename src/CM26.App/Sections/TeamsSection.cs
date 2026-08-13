@@ -718,14 +718,14 @@ public sealed class TeamsSection : SectionBase
 
     private static Panel AddKitPreview(Control parent, PictureBox preview, string label, int x, int y)
     {
-        var holder = new Panel { Location = new Point(x, y), Size = new Size(180, 96), BackColor = CardLayout.CardWhite };
+        var holder = new Panel { Location = new Point(x, y), Size = new Size(168, 88), BackColor = CardLayout.CardWhite };
         preview.Location = new Point(10, 4);
-        preview.Size = new Size(160, 72);
+        preview.Size = new Size(148, 64);
         preview.SizeMode = PictureBoxSizeMode.Zoom;
         preview.BackColor = CardLayout.CardFieldBg;
         preview.BorderStyle = BorderStyle.None;
         holder.Controls.Add(preview);
-        holder.Controls.Add(new Label { Text = label, Location = new Point(0, 78), Size = new Size(180, 16), Font = Theme.Muted9, TextAlign = ContentAlignment.MiddleCenter, ForeColor = CardLayout.CardSubtle, BackColor = CardLayout.CardWhite });
+        holder.Controls.Add(new Label { Text = label, Location = new Point(0, 69), Size = new Size(168, 16), Font = Theme.Muted9, TextAlign = ContentAlignment.MiddleCenter, ForeColor = CardLayout.CardSubtle, BackColor = CardLayout.CardWhite });
         parent.Controls.Add(holder);
         return holder;
     }

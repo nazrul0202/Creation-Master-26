@@ -431,7 +431,7 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
         var row = 0;
         foreach (var (label, field) in attributes)
         {
-            var yOffset = 38 + row * 20;
+            var yOffset = 34 + row * 18;
             group.Controls.Add(new Label { Text = label, Location = new Point(14, yOffset), Size = new Size(305, 18), Font = Theme.Body, ForeColor = CardLayout.CardFieldLabel });
             var value = new TextBox
             {
