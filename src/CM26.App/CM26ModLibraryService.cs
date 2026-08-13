@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace CM26.App;
@@ -62,7 +63,7 @@ public static class CM26ModLibraryService
     private static LibraryItem? TryRead(string path, bool enabled)
     {
         try { return new LibraryItem(path, CM26ModPackageService.ReadManifest(path), enabled); }
-        catch { return null; }
+        catch (Exception ex) { Debug.WriteLine($"[CM26] TryRead failed: {ex.Message}"); return null; }
     }
 
     private static List<string> LoadEnabled()
@@ -72,7 +73,7 @@ public static class CM26ModLibraryService
             : File.Exists(LegacyStatePath)
                 ? JsonSerializer.Deserialize<List<string>>(File.ReadAllText(LegacyStatePath)) ?? []
                 : []; }
-        catch { return []; }
+        catch (Exception ex) { Debug.WriteLine($"[CM26] LoadEnabled failed: {ex.Message}"); return []; }
     }
 
     private static void EnsureLibraryChild(string candidate)

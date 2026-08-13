@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Reflection;
@@ -7,7 +8,9 @@ namespace CM26.App.Theming;
 /// <summary>Loads embedded section icons; provides a drawn fallback. Preserves transparency & aspect.</summary>
 public static class IconService
 {
-    private static readonly Dictionary<string, Image> _cache = new();
+    private static readonly ConcurrentDictionary<string, Image> _cache = new();
+    private static readonly ConcurrentQueue<string> _cacheKeys = new();
+    private const int MaxCacheEntries = 200;
     private static readonly Assembly _asm = Assembly.GetExecutingAssembly();
 
     // Map every logical section to an embedded icon.  The supplied Icon Section
@@ -78,8 +81,15 @@ public static class IconService
         {
             src?.Dispose();
         }
-        _cache[cacheKey] = result;
-        return result;
+        if (_cache.TryAdd(cacheKey, result))
+        {
+            _cacheKeys.Enqueue(cacheKey);
+            while (_cache.Count > MaxCacheEntries && _cacheKeys.TryDequeue(out var oldest))
+                _cache.TryRemove(oldest, out _);
+            return result;
+        }
+        result.Dispose();
+        return _cache.TryGetValue(cacheKey, out var existing) ? existing : result;
     }
 
     private static Image ScaleToFit(Image src, int size)

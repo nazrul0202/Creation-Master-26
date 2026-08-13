@@ -54,8 +54,16 @@ public sealed class MainForm : Form
         _registry = BuildRegistry();
         _services.NavigationRequested += NavigateTo;
         _services.RecordNavigationRequested += NavigateToRecord;
-        _services.OpenGameRequested += () => _ = OpenFc26Async();
-        _services.SaveDraftRequested += () => _ = SaveDirectAsync();
+        _services.OpenGameRequested += async () =>
+        {
+            try { await OpenFc26Async(); }
+            catch (Exception ex) { Debug.WriteLine($"[CM26] OpenFc26Async failed: {ex.Message}"); }
+        };
+        _services.SaveDraftRequested += async () =>
+        {
+            try { await SaveDirectAsync(); }
+            catch (Exception ex) { Debug.WriteLine($"[CM26] SaveDirectAsync failed: {ex.Message}"); }
+        };
         _services.ScraperSquadImportRequested += ImportScraperSquad;
 
         // ---- CM16-style application menu ----

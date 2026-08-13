@@ -135,8 +135,10 @@ public sealed class AssetPreviewPanel : UserControl
             TextureMetadata meta = new();
             try { meta = _textures.ReadMetadata(filePath); }
             catch { /* metadata is optional */ }
-            BeginInvoke(() =>
+            try
             {
+                BeginInvoke(() =>
+                {
                 if (serial != _requestSerial || IsDisposed) { img?.Dispose(); return; }
                 if (img != null)
                 {
@@ -165,7 +167,9 @@ public sealed class AssetPreviewPanel : UserControl
                     _stateLabel.ForeColor = Theme.Warning;
                     _captionLabel.Visible = false;
                 }
-            });
+                });
+            }
+            catch (InvalidOperationException) { }
         }, cts.Token);
     }
 

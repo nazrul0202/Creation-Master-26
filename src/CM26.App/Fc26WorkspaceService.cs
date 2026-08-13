@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -49,7 +50,7 @@ public static class Fc26WorkspaceService
             var candidate = Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
             return candidate.StartsWith(root, StringComparison.OrdinalIgnoreCase);
         }
-        catch { return false; }
+        catch (Exception ex) { Debug.WriteLine($"[CM26] IsManagedWorkspace failed: {ex.Message}"); return false; }
     }
 
     private static string GetSessionFolder(string gameRoot)
@@ -131,7 +132,7 @@ public static class Fc26WorkspaceService
             }
             return true;
         }
-        catch { return false; }
+        catch (Exception ex) { Debug.WriteLine($"[CM26] ExtractLegacyDatabase failed: {ex.Message}"); return false; }
     }
 
     private static void CopyDatabaseFiles(string source, string destination, bool overwrite)
@@ -151,7 +152,7 @@ public static class Fc26WorkspaceService
             return Directory.EnumerateFiles(folder, "*", SearchOption.TopDirectoryOnly)
                 .FirstOrDefault(path => Path.GetFileName(path).Equals(name, StringComparison.OrdinalIgnoreCase));
         }
-        catch { return null; }
+        catch (Exception ex) { Debug.WriteLine($"[CM26] FindFile failed: {ex.Message}"); return null; }
     }
 
     private sealed record WorkspaceManifest(string SourceFolder, string GameRoot, DateTimeOffset CreatedUtc);

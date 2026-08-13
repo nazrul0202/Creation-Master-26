@@ -320,11 +320,11 @@ public static class GameBackupService
             start.ArgumentList.Add("/S:" + status.BackupRoot);
             using var process = Process.Start(start)
                 ?? throw new InvalidOperationException("Unable to start Windows compression.");
-            var outputTask = process.StandardOutput.ReadToEndAsync();
-            var errorTask = process.StandardError.ReadToEndAsync();
-            process.WaitForExit();
+            var outputTask = Task.Run(() => process.StandardOutput.ReadToEnd());
+            var errorTask = Task.Run(() => process.StandardError.ReadToEnd());
             var output = outputTask.GetAwaiter().GetResult().Trim();
             var error = errorTask.GetAwaiter().GetResult().Trim();
+            process.WaitForExit();
             if (process.ExitCode != 0)
                 return new(false, string.IsNullOrWhiteSpace(error) ? output : error);
             return new(true,

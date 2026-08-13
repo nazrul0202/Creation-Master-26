@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Resources;
 
@@ -65,18 +66,18 @@ public static class Localization
             // Uses a satellite assembly if one exists, otherwise the base resource.
             return EnManager.GetString(key, culture);
         }
-        catch { return null; }
+        catch (Exception ex) { Debug.WriteLine($"[CM26] TryGet failed: {ex.Message}"); return null; }
     }
 
     private static string? English(string key)
     {
         try { return EnManager.GetString(key, CultureInfo.InvariantCulture); }
-        catch { return null; }
+        catch (Exception ex) { Debug.WriteLine($"[CM26] English failed: {ex.Message}"); return null; }
     }
 
     private static CultureInfo SafeUiCulture()
     {
         try { return CultureInfo.CurrentUICulture; }
-        catch { return new CultureInfo("en"); }
+        catch (Exception ex) { Debug.WriteLine($"[CM26] SafeUiCulture failed: {ex.Message}"); return new CultureInfo("en"); }
     }
 }

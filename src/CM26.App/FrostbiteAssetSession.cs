@@ -103,8 +103,8 @@ public sealed class FrostbiteAssetSession
             if (!process.Start()) return false;
             // Drain both redirected pipes asynchronously so a large first-run
             // asset index cannot deadlock before the timeout is evaluated.
-            var outputTask = process.StandardOutput.ReadToEndAsync();
-            var errorTask = process.StandardError.ReadToEndAsync();
+            var outputTask = Task.Run(() => process.StandardOutput.ReadToEnd());
+            var errorTask = Task.Run(() => process.StandardError.ReadToEnd());
             if (!process.WaitForExit(120_000))
             {
                 try { process.Kill(entireProcessTree: true); }
@@ -205,7 +205,7 @@ public sealed class FrostbiteAssetSession
         var libraryFile = Path.Combine(steamRoot, "steamapps", "libraryfolders.vdf");
         string content;
         try { content = File.ReadAllText(libraryFile); }
-        catch { yield break; }
+        catch (Exception ex) { Debug.WriteLine($"[CM26] GetSteamLibraries failed: {ex.Message}"); yield break; }
         foreach (Match match in Regex.Matches(content, "\\\"path\\\"\\s+\\\"(?<path>(?:\\\\\\\"|[^\\\"])*)\\\"", RegexOptions.IgnoreCase))
         {
             var library = match.Groups["path"].Value.Replace("\\\\", "\\");
@@ -223,7 +223,7 @@ public sealed class FrostbiteAssetSession
                    File.Exists(Path.Combine(root, "Patch", "layout.toc")) &&
                    File.Exists(Path.Combine(root, "Patch", "initfs_Win32"));
         }
-        catch { return false; }
+        catch (Exception ex) { Debug.WriteLine($"[CM26] IsGameRoot failed: {ex.Message}"); return false; }
     }
 
     public IReadOnlyList<AssetMatch> SearchAssets(

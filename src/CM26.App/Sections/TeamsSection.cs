@@ -2768,10 +2768,10 @@ public sealed class TeamsSection : SectionBase
                     var old = viewer.Image;
                     viewer.Image = image;
                     old?.Dispose();
+                    _crestCaption.Text = image == null
+                        ? $"{teamName}\r\nNo crest available"
+                        : $"{teamName}\r\n{source}";
                 }
-                _crestCaption.Text = image == null
-                    ? $"{teamName}\r\nNo crest available"
-                    : $"{teamName}\r\n{source}";
         }
         catch (System.AccessViolationException ex) { Program.Log("Team crest preview access violation: " + ex.Message); }
         catch (Exception ex) { Program.Log("Team crest preview failed: " + ex.Message); }
