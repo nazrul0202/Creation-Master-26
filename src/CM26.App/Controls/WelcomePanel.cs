@@ -148,6 +148,7 @@ public sealed class WelcomePanel : UserControl
 
         foreach (var folder in recent)
         {
+            if (string.IsNullOrWhiteSpace(folder)) continue;
             var name = Path.GetFileName(folder.TrimEnd(Path.DirectorySeparatorChar));
             if (string.IsNullOrWhiteSpace(name)) name = folder;
             var link = new LinkLabel

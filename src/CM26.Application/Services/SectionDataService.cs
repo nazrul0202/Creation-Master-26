@@ -204,7 +204,12 @@ public sealed class SectionDataService
             var parts = _resolver.PlayerNameParts(playerId, fnId, lnId, cnId);
             var resolved = parts.HasAnyName;
             loanByPlayerId.TryGetValue(playerId, out var loanInfo);
-            string LinkValue(string field) => link == null || links == null ? string.Empty : link.Get(Col(links, field));
+            string LinkValue(string field)
+            {
+                if (link == null || links == null) return string.Empty;
+                var column = Col(links, field);
+                return column >= 0 ? link.Get(column) : string.Empty;
+            }
             roster.Add(new TeamRosterItem
             {
                 PlayerId = playerId,

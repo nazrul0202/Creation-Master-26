@@ -27,8 +27,11 @@ internal static class FrostbiteLegacyAssetResolver
         if (string.IsNullOrWhiteSpace(legacyPath))
             throw new ArgumentException("Legacy asset path is required.", nameof(legacyPath));
         var normalizedPath = legacyPath.Replace('\\', '/').TrimStart('/').ToLowerInvariant();
-        var entry = Entries.GetOrAdd(normalizedPath, path => new Lazy<LegacyEntry?>(
-            () => FindEntryForPath(gameRoot, catalogs, path), LazyThreadSafetyMode.ExecutionAndPublication)).Value;
+        var cacheKey = $"{gameRoot.GetHashCode()}|{normalizedPath}";
+        if (Entries.Count > MaxEntries)
+            Entries.Clear();
+        var entry = Entries.GetOrAdd(cacheKey, _ => new Lazy<LegacyEntry?>(
+            () => FindEntryForPath(gameRoot, catalogs, normalizedPath), LazyThreadSafetyMode.ExecutionAndPublication)).Value;
         if (entry == null)
             throw new FileNotFoundException($"Legacy FC26 asset was not found: {normalizedPath}");
         var sourceChunk = FrostbiteAssetIndexStore.FindExact(

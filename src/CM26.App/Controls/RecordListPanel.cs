@@ -66,6 +66,7 @@ public sealed class RecordListPanel : UserControl
 
     public void SetItems(IEnumerable<RecordListItem> items)
     {
+        ArgumentNullException.ThrowIfNull(items);
         _all = items.ToList();
         ApplyFilter();
     }
