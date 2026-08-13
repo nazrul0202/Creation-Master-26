@@ -34,7 +34,7 @@ public sealed class MainForm : Form
 
     public MainForm(string? initialDatabaseFolder = null)
     {
-        Text = "Creation Master 26";
+        Text = "Creation Master 26  |  FC26 Database Studio";
         MinimumSize = new Size(1180, 700);
         Size = new Size(1600, 940);
         StartPosition = FormStartPosition.CenterScreen;
@@ -101,9 +101,9 @@ public sealed class MainForm : Form
         _filterBar = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 46,
+            Height = 58,
             BackColor = Theme.Panel,
-            Padding = new Padding(Theme.Space, 8, Theme.Space, 8),
+            Padding = new Padding(Theme.Space + 2, 10, Theme.Space + 2, 10),
         };
         _openBtn = MakeActionButton("Open Game", "Detect the game and load its database and assets automatically (Ctrl+O)");
         _saveBtn = MakeActionButton("Save", "Apply staged changes directly to FC26 for offline use (Ctrl+S).", primary: true);
@@ -155,19 +155,19 @@ public sealed class MainForm : Form
         {
             Dock = DockStyle.Left,
             Width = Theme.SidebarWidth,
-            BackColor = Theme.Background,
+            BackColor = Theme.Panel,
             Padding = new Padding(0),
         };
         var sidebarHeader = new Label
         {
-            Text = "Main Functions",
+            Text = "CM26  /  DATABASE STUDIO",
             Dock = DockStyle.Top,
-            Height = 34,
-            Font = Theme.Label,
-            ForeColor = Theme.Muted,
+            Height = 52,
+            Font = Theme.BodyBold,
+            ForeColor = Theme.Accent,
             TextAlign = ContentAlignment.MiddleLeft,
-            Padding = new Padding(14, 0, 0, 0),
-            BackColor = Theme.Background,
+            Padding = new Padding(18, 0, 0, 0),
+            BackColor = Theme.Panel,
         };
         _sidebarList = new FlowLayoutPanel
         {
@@ -175,8 +175,8 @@ public sealed class MainForm : Form
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
             AutoScroll = true,
-            BackColor = Theme.Background,
-            Padding = new Padding(8, 2, 8, 8),
+            BackColor = Theme.Panel,
+            Padding = new Padding(12, 4, 12, 12),
         };
         var categories = new (string Label, string[] Keys)[]
         {
@@ -200,8 +200,8 @@ public sealed class MainForm : Form
                     Width = _sidebarList.ClientSize.Width - 16,
                     Font = Theme.Label,
                     ForeColor = Theme.Muted,
-                    Margin = new Padding(10, 12, 0, 2),
-                    BackColor = Theme.Background,
+                    Margin = new Padding(10, 16, 0, 4),
+                    BackColor = Theme.Panel,
                     TextAlign = ContentAlignment.MiddleLeft,
                 });
             }

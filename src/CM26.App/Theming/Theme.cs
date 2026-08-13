@@ -7,7 +7,7 @@ namespace CM26.App.Theming;
 /// <summary>Central design system: palette, typography, spacing. Every control uses these.</summary>
 public static class Theme
 {
-    private static bool _dark = false;
+    private static bool _dark = true;
 
     static Theme() => ApplyPalette();
 
@@ -28,15 +28,15 @@ public static class Theme
         if (_dark)
         {
             // Dark variant kept as an alternative; default is the FC Editor light theme.
-            _background = Color.FromArgb(36, 37, 41);        // App canvas (#242529)
-            _panel = Color.FromArgb(43, 45, 51);            // Cards / group boxes
-            _raised = Color.FromArgb(51, 53, 60);           // Hover, headers, elevated
-            _input = Color.FromArgb(28, 29, 33);            // Input wells / grid body
-            _border = Color.FromArgb(61, 63, 70);           // Hairline separators
+            _background = Color.FromArgb(14, 16, 20);
+            _panel = Color.FromArgb(22, 25, 31);
+            _raised = Color.FromArgb(31, 36, 44);
+            _input = Color.FromArgb(17, 20, 25);
+            _border = Color.FromArgb(48, 55, 65);
             _text = Color.FromArgb(224, 224, 224);          // Primary text (#E0E0E0)
             _muted = Color.FromArgb(150, 152, 158);         // Labels / secondary text
-            _accent = Color.FromArgb(0, 120, 212);          // Microsoft blue (#0078D4)
-            _accentHover = Color.FromArgb(0, 112, 186);     // Deeper hover (#0070BA)
+            _accent = Color.FromArgb(56, 189, 248);
+            _accentHover = Color.FromArgb(14, 165, 233);
             _link = Color.FromArgb(0, 123, 255);            // Link blue (#007BFF)
             _danger = Color.FromArgb(201, 42, 42);          // Material red (#C92A2A)
             _success = Color.FromArgb(76, 175, 80);         // Material green (#4CAF50)
@@ -124,8 +124,8 @@ public static class Theme
     public const int Space = 8;
     public const int ControlHeight = 26;
     public const int ToolbarHeight = 54;
-    public const int SidebarWidth = 220;
-    public const int NavItemHeight = 34;
+    public const int SidebarWidth = 248;
+    public const int NavItemHeight = 38;
 
     public static void ApplyButton(Button b, bool primary = false)
     {
@@ -291,6 +291,9 @@ public static class Theme
     /// </summary>
     public static void ApplyTabs(TabControl tabs)
     {
+        tabs.SizeMode = TabSizeMode.Fixed;
+        tabs.ItemSize = new Size(104, 30);
+        tabs.Padding = new Point(8, 4);
         if (tabs.DrawMode != TabDrawMode.OwnerDrawFixed)
         {
             tabs.DrawMode = TabDrawMode.OwnerDrawFixed;
@@ -306,13 +309,12 @@ public static class Theme
         var selected = e.Index == tabs.SelectedIndex;
         var tabRect = tabs.GetTabRect(e.Index);
 
-        using var bg = new SolidBrush(selected ? Background : Raised);
+        using var bg = new SolidBrush(selected ? Panel : Background);
         e.Graphics.FillRectangle(bg, tabRect);
 
         using var pen = new Pen(selected ? Accent : Border);
         // Emphasise the top/active edge of the selected tab.
-        if (selected)
-            e.Graphics.DrawLine(pen, tabRect.Left, tabRect.Top, tabRect.Right, tabRect.Top);
+        e.Graphics.DrawRectangle(pen, tabRect.Left, tabRect.Top, tabRect.Width - 1, tabRect.Height - 1);
 
         var text = tabs.TabPages[e.Index].Text;
         var color = selected ? Text : Muted;

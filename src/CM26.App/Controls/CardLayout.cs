@@ -31,13 +31,13 @@ public static class CardLayout
     {
         if (Theme.IsDark)
         {
-            CardBackground = Color.FromArgb(30, 31, 35);
-            CardWhite = Color.FromArgb(43, 45, 51);
+            CardBackground = Color.FromArgb(14, 16, 20);
+            CardWhite = Color.FromArgb(22, 25, 31);
             CardText = Color.FromArgb(224, 224, 224);
             CardMuted = Color.FromArgb(158, 163, 148);
             CardSubtle = Color.FromArgb(170, 172, 178);
             CardFieldLabel = Color.FromArgb(205, 206, 210);
-            CardFieldBg = Color.FromArgb(51, 53, 60);
+            CardFieldBg = Color.FromArgb(31, 36, 44);
         }
         else
         {
@@ -69,6 +69,7 @@ public static class CardLayout
             Size = new Size(width, height),
             BackColor = CardBackground,
         };
+        card.Padding = new Padding(1);
         return card;
     }
 
@@ -84,6 +85,7 @@ public static class CardLayout
             Size = new Size(width, height),
             BackColor = CardWhite,
         };
+        header.BorderStyle = BorderStyle.FixedSingle;
         ApplyRounded(header, 14);
         // Left accent bar
         header.Controls.Add(new Panel
@@ -108,6 +110,7 @@ public static class CardLayout
             Size = new Size(width, height),
             BackColor = CardWhite,
         };
+        group.BorderStyle = BorderStyle.FixedSingle;
         ApplyRounded(group, 12);
         // Top accent bar
         group.Controls.Add(new Panel

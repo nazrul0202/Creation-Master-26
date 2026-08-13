@@ -16,8 +16,8 @@ public sealed class SidebarNavButton : Panel
 
     public SidebarNavButton()
     {
-        Height = 34;
-        Margin = new Padding(0, 1, 0, 1);
+        Height = 38;
+        Margin = new Padding(0, 2, 0, 2);
         Padding = new Padding(0);
         Cursor = Cursors.Hand;
         TabStop = true;
@@ -85,7 +85,7 @@ public sealed class SidebarNavButton : Panel
             textX = imageRect.Right + 8;
         }
         var textRect = new Rectangle(textX, 0, Math.Max(0, rect.Width - textX - 6), rect.Height);
-        var color = Checked ? Theme.Accent : Theme.Text;
+        var color = Checked ? Theme.Accent : Theme.Muted;
         TextRenderer.DrawText(g, Text, Checked ? Theme.BodyBold : Theme.Body, textRect, color,
             TextFormatFlags.Left | TextFormatFlags.VerticalCenter |
             TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
