@@ -33,6 +33,7 @@ public sealed class AssetPreviewPanel : UserControl
     private readonly Label _captionLabel;
     private Image? _current;                 // owned; disposed on replace
     private CancellationTokenSource? _cts;
+    private readonly object _ctsGate = new();
     private long _requestSerial;
 
     public AssetPreviewPanel(ITexturePreviewService textures)
@@ -113,12 +114,11 @@ public sealed class AssetPreviewPanel : UserControl
         _stateLabel.ForeColor = Theme.Muted;
 
         var cts = new CancellationTokenSource();
-        _cts = cts;
         long serial = Interlocked.Increment(ref _requestSerial);
         int maxW = Math.Max(64, Width - 4);
         int maxH = Math.Max(64, Height - (_captionLabel.Visible ? 24 : 4));
 
-        Task.Run(() =>
+        var task = Task.Run(() =>
         {
             Image? img = null;
             string? error = null;
@@ -139,38 +139,39 @@ public sealed class AssetPreviewPanel : UserControl
             {
                 BeginInvoke(() =>
                 {
-                if (serial != _requestSerial || IsDisposed) { img?.Dispose(); return; }
-                if (img != null)
-                {
-                    SetImage(img);
-                    State = AssetPreviewState.Loaded;
-                    _picture.Visible = true;
-                    _stateLabel.Visible = false;
-                    if (!string.IsNullOrEmpty(caption))
+                    if (serial != _requestSerial || IsDisposed) { img?.Dispose(); return; }
+                    if (img != null)
                     {
-                        _captionLabel.Text = caption;
-                        _captionLabel.Visible = true;
+                        SetImage(img);
+                        State = AssetPreviewState.Loaded;
+                        _picture.Visible = true;
+                        _stateLabel.Visible = false;
+                        if (!string.IsNullOrEmpty(caption))
+                        {
+                            _captionLabel.Text = caption;
+                            _captionLabel.Visible = true;
+                        }
+                        else if (meta.IsReadable)
+                        {
+                            _captionLabel.Text = $"{meta.Width}×{meta.Height} {meta.Format}";
+                            _captionLabel.Visible = true;
+                        }
                     }
-                    else if (meta.IsReadable)
+                    else
                     {
-                        _captionLabel.Text = $"{meta.Width}×{meta.Height} {meta.Format}";
-                        _captionLabel.Visible = true;
+                        SetImage(null);
+                        State = AssetPreviewState.Unsupported;
+                        _picture.Visible = false;
+                        _stateLabel.Visible = true;
+                        _stateLabel.Text = error ?? "Unsupported or corrupt image";
+                        _stateLabel.ForeColor = Theme.Warning;
+                        _captionLabel.Visible = false;
                     }
-                }
-                else
-                {
-                    SetImage(null);
-                    State = AssetPreviewState.Unsupported;
-                    _picture.Visible = false;
-                    _stateLabel.Visible = true;
-                    _stateLabel.Text = error ?? "Unsupported or corrupt image";
-                    _stateLabel.ForeColor = Theme.Warning;
-                    _captionLabel.Visible = false;
-                }
                 });
             }
             catch (InvalidOperationException) { }
         }, cts.Token);
+        lock (_ctsGate) { _cts = cts; }
     }
 
     private void SetImage(Image? img)
@@ -184,10 +185,13 @@ public sealed class AssetPreviewPanel : UserControl
     private void CancelPending()
     {
         Interlocked.Increment(ref _requestSerial);
-        try { _cts?.Cancel(); }
-        catch (ObjectDisposedException ex) { System.Diagnostics.Debug.WriteLine("Preview cancellation already disposed: " + ex.Message); }
-        _cts?.Dispose();
-        _cts = null;
+        CancellationTokenSource? cts;
+        lock (_ctsGate) { cts = _cts; _cts = null; }
+        if (cts == null) return;
+        try { cts.Cancel(); }
+        catch (ObjectDisposedException) { }
+        try { cts.Dispose(); }
+        catch (ObjectDisposedException) { }
     }
 
     private void CancelAndDispose()

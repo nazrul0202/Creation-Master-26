@@ -1828,8 +1828,13 @@ public sealed class TeamsSection : SectionBase
 
     protected override void ShowRecord(int recordIndex)
     {
-        var table = Services.Session.GetTable(TableName)!;
-        var record = Services.Session.GetRecord(TableName, recordIndex)!;
+        var table = Services.Session.GetTable(TableName);
+        var record = table == null ? null : Services.Session.GetRecord(TableName, recordIndex);
+        if (table == null || record == null)
+        {
+            _teamNameLabel.Text = "Team unavailable";
+            return;
+        }
         var name = record.Get(Col(table, "teamname"));
         var id = record.Get(Col(table, "teamid"));
         int.TryParse(id, out var crestTeamId);

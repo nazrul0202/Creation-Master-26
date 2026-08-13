@@ -125,6 +125,8 @@ public sealed class MeshSet
 		reader.Pad(16);
 
 		var sectionIndex = 0;
+		if (lodsCount > lodOffsets.Length)
+			throw new InvalidDataException($"Mesh has {lodsCount} LODs but only {lodOffsets.Length} offsets are supported.");
 		for (var num2 = 0; num2 < lodsCount; num2++)
 		{
 			reader.Position = lodOffsets[num2] + additionalData;
@@ -144,6 +146,10 @@ public sealed class MeshSet
 		}
 	}
 
-	private static uint ReadMetaU32(byte[] meta, int offset) =>
-		BinaryPrimitives.ReadUInt32LittleEndian(meta.AsSpan(offset, 4));
+	private static uint ReadMetaU32(byte[] meta, int offset)
+	{
+		if (meta == null || offset < 0 || offset + 4 > meta.Length)
+			throw new InvalidDataException("Mesh resMeta is too short to read a UInt32.");
+		return BinaryPrimitives.ReadUInt32LittleEndian(meta.AsSpan(offset, 4));
+	}
 }

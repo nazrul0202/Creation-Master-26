@@ -114,7 +114,7 @@ public static class CM26ModOverlayService
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardError = true,
-                RedirectStandardOutput = true,
+                RedirectStandardOutput = false,
             }) ?? throw new InvalidOperationException("Windows could not start mklink.");
             var standardError = process.StandardError.ReadToEnd();
             process.WaitForExit();

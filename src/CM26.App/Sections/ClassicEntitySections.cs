@@ -931,11 +931,10 @@ public sealed class FormationsSection : ClassicEntitySection
             g.FillEllipse(fill, marker);
             using var markerPen = new Pen(Color.White, 2);
             g.DrawEllipse(markerPen, marker);
-            using var markerFont = Theme.BodyBold;
-            TextRenderer.DrawText(g, (i + 1).ToString(), markerFont, marker,
+            TextRenderer.DrawText(g, (i + 1).ToString(), Theme.BodyBold, marker,
                 Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             var caption = new Rectangle(box.Left, box.Top + 32, box.Width, 16);
-            TextRenderer.DrawText(g, position, markerFont, caption,
+            TextRenderer.DrawText(g, position, Theme.BodyBold, caption,
                 Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
         }
     }
@@ -1271,7 +1270,7 @@ public sealed class KitsSection : ClassicEntitySection
         try
         {
             var path = Services.LegacyMods.StageImage(legacyPath, dialog.FileName, 2048, 2048);
-            var preview = Services.Textures.CreatePreview(path, _texturePreview.Width, _texturePreview.Height);
+            using var preview = Services.Textures.CreatePreview(path, _texturePreview.Width, _texturePreview.Height);
             var old = _texturePreview.Image;
             _texturePreview.Image = preview == null ? null : new Bitmap(preview);
             old?.Dispose();

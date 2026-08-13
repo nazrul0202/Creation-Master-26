@@ -145,9 +145,9 @@ public sealed class FrostbiteAssetSession
             Status = response.Message;
             return true;
         }
-        catch
+        catch (Exception ex)
         {
-            // The in-process discovery below remains a safe fallback.
+            Program.Log($"Asset bridge scan failed; falling back to in-process discovery: {ex.Message}");
             return false;
         }
     }
@@ -420,10 +420,11 @@ public sealed class FrostbiteAssetSession
                 return string.IsNullOrWhiteSpace(output) ? null : JsonSerializer.Deserialize<BridgeOperationResponse>(
                     output, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             }
-            catch
+            catch (Exception ex)
             {
+                Program.Log($"Asset bridge operation failed: {ex.Message}");
                 try { if (_bridgeProcess is { HasExited: false }) _bridgeProcess.Kill(entireProcessTree: true); }
-                catch (Exception ex) { Program.Log("Asset bridge shutdown failed: " + ex.Message); }
+                catch (Exception killEx) { Program.Log("Asset bridge shutdown failed: " + killEx.Message); }
                 _bridgeProcess?.Dispose();
                 _bridgeProcess = null; _bridgeInput = null; _bridgeOutput = null;
                 return null;

@@ -166,7 +166,7 @@ public static class Theme
     private static void ButtonLostFocus(object? sender, EventArgs e)
     {
         if (sender is not Button b) return;
-        b.FlatAppearance.BorderColor = b.BackColor == Accent ? Accent : Border;
+        b.FlatAppearance.BorderColor = b.BackColor == Brand ? Brand : Border;
     }
 
     public static void ApplyTextBox(TextBox t)
@@ -176,13 +176,17 @@ public static class Theme
         t.BorderStyle = BorderStyle.FixedSingle;
         t.Font = Body;
         // Accent border while focused so the active field is obvious for keyboard users.
-        t.GotFocus += (_, _) => t.BorderStyle = BorderStyle.FixedSingle;
-        t.Paint += (_, e) =>
+        EventHandler gotFocus = (_, _) => t.BorderStyle = BorderStyle.FixedSingle;
+        PaintEventHandler paint = (_, e) =>
         {
             if (!t.Focused) return;
             using var pen = new Pen(Accent);
             e.Graphics.DrawRectangle(pen, 0, 0, t.Width - 1, t.Height - 1);
         };
+        t.GotFocus -= gotFocus;
+        t.Paint -= paint;
+        t.GotFocus += gotFocus;
+        t.Paint += paint;
     }
 
     public static void ApplyCombo(ComboBox c)
@@ -197,6 +201,7 @@ public static class Theme
         c.DropDownStyle = c.DropDownStyle == ComboBoxStyle.Simple
             ? c.DropDownStyle
             : ComboBoxStyle.DropDownList;
+        c.DrawItem -= ComboDrawItem;
         c.DrawItem += ComboDrawItem;
     }
 

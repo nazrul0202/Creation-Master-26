@@ -61,7 +61,8 @@ public sealed class Toast : BufferedPanel
         _label.ForeColor = border;
         Width = Math.Max(160, Math.Min(owner.Width - 40, 560));
         Location = new Point((owner.Width - Width) / 2, 6);
-        owner.Controls.Add(this);
+        if (!owner.Controls.Contains(this))
+            owner.Controls.Add(this);
         BringToFront();
         Visible = true;
         _timer.Stop();
@@ -72,8 +73,18 @@ public sealed class Toast : BufferedPanel
     {
         _timer.Stop();
         Visible = false;
-        if (_parent != null && _parent.Controls.Contains(this))
+        if (_parent != null && !_parent.IsDisposed && _parent.Controls.Contains(this))
             _parent.Controls.Remove(this);
         _parent = null;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _timer?.Stop();
+            _timer?.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }

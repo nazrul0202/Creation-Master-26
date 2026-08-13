@@ -273,9 +273,9 @@ internal static class FrostbiteDirectLegacyWriter
         long payloadOffset = 0;
         foreach (var write in writes)
         {
-            writer.Write(write.Id.ToByteArray());
+            writer.Write(write.Id.ToByteArray().AsSpan());
             var payload = write.Encoded;
-            writer.Write(System.Security.Cryptography.SHA1.HashData(payload));
+            writer.Write(System.Security.Cryptography.SHA1.HashData(payload).AsSpan());
             writer.Write((ushort)(2 | 16)); // IsLegacy + HasLogicalSize
             Write7BitLong(writer, payloadOffset);
             Write7Bit(writer, payload.Length);
@@ -291,7 +291,7 @@ internal static class FrostbiteDirectLegacyWriter
         {
             var target = group.First().Target;
             WriteString(writer, target.CollectorEbxName);
-            writer.Write(target.CollectorManifestChunkId.ToByteArray());
+            writer.Write(target.CollectorManifestChunkId.ToByteArray().AsSpan());
             writer.Write(target.CollectorInPatch);
             writer.Write(SuperBundleHash(target.CollectorSuperBundle));
         }

@@ -7,11 +7,20 @@ namespace CM26.App;
 public static class CM26ModLibraryService
 {
     /// <summary>User-visible standalone library, kept away from the FC26 install and FET.</summary>
-    public static readonly string Root = @"D:\CM26 Mod Manager";
+    public static readonly string Root = ResolveRoot();
     public static readonly string ModsRoot = Path.Combine(Root, "Mods");
     public static readonly string LogsRoot = Path.Combine(Root, "Logs");
     private static readonly string StatePath = Path.Combine(Root, "CM26 Mod Manager.json");
     private static readonly string LegacyStatePath = Path.Combine(Root, "enabled.json");
+
+    private static string ResolveRoot()
+    {
+        var legacy = @"D:\CM26 Mod Manager";
+        if (Directory.Exists(legacy)) return legacy;
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Creation Master 26", "ModManager");
+    }
 
     public sealed record LibraryItem(string PackagePath, CM26ModPackageService.PackageManifest Manifest, bool Enabled);
 

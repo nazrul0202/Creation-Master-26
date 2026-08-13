@@ -54,7 +54,7 @@ public sealed class SectionGeometry
 
 			for (var v = 0; v < vertexCount; v++)
 			{
-				var baseOffset = checked((long)section.VertexOffset + totalStride * vertexCount + v * (long)stream.VertexStride);
+				var baseOffset = checked((long)section.VertexOffset + (long)totalStride * vertexCount + (long)v * stream.VertexStride);
 				var currentStride = 0;
 
 				for (var e = 0; e < decl.Elements.Length; e++)

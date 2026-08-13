@@ -38,6 +38,7 @@ public sealed class FieldEditorGrid : UserControl
     {
         SuspendLayout();
         _table.SuspendLayout();
+        foreach (Control control in _table.Controls) control.Dispose();
         _table.Controls.Clear();
         _table.RowStyles.Clear();
         _editors.Clear();

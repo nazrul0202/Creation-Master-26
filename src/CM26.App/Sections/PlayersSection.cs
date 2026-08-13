@@ -1176,14 +1176,23 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
 
     protected override void ShowRecord(int recordIndex)
     {
-        var table = Services.Session.GetTable(TableName)!;
-        var record = Services.Session.GetRecord(TableName, recordIndex)!;
+        var table = Services.Session.GetTable(TableName);
+        var record = table == null ? null : Services.Session.GetRecord(TableName, recordIndex);
+        if (table == null || record == null)
+        {
+            _playerName.Text = "Player unavailable";
+            _overviewName.Text = string.Empty;
+            _overviewMeta.Text = string.Empty;
+            return;
+        }
         var playerId = Parse(record.Get(Col(table, "playerid")));
         _currentPlayerId = playerId;
-        var parts = Services.Resolver!.PlayerNameParts(playerId, Parse(record.Get(Col(table, "firstnameid"))), Parse(record.Get(Col(table, "lastnameid"))), Parse(record.Get(Col(table, "commonnameid"))));
+        var parts = Services.Resolver?.PlayerNameParts(playerId, Parse(record.Get(Col(table, "firstnameid"))), Parse(record.Get(Col(table, "lastnameid"))), Parse(record.Get(Col(table, "commonnameid"))))
+            ?? new PlayerNameParts(null, null, null, $"Player {playerId}");
+
         _playerName.Text = parts.KnownAs ?? $"Player {playerId}";
         ToolTip.SetToolTip(_playerName, _playerName.Text);
-        _clubName.Text = Services.Resolver.PlayerClubName(playerId);
+        _clubName.Text = Services.Resolver?.PlayerClubName(playerId) ?? "Club unknown";
         var image = Services.Assets.GetPlayerMiniface(playerId);
         FrostbitePreviewLoader.LoadLegacyUiAsset(_miniface, Services, image,
             $"data/ui/imgAssets/heads/p{playerId}.dds", (preview, _) =>

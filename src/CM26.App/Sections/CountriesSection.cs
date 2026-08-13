@@ -356,8 +356,13 @@ public sealed class CountriesSection : SectionBase
 
     protected override void ShowRecord(int recordIndex)
     {
-        var table = Services.Session.GetTable(TableName)!;
-        var record = Services.Session.GetRecord(TableName, recordIndex)!;
+        var table = Services.Session.GetTable(TableName);
+        var record = table == null ? null : Services.Session.GetRecord(TableName, recordIndex);
+        if (table == null || record == null)
+        {
+            _countryNameLabel.Text = "Country unavailable";
+            return;
+        }
         _fields.Clear();
         foreach (var field in Services.RequireData().GetFields(TableName, recordIndex, LabelMaps.Nations)) _fields[field.FieldName] = field;
 

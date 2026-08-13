@@ -123,7 +123,6 @@ public sealed class TexturePreviewService : ITexturePreviewService
             }
         }
         catch (OperationCanceledException) { decoded?.Dispose(); throw; }
-        catch (System.AccessViolationException) { decoded?.Dispose(); return null; }
         catch { decoded?.Dispose(); return null; }
 
         if (decoded == null) return null;

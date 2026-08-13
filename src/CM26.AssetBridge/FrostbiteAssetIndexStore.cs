@@ -41,7 +41,7 @@ internal static class FrostbiteAssetIndexStore
                    bufferSize: 1024 * 1024, FileOptions.SequentialScan))
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
         {
-            writer.Write(Magic);
+            writer.Write(Magic.AsSpan());
             writer.Write(Version);
             writer.Write(fingerprint);
             writer.Write(assets.Count);
@@ -225,7 +225,7 @@ internal static class FrostbiteAssetIndexStore
         writer.Write(asset.ResType);
         writer.Write(asset.ResMeta);
         writer.Write(asset.ResRid);
-        writer.Write(asset.ChunkId.ToByteArray());
+            writer.Write(asset.ChunkId.ToByteArray().AsSpan());
         writer.Write(asset.LogicalOffset);
         writer.Write(asset.LogicalSize);
         writer.Write(asset.SuperBundle);

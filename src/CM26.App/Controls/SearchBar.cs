@@ -59,4 +59,14 @@ public sealed class SearchBar : UserControl
     public void FocusBox() { _box.Focus(); _box.SelectAll(); }
     public void SetCount(int shown, int total) => _count.Text = total == shown ? $"{total:N0} records" : $"{shown:N0} / {total:N0}";
     public void ClearQuery() => _box.Clear();
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _debounce?.Stop();
+            _debounce?.Dispose();
+        }
+        base.Dispose(disposing);
+    }
 }

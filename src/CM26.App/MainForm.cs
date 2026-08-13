@@ -69,13 +69,13 @@ public sealed class MainForm : Form
         // ---- CM16-style application menu ----
         _menu = new MenuStrip { Dock = DockStyle.Top, BackColor = Theme.Background, ForeColor = Theme.Text, Font = Theme.Body, Renderer = new DarkToolStripRenderer() };
         var fileMenu = new ToolStripMenuItem("File");
-        fileMenu.DropDownItems.Add("Open Game", null, async (_, _) => await OpenFc26Async());
-        fileMenu.DropDownItems.Add("Save", null, async (_, _) => await SaveDirectAsync());
-        fileMenu.DropDownItems.Add("Save Draft for FIFA Mod...", null, async (_, _) => await SaveAsync());
-        fileMenu.DropDownItems.Add("Export CM26 Project (.fifaproject)...", null, async (_, _) => await ExportProjectAsync());
-        fileMenu.DropDownItems.Add("Import CM26 Project (.fifaproject)...", null, async (_, _) => await ImportProjectAsync());
-        fileMenu.DropDownItems.Add("Export FIFA Mod (.fifamod)...", null, async (_, _) => await ExportModAsync());
-        fileMenu.DropDownItems.Add("Restore Original Data…", null, async (_, _) => await RestoreOriginalAsync());
+        fileMenu.DropDownItems.Add("Open Game", null, (_, _) => SafeFire(OpenFc26Async));
+        fileMenu.DropDownItems.Add("Save", null, (_, _) => SafeFire(SaveDirectAsync));
+        fileMenu.DropDownItems.Add("Save Draft for FIFA Mod...", null, (_, _) => SafeFire(SaveAsync));
+        fileMenu.DropDownItems.Add("Export CM26 Project (.fifaproject)...", null, (_, _) => SafeFire(ExportProjectAsync));
+        fileMenu.DropDownItems.Add("Import CM26 Project (.fifaproject)...", null, (_, _) => SafeFire(ImportProjectAsync));
+        fileMenu.DropDownItems.Add("Export FIFA Mod (.fifamod)...", null, (_, _) => SafeFire(ExportModAsync));
+        fileMenu.DropDownItems.Add("Restore Original Data…", null, (_, _) => SafeFire(RestoreOriginalAsync));
         fileMenu.DropDownItems.Add(new ToolStripSeparator());
         fileMenu.DropDownItems.Add("Exit", null, (_, _) => Close());
         var toolsMenu = new ToolStripMenuItem("Tools");
@@ -464,6 +464,12 @@ public sealed class MainForm : Form
         _workspace.Controls.Add(_welcome);
     }
 
+    private static async void SafeFire(Func<Task> action)
+    {
+        try { await action(); }
+        catch (Exception ex) { Debug.WriteLine($"[CM26] Menu action failed: {ex.Message}"); }
+    }
+
     private async Task OpenFc26Async()
     {
         var configuredRoot = SettingsService.FC26GameFolder;
@@ -523,7 +529,8 @@ public sealed class MainForm : Form
         {
             try
             {
-                Process.Start(new ProcessStartInfo(Path.Combine(backup.GameRoot, "FC26.exe")) { UseShellExecute = true });
+                using (Process.Start(new ProcessStartInfo(Path.Combine(backup.GameRoot, "FC26.exe")) { UseShellExecute = true }))
+                { }
                 SetStatus("FC26 was launched. Reach the main menu without mods, exit it, then select Open Game again.");
             }
             catch (Exception ex)

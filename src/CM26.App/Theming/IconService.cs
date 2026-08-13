@@ -85,10 +85,12 @@ public static class IconService
         {
             _cacheKeys.Enqueue(cacheKey);
             while (_cache.Count > MaxCacheEntries && _cacheKeys.TryDequeue(out var oldest))
-                _cache.TryRemove(oldest, out _);
+            {
+                if (_cache.TryRemove(oldest, out var evicted))
+                    evicted?.Dispose();
+            }
             return result;
         }
-        result.Dispose();
         return _cache.TryGetValue(cacheKey, out var existing) ? existing : result;
     }
 

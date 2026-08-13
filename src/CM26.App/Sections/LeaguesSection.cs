@@ -325,7 +325,6 @@ public sealed class LeaguesSection : SectionBase
         _leagueId = int.TryParse(record.Get(Col(table, "leagueid")), out var id) ? id : 0;
         PopulateTeamLinks();
         PopulateTeamPicker();
-        if (_teams.Items.Count == 0) _teams.Items.Add("No teams linked in leagueteamlinks");
         _leagueClubsLabel.Text = _teams.Items.Count > 0 ? _teams.Items.Count.ToString() : "—";
     }
 
@@ -697,6 +696,11 @@ public sealed class LeaguesSection : SectionBase
         }
         var keyCol = Col(links, "artificialkey"); var maxKey = 0;
         var leagueCol = Col(links, "leagueid"); var teamCol = Col(links, "teamid");
+        if (keyCol < 0 || leagueCol < 0 || teamCol < 0)
+        {
+            message = "The league-team link table is missing required columns.";
+            return false;
+        }
         for (var row = 0; row < links.RowCount; row++)
         {
             var rec = Services.Session.GetRecord("leagueteamlinks", row);

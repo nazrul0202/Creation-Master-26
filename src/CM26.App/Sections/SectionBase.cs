@@ -799,6 +799,16 @@ public abstract class SectionBase : UserControl
         return page;
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            ToolTip?.Dispose();
+            Toast?.Dispose();
+        }
+        base.Dispose(disposing);
+    }
+
     public void FocusSearchBox() => _recordSearch.Focus();
     public void GoToRecord(int recordIndex) => OnRecordSelected(recordIndex);
 }
