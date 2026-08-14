@@ -3,6 +3,7 @@ using System.Drawing.Drawing2D;
 using System.Diagnostics;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 using CM26.Application.Services;
@@ -26,21 +27,26 @@ public sealed class PlayersSection : SectionBase
     private readonly Dictionary<string, Label> _skillValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<TextBox>> _summaryValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, TrackBar> _skillSliders = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, Label> _overviewRatings = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, Label> _overviewFacts = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, List<TextBox>> _overviewAttributeValues = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, List<Label>> _overviewSupplementValues = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, List<Panel>> _playerStatBars = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Label _overviewName = new();
-    private readonly Label _overviewMeta = new();
-    private readonly Label _overviewOverall = new();
-    private readonly Label _overviewPotential = new();
-    private readonly Label _overviewGrowth = new();
     private readonly List<TextBox> _traitEditors = [];
     private readonly TextBox _callnameId = new();
     private readonly Label _callnameStatus = new();
-    private Panel? _overviewTraitsPanel;
     private Panel? _traitsPanel;
+
+    // Studio overview controls
+    private StudioToolbar? _toolbar;
+    private PlayerHeroCard? _heroCard;
+    private StudioCard? _infoCard;
+    private readonly Dictionary<string, Label> _infoLabels = new(StringComparer.OrdinalIgnoreCase);
+    private StatGroupCard? _physicalCard;
+    private StatGroupCard? _technicalCard;
+    private StatGroupCard? _mentalCard;
+    private StatGroupCard? _defendingCard;
+    private StatGroupCard? _goalkeepingCard;
+    private StudioCard? _playstylesCard;
+    private FlowLayoutPanel? _playstylesFlow;
+    private StudioCard? _rolesCard;
+    private StudioCard? _faceCard;
+    private readonly Dictionary<string, Label> _roleLabels = new(StringComparer.OrdinalIgnoreCase);
     private bool _syncSkillSliders;
     private bool _syncReferencePickers;
     private int _currentPlayerId;
@@ -61,6 +67,7 @@ public sealed class PlayersSection : SectionBase
     protected override string TableName => "players";
     protected override bool SupportsCreate => true;
     protected override string RecordSearchPlaceholder => "Search players…";
+    protected override bool ShowRecordCommandStrip => false;
 
     public PlayersSection(AppServices services) : base(services)
     {
@@ -256,147 +263,423 @@ public sealed class PlayersSection : SectionBase
     }
     private static PictureBox Viewer(Point point, Size size) => new() { Location = point, Size = size, BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
 
+    public override void ActivateSection()
+    {
+        base.ActivateSection();
+        UpdateToolbarCount();
+    }
+
+    private void UpdateToolbarCount()
+    {
+        if (_toolbar == null) return;
+        if (!Services.Session.IsLoaded)
+        {
+            _toolbar.RecordCountText = "0 records";
+            return;
+        }
+        try
+        {
+            _toolbar.RecordCountText = $"{GetRecords().Count:N0} records";
+        }
+        catch
+        {
+            _toolbar.RecordCountText = string.Empty;
+        }
+    }
+
+    private void StepRecord(int delta)
+    {
+        var records = GetRecords();
+        var found = -1;
+        for (var i = 0; i < records.Count; i++)
+        {
+            if (records[i].RecordIndex == CurrentRecordIndex)
+            {
+                found = i;
+                break;
+            }
+        }
+        if (found < 0) return;
+        var next = found + delta;
+        if (next >= 0 && next < records.Count)
+            GoToRecord(records[next].RecordIndex);
+    }
+
     // A read-only player card keeps the editable legacy form intact while
     // giving the section the quick, stat-first view expected from career tools.
     private void AddOverviewTab()
     {
-        var page = Page("Player");
-        var canvas = Canvas(page);
-        canvas.AutoScrollMinSize = new Size(1370, 940);
-canvas.BackColor = CardLayout.CardBackground;
-        var card = new Panel { Location = new Point(12, 12), Size = new Size(1340, 910), BackColor = CardLayout.CardBackground };
-        canvas.Controls.Add(card);
-        var header = new Panel { Location = new Point(16, 16), Size = new Size(1308, 142), BackColor = CardLayout.CardWhite };
-        ApplyRoundedCorners(header, 14);
-        card.Controls.Add(header);
-        header.Controls.Add(new Panel { Location = new Point(0, 0), Size = new Size(6, 142), BackColor = CardLayout.Fc26Green });
-        _overviewFace.Location = new Point(16, 13);
-        _overviewFace.Size = new Size(116, 116);
-        _overviewFace.SizeMode = PictureBoxSizeMode.Zoom;
-        _overviewFace.BackColor = CardLayout.CardFieldBg;
-        _overviewFace.BorderStyle = BorderStyle.None;
-        header.Controls.Add(_overviewFace);
-        _overviewName.Location = new Point(150, 20);
-        _overviewName.Size = new Size(460, 36);
-        _overviewName.Font = new Font("Segoe UI", 20, FontStyle.Bold);
-        _overviewName.ForeColor = CardLayout.CardText;
-        header.Controls.Add(_overviewName);
-        _overviewMeta.Location = new Point(153, 63);
-        _overviewMeta.Size = new Size(500, 24);
-        _overviewMeta.Font = Theme.BodyBold;
-        _overviewMeta.ForeColor = CardLayout.CardMuted;
-        header.Controls.Add(_overviewMeta);
-        var editDetails = new Button { Text = "Edit player details…", Location = new Point(690, 20), Size = new Size(176, 32), FlatStyle = FlatStyle.Flat, Font = Theme.BodyBold };
-        editDetails.FlatAppearance.BorderColor = CardLayout.Fc26Green;
-        editDetails.Click += (_, _) => OpenSinglePlayerEditor();
-        header.Controls.Add(editDetails);
-AddHeaderMetric(header, "PAC", 150, CardLayout.Fc26Green, "acceleration", "sprintspeed");
-        AddHeaderMetric(header, "SHO", 268, CardLayout.Fc26Yellow, "finishing", "shotpower", "longshots", "penalties", "volleys");
-        AddHeaderMetric(header, "PAS", 386, CardLayout.Fc26Blue, "shortpassing", "longpassing", "vision", "crossing", "curve");
-        AddHeaderMetric(header, "DRI", 504, CardLayout.Fc26Purple, "agility", "balance", "reactions", "ballcontrol", "dribbling", "composure");
-        AddHeaderMetric(header, "DEF", 622, CardLayout.Fc26Blue, "interceptions", "headingaccuracy", "defensiveawareness", "standingtackle", "slidingtackle");
-        AddHeaderMetric(header, "PHY", 740, CardLayout.Fc26Orange, "jumping", "stamina", "strength", "aggression");
-AddOverviewTile(header, _overviewOverall, "OVR", 1050, CardLayout.Fc26Green);
-        AddOverviewTile(header, _overviewGrowth, "GRO", 940, CardLayout.Fc26Yellow);
-        AddOverviewTile(header, _overviewPotential, "POT", 1160, CardLayout.Fc26Green);
-var facts = new Panel { Location = new Point(16, 172), Size = new Size(1308, 92), BackColor = CardLayout.CardWhite };
-        ApplyRoundedCorners(facts, 12);
-        card.Controls.Add(facts);
-        facts.Controls.Add(new Label { Text = "PLAYER INFO", Location = new Point(12, 4), Size = new Size(180, 16), Font = Theme.Muted9, ForeColor = CardLayout.CardSubtle });
-        AddOverviewFact(facts, "Position", "preferredposition1", 12);
-        AddOverviewFact(facts, "Club", "club", 224);
-        AddOverviewFact(facts, "Nation", "nationality", 436);
-        AddOverviewFact(facts, "Height", "height", 648, " cm");
-        AddOverviewFact(facts, "Weight", "weight", 860, " kg");
-        AddOverviewFact(facts, "Preferred foot", "preferredfoot", 1072);
+        var page = new TabPage("Player") { BackColor = StudioColors.AppBackground };
+        Tabs.TabPages.Add(page);
 
-        var headings = new Label { Text = "PLAYER ATTRIBUTES", Location = new Point(18, 282), Size = new Size(420, 22), Font = Theme.BodyBold, ForeColor = CardLayout.CardText };
-        card.Controls.Add(headings);
-        AddOverviewAttributeGroup(card, "ATTACKING", CardLayout.Fc26Yellow, 18, 316,
-            ("Crossing", "crossing"), ("Finishing", "finishing"), ("Heading accuracy", "headingaccuracy"), ("Short passing", "shortpassing"), ("Volleys", "volleys"), ("Penalties", "penalties"));
-        AddOverviewAttributeGroup(card, "SKILL", CardLayout.Fc26Purple, 455, 316,
-            ("Dribbling", "dribbling"), ("Curve", "curve"), ("Free-kick accuracy", "freekickaccuracy"), ("Long passing", "longpassing"), ("Ball control", "ballcontrol"), ("Composure", "composure"));
-        AddOverviewAttributeGroup(card, "MOVEMENT", CardLayout.Fc26Green, 892, 316,
-            ("Acceleration", "acceleration"), ("Sprint speed", "sprintspeed"), ("Agility", "agility"), ("Reactions", "reactions"), ("Balance", "balance"), ("Positioning", "positioning"));
-        AddOverviewAttributeGroup(card, "POWER", CardLayout.Fc26Orange, 18, 480,
-            ("Shot power", "shotpower"), ("Jumping", "jumping"), ("Stamina", "stamina"), ("Strength", "strength"), ("Long shots", "longshots"));
-        AddOverviewAttributeGroup(card, "MENTALITY", CardLayout.Fc26Blue, 455, 480,
-            ("Vision", "vision"), ("Aggression", "aggression"), ("Interceptions", "interceptions"), ("Att. position", "positioning"), ("Reactions", "reactions"));
-        AddOverviewAttributeGroup(card, "DEFENDING", CardLayout.Fc26Blue, 892, 480,
-            ("Def. awareness", "defensiveawareness"), ("Stand tackle", "standingtackle"), ("Slide tackle", "slidingtackle"), ("Heading accuracy", "headingaccuracy"), ("Strength", "strength"));
-        AddOverviewAttributeGroup(card, "GOALKEEPING", CardLayout.Fc26Red, 18, 644,
-            ("GK diving", "gkdiving"), ("GK handling", "gkhandling"), ("GK kicking", "gkkicking"), ("GK positioning", "gkpositioning"), ("GK reflexes", "gkreflexes"));
-AddOverviewSupplement(card, "CONTRACT & VALUE", 455, 644,
-            ("Contract until", "contractvaliduntil"), ("Value", "value"), ("Wage", "wage"), ("Reputation", "internationalrep"));
-        AddOverviewSupplement(card, "PLAYING ROLES", 892, 644,
-            ("Primary role", "role1"), ("Secondary role", "role2"), ("Third role", "role3"), ("Fourth role", "role4"));
-        _overviewTraitsPanel = Box("PLAYSTYLES", new Point(455, 804), new Size(855, 86));
-        card.Controls.Add(_overviewTraitsPanel);
-        var note = new Label { Text = "Read-only career overview · Edit all database values in the Info and Skills tabs.", Location = new Point(28, 550), Size = new Size(800, 24), ForeColor = CardLayout.CardSubtle, Font = Theme.Body };
-        note.Visible = false;
-        note.Location = new Point(18, 858);
-        card.Controls.Add(note);
+        _toolbar = new StudioToolbar
+        {
+            Title = "Players",
+            CanCreate = true,
+            ShowFilter = true,
+            Dock = DockStyle.Top,
+        };
+        _toolbar.SearchBox.PlaceholderText = "Search players…";
+        _toolbar.NewClicked += (_, _) => CreateNewRecord();
+        _toolbar.PreviousClicked += (_, _) => StepRecord(-1);
+        _toolbar.NextClicked += (_, _) => StepRecord(+1);
+        _toolbar.SearchClicked += (_, _) => ApplyRecordFilter(_toolbar.SearchText);
+        _toolbar.SearchKeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            ApplyRecordFilter(_toolbar.SearchText);
+        };
+        _toolbar.FilterClicked += (_, _) => FocusSearchBox();
+        page.Controls.Add(_toolbar);
+
+        var scrollPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = StudioColors.AppBackground,
+            Padding = new Padding(StudioSpacing.Medium),
+            AutoScroll = true,
+        };
+        page.Controls.Add(scrollPanel);
+
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            ColumnCount = 1,
+            BackColor = StudioColors.AppBackground,
+        };
+
+        _heroCard = new PlayerHeroCard { Dock = DockStyle.Fill };
+        layout.Controls.Add(_heroCard, 0, 0);
+
+        _infoCard = BuildInfoCard();
+        layout.Controls.Add(_infoCard, 0, 1);
+
+        var physicalTechnicalMental = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = StudioColors.AppBackground,
+            Margin = new Padding(0, StudioSpacing.Medium, 0, 0),
+        };
+        _physicalCard = CreateStatGroup("Physical", StudioColors.Orange);
+        _technicalCard = CreateStatGroup("Technical", StudioColors.Purple);
+        _mentalCard = CreateStatGroup("Mental", StudioColors.CyanAccent);
+        physicalTechnicalMental.Controls.Add(_physicalCard);
+        physicalTechnicalMental.Controls.Add(_technicalCard);
+        physicalTechnicalMental.Controls.Add(_mentalCard);
+        layout.Controls.Add(physicalTechnicalMental, 0, 2);
+
+        var defendingGoalkeepingPlaystyles = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = StudioColors.AppBackground,
+            Margin = new Padding(0, StudioSpacing.Medium, 0, 0),
+        };
+        _defendingCard = CreateStatGroup("Defending", StudioColors.CyanAccent);
+        _goalkeepingCard = CreateStatGroup("Goalkeeping", StudioColors.Red);
+        _playstylesCard = BuildPlaystylesCard();
+        defendingGoalkeepingPlaystyles.Controls.Add(_defendingCard);
+        defendingGoalkeepingPlaystyles.Controls.Add(_goalkeepingCard);
+        defendingGoalkeepingPlaystyles.Controls.Add(_playstylesCard);
+        layout.Controls.Add(defendingGoalkeepingPlaystyles, 0, 3);
+
+        var rolesFaceEdit = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = StudioColors.AppBackground,
+            Margin = new Padding(0, StudioSpacing.Medium, 0, 0),
+        };
+        _rolesCard = BuildRolesCard();
+        _faceCard = BuildFaceCard();
+        var editCard = BuildEditCard();
+        rolesFaceEdit.Controls.Add(_rolesCard);
+        rolesFaceEdit.Controls.Add(_faceCard);
+        rolesFaceEdit.Controls.Add(editCard);
+        layout.Controls.Add(rolesFaceEdit, 0, 4);
+
+        scrollPanel.Controls.Add(layout);
     }
 
-    private void AddOverviewTile(Control parent, Label value, string title, int x, Color accent)
+    private StudioCard BuildInfoCard()
     {
-        var tile = new Panel { Location = new Point(x, 22), Size = new Size(90, 112), BackColor = accent };
-        ApplyRoundedCorners(tile, 14);
-        value.Location = new Point(5, 10); value.Size = new Size(80, 54); value.Font = new Font("Segoe UI", 24, FontStyle.Bold); value.TextAlign = ContentAlignment.MiddleCenter; value.ForeColor = Color.White;
-        tile.Controls.Add(value);
-        tile.Controls.Add(new Label { Text = title, Location = new Point(4, 73), Size = new Size(82, 20), TextAlign = ContentAlignment.MiddleCenter, Font = Theme.BodyBold, ForeColor = Color.White });
-        parent.Controls.Add(tile);
+        var card = new StudioCard
+        {
+            Dock = DockStyle.Top,
+            Margin = new Padding(0, StudioSpacing.Medium, 0, 0),
+            AccentColor = StudioColors.CyanAccent,
+            AutoSize = true,
+        };
+
+        var title = new Label
+        {
+            Text = "PLAYER INFO",
+            Dock = DockStyle.Top,
+            Height = 22,
+            Font = StudioFonts.CardTitle,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = Color.Transparent,
+        };
+
+        var flow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = Color.Transparent,
+        };
+
+        string[] labels = ["Age", "Position", "Club", "Nation", "Height", "Weight", "Preferred foot", "Contract", "Value", "Wage"];
+        string[] keys = ["age", "preferredposition1", "club", "nationality", "height", "weight", "preferredfoot", "contractvaliduntil", "value", "wage"];
+        for (var i = 0; i < labels.Length; i++)
+            flow.Controls.Add(BuildInfoItem(labels[i], keys[i]));
+
+        card.Controls.Add(flow);
+        card.Controls.Add(title);
+        return card;
     }
 
-    /// <summary>FUT-style rating grade used for the fcradar-style colored badges (0-99 scale).</summary>
-    private static Color RatingColor(int rating) => rating switch
+    private Control BuildInfoItem(string label, string key)
     {
-        >= 90 => Color.FromArgb(24, 133, 74),
-        >= 80 => Color.FromArgb(92, 173, 61),
-        >= 70 => Color.FromArgb(224, 138, 39),
-        >= 60 => Color.FromArgb(226, 170, 40),
-        >= 50 => Color.FromArgb(213, 99, 53),
-        > 0 => Color.FromArgb(196, 63, 63),
-        _ => Color.FromArgb(196, 199, 191)
+        var panel = new Panel
+        {
+            Height = 44,
+            Width = 160,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 0, StudioSpacing.Medium, StudioSpacing.Small),
+        };
+
+        panel.Controls.Add(new Label
+        {
+            Text = label.ToUpperInvariant(),
+            ForeColor = StudioColors.MutedText,
+            Font = StudioFonts.DataLabel,
+            AutoSize = true,
+            Location = new Point(0, 0),
+            BackColor = Color.Transparent,
+        });
+
+        var value = new Label
+        {
+            Text = "—",
+            ForeColor = StudioColors.PrimaryText,
+            Font = StudioFonts.DataValue,
+            AutoSize = true,
+            Location = new Point(0, 18),
+            BackColor = Color.Transparent,
+        };
+        _infoLabels[key] = value;
+        panel.Controls.Add(value);
+        return panel;
+    }
+
+    private static StatGroupCard CreateStatGroup(string title, Color accent)
+    {
+        return new StatGroupCard
+        {
+            GroupTitle = title,
+            AccentColor = accent,
+            Margin = new Padding(0, 0, StudioSpacing.Medium, StudioSpacing.Medium),
+            Width = 260,
+        };
+    }
+
+    private StudioCard BuildPlaystylesCard()
+    {
+        var card = new StudioCard
+        {
+            Width = 260,
+            Height = 180,
+            Margin = new Padding(0, 0, 0, StudioSpacing.Medium),
+            AccentColor = StudioColors.Purple,
+            AutoSize = false,
+        };
+
+        var title = new Label
+        {
+            Text = "PLAYSTYLES",
+            Dock = DockStyle.Top,
+            Height = 22,
+            Font = StudioFonts.CardTitle,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = Color.Transparent,
+        };
+
+        _playstylesFlow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = Color.Transparent,
+        };
+
+        card.Controls.Add(_playstylesFlow);
+        card.Controls.Add(title);
+        return card;
+    }
+
+    private StudioCard BuildRolesCard()
+    {
+        var card = new StudioCard
+        {
+            Width = 260,
+            Height = 180,
+            Margin = new Padding(0, 0, StudioSpacing.Medium, 0),
+            AccentColor = StudioColors.Yellow,
+            AutoSize = false,
+        };
+
+        var title = new Label
+        {
+            Text = "ROLES",
+            Dock = DockStyle.Top,
+            Height = 22,
+            Font = StudioFonts.CardTitle,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = Color.Transparent,
+        };
+
+        var flow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            BackColor = Color.Transparent,
+        };
+
+        for (var i = 1; i <= 4; i++)
+        {
+            var label = new Label
+            {
+                Text = $"{RoleLabel(i)} role: —",
+                ForeColor = StudioColors.PrimaryText,
+                Font = StudioFonts.DataValue,
+                AutoSize = true,
+                Margin = new Padding(0, 0, 0, StudioSpacing.Tiny),
+                BackColor = Color.Transparent,
+            };
+            _roleLabels[$"role{i}"] = label;
+            flow.Controls.Add(label);
+        }
+
+        card.Controls.Add(flow);
+        card.Controls.Add(title);
+        return card;
+    }
+
+    private static string RoleLabel(int index) => index switch
+    {
+        1 => "Primary",
+        2 => "Secondary",
+        3 => "Third",
+        _ => "Fourth",
     };
 
-    /// <summary>Clips a control to a rounded rectangle. Cheap and one-shot since every
-    /// overview tile/badge here has a fixed size set at creation time.</summary>
-    private static void ApplyRoundedCorners(Control control, int radius)
+    private StudioCard BuildFaceCard()
     {
-        if (control.Width <= 0 || control.Height <= 0) return;
-        var d = Math.Min(radius * 2, Math.Min(control.Width, control.Height));
-        var rect = new Rectangle(0, 0, control.Width, control.Height);
-        using var path = new GraphicsPath();
-        path.AddArc(rect.X, rect.Y, d, d, 180, 90);
-        path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
-        path.AddArc(rect.Right - d, rect.Bottom - d, d, d, 0, 90);
-        path.AddArc(rect.X, rect.Bottom - d, d, d, 90, 90);
-        path.CloseFigure();
-        control.Region?.Dispose();
-        control.Region = new Region(path);
+        var card = new StudioCard
+        {
+            Width = 260,
+            Height = 220,
+            Margin = new Padding(0, 0, StudioSpacing.Medium, 0),
+            AccentColor = StudioColors.CyanAccent,
+            AutoSize = false,
+        };
+
+        var title = new Label
+        {
+            Text = "FACE PREVIEW",
+            Dock = DockStyle.Top,
+            Height = 22,
+            Font = StudioFonts.CardTitle,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = Color.Transparent,
+        };
+
+        _overviewFace.Size = new Size(180, 180);
+        _overviewFace.SizeMode = PictureBoxSizeMode.Zoom;
+        _overviewFace.BackColor = StudioColors.InputBackground;
+        _overviewFace.Location = new Point(StudioSpacing.Medium, StudioSpacing.Medium + 22);
+
+        var caption = new Label
+        {
+            Text = "Miniface / face preview",
+            ForeColor = StudioColors.MutedText,
+            Font = StudioFonts.Metadata,
+            AutoSize = true,
+            Location = new Point(StudioSpacing.Medium, StudioSpacing.Medium + 22 + 180 + 4),
+            BackColor = Color.Transparent,
+        };
+
+        card.Controls.Add(caption);
+        card.Controls.Add(_overviewFace);
+        card.Controls.Add(title);
+        return card;
     }
 
-    private void AddHeaderMetric(Control parent, string code, int x, Color accent, params string[] fields)
+    private StudioCard BuildEditCard()
     {
-        var metric = new Panel { Location = new Point(x, 96), Size = new Size(106, 32), BackColor = accent };
-        ApplyRoundedCorners(metric, 8);
-        var value = new Label { Location = new Point(11, 4), Size = new Size(40, 23), Font = new Font("Segoe UI", 11, FontStyle.Bold), ForeColor = Color.White, TextAlign = ContentAlignment.MiddleLeft, Tag = fields };
-        metric.Controls.Add(value);
-        metric.Controls.Add(new Label { Text = code, Location = new Point(47, 5), Size = new Size(52, 20), Font = Theme.BodyBold, ForeColor = Color.White, TextAlign = ContentAlignment.MiddleRight });
-        _overviewRatings[code] = value;
-        parent.Controls.Add(metric);
-    }
+        var card = new StudioCard
+        {
+            Width = 260,
+            Height = 220,
+            Margin = new Padding(0, 0, 0, 0),
+            AccentColor = StudioColors.Green,
+            AutoSize = false,
+        };
 
-private void AddOverviewFact(Control parent, string title, string field, int x, string suffix = "")
-    {
-        var block = new Panel { Location = new Point(x, 22), Size = new Size(196, 58), BackColor = CardLayout.CardFieldBg };
-        ApplyRoundedCorners(block, 8);
-        block.Controls.Add(new Label { Text = title.ToUpperInvariant(), Location = new Point(10, 6), Size = new Size(176, 16), Font = new Font(Theme.Body, FontStyle.Bold), ForeColor = CardLayout.CardSubtle });
-        var value = new Label { Location = new Point(10, 25), Size = new Size(176, 26), Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = CardLayout.CardText, AutoEllipsis = true, Tag = suffix };
-        block.Controls.Add(value);
-        parent.Controls.Add(block);
-        _overviewFacts[field] = value;
+        var title = new Label
+        {
+            Text = "ACTIONS",
+            Dock = DockStyle.Top,
+            Height = 22,
+            Font = StudioFonts.CardTitle,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = Color.Transparent,
+        };
+
+        var edit = new Button
+        {
+            Text = "Edit player details…",
+            Size = new Size(180, 34),
+            Location = new Point(StudioSpacing.Medium, StudioSpacing.Medium + 22),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = StudioColors.Green,
+            ForeColor = StudioColors.PrimaryText,
+            Font = StudioFonts.Button,
+            Cursor = Cursors.Hand,
+            UseVisualStyleBackColor = false,
+        };
+        edit.FlatAppearance.BorderColor = StudioColors.Green;
+        edit.FlatAppearance.MouseOverBackColor = StudioColors.GreenHover;
+        edit.Click += (_, _) => OpenSinglePlayerEditor();
+
+        var hint = new Label
+        {
+            Text = "Open the full single-player editor to change every database field.",
+            ForeColor = StudioColors.MutedText,
+            Font = StudioFonts.Metadata,
+            Size = new Size(220, 40),
+            Location = new Point(StudioSpacing.Medium, StudioSpacing.Medium + 22 + 34 + 8),
+            BackColor = Color.Transparent,
+        };
+
+        card.Controls.Add(hint);
+        card.Controls.Add(edit);
+        card.Controls.Add(title);
+        return card;
     }
 
     private void OpenSinglePlayerEditor()
@@ -422,47 +705,6 @@ private void AddOverviewFact(Control parent, string title, string field, int x, 
         dialog.ShowDialog(this);
     }
 
-    private void AddOverviewAttributeGroup(Control parent, string title, Color accent, int x, int y, params (string Label, string Field)[] attributes)
-    {
-var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), BackColor = CardLayout.CardWhite };
-        ApplyRoundedCorners(group, 12);
-        group.Controls.Add(new Panel { Location = new Point(0, 0), Size = new Size(418, 4), BackColor = accent });
-        group.Controls.Add(new Label { Text = title, Location = new Point(14, 12), Size = new Size(250, 20), Font = Theme.BodyBold, ForeColor = accent });
-        var row = 0;
-        foreach (var (label, field) in attributes)
-        {
-            var yOffset = 34 + row * 18;
-            group.Controls.Add(new Label { Text = label, Location = new Point(14, yOffset), Size = new Size(305, 18), Font = Theme.Body, ForeColor = CardLayout.CardFieldLabel });
-            var value = new TextBox
-            {
-                Location = new Point(336, yOffset - 1), Size = new Size(64, 20),
-                BorderStyle = BorderStyle.None, TextAlign = HorizontalAlignment.Right,
-                Font = Theme.BodyBold, ForeColor = CardLayout.CardText,
-                BackColor = CardLayout.CardWhite, Tag = field
-            };
-            value.KeyDown += (_, e) =>
-            {
-                if (e.KeyCode != Keys.Enter) return;
-                CommitOverviewAttribute(value);
-                e.SuppressKeyPress = true;
-            };
-            value.Leave += (_, _) => CommitOverviewAttribute(value);
-            group.Controls.Add(value);
-            var track = new Panel { Location = new Point(218, yOffset + 5), Size = new Size(106, 8), BackColor = Color.FromArgb(223, 225, 219), Visible = false };
-            var fill = new Panel { Location = Point.Empty, Size = new Size(1, 8), BackColor = accent };
-            track.Controls.Add(fill);
-            group.Controls.Add(track);
-            if (!_overviewAttributeValues.TryGetValue(field, out var values))
-                _overviewAttributeValues[field] = values = [];
-            values.Add(value);
-            if (!_playerStatBars.TryGetValue(field, out var bars))
-                _playerStatBars[field] = bars = [];
-            bars.Add(track);
-            row++;
-        }
-        parent.Controls.Add(group);
-    }
-
     private void CommitOverviewAttribute(TextBox editor)
     {
         if (_syncSkillSliders || CurrentRecordIndex < 0 || editor.Tag is not string field ||
@@ -477,25 +719,6 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
             ShowRecord(CurrentRecordIndex);
     }
 
-    private void AddOverviewSupplement(Control parent, string title, int x, int y, params (string Label, string Field)[] entries)
-    {
-        var group = new Panel { Location = new Point(x, y), Size = new Size(418, 150), BackColor = Color.White };
-        ApplyRoundedCorners(group, 12);
-        group.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(418, 4), BackColor = Color.FromArgb(116, 185, 34) });
-        group.Controls.Add(new Label { Text = title, Location = new Point(14, 12), Size = new Size(360, 20), Font = Theme.BodyBold, ForeColor = Color.FromArgb(65, 105, 39) });
-        for (var index = 0; index < entries.Length; index++)
-        {
-            var (label, field) = entries[index];
-            var yOffset = 40 + index * 25;
-            group.Controls.Add(new Label { Text = label, Location = new Point(14, yOffset), Size = new Size(185, 20), Font = Theme.Body, ForeColor = Color.FromArgb(55, 55, 51) });
-            var value = new Label { Location = new Point(204, yOffset), Size = new Size(198, 20), TextAlign = ContentAlignment.MiddleRight, Font = Theme.BodyBold, ForeColor = Color.FromArgb(37, 37, 34), AutoEllipsis = true };
-            group.Controls.Add(value);
-            if (!_overviewSupplementValues.TryGetValue(field, out var values))
-                _overviewSupplementValues[field] = values = [];
-            values.Add(value);
-        }
-        parent.Controls.Add(group);
-    }
 
     private void AddInfoTab()
     {
@@ -1181,8 +1404,6 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
         if (table == null || record == null)
         {
             _playerName.Text = "Player unavailable";
-            _overviewName.Text = string.Empty;
-            _overviewMeta.Text = string.Empty;
             return;
         }
         var playerId = Parse(record.Get(Col(table, "playerid")));
@@ -1207,6 +1428,11 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
             if (IsDisposed) { preview?.Dispose(); return; }
             _overviewFace.Image?.Dispose();
             _overviewFace.Image = preview;
+            if (_heroCard != null)
+            {
+                _heroCard.Miniface?.Dispose();
+                _heroCard.Miniface = preview?.Clone() as Image;
+            }
         });
         LegacyAssetActions.SetTarget(_miniface,
             new LegacyAssetEditTarget($"data/ui/imgAssets/heads/p{playerId}.dds", 128, 128));
@@ -1308,56 +1534,125 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
 
     private void RefreshOverview()
     {
-        _overviewName.Text = _playerName.Text;
-        var position = GetOverviewText("preferredposition1");
-        var nation = GetOverviewText("nationality");
-        _overviewMeta.Text = string.Join("  ·  ", new[] { position, _clubName.Text, nation }.Where(text => !string.IsNullOrWhiteSpace(text)));
-        _overviewOverall.Text = GetOverviewNumber("overallrating").ToString();
-        _overviewPotential.Text = GetOverviewNumber("potential").ToString();
-        _overviewGrowth.Text = $"+{Math.Max(0, GetOverviewNumber("potential") - GetOverviewNumber("overallrating"))}";
-        foreach (var (field, label) in _overviewFacts)
+        if (_heroCard == null) return;
+
+        _heroCard.PlayerName = _playerName.Text;
+        _heroCard.TeamNation = string.Join("  ·  ",
+            new[] { _clubName.Text, GetOverviewText("nationality") }
+                .Where(text => !string.IsNullOrWhiteSpace(text)));
+
+        _heroCard.SetPositions(GetPositions());
+
+        var ovr = GetOverviewNumber("overallrating");
+        var pot = GetOverviewNumber("potential");
+        var gro = Math.Max(0, pot - ovr);
+        _heroCard.SetTopMetrics(new[]
         {
-            var value = string.Equals(field, "club", StringComparison.OrdinalIgnoreCase)
-                ? _clubName.Text
-                : GetOverviewText(field);
-            label.Text = string.IsNullOrWhiteSpace(value) ? "—" : value + (label.Tag as string ?? string.Empty);
-        }
-        foreach (var (field, labels) in _overviewAttributeValues)
+            ("OVR", ovr, StudioColors.Green),
+            ("GRO", gro, StudioColors.Yellow),
+            ("POT", pot, StudioColors.Green),
+        });
+
+        _heroCard.SetSixMetrics(new[]
         {
-            var value = GetOverviewNumber(field);
-            foreach (var label in labels)
-            {
-                var writable = _fields.TryGetValue(field, out var data) && data.IsWritable;
-                label.Text = value.ToString();
-                label.ReadOnly = !writable;
-                label.BackColor = writable ? Color.FromArgb(243, 250, 237) : Color.White;
-                label.ForeColor = writable ? Color.FromArgb(42, 111, 29) : Color.FromArgb(100, 100, 96);
-                ToolTip.SetToolTip(label, writable ? "Enter a value from 0 to 99, then press Enter." : "This FC26 field is not writable.");
-            }
-        }
-        foreach (var (field, labels) in _overviewSupplementValues)
+            ("PAC", Average("acceleration", "sprintspeed")),
+            ("SHO", Average("finishing", "shotpower", "longshots", "penalties", "volleys")),
+            ("PAS", Average("shortpassing", "longpassing", "vision", "crossing", "curve")),
+            ("DRI", Average("agility", "balance", "reactions", "ballcontrol", "dribbling", "composure")),
+            ("DEF", Average("interceptions", "headingaccuracy", "defensiveawareness", "standingtackle", "slidingtackle")),
+            ("PHY", Average("jumping", "stamina", "strength", "aggression")),
+        });
+
+        SetInfoLabel("age", GetAgeText());
+        SetInfoLabel("preferredposition1", GetOverviewText("preferredposition1"));
+        SetInfoLabel("club", _clubName.Text);
+        SetInfoLabel("nationality", GetOverviewText("nationality"));
+        SetInfoLabel("height", GetOverviewNumber("height") > 0 ? $"{GetOverviewNumber("height")} cm" : "—");
+        SetInfoLabel("weight", GetOverviewNumber("weight") > 0 ? $"{GetOverviewNumber("weight")} kg" : "—");
+        SetInfoLabel("preferredfoot", GetOverviewText("preferredfoot"));
+        SetInfoLabel("contractvaliduntil", GetOverviewText("contractvaliduntil"));
+        SetInfoLabel("value", GetOverviewText("value"));
+        SetInfoLabel("wage", GetOverviewText("wage"));
+
+        PopulateStatGroup(_physicalCard, new[]
         {
-            var text = GetOverviewText(field);
-            foreach (var label in labels)
-                label.Text = string.IsNullOrWhiteSpace(text) ? "-" : text;
-        }
-        foreach (var (field, bars) in _playerStatBars)
+            ("Acceleration", "acceleration"), ("Sprint Speed", "sprintspeed"), ("Agility", "agility"),
+            ("Reactions", "reactions"), ("Balance", "balance"), ("Jumping", "jumping"),
+            ("Stamina", "stamina"), ("Strength", "strength"), ("Aggression", "aggression"),
+        });
+        PopulateStatGroup(_technicalCard, new[]
         {
-            var score = GetOverviewNumber(field);
-            foreach (var track in bars)
-            {
-                track.Visible = true;
-                if (track.Controls.Count > 0)
-                    track.Controls[0].Width = Math.Max(1, (int)Math.Round(track.Width * Math.Clamp(score, 0, 99) / 99d));
-            }
-        }
-        foreach (var value in _overviewRatings.Values)
+            ("Crossing", "crossing"), ("Finishing", "finishing"), ("Heading Accuracy", "headingaccuracy"),
+            ("Short Passing", "shortpassing"), ("Volleys", "volleys"), ("Penalties", "penalties"),
+            ("Dribbling", "dribbling"), ("Curve", "curve"), ("Free Kick Accuracy", "freekickaccuracy"),
+            ("Long Passing", "longpassing"), ("Ball Control", "ballcontrol"), ("Composure", "composure"),
+        });
+        PopulateStatGroup(_mentalCard, new[]
         {
-            var fields = value.Tag as string[] ?? [];
-            var available = fields.Select(GetOverviewNumber).Where(number => number > 0).ToArray();
-            var rating = available.Length == 0 ? 0 : (int)Math.Round(available.Average());
-            value.Text = rating == 0 ? "—" : rating.ToString();
+            ("Vision", "vision"), ("Aggression", "aggression"), ("Interceptions", "interceptions"),
+            ("Att. Position", "positioning"), ("Composure", "composure"), ("Reactions", "reactions"),
+        });
+        PopulateStatGroup(_defendingCard, new[]
+        {
+            ("Def. Awareness", "defensiveawareness"), ("Standing Tackle", "standingtackle"),
+            ("Sliding Tackle", "slidingtackle"), ("Interceptions", "interceptions"),
+            ("Heading Accuracy", "headingaccuracy"), ("Strength", "strength"),
+        });
+        PopulateStatGroup(_goalkeepingCard, new[]
+        {
+            ("GK Diving", "gkdiving"), ("GK Handling", "gkhandling"), ("GK Kicking", "gkkicking"),
+            ("GK Positioning", "gkpositioning"), ("GK Reflexes", "gkreflexes"),
+        });
+
+        for (var i = 1; i <= 4; i++)
+        {
+            var key = $"role{i}";
+            var text = GetOverviewText(key);
+            if (_roleLabels.TryGetValue(key, out var label))
+                label.Text = $"{RoleLabel(i)} role: {(string.IsNullOrWhiteSpace(text) ? "—" : text)}";
         }
+    }
+
+    private IEnumerable<string> GetPositions()
+    {
+        var positions = new List<string>();
+        for (var i = 1; i <= 4; i++)
+        {
+            var text = GetOverviewText($"preferredposition{i}");
+            if (!string.IsNullOrWhiteSpace(text) && !text.Equals("Not set", StringComparison.OrdinalIgnoreCase))
+                positions.Add(text);
+        }
+        return positions;
+    }
+
+    private int Average(params string[] fields)
+    {
+        var values = fields.Select(GetOverviewNumber).Where(v => v > 0).ToList();
+        return values.Count == 0 ? 0 : (int)Math.Round(values.Average());
+    }
+
+    private void SetInfoLabel(string key, string text)
+    {
+        if (_infoLabels.TryGetValue(key, out var label))
+            label.Text = string.IsNullOrWhiteSpace(text) ? "—" : text;
+    }
+
+    private void PopulateStatGroup(StatGroupCard? card, (string Label, string Field)[] stats)
+    {
+        if (card == null) return;
+        card.Clear();
+        foreach (var (label, field) in stats)
+            card.AddStat(label, GetOverviewNumber(field));
+    }
+
+    private string GetAgeText()
+    {
+        if (!_fields.TryGetValue("birthdate", out var value)) return "—";
+        if (!FifaDateConverter.TryToIso(value.RawValue, out var iso)) return "—";
+        if (!DateTime.TryParse(iso, out var birth)) return "—";
+        var age = DateTime.Today.Year - birth.Year;
+        if (birth.Date > DateTime.Today.AddYears(-age)) age--;
+        return age.ToString();
     }
 
     private int GetOverviewNumber(string field) => _fields.TryGetValue(field, out var value) && int.TryParse(value.RawValue, out var parsed) ? parsed : 0;
@@ -1491,18 +1786,51 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
     {
         foreach (var editor in _traitEditors) _editors.Remove(editor);
         _traitEditors.Clear();
-        _overviewTraitsPanel?.Controls.Clear();
+        _playstylesFlow?.Controls.Clear();
         _traitsPanel?.Controls.Clear();
-        var chips = BuildPlaystyleChips();
-        _overviewTraitsPanel?.Controls.Add(ClonePlaystyleChips(chips));
 
-        var edit = new Button { Text = "Edit playstyles…", Location = new Point(714, 32), Size = new Size(126, 28), FlatStyle = FlatStyle.Flat, Font = Theme.Muted9 };
-        edit.FlatAppearance.BorderColor = Color.FromArgb(116, 185, 34);
+        PopulatePlaystyleFlow(_playstylesFlow);
+
+        var edit = new Button
+        {
+            Text = "Edit playstyles…",
+            Location = new Point(714, 32),
+            Size = new Size(126, 28),
+            FlatStyle = FlatStyle.Flat,
+            Font = StudioFonts.Button,
+            BackColor = StudioColors.RaisedSurface,
+            ForeColor = StudioColors.PrimaryText,
+            UseVisualStyleBackColor = false,
+        };
+        edit.FlatAppearance.BorderColor = StudioColors.Green;
         edit.Click += (_, _) => OpenSinglePlayerEditor();
+
         if (_traitsPanel != null)
         {
-            _traitsPanel.Controls.Add(ClonePlaystyleChips(chips));
+            _traitsPanel.Controls.Add(BuildPlaystyleChips());
             _traitsPanel.Controls.Add(edit);
+        }
+    }
+
+    private void PopulatePlaystyleFlow(FlowLayoutPanel? flow)
+    {
+        if (flow == null) return;
+        var names = DecodePlaystyles();
+        if (names.Count == 0)
+        {
+            flow.Controls.Add(new Label
+            {
+                Text = "No active Playstyles",
+                AutoSize = true,
+                ForeColor = StudioColors.MutedText,
+                Font = StudioFonts.RowPrimary,
+                BackColor = Color.Transparent,
+            });
+        }
+        else
+        {
+            foreach (var (name, plus) in names)
+                flow.Controls.Add(new PlaystyleChip { PlaystyleText = plus ? name + "+" : name });
         }
     }
 
@@ -1510,48 +1838,34 @@ var group = new Panel { Location = new Point(x, y), Size = new Size(418, 160), B
     {
         var chips = new FlowLayoutPanel
         {
-            Location = new Point(12, 23), Size = new Size(690, 53), AutoScroll = true,
-            WrapContents = true, BackColor = Color.White, Padding = new Padding(2), Margin = Padding.Empty
+            Location = new Point(12, 23),
+            Size = new Size(690, 53),
+            AutoScroll = true,
+            WrapContents = true,
+            BackColor = StudioColors.Surface,
+            Padding = new Padding(2),
+            Margin = Padding.Empty,
         };
         var names = DecodePlaystyles();
         if (names.Count == 0)
-            chips.Controls.Add(new Label { Text = "No active Playstyles", AutoSize = true, Padding = new Padding(7, 5, 7, 5), Font = Theme.Body, ForeColor = Theme.Muted });
+        {
+            chips.Controls.Add(new Label
+            {
+                Text = "No active Playstyles",
+                AutoSize = true,
+                Padding = new Padding(7, 5, 7, 5),
+                Font = StudioFonts.RowPrimary,
+                ForeColor = StudioColors.MutedText,
+                BackColor = Color.Transparent,
+            });
+        }
         else
+        {
             foreach (var (name, plus) in names)
-                chips.Controls.Add(CreatePlaystyleChip(name, plus));
+                chips.Controls.Add(new PlaystyleChip { PlaystyleText = plus ? name + "+" : name });
+        }
         return chips;
     }
-
-    private static FlowLayoutPanel ClonePlaystyleChips(FlowLayoutPanel source)
-    {
-        var clone = new FlowLayoutPanel
-        {
-            Location = source.Location, Size = source.Size, AutoScroll = source.AutoScroll,
-            WrapContents = source.WrapContents, BackColor = source.BackColor,
-            Padding = source.Padding, Margin = source.Margin
-        };
-        foreach (Control control in source.Controls)
-        {
-            if (control is Label label)
-            {
-                clone.Controls.Add(new Label
-                {
-                    Text = label.Text, AutoSize = label.AutoSize,
-                    Padding = label.Padding, Margin = label.Margin,
-                    Font = label.Font, ForeColor = label.ForeColor,
-                    BackColor = label.BackColor, BorderStyle = label.BorderStyle
-                });
-            }
-        }
-        return clone;
-    }
-
-    private static Control CreatePlaystyleChip(string name, bool plus) => new Label
-    {
-        Text = plus ? name + " +" : name, AutoSize = true, Margin = new Padding(3, 2, 3, 2), Padding = new Padding(8, 4, 8, 4),
-        Font = Theme.BodyBold, ForeColor = plus ? Color.FromArgb(48, 112, 27) : Color.FromArgb(67, 67, 62),
-        BackColor = plus ? Color.FromArgb(225, 243, 213) : Color.FromArgb(239, 241, 236), BorderStyle = BorderStyle.FixedSingle
-    };
 
     private List<(string Name, bool Plus)> DecodePlaystyles()
     {

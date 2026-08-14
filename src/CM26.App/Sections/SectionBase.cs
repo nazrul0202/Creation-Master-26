@@ -360,6 +360,9 @@ public abstract class SectionBase : UserControl
     {
     }
 
+    /// <summary>Public entry point for the main shell's New button.</summary>
+    public void CreateRecord() => CreateNewRecord();
+
     private void SetPickerItems(IReadOnlyList<RecordListItem> records)
     {
         _syncPicker = true;

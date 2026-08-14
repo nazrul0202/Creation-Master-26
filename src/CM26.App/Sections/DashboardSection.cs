@@ -2,20 +2,17 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 
 namespace CM26.App.Sections;
 
-/// <summary>Overview: database info, entity counts, pending-change status, quick actions.</summary>
+/// <summary>Modern tool dashboard: database status, metrics, quick actions and health.</summary>
 public sealed class DashboardSection : SectionBase
 {
-    private readonly BufferedPanel _host;
-    private Panel? _hero;
-    private FlowLayoutPanel? _flow;
-    private Label? _pendingHeroLabel;
-    private Button? _explorerHeroBtn;
-    private Button? _saveHeroBtn;
+    private readonly Panel _host;
+    private readonly StudioToolbar _toolbar;
 
     public override string SectionKey => "dashboard";
     public override string SectionTitle => "Dashboard";
@@ -24,25 +21,28 @@ public sealed class DashboardSection : SectionBase
 
     public DashboardSection(AppServices s) : base(s)
     {
-        _host = new BufferedPanel { Dock = DockStyle.Fill, BackColor = CardLayout.CardBackground, Padding = new Padding(12), AutoScroll = true };
-        _host.Resize += (_, _) => PositionContent();
-        var page = new TabPage("Overview") { BackColor = Theme.Background };
-        page.Controls.Add(_host);
-        Tabs.TabPages.Add(page);
-        Header.SetRecord("Dashboard", "Database overview and activity", IconService.Get("dashboard", 44));
-    }
+        _toolbar = new StudioToolbar
+        {
+            Title = "Dashboard",
+            CanCreate = false,
+            ShowFilter = false,
+            Dock = DockStyle.Top,
+        };
+        _toolbar.SearchClicked += (_, _) => Services.RequestNavigation("players");
 
-    /// <summary>Re-lays the hero and stat flow after the canvas is resized.</summary>
-    private void PositionContent()
-    {
-        if (_hero == null) return;
-        _hero.Width = Math.Max(0, _host.ClientSize.Width - 24);
-        if (_explorerHeroBtn != null)
-            _explorerHeroBtn.Location = new Point(_hero.Width - 300, 20);
-        if (_saveHeroBtn != null)
-            _saveHeroBtn.Location = new Point(_hero.Width - 172, 20);
-        if (_flow != null)
-            _flow.Location = new Point(0, _hero.Bottom + 8);
+        _host = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = StudioColors.AppBackground,
+            Padding = new Padding(StudioSpacing.Medium),
+            AutoScroll = true,
+        };
+
+        var page = new TabPage("Overview") { BackColor = StudioColors.AppBackground };
+        page.Controls.Add(_host);
+        page.Controls.Add(_toolbar);
+        Tabs.TabPages.Add(page);
+        Header.Visible = false;
     }
 
     protected override IReadOnlyList<RecordListItem> GetRecords() => Array.Empty<RecordListItem>();
@@ -57,6 +57,7 @@ public sealed class DashboardSection : SectionBase
     {
         _host.SuspendLayout();
         _host.Controls.Clear();
+
         if (!Services.Session.IsLoaded)
         {
             RenderEmptyState();
@@ -64,181 +65,366 @@ public sealed class DashboardSection : SectionBase
             return;
         }
 
-        _hero = BuildHero();
-        _hero.Size = new Size(Math.Max(520, _host.ClientSize.Width - 24), 118);
-        _host.Controls.Add(_hero);
-
-        _flow = new FlowLayoutPanel
+        var layout = new TableLayoutPanel
         {
-            Location = new Point(0, _hero.Bottom + 12),
+            Dock = DockStyle.Top,
             AutoSize = true,
-            FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = true,
-            BackColor = CardLayout.CardBackground,
-            Padding = new Padding(2),
+            ColumnCount = 1,
+            BackColor = StudioColors.AppBackground,
         };
-        _flow.Controls.Add(Fc26StatCard("Tables", Services.Session.Tables.Count.ToString("N0"), null, CardLayout.Fc26Green));
-        _flow.Controls.Add(Fc26StatCard("Players", CountOf("players"), "players", CardLayout.Fc26Blue));
-        _flow.Controls.Add(Fc26StatCard("Teams", CountOf("teams"), "teams", CardLayout.Fc26Yellow));
-        _flow.Controls.Add(Fc26StatCard("Leagues", CountOf("leagues"), "leagues", CardLayout.Fc26Purple));
-        _flow.Controls.Add(Fc26StatCard("Nations", CountOf("nations"), "countries", CardLayout.Fc26Green));
-        _flow.Controls.Add(Fc26StatCard("Stadiums", CountOf("stadiums"), "stadiums", CardLayout.Fc26Blue));
-        _flow.Controls.Add(Fc26StatCard("Managers", CountOf("manager"), "managers", CardLayout.Fc26Yellow));
-        _flow.Controls.Add(Fc26StatCard("Referees", CountOf("referee"), "referees", CardLayout.Fc26Orange));
-        _flow.Controls.Add(Fc26StatCard("Kits", CountOf("teamkits"), "kits", CardLayout.Fc26Purple));
-        _flow.Controls.Add(Fc26StatCard("Formations", CountOf("formations"), "formations", CardLayout.Fc26Red));
-        _host.Controls.Add(_flow);
 
+        var hero = BuildHeroCard();
+        layout.Controls.Add(hero, 0, 0);
+
+        var metrics = BuildMetricsRow();
+        layout.Controls.Add(metrics, 0, 1);
+
+        var actionsAndHealth = BuildActionsAndHealthRow();
+        layout.Controls.Add(actionsAndHealth, 0, 2);
+
+        _host.Controls.Add(layout);
         _host.ResumeLayout();
     }
 
-    private void RenderEmptyState()
+    private Control BuildHeroCard()
     {
-        var hero = BuildHero();
-        hero.Size = new Size(Math.Max(520, _host.ClientSize.Width - 24), 150);
-        _host.Controls.Add(hero);
-
-        var hint = new Label
+        var card = new StudioCard
         {
-            Text = "Creates an editable snapshot of the FC26 database and legacy assets in Data/Patch.\n" +
-                   "Writes are staged and validated before they reach the game files.",
-            AutoSize = true,
-            Location = new Point(0, hero.Bottom + 10),
-            Font = Theme.Body,
-            ForeColor = CardLayout.CardSubtle,
+            Dock = DockStyle.Top,
+            Height = 120,
+            Margin = new Padding(0, 0, 0, StudioSpacing.Medium),
+            AccentColor = StudioColors.Green,
         };
-        _host.Controls.Add(hint);
-    }
 
-    private Panel BuildHero()
-    {
-        var hero = new Panel
+        var icon = new PictureBox
         {
-            Location = new Point(0, 0),
-            Size = new Size(_host.ClientSize.Width - 24, 118),
-            BackColor = CardLayout.CardWhite,
-        };
-        CardLayout.ApplyRounded(hero, 14);
-        hero.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 6, BackColor = CardLayout.Fc26Green });
-
-        var logo = new PictureBox
-        {
-            Image = IconService.Get("dashboard", 56),
-            Size = new Size(56, 56),
+            Image = IconService.Get("dashboard", 48),
+            Size = new Size(48, 48),
             SizeMode = PictureBoxSizeMode.Zoom,
-            Location = new Point(24, 16),
+            Location = new Point(StudioSpacing.Large, StudioSpacing.Large),
+            BackColor = Color.Transparent,
         };
-        hero.Controls.Add(logo);
-
-        if (!Services.Session.IsLoaded)
-        {
-            hero.Controls.Add(new Label
-            {
-                Text = "No game data loaded",
-                Location = new Point(96, 20),
-                AutoSize = true,
-                Font = Theme.RecordTitle,
-                ForeColor = CardLayout.CardText,
-            });
-            hero.Controls.Add(new Label
-            {
-                Text = "Open an EA SPORTS FC 26 installation to start editing its database and legacy assets.",
-                Location = new Point(96, 52),
-                AutoSize = true,
-                Font = Theme.Body,
-                ForeColor = CardLayout.CardSubtle,
-            });
-            var openBtn = new Button { Text = "Open FC26…", Location = new Point(96, 84), Size = new Size(130, 30) };
-            Theme.ApplyButton(openBtn, primary: true);
-            openBtn.Click += (_, _) => Services.RequestOpenGame();
-            hero.Controls.Add(openBtn);
-            var shortcut = new Label
-            {
-                Text = "Shortcut: Ctrl+O",
-                Location = new Point(236, 89),
-                AutoSize = true,
-                Font = Theme.Muted9,
-                ForeColor = CardLayout.CardSubtle,
-            };
-            hero.Controls.Add(shortcut);
-            return hero;
-        }
 
         var folder = Services.Session.LoadedFolder ?? string.Empty;
-        hero.Controls.Add(new Label
+        var title = new Label
+        {
+            Text = $"Database ready — {Path.GetFileName(folder)}",
+            Location = new Point(80, StudioSpacing.Large),
+            AutoSize = true,
+            Font = StudioFonts.SectionTitle,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = Color.Transparent,
+        };
+
+        var path = new Label
         {
             Text = ShortenPath(folder),
-            Location = new Point(96, 18),
-            Size = new Size(Math.Max(200, hero.Width - 380), 22),
-            Font = Theme.RecordTitle,
-            ForeColor = CardLayout.CardText,
-            AutoEllipsis = true,
-        });
-        _pendingHeroLabel = new Label
-        {
-            Text = $"{Services.Pending.Count} pending change(s)",
-            Location = new Point(96, 48),
+            Location = new Point(80, 52),
             AutoSize = true,
-            Font = Theme.BodyBold,
-            ForeColor = Services.Pending.Count > 0 ? CardLayout.Fc26Yellow : CardLayout.CardMuted,
+            Font = StudioFonts.CardSubtitle,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
         };
-        hero.Controls.Add(_pendingHeroLabel);
-        hero.Controls.Add(new Label
-        {
-            Text = "Edits are staged here, validated, then written to Data/Patch on save.",
-            Location = new Point(96, 72),
-            AutoSize = true,
-            Font = Theme.Muted9,
-            ForeColor = CardLayout.CardSubtle,
-        });
 
-        _explorerHeroBtn = new Button { Text = "Open Folder", Location = new Point(hero.Width - 300, 20), Size = new Size(120, 30) };
-        Theme.ApplyButton(_explorerHeroBtn);
+        var pending = new Label
+        {
+            Text = $"{Services.Pending.Count + Services.LegacyMods.Count} pending change(s)",
+            Location = new Point(80, 76),
+            AutoSize = true,
+            Font = StudioFonts.DataValue,
+            ForeColor = Services.Pending.HasChanges || Services.LegacyMods.HasChanges ? StudioColors.Yellow : StudioColors.MutedText,
+            BackColor = Color.Transparent,
+        };
+
+        var openBtn = new Button
+        {
+            Text = "Open Folder",
+            Size = new Size(110, 30),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = StudioColors.RaisedSurface,
+            ForeColor = StudioColors.PrimaryText,
+            Font = StudioFonts.Button,
+            Cursor = Cursors.Hand,
+            UseVisualStyleBackColor = false,
+        };
+        openBtn.FlatAppearance.BorderColor = StudioColors.CardBorder;
         var root = !string.IsNullOrWhiteSpace(Services.ActiveGameRoot)
             ? Services.ActiveGameRoot
             : SettingsService.FC26GameFolder;
-        _explorerHeroBtn.Click += (_, _) =>
+        openBtn.Click += (_, _) =>
         {
             try
             {
                 if (Directory.Exists(root)) Process.Start(new ProcessStartInfo("explorer.exe", $"\"{root}\"") { UseShellExecute = true });
             }
-            catch (Exception ex) { Program.Log($"[CM26] Could not open game folder: {ex.Message}"); /* cannot open explorer */ }
+            catch (Exception ex) { Program.Log($"[CM26] Could not open game folder: {ex.Message}"); }
         };
-        _saveHeroBtn = new Button { Text = "Save", Location = new Point(hero.Width - 172, 20), Size = new Size(120, 30) };
-        Theme.ApplyButton(_saveHeroBtn, primary: true);
-        _saveHeroBtn.Enabled = Services.Pending.Count > 0;
-        _saveHeroBtn.Click += (_, _) => Services.RequestSaveDraft();
-        hero.Controls.Add(_explorerHeroBtn);
-        hero.Controls.Add(_saveHeroBtn);
-        return hero;
+
+        var saveBtn = new Button
+        {
+            Text = "Save",
+            Size = new Size(110, 30),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = StudioColors.Green,
+            ForeColor = StudioColors.PrimaryText,
+            Font = StudioFonts.Button,
+            Cursor = Cursors.Hand,
+            UseVisualStyleBackColor = false,
+            Enabled = Services.Pending.Count > 0 || Services.LegacyMods.HasChanges,
+        };
+        saveBtn.FlatAppearance.BorderColor = StudioColors.Green;
+        saveBtn.Click += (_, _) => Services.RequestSaveDraft();
+
+        var buttonsHost = new Panel
+        {
+            Height = 40,
+            Dock = DockStyle.Right,
+            Width = 248,
+            BackColor = Color.Transparent,
+            Padding = new Padding(0, StudioSpacing.Large, StudioSpacing.Large, 0),
+        };
+        openBtn.Location = new Point(0, 0);
+        saveBtn.Location = new Point(120, 0);
+        buttonsHost.Controls.Add(openBtn);
+        buttonsHost.Controls.Add(saveBtn);
+
+        card.Controls.Add(buttonsHost);
+        card.Controls.Add(pending);
+        card.Controls.Add(path);
+        card.Controls.Add(title);
+        card.Controls.Add(icon);
+
+        return card;
     }
 
-    private string CountOf(string table) => (Services.Session.GetTable(table)?.RowCount ?? 0).ToString("N0");
-
-    private Control Fc26StatCard(string label, string value, string? navigateKey, Color accent)
+    private Control BuildMetricsRow()
     {
-        var card = new Panel { Size = new Size(148, 72), BackColor = CardLayout.CardWhite, Margin = new Padding(3) };
-        CardLayout.ApplyRounded(card, 10);
-        card.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(148, 4), BackColor = accent });
-        var v = new Label { Text = value, Location = new Point(8, 7), Size = new Size(132, 30), Font = Theme.RecordTitle, ForeColor = CardLayout.CardText, TextAlign = ContentAlignment.MiddleCenter };
-        var l = new Label { Text = label, Location = new Point(8, 39), Size = new Size(132, 24), Font = Theme.Label, ForeColor = CardLayout.CardSubtle, TextAlign = ContentAlignment.TopCenter };
-        card.Controls.Add(l);
-        card.Controls.Add(v);
+        var flow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = StudioColors.AppBackground,
+            Padding = Padding.Empty,
+            Margin = new Padding(0, 0, 0, StudioSpacing.Medium),
+        };
+
+        flow.Controls.Add(Metric("Tables", CountOf("players") == "0" ? Services.Session.Tables.Count.ToString("N0") : CountOf("players"), StudioColors.CyanAccent, "browser"));
+        flow.Controls.Add(Metric("Players", CountOf("players"), StudioColors.Green, "players"));
+        flow.Controls.Add(Metric("Teams", CountOf("teams"), StudioColors.CyanAccent, "teams"));
+        flow.Controls.Add(Metric("Leagues", CountOf("leagues"), StudioColors.Purple, "leagues"));
+        flow.Controls.Add(Metric("Countries", CountOf("nations"), StudioColors.Yellow, "countries"));
+        flow.Controls.Add(Metric("Stadiums", CountOf("stadiums"), StudioColors.CyanAccent, "stadiums"));
+        flow.Controls.Add(Metric("Kits", CountOf("teamkits"), StudioColors.Purple, "kits"));
+        flow.Controls.Add(Metric("Formations", CountOf("formations"), StudioColors.Red, "formations"));
+
+        return flow;
+    }
+
+    private Control Metric(string label, string value, Color accent, string? navigateKey)
+    {
+        var card = new MetricCard
+        {
+            Width = 148,
+            Height = 84,
+            Margin = new Padding(0, 0, StudioSpacing.Medium, StudioSpacing.Medium),
+            AccentColor = accent,
+            LabelText = label,
+            ValueText = value,
+            ValueColor = accent,
+        };
         if (navigateKey != null)
         {
             card.Cursor = Cursors.Hand;
-            var key = navigateKey;
-            card.Click += (_, _) => Services.RequestNavigation(key);
-            l.Click += (_, _) => Services.RequestNavigation(key);
-            v.Click += (_, _) => Services.RequestNavigation(key);
-            card.MouseEnter += (_, _) => card.BackColor = CardLayout.CardFieldBg;
-            card.MouseLeave += (_, _) => card.BackColor = CardLayout.CardWhite;
+            card.Click += (_, _) => Services.RequestNavigation(navigateKey);
         }
         return card;
     }
 
-    /// <summary>Keeps a long path readable in the hero card by showing only the tail segments.</summary>
+    private Control BuildActionsAndHealthRow()
+    {
+        var row = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            ColumnCount = 2,
+            BackColor = StudioColors.AppBackground,
+            ColumnStyles =
+            {
+                new ColumnStyle(SizeType.Percent, 50f),
+                new ColumnStyle(SizeType.Percent, 50f),
+            },
+        };
+
+        row.Controls.Add(BuildQuickActionsCard(), 0, 0);
+        row.Controls.Add(BuildHealthCard(), 1, 0);
+        return row;
+    }
+
+    private Control BuildQuickActionsCard()
+    {
+        var card = new StudioCard
+        {
+            Dock = DockStyle.Fill,
+            Height = 220,
+            Margin = new Padding(0, 0, StudioSpacing.Medium, 0),
+        };
+
+        var title = new Label
+        {
+            Text = "Quick actions",
+            Dock = DockStyle.Top,
+            Height = 24,
+            Font = StudioFonts.CardTitle,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = Color.Transparent,
+        };
+
+        var flow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = Color.Transparent,
+            Padding = new Padding(0, StudioSpacing.Medium, 0, 0),
+        };
+
+        flow.Controls.Add(ActionButton("Open game database", StudioColors.CyanAccent, () => Services.RequestOpenGame()));
+        flow.Controls.Add(ActionButton("Browse players", StudioColors.Green, () => Services.RequestNavigation("players")));
+        flow.Controls.Add(ActionButton("Browse teams", StudioColors.CyanAccent, () => Services.RequestNavigation("teams")));
+        flow.Controls.Add(ActionButton("Data sync", StudioColors.Purple, () => Services.RequestNavigation("transfers")));
+        flow.Controls.Add(ActionButton("Mod manager", StudioColors.Yellow, () => Services.RequestNavigation("modmanager")));
+        flow.Controls.Add(ActionButton("Validate database", StudioColors.Green, ValidateDatabase));
+        flow.Controls.Add(ActionButton("Settings", StudioColors.MutedText, () => Services.RequestNavigation("settings")));
+
+        card.Controls.Add(flow);
+        card.Controls.Add(title);
+        return card;
+    }
+
+    private Control BuildHealthCard()
+    {
+        var card = new StudioCard
+        {
+            Dock = DockStyle.Fill,
+            Height = 220,
+            Margin = new Padding(StudioSpacing.Medium, 0, 0, 0),
+        };
+
+        var title = new Label
+        {
+            Text = "Database health",
+            Dock = DockStyle.Top,
+            Height = 24,
+            Font = StudioFonts.CardTitle,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = Color.Transparent,
+        };
+
+        var flow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            BackColor = Color.Transparent,
+            Padding = new Padding(0, StudioSpacing.Medium, 0, 0),
+        };
+
+        flow.Controls.Add(HealthRow("Database status", Services.Session.IsLoaded ? "Loaded" : "Not loaded", Services.Session.IsLoaded ? StudioColors.Green : StudioColors.Red));
+        flow.Controls.Add(HealthRow("Asset index", Services.FrostbiteAssets.IsAvailable ? "Indexed" : "Not available", Services.FrostbiteAssets.IsAvailable ? StudioColors.Green : StudioColors.MutedText));
+        flow.Controls.Add(HealthRow("Pending changes", (Services.Pending.Count + Services.LegacyMods.Count).ToString("N0"), Services.Pending.HasChanges || Services.LegacyMods.HasChanges ? StudioColors.Yellow : StudioColors.Green));
+        flow.Controls.Add(HealthRow("Backup status", GameBackupService.Inspect(Services.ActiveGameRoot).IsReady ? "Ready" : "Unknown", StudioColors.MutedText));
+        flow.Controls.Add(HealthRow("Last opened", ShortenPath(SettingsService.LastFolder), StudioColors.MutedText));
+
+        card.Controls.Add(flow);
+        card.Controls.Add(title);
+        return card;
+    }
+
+    private Control HealthRow(string label, string value, Color valueColor)
+    {
+        var panel = new Panel
+        {
+            Height = 26,
+            Width = 340,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 0, 0, StudioSpacing.Tiny),
+        };
+
+        panel.Controls.Add(new Label
+        {
+            Text = label,
+            ForeColor = StudioColors.MutedText,
+            Font = StudioFonts.RowPrimary,
+            AutoSize = true,
+            Location = new Point(0, 4),
+            BackColor = Color.Transparent,
+        });
+
+        panel.Controls.Add(new Label
+        {
+            Text = value,
+            ForeColor = valueColor,
+            Font = StudioFonts.DataValue,
+            AutoSize = true,
+            Location = new Point(140, 4),
+            BackColor = Color.Transparent,
+        });
+
+        return panel;
+    }
+
+    private Button ActionButton(string text, Color accent, Action action)
+    {
+        var button = new Button
+        {
+            Text = text,
+            AutoSize = false,
+            Width = 150,
+            Height = 34,
+            Margin = new Padding(0, 0, StudioSpacing.Medium, StudioSpacing.Medium),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = StudioColors.RaisedSurface,
+            ForeColor = StudioColors.PrimaryText,
+            Font = StudioFonts.Button,
+            Cursor = Cursors.Hand,
+            UseVisualStyleBackColor = false,
+        };
+        button.FlatAppearance.BorderColor = StudioColors.CardBorder;
+        button.FlatAppearance.MouseOverBackColor = Color.FromArgb(50, accent);
+        button.Click += (_, _) => action();
+        return button;
+    }
+
+    private void ValidateDatabase()
+    {
+        var issues = Services.Validation.ValidateAll(Services.Pending.Changes);
+        if (issues.Count == 0)
+            MessageBox.Show(this, "All staged changes are valid.", "Validate", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        else
+            MessageBox.Show(this, string.Join(Environment.NewLine, issues.Select(i => $"• {i.Table}[{i.Row}].{i.Field}: {i.Message}")),
+                "Validation issues", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+    }
+
+    private void RenderEmptyState()
+    {
+        var empty = new EmptyStateCard
+        {
+            Dock = DockStyle.Fill,
+            IconText = "🎮",
+            TitleText = "No game data loaded",
+            DescriptionText = "Open an EA SPORTS FC 26 installation to start editing its database, teams, players and assets.",
+            ActionText = "Open FC26",
+        };
+        empty.ActionClicked += (_, _) => Services.RequestOpenGame();
+        _host.Controls.Add(empty);
+    }
+
+    private string CountOf(string table) => (Services.Session.GetTable(table)?.RowCount ?? 0).ToString("N0");
+
     private static string ShortenPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path)) return string.Empty;

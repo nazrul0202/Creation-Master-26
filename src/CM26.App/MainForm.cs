@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Sections;
 using CM26.App.Theming;
 
@@ -13,18 +14,12 @@ public sealed class MainForm : Form
 
     private readonly Panel _workspace;
     private readonly MenuStrip _menu;
-    private readonly Panel _filterBar;
-    private readonly TextBox _filterSearch;
-    private readonly Button _goBtn, _prevBtn, _nextBtn;
-    private readonly Button _openBtn, _saveBtn, _undoBtn, _redoBtn, _validateBtn;
-    private readonly ProgressBar _progress;
-    private readonly Panel _sidebar;
-    private readonly FlowLayoutPanel _sidebarList;
+    private readonly StudioToolbar _toolbar;
+    private readonly StudioSidebar _sidebar;
     private readonly StatusStrip _status;
     private readonly ToolStripStatusLabel _statusText, _dbPath, _assetStatus, _pendingLabel;
 
     private readonly Dictionary<string, SectionBase> _sections = new();
-    private readonly Dictionary<string, SidebarNavButton> _moduleButtons = new(StringComparer.OrdinalIgnoreCase);
     private readonly ToolTip _toolTip = new() { AutoPopDelay = 8000, InitialDelay = 400, ReshowDelay = 100 };
     private readonly WelcomePanel _welcome;
     private string? _activeKey;
@@ -97,23 +92,27 @@ public sealed class MainForm : Form
         helpMenu.DropDownItems.Add("About", null, (_, _) => ShowAbout());
         _menu.Items.AddRange(new ToolStripItem[] { fileMenu, toolsMenu, patchMenu, helpMenu });
 
-        // ---- Filter bar (FC Editor style): actions left, record filter right ----
-        _filterBar = new Panel
+        // ---- Studio toolbar ----
+        _toolbar = new StudioToolbar();
+        _toolbar.OpenClicked += async (_, _) => await OpenFc26Async();
+        _toolbar.SaveClicked += async (_, _) => await SaveDirectAsync();
+        _toolbar.UndoClicked += (_, _) => Undo();
+        _toolbar.RedoClicked += (_, _) => Redo();
+        _toolbar.ValidateClicked += (_, _) => ValidateAll();
+        _toolbar.SearchClicked += (_, _) => ApplyGlobalFilter();
+        _toolbar.PreviousClicked += (_, _) => StepRecord(-1);
+        _toolbar.NextClicked += (_, _) => StepRecord(+1);
+        _toolbar.NewClicked += (_, _) =>
         {
-            Dock = DockStyle.Top,
-            Height = 58,
-            BackColor = Theme.Panel,
-            Padding = new Padding(Theme.Space + 2, 10, Theme.Space + 2, 10),
+            if (_activeKey != null && _sections.TryGetValue(_activeKey, out var s))
+                s.CreateRecord();
         };
-        _openBtn = MakeActionButton("Open Game", "Detect the game and load its database and assets automatically (Ctrl+O)");
-        _saveBtn = MakeActionButton("Save", "Apply staged changes directly to FC26 for offline use (Ctrl+S).", primary: true);
-        _undoBtn = MakeActionButton("Undo", "Undo last change (Ctrl+Z)");
-        _redoBtn = MakeActionButton("Redo", "Redo the last undone change (Ctrl+Y)");
-        _validateBtn = MakeActionButton("Validate", "Validate staged changes");
-        _progress = new ProgressBar { Visible = false, Width = 170, Height = 18, Style = ProgressBarStyle.Marquee };
-        _filterSearch = new TextBox { PlaceholderText = "Filter records…", Width = 230, Height = 28 };
-        Theme.ApplyTextBox(_filterSearch);
-        _filterSearch.KeyDown += (_, e) =>
+        _toolbar.FilterClicked += (_, _) =>
+        {
+            if (_activeKey != null && _sections.TryGetValue(_activeKey, out var s))
+                s.FocusSearchBox();
+        };
+        _toolbar.SearchKeyDown += (_, e) =>
         {
             if (e.KeyCode == Keys.Enter)
             {
@@ -121,96 +120,55 @@ public sealed class MainForm : Form
                 ApplyGlobalFilter();
             }
         };
-        _goBtn = MakeActionButton("Go", "Apply the filter to the current section");
-        _prevBtn = MakeActionButton("◀ Prev", "Previous record");
-        _nextBtn = MakeActionButton("Next ▶", "Next record");
-        _goBtn.Click += (_, _) => ApplyGlobalFilter();
-        _prevBtn.Click += (_, _) => StepRecord(-1);
-        _nextBtn.Click += (_, _) => StepRecord(+1);
 
-        var filtersCaption = new Label
+        // ---- Studio sidebar ----
+        _sidebar = new StudioSidebar { Width = Theme.SidebarWidth };
+        _sidebar.AddGroup(string.Empty, new[]
         {
-            Text = "Filters",
-            AutoSize = true,
-            Font = Theme.Label,
-            ForeColor = Theme.Muted,
-            TextAlign = ContentAlignment.MiddleCenter,
-        };
-        _filterBar.Controls.Add(_nextBtn);
-        _filterBar.Controls.Add(_prevBtn);
-        _filterBar.Controls.Add(_goBtn);
-        _filterBar.Controls.Add(_filterSearch);
-        _filterBar.Controls.Add(filtersCaption);
-        _filterBar.Controls.Add(_progress);
-        _filterBar.Controls.Add(_validateBtn);
-        _filterBar.Controls.Add(_redoBtn);
-        _filterBar.Controls.Add(_undoBtn);
-        _filterBar.Controls.Add(_saveBtn);
-        _filterBar.Controls.Add(_openBtn);
-        PositionFilterBar();
-        _filterBar.Resize += (_, _) => PositionFilterBar();
-
-        // ---- Left sidebar: Main Functions (FC Editor style) ----
-        _sidebar = new Panel
+            new StudioSidebarItemModel("dashboard", "Dashboard", IconService.Get("dashboard", 18), "Ctrl+1"),
+        });
+        _sidebar.AddGroup("World", new[]
         {
-            Dock = DockStyle.Left,
-            Width = Theme.SidebarWidth,
-            BackColor = Theme.Panel,
-            Padding = new Padding(0),
-        };
-        var sidebarHeader = new Label
+            new StudioSidebarItemModel("countries", "Countries", IconService.Get("countries", 18), "Ctrl+2"),
+            new StudioSidebarItemModel("leagues", "Leagues", IconService.Get("leagues", 18), "Ctrl+3"),
+            new StudioSidebarItemModel("teams", "Teams", IconService.Get("teams", 18), "Ctrl+4"),
+            new StudioSidebarItemModel("players", "Players", IconService.Get("players", 18), "Ctrl+5"),
+            new StudioSidebarItemModel("managers", "Managers", IconService.Get("managers", 18), "Ctrl+6"),
+        });
+        _sidebar.AddGroup("Venue", new[]
         {
-            Text = "CM26  /  DATABASE STUDIO",
-            Dock = DockStyle.Top,
-            Height = 52,
-            Font = Theme.BodyBold,
-            ForeColor = Theme.Accent,
-            TextAlign = ContentAlignment.MiddleLeft,
-            Padding = new Padding(18, 0, 0, 0),
-            BackColor = Theme.Panel,
-        };
-        _sidebarList = new FlowLayoutPanel
+            new StudioSidebarItemModel("stadiums", "Stadiums", IconService.Get("stadiums", 18)),
+            new StudioSidebarItemModel("stadiumaudio", "Stadium Audio", IconService.Get("stadiumaudio", 18)),
+        });
+        _sidebar.AddGroup("Team", new[]
         {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.TopDown,
-            WrapContents = false,
-            AutoScroll = true,
-            BackColor = Theme.Panel,
-            Padding = new Padding(12, 4, 12, 12),
-        };
-        var categories = new (string Label, string[] Keys)[]
+            new StudioSidebarItemModel("kits", "Kits", IconService.Get("kits", 18), "Ctrl+8"),
+            new StudioSidebarItemModel("competitions", "Competitions", IconService.Get("competitions", 18), "Ctrl+9"),
+            new StudioSidebarItemModel("formations", "Formations", IconService.Get("formations", 18)),
+            new StudioSidebarItemModel("balls", "Balls", IconService.Get("balls", 18)),
+            new StudioSidebarItemModel("boots", "Boots", IconService.Get("boots", 18)),
+            new StudioSidebarItemModel("gloves", "Gloves", IconService.Get("gloves", 18)),
+        });
+        _sidebar.AddGroup("Media", new[]
         {
-            ("", new[] { "dashboard" }),
-            ("World", new[] { "countries", "leagues", "teams", "players", "managers" }),
-            ("Venue", new[] { "stadiums", "stadiumaudio" }),
-            ("Team", new[] { "kits", "competitions", "formations", "balls", "boots", "gloves" }),
-            ("Media", new[] { "sponsors", "adboards", "scoreboard", "audio" }),
-            ("Tools", new[] { "transfers", "modmanager", "referees", "browser", "diagnostics" }),
-            ("System", new[] { "settings" }),
-        };
-        foreach (var (label, keys) in categories)
+            new StudioSidebarItemModel("sponsors", "Sponsors", IconService.Get("sponsors", 18)),
+            new StudioSidebarItemModel("adboards", "Adboards", IconService.Get("adboards", 18)),
+            new StudioSidebarItemModel("scoreboard", "Broadcast", IconService.Get("scoreboard", 18)),
+            new StudioSidebarItemModel("audio", "Audio", IconService.Get("audio", 18)),
+        });
+        _sidebar.AddGroup("Tools", new[]
         {
-            if (!string.IsNullOrWhiteSpace(label))
-            {
-                _sidebarList.Controls.Add(new Label
-                {
-                    Text = label,
-                    AutoSize = false,
-                    Height = 20,
-                    Width = _sidebarList.ClientSize.Width - 16,
-                    Font = Theme.Label,
-                    ForeColor = Theme.Muted,
-                    Margin = new Padding(10, 16, 0, 4),
-                    BackColor = Theme.Panel,
-                    TextAlign = ContentAlignment.MiddleLeft,
-                });
-            }
-            foreach (var key in keys)
-                _sidebarList.Controls.Add(MakeSidebarButton(key, _registry.First(r => r.key == key).title));
-        }
-        _sidebarList.Resize += (_, _) => ResizeSidebarButtons();
-        _sidebar.Controls.Add(_sidebarList);
-        _sidebar.Controls.Add(sidebarHeader);
+            new StudioSidebarItemModel("transfers", "Data Sync", IconService.Get("transfers", 18)),
+            new StudioSidebarItemModel("modmanager", "Mod Manager", IconService.Get("modmanager", 18)),
+            new StudioSidebarItemModel("referees", "Referees", IconService.Get("referees", 18)),
+            new StudioSidebarItemModel("browser", "Database Browser", IconService.Get("browser", 18)),
+            new StudioSidebarItemModel("diagnostics", "Diagnostics", IconService.Get("diagnostics", 18)),
+        });
+        _sidebar.AddGroup("System", new[]
+        {
+            new StudioSidebarItemModel("settings", "Settings", IconService.Get("settings", 18)),
+        });
+        _sidebar.ItemClicked += (_, e) => NavigateTo(e.Key);
 
         // ---- Status bar ----
         _status = new StatusStrip { BackColor = Theme.Panel, ForeColor = Theme.Muted, SizingGrip = true, Renderer = new DarkToolStripRenderer() };
@@ -232,16 +190,10 @@ public sealed class MainForm : Form
 
         Controls.Add(_workspace);
         Controls.Add(_sidebar);
-        Controls.Add(_filterBar);
+        Controls.Add(_toolbar);
         Controls.Add(_status);
         Controls.Add(_menu);
 
-        // Events
-        _openBtn.Click += async (_, _) => await OpenFc26Async();
-        _saveBtn.Click += async (_, _) => await SaveDirectAsync();
-        _undoBtn.Click += (_, _) => Undo();
-        _redoBtn.Click += (_, _) => Redo();
-        _validateBtn.Click += (_, _) => ValidateAll();
         _services.PendingChanged += (_, _) => RefreshPendingState();
         _services.DatabaseLoaded += (_, _) => OnDatabaseLoaded();
         _services.FrostbiteAssetsReady += (_, _) => OnFrostbiteAssetsReady();
@@ -281,95 +233,6 @@ public sealed class MainForm : Form
         ("settings", "Settings", s => new SettingsSection(s)),
     };
 
-    private Button MakeActionButton(string text, string tooltip, bool primary = false)
-    {
-        var button = new Button
-        {
-            Text = text,
-            AutoSize = false,
-            Width = TextRenderer.MeasureText(text, Theme.Body).Width + 30,
-            Height = 28,
-            Margin = new Padding(2, 0, 2, 0),
-            Font = primary ? Theme.BodyBold : Theme.Body,
-        };
-        _toolTip.SetToolTip(button, tooltip);
-        Theme.ApplyButton(button, primary);
-        return button;
-    }
-
-    private static readonly Dictionary<string, string> ShortcutByKey = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["dashboard"] = "Ctrl+1",
-        ["countries"] = "Ctrl+2",
-        ["leagues"] = "Ctrl+3",
-        ["teams"] = "Ctrl+4",
-        ["players"] = "Ctrl+5",
-        ["managers"] = "Ctrl+6",
-        ["stadiums"] = "Ctrl+7",
-        ["kits"] = "Ctrl+8",
-        ["competitions"] = "Ctrl+9",
-    };
-
-    private SidebarNavButton MakeSidebarButton(string key, string title)
-    {
-        var shortcut = ShortcutByKey.TryGetValue(key, out var sc) ? $" ({sc})" : string.Empty;
-        var button = new SidebarNavButton
-        {
-            Image = IconService.Get(key, 20),
-            Text = title,
-            Width = _sidebarList.ClientSize.Width - 16,
-            Font = Theme.Body,
-        };
-        _toolTip.SetToolTip(button, title + shortcut);
-        button.Click += (_, _) => NavigateTo(key);
-        _moduleButtons[key] = button;
-        return button;
-    }
-
-    /// <summary>Stretches sidebar buttons to the flow panel width.</summary>
-    private void ResizeSidebarButtons()
-    {
-        var width = Math.Max(120, _sidebarList.ClientSize.Width - 16);
-        foreach (SidebarNavButton button in _sidebarList.Controls.OfType<SidebarNavButton>())
-            button.Width = width;
-        foreach (Label label in _sidebarList.Controls.OfType<Label>())
-            label.Width = width;
-    }
-
-    /// <summary>Lays out the filter bar: actions left, Filters caption + search + Go + prev/next right.</summary>
-    private void PositionFilterBar()
-    {
-        var y = (_filterBar.Height - 28) / 2;
-        var x = Theme.Space;
-        _openBtn.Location = new Point(x, y);
-        x += _openBtn.Width + 4;
-        _saveBtn.Location = new Point(x, y);
-        x += _saveBtn.Width + 4;
-        _undoBtn.Location = new Point(x, y);
-        x += _undoBtn.Width + 4;
-        _redoBtn.Location = new Point(x, y);
-        x += _redoBtn.Width + 4;
-        _validateBtn.Location = new Point(x, y);
-        x += _validateBtn.Width + 4;
-        _progress.Location = new Point(x, y + 5);
-        x += _progress.Width + 4;
-
-        var caption = _filterBar.Controls.OfType<Label>().FirstOrDefault(l => l.Text == "Filters");
-        if (caption != null)
-        {
-            var captionRight = _filterBar.ClientSize.Width - Theme.Space;
-            _nextBtn.Location = new Point(captionRight - _nextBtn.Width, y);
-            captionRight -= _nextBtn.Width + 6;
-            _prevBtn.Location = new Point(captionRight - _prevBtn.Width, y);
-            captionRight -= _prevBtn.Width + 6;
-            _goBtn.Location = new Point(captionRight - _goBtn.Width, y);
-            captionRight -= _goBtn.Width + 8;
-            _filterSearch.Location = new Point(captionRight - _filterSearch.Width, y);
-            captionRight -= _filterSearch.Width + 8;
-            caption.Location = new Point(captionRight - caption.Width, y + 5);
-        }
-    }
-
     /// <summary>Applies the global filter box text to the active section's record search.</summary>
     private void ApplyGlobalFilter()
     {
@@ -378,7 +241,7 @@ public sealed class MainForm : Form
             SetStatus("Open a section first to filter its records.");
             return;
         }
-        var query = _filterSearch.Text.Trim();
+        var query = _toolbar.SearchText.Trim();
         if (string.IsNullOrWhiteSpace(query))
         {
             section.FocusSearchBox();
@@ -433,8 +296,7 @@ public sealed class MainForm : Form
         _workspace.ResumeLayout();
 
         _activeKey = key;
-        foreach (var kvp in _moduleButtons)
-            kvp.Value.Checked = kvp.Key.Equals(key, StringComparison.OrdinalIgnoreCase);
+        _sidebar.SetActive(key);
         section.ActivateSection();
         SetStatus($"{section.SectionTitle} — {_services.Session.Tables.Count} tables loaded.");
     }
@@ -1202,9 +1064,9 @@ public sealed class MainForm : Form
     {
         var count = _services.Pending.Count + _services.LegacyMods.Count;
         _pendingLabel.Text = count > 0 ? $"● {count} unsaved change(s)" : "";
-        _saveBtn.Enabled = count > 0;
-        _undoBtn.Enabled = _services.Pending.CanUndo;
-        _redoBtn.Enabled = _services.Pending.CanRedo;
+        _toolbar.SaveButton.Enabled = count > 0;
+        _toolbar.UndoButton.Enabled = _services.Pending.CanUndo;
+        _toolbar.RedoButton.Enabled = _services.Pending.CanRedo;
     }
 
     private void ShowAbout()
@@ -1273,9 +1135,9 @@ public sealed class MainForm : Form
 
     private void SetBusy(bool busy, string? message)
     {
-        _progress.Visible = busy;
-        _openBtn.Enabled = !busy;
-        _saveBtn.Enabled = !busy && (_services.Pending.HasChanges || _services.LegacyMods.HasChanges);
+        _toolbar.Progress.Visible = busy;
+        _toolbar.OpenButton.Enabled = !busy;
+        _toolbar.SaveButton.Enabled = !busy && (_services.Pending.HasChanges || _services.LegacyMods.HasChanges);
         if (message != null) SetStatus(message);
         UseWaitCursor = busy;
     }
@@ -1299,7 +1161,6 @@ public sealed class MainForm : Form
             item.BackColor = Theme.Background;
             item.ForeColor = Theme.Text;
         }
-        ReThemeChrome();
         _status.BackColor = Theme.Panel;
         _statusText.ForeColor = Theme.Muted;
         _dbPath.ForeColor = Theme.Muted;
@@ -1321,47 +1182,6 @@ public sealed class MainForm : Form
         // settings/dashboard) so the new palette is immediately visible.
         if (_activeKey != null)
             NavigateTo(_activeKey);
-    }
-
-    /// <summary>Re-colours the filter bar and sidebar after a theme toggle.</summary>
-    private void ReThemeChrome()
-    {
-        _filterBar.BackColor = Theme.Panel;
-        _sidebar.BackColor = Theme.Background;
-        _sidebarList.BackColor = Theme.Background;
-        foreach (Control control in _sidebar.Controls)
-        {
-            if (control is Label label)
-            {
-                label.BackColor = Theme.Background;
-                label.ForeColor = Theme.Muted;
-            }
-        }
-        foreach (Control control in _sidebarList.Controls)
-        {
-            switch (control)
-            {
-                case Label label:
-                    label.ForeColor = Theme.Muted;
-                    break;
-                case SidebarNavButton nav:
-                    nav.ApplyTheme();
-                    break;
-            }
-        }
-        Theme.ApplyTextBox(_filterSearch);
-        foreach (Control control in _filterBar.Controls)
-        {
-            if (control is Label label)
-            {
-                label.ForeColor = Theme.Muted;
-                label.BackColor = Theme.Panel;
-            }
-        }
-        foreach (var button in new[] { _openBtn, _saveBtn, _undoBtn, _redoBtn, _validateBtn, _goBtn, _prevBtn, _nextBtn })
-            Theme.ApplyButton(button, primary: ReferenceEquals(button, _saveBtn));
-        _filterBar.Invalidate(true);
-        _sidebar.Invalidate(true);
     }
 
     /// <summary>Keeps a long path readable in the status bar by showing only the tail segments.</summary>

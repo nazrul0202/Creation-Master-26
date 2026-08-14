@@ -27,23 +27,23 @@ public static class Theme
     {
         if (_dark)
         {
-            // Dark variant kept as an alternative; default is the FC Editor light theme.
-            _background = Color.FromArgb(14, 16, 20);
-            _panel = Color.FromArgb(22, 25, 31);
-            _raised = Color.FromArgb(31, 36, 44);
-            _input = Color.FromArgb(17, 20, 25);
-            _border = Color.FromArgb(48, 55, 65);
-            _text = Color.FromArgb(224, 224, 224);          // Primary text (#E0E0E0)
-            _muted = Color.FromArgb(150, 152, 158);         // Labels / secondary text
-            _accent = Color.FromArgb(56, 189, 248);
-            _accentHover = Color.FromArgb(14, 165, 233);
-            _link = Color.FromArgb(0, 123, 255);            // Link blue (#007BFF)
-            _danger = Color.FromArgb(201, 42, 42);          // Material red (#C92A2A)
-            _success = Color.FromArgb(76, 175, 80);         // Material green (#4CAF50)
-            _warning = Color.FromArgb(230, 119, 0);         // Orange (#E67700)
-            _validationBackground = Color.FromArgb(46, 33, 34);
-            _validationListBackground = Color.FromArgb(56, 40, 42);
-            _validationText = Color.FromArgb(255, 150, 150);
+            // Modern dark football database interface palette.
+            _background = Color.FromArgb(0x0D, 0x10, 0x14);     // #0D1014
+            _panel = Color.FromArgb(0x15, 0x1A, 0x21);          // #151A21
+            _raised = Color.FromArgb(0x1D, 0x25, 0x30);         // #1D2530
+            _input = Color.FromArgb(0x11, 0x16, 0x1C);          // dark input well
+            _border = Color.FromArgb(0x2D, 0x39, 0x47);         // #2D3947
+            _text = Color.FromArgb(0xF3, 0xF6, 0xF8);           // #F3F6F8
+            _muted = Color.FromArgb(0x8E, 0x9A, 0xA8);          // #8E9AA8
+            _accent = Color.FromArgb(0x38, 0xBD, 0xF8);         // cyan #38BDF8
+            _accentHover = Color.FromArgb(0x0E, 0xA5, 0xE8);
+            _link = Color.FromArgb(0x38, 0xBD, 0xF8);
+            _danger = Color.FromArgb(0xEF, 0x44, 0x44);         // red #EF4444
+            _success = Color.FromArgb(0x84, 0xCC, 0x16);        // green #84CC16
+            _warning = Color.FromArgb(0xF5, 0x9E, 0x0B);        // yellow #F59E0B
+            _validationBackground = Color.FromArgb(0x3D, 0x12, 0x12);
+            _validationListBackground = Color.FromArgb(0x47, 0x16, 0x16);
+            _validationText = Color.FromArgb(0xFF, 0x99, 0x99);
         }
         else
         {
