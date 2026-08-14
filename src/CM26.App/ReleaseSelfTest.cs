@@ -255,6 +255,38 @@ internal static class ReleaseSelfTest
             return null;
         });
 
+        // --- Regression: sidebar navigation must never recurse ---------------
+        // Clicking a sidebar item fired StudioSidebar.SetActive -> ItemClicked ->
+        // MainForm.NavigateTo -> SetActive ... until the native stack overflowed
+        // ("A new guard page for the stack cannot be created") on every click and
+        // after every database load. SetActive is now idempotent; this check
+        // drives the real click path (dashboard needs no database) and verifies
+        // the shell survives and stops navigating after one pass.
+        Check("sidebar item click does not recurse", () =>
+        {
+            using var form = new MainForm();
+            form.CreateControl();
+            System.Windows.Forms.Application.DoEvents();
+            var sidebar = Descendants(form)
+                .OfType<CM26.App.Controls.Studio.StudioSidebar>()
+                .FirstOrDefault();
+            if (sidebar == null) return "StudioSidebar was not found in the shell";
+            var dashboard = Descendants(sidebar)
+                .OfType<CM26.App.Controls.Studio.StudioSidebarItem>()
+                .FirstOrDefault(item => string.Equals(item.Model.Key, "dashboard", StringComparison.OrdinalIgnoreCase));
+            if (dashboard == null) return "dashboard sidebar item was not found";
+            // Click it twice: the second click must not re-raise navigation.
+            typeof(CM26.App.Controls.Studio.StudioSidebarItem)
+                .GetMethod("OnClick", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .Invoke(dashboard, new object[] { EventArgs.Empty });
+            System.Windows.Forms.Application.DoEvents();
+            typeof(CM26.App.Controls.Studio.StudioSidebarItem)
+                .GetMethod("OnClick", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .Invoke(dashboard, new object[] { EventArgs.Empty });
+            System.Windows.Forms.Application.DoEvents();
+            return form.IsDisposed ? "MainForm was disposed during navigation" : null;
+        });
+
         Console.WriteLine();
         if (failures.Count == 0)
         {
@@ -264,5 +296,15 @@ internal static class ReleaseSelfTest
         Console.WriteLine($"RELEASE SELF-TEST FAILED ({failures.Count} of {checks} checks)");
         foreach (var failure in failures) Console.WriteLine("  * " + failure);
         return 1;
+    }
+
+    private static IEnumerable<System.Windows.Forms.Control> Descendants(System.Windows.Forms.Control root)
+    {
+        foreach (System.Windows.Forms.Control child in root.Controls)
+        {
+            yield return child;
+            foreach (var descendant in Descendants(child))
+                yield return descendant;
+        }
     }
 }

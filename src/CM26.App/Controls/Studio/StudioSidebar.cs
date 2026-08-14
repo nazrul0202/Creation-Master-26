@@ -98,6 +98,10 @@ public sealed class StudioSidebar : Panel
 
     public void SetActive(string key)
     {
+        // Idempotency guard: re-activating the current item must not re-raise
+        // ItemClicked, otherwise MainForm.NavigateTo -> SetActive -> ItemClicked
+        // -> NavigateTo recurses until the stack overflows (native STATUS_STACK_OVERFLOW).
+        if (string.Equals(_activeKey, key, StringComparison.OrdinalIgnoreCase)) return;
         if (!_items.TryGetValue(key, out var target)) return;
 
         _activeKey = key;

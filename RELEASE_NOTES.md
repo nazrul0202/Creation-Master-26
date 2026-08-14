@@ -1,5 +1,10 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.108 - Navigation stack-overflow hotfix (2026-08-14)
+
+- Fixed a crash on every sidebar click and after every database load: "A new guard page for the stack cannot be created" (native stack overflow). `StudioSidebar.SetActive` re-raised `ItemClicked`, which called `MainForm.NavigateTo`, which called `SetActive` again, recursing until the stack overflowed.
+- `SetActive` is now idempotent (re-activating the current item no longer re-raises navigation), and the release self-test drives a real sidebar click to lock the regression down.
+
 ## Version 1.0.107 - Startup crash hotfix (2026-08-14)
 
 - Fixed a launch-time crash ("Control does not support transparent background colors") caused by the Studio sidebar items and roster rows setting a transparent BackColor on plain-Control custom controls.
