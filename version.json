@@ -1,6 +1,6 @@
 {
-  "version": "1.0.105",
+  "version": "1.0.106",
   "name": "Creation Master 26",
-  "notes": "v1.0.105 - CM26 Studio visual redesign: enforced dark scouting workspace across legacy controls, corrected theme persistence, and refined dashboard, player and team density.",
+  "notes": "v1.0.106 - Complete CM26 Studio UI rebuild: shared Studio controls, modern dark football database interface for Dashboard, Players, Teams, Countries, Leagues and all remaining sections.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
