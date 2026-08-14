@@ -3,6 +3,7 @@ using System.Data;
 using System.Globalization;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 using CM26.Application.Services;
@@ -42,10 +43,10 @@ public sealed class TeamsSection : SectionBase
     private readonly ListView _anthemSlots = new();
     private readonly ListView _goalSongSlots = new();
     private readonly Dictionary<string, ComboBox> _playerReferencePickers = new(StringComparer.OrdinalIgnoreCase);
-    private readonly List<LineupSlot> _lineupSlots = [];
+    private readonly List<SlotState> _lineupSlots = [];
     private readonly Dictionary<int, TeamRosterItem> _rosterByPlayerId = new();
     private readonly ComboBox _formationView = new() { DropDownStyle = ComboBoxStyle.DropDownList };
-    private Panel? _formationBoard;
+    private FormationBoard? _formationBoard;
     private Label? _formationStatus;
     private FormationChoice? _activeFormationChoice;
     private int _activeTeamFormationRow = -1;
@@ -75,8 +76,28 @@ public sealed class TeamsSection : SectionBase
     private readonly PictureBox _teamStadiumImg = new();
     private readonly PictureBox _teamManagerImg = new();
     private Label _teamManagerName = new();
-    private readonly Label _teamManagerNation = new();
+    private Label _teamManagerNation = new();
     private int _activeTeamPreviewId;
+
+    // Studio overview
+    private StudioToolbar? _toolbar;
+    private TeamHeroCard? _heroCard;
+    private StudioCard? _stadiumCard;
+    private StudioCard? _managerCard;
+    private StudioCard? _rivalCard;
+    private StudioCard? _metadataCard;
+    private StudioCard? _kitsCard;
+    private StudioCard? _actionsCard;
+
+    // Studio roster
+    private readonly List<RosterPlayerRow> _rosterRows = [];
+    private int _selectedRosterPlayerId;
+    private Panel? _rosterScrollPanel;
+    private Panel? _startingXiSection;
+    private Panel? _subsSection;
+    private Panel? _reservesSection;
+
+    protected override bool ShowRecordCommandStrip => false;
 
     public override string SectionKey => "teams";
     public override string SectionTitle => "Teams";
@@ -88,16 +109,76 @@ public sealed class TeamsSection : SectionBase
 
     public TeamsSection(AppServices services) : base(services)
     {
+        Header.Visible = false;
+        EmptyState.Visible = false;
+        Tabs.BringToFront();
         Tabs.Font = LegacyFont;
         Tabs.Padding = new Point(4, 2);
-        Tabs.SizeMode = TabSizeMode.Fixed;
-        Tabs.ItemSize = new Size(110, 28);
-        AddGenericTab();
+        Theme.ApplyTabs(Tabs);
+        AddOverviewTab();
         AddRosterTab();
         AddSponsorsTab();
         AddAdboardsTab();
         AddFlagsTab();
         AddAudioTab();
+    }
+
+    public override void ActivateSection()
+    {
+        base.ActivateSection();
+        UpdateToolbarCount();
+        if (CurrentRecordIndex < 0 && Services.Session.IsLoaded)
+        {
+            var records = GetRecords();
+            if (records.Count > 0) GoToRecord(records[0].RecordIndex);
+        }
+    }
+
+    private void UpdateToolbarCount()
+    {
+        if (_toolbar == null) return;
+        try
+        {
+            var count = Services.Session.IsLoaded ? GetRecords().Count : 0;
+            _toolbar.RecordCountText = $"{count:N0} records";
+        }
+        catch { _toolbar.RecordCountText = string.Empty; }
+    }
+
+    private void StepRecord(int delta)
+    {
+        var records = GetRecords();
+        var found = -1;
+        for (var i = 0; i < records.Count; i++)
+        {
+            if (records[i].RecordIndex == CurrentRecordIndex)
+            {
+                found = i;
+                break;
+            }
+        }
+        if (found < 0)
+        {
+            if (records.Count > 0) GoToRecord(records[0].RecordIndex);
+            return;
+        }
+        var next = found + delta;
+        if (next >= 0 && next < records.Count)
+            GoToRecord(records[next].RecordIndex);
+    }
+
+    private void SearchTeams(string query)
+    {
+        var term = query.Trim();
+        if (term.Length == 0) return;
+        var result = GetRecords().FirstOrDefault(item => item.Matches(term));
+        if (result == null)
+        {
+            MessageBox.Show(this, $"No team matches '{term}'.", "Search Team",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        GoToRecord(result.RecordIndex);
     }
 
     protected override IReadOnlyList<RecordListItem> GetRecords() => Services.RequireData().GetTeams();
@@ -434,329 +515,349 @@ public sealed class TeamsSection : SectionBase
         return true;
     }
 
-    private TabPage Page(string text)
+    private static TabPage Page(string text)
     {
-        var page = new TabPage(text) { BackColor = Theme.Background, Font = LegacyFont };
-        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background });
-        Tabs.TabPages.Add(page);
+        var page = new TabPage(text) { BackColor = StudioColors.AppBackground, Font = LegacyFont };
         return page;
     }
 
-    private static Panel Canvas(TabPage page) => (Panel)page.Controls[0];
-
-    private static Panel Group(string text, Point location, Size size)
+    private static Panel Canvas(TabPage page)
     {
-        var box = new Panel { Location = location, Size = size, BackColor = CardLayout.CardWhite };
-        CardLayout.ApplyRounded(box, 10);
-        box.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(size.Width, 4), BackColor = CardLayout.Fc26Green });
-        box.Controls.Add(new Label
+        var canvas = new Panel
         {
-            Text = text, Location = new Point(10, 6), Size = new Size(size.Width - 20, 13),
-            Font = Theme.Muted9, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
-        });
-        return box;
+            Dock = DockStyle.Fill,
+            BackColor = StudioColors.AppBackground,
+            AutoScroll = true,
+            Padding = new Padding(StudioSpacing.Medium),
+        };
+        page.Controls.Add(canvas);
+        return canvas;
     }
 
-    private static PictureBox Viewer(Point location, Size size) => new()
+    private static StudioCard StudioGroup(string title, Color accent)
     {
-        Location = location, Size = size, BackColor = Theme.Input,
-        BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom
-    };
-
-    private PictureBox CrestViewer(Point location, Size size)
-    {
-        var viewer = Viewer(location, size);
-        _crestViewers.Add(viewer);
-        return viewer;
+        var card = new StudioCard
+        {
+            AccentColor = accent,
+            Margin = new Padding(0, 0, StudioSpacing.Medium, StudioSpacing.Medium),
+        };
+        var header = new Label
+        {
+            Text = title,
+            Dock = DockStyle.Top,
+            Height = 22,
+            Font = StudioFonts.CardTitle,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = Color.Transparent,
+        };
+        card.Controls.Add(header);
+        return card;
     }
 
-    private static Button LegacyButton(string text, Point location, Size size) => new()
+    private static PictureBox Viewer(Size size)
     {
-        Text = text, Location = location, Size = size, Font = LegacyFont, UseVisualStyleBackColor = true
-    };
+        return new PictureBox
+        {
+            Size = size,
+            BackColor = StudioColors.InputBackground,
+            BorderStyle = BorderStyle.None,
+            SizeMode = PictureBoxSizeMode.Zoom,
+        };
+    }
 
-    private static Button CardLayoutButton(string text, Point location, Size size)
+    private static Button StudioButton(string text, int width = 90)
     {
         var btn = new Button
         {
-            Text = text, Location = location, Size = size,
-            FlatStyle = FlatStyle.Flat, Font = Theme.BodyBold,
-            BackColor = CardLayout.CardWhite, ForeColor = CardLayout.CardText,
+            Text = text,
+            Size = new Size(width, 28),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = StudioColors.RaisedSurface,
+            ForeColor = StudioColors.PrimaryText,
+            Font = StudioFonts.Button,
             Cursor = Cursors.Hand,
+            UseVisualStyleBackColor = false,
         };
-        btn.FlatAppearance.BorderColor = Color.FromArgb(190, 190, 182);
-        btn.FlatAppearance.MouseOverBackColor = CardLayout.CardFieldBg;
+        btn.FlatAppearance.BorderColor = StudioColors.CardBorder;
+        btn.FlatAppearance.MouseOverBackColor = StudioColors.CardBorder;
         return btn;
     }
 
-    private void AddGenericTab()
+    private static Label MakeLabel(string text, Font font, Color color, bool autoSize = true)
+    {
+        return new Label
+        {
+            Text = text,
+            Font = font,
+            ForeColor = color,
+            BackColor = Color.Transparent,
+            AutoSize = autoSize,
+        };
+    }
+
+    private void AddOverviewTab()
     {
         var page = Page("Overview");
         var canvas = Canvas(page);
-        canvas.BackColor = CardLayout.CardBackground;
-        canvas.AutoScrollMinSize = new Size(0, 1100);
 
-        // ═══════════════════════════════════════════════════════════════
-        //  CLUB PROFILE HEADER (FC Tools Hub style)
-        // ═══════════════════════════════════════════════════════════════
-        var profile = new Panel { Location = new Point(12, 12), Size = new Size(1340, 220), BackColor = CardLayout.CardWhite };
-        CardLayout.ApplyRounded(profile, 14);
-        // Left green accent
-        profile.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(6, 220), BackColor = CardLayout.Fc26Green });
-        // Badge
-        _teamCrestPreview.Location = new Point(24, 24);
-        _teamCrestPreview.Size = new Size(140, 140);
-        _teamCrestPreview.SizeMode = PictureBoxSizeMode.Zoom;
-        _teamCrestPreview.BackColor = CardLayout.CardFieldBg;
-        _teamCrestPreview.BorderStyle = BorderStyle.None;
-        profile.Controls.Add(_teamCrestPreview);
-        // Name
-        _teamNameLabel.Location = new Point(184, 30);
-        _teamNameLabel.Size = new Size(400, 38);
-        _teamNameLabel.Font = new Font("Segoe UI", 22, FontStyle.Bold);
-        _teamNameLabel.ForeColor = CardLayout.CardText;
-        profile.Controls.Add(_teamNameLabel);
-        // Meta line (league · nation)
-        _teamMetaLabel.Location = new Point(186, 74);
-        _teamMetaLabel.Size = new Size(500, 22);
-        _teamMetaLabel.Font = Theme.BodyBold;
-        _teamMetaLabel.ForeColor = CardLayout.CardMuted;
-        profile.Controls.Add(_teamMetaLabel);
-        // Overall rating
-        var ovrTile = CardLayout.CreateTile(profile, "OVR", 184, 108, CardLayout.Fc26Green, 110, 90);
-        _teamOverallLabel.Text = "--";
-        ovrTile.Tile.Controls.Remove(ovrTile.Value);
-        _teamOverallLabel.Location = new Point(5, 4);
-        _teamOverallLabel.Size = new Size(100, 43);
-        _teamOverallLabel.Font = new Font("Segoe UI", 26, FontStyle.Bold);
-        _teamOverallLabel.TextAlign = ContentAlignment.MiddleCenter;
-        _teamOverallLabel.ForeColor = Color.White;
-        ovrTile.Tile.Controls.Add(_teamOverallLabel);
-
-        // ATT / MID / DEF rating bars
-        AddRatingBar(profile, "ATT", CardLayout.Fc26Yellow, _teamAttBar, _teamAttLabel, 310, 110);
-        AddRatingBar(profile, "MID", CardLayout.Fc26Blue, _teamMidBar, _teamMidLabel, 310, 138);
-        AddRatingBar(profile, "DEF", CardLayout.Fc26Red, _teamDefBar, _teamDefLabel, 310, 166);
-
-        canvas.Controls.Add(profile);
-
-        // ═══════════════════════════════════════════════════════════════
-        //  QUICK INFO CARDS (Foundation, Worth, Stadium, Rival, Manager)
-        // ═══════════════════════════════════════════════════════════════
-        var quickInfo = new Panel { Location = new Point(12, 244), Size = new Size(1340, 72), BackColor = CardLayout.CardBackground };
-        _teamFoundationLabel = CardLayout.CreateFact(quickInfo, "Founded", 0, 0, 248);
-        _teamWorthLabel = CardLayout.CreateFact(quickInfo, "Worth", 264, 0, 248);
-        _teamStadiumLabel = CardLayout.CreateFact(quickInfo, "Stadium", 528, 0, 248);
-        _teamRivalLabel = CardLayout.CreateFact(quickInfo, "Rival", 792, 0, 248);
-        _teamManagerName = CardLayout.CreateFact(quickInfo, "Manager", 1056, 0, 248);
-        canvas.Controls.Add(quickInfo);
-
-        // ═══════════════════════════════════════════════════════════════
-        //  KITS SECTION
-        // ═══════════════════════════════════════════════════════════════
-        var kits = CardLayout.CreateGroup(canvas, "Kits", CardLayout.Fc26Green, 12, 326, 1340, 140);
-        var kitHolders = new[]
+        _toolbar = new StudioToolbar
         {
-            AddKitPreview(kits, _teamKitHome, "Home", 20, 30),
-            AddKitPreview(kits, _teamKitAway, "Away", 223, 30),
-            AddKitPreview(kits, _teamKitThird, "Third", 426, 30),
-            AddKitPreview(kits, _teamKitGk, "Goalkeeper", 629, 30),
+            Title = "Teams",
+            CanCreate = true,
+            ShowFilter = true,
+            Dock = DockStyle.Top,
+        };
+        _toolbar.SearchBox.PlaceholderText = "Search teams…";
+        _toolbar.NewClicked += (_, _) => CreateNewRecord();
+        _toolbar.PreviousClicked += (_, _) => StepRecord(-1);
+        _toolbar.NextClicked += (_, _) => StepRecord(+1);
+        _toolbar.SearchClicked += (_, _) => SearchTeams(_toolbar.SearchText);
+        _toolbar.SearchKeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            SearchTeams(_toolbar.SearchText);
+        };
+        _toolbar.FilterClicked += (_, _) => FocusSearchBox();
+        canvas.Controls.Add(_toolbar);
+
+        var scrollPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = StudioColors.AppBackground,
+            Padding = new Padding(StudioSpacing.Medium),
+            AutoScroll = true,
+        };
+        canvas.Controls.Add(scrollPanel);
+
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            ColumnCount = 1,
+            BackColor = StudioColors.AppBackground,
         };
 
-        // ═══════════════════════════════════════════════════════════════
-        //  CLUB INFORMATION (Identity · Financial · Trophies · Reputation)
-        // ═══════════════════════════════════════════════════════════════
-        var infoGroup = CardLayout.CreateGroup(canvas, "Club Information", CardLayout.Fc26Green, 12, 478, 660, 380);
-        // Identity
-        AddFieldCard(infoGroup, "Identity", 14, 30,
-            ("Team Id", "teamid"), ("Country", "countryid"), ("League", "leagueid"),
-            ("Gender", "gender"), ("Ball Number", "ballid"));
-        // Financial
-        AddFieldCard(infoGroup, "Financial", 14, 204,
-            ("Budget", "clubworth"), ("Domestic", "domesticprestige"),
-            ("International", "internationalprestige"), ("Training Stadium", "trainingstadium"));
-        // Trophies
-        AddFieldCard(infoGroup, "Trophies", 340, 30,
-            ("League Titles", "leaguetitles"), ("Domestic Cups", "domesticcups"),
-            ("UCL Wins", "uefa_cl_wins"), ("UEL Wins", "uefa_el_wins"));
-        // Reputation
-        AddFieldCard(infoGroup, "Reputation", 340, 204,
-            ("Domestic Prestige", "domesticprestige"), ("Intl Prestige", "internationalprestige"),
-            ("Popularity", "popularity"), ("Youth Dev", "youthdevelopment"),
-            ("Profitability", "profitability"));
+        _heroCard = new TeamHeroCard { Dock = DockStyle.Fill };
+        layout.Controls.Add(_heroCard, 0, 0);
 
-        // ═══════════════════════════════════════════════════════════════
-        //  STADIUM + MANAGER CARDS
-        // ═══════════════════════════════════════════════════════════════
-        var stadium = CardLayout.CreateGroup(canvas, "Stadium", CardLayout.Fc26Blue, 688, 478, 320, 380);
-        _teamStadiumImg.Location = new Point(14, 30);
-        _teamStadiumImg.Size = new Size(290, 160);
-        _teamStadiumImg.SizeMode = PictureBoxSizeMode.Zoom;
-        _teamStadiumImg.BackColor = CardLayout.CardFieldBg;
-        _teamStadiumImg.BorderStyle = BorderStyle.None;
-        stadium.Controls.Add(_teamStadiumImg);
-        AddBoundFields(stadium, new[] { ("Stadium Name", "stadiumid"), ("Capacity", "teamstadiumcapacity"), ("Corner Flag", "cornerflagpolecolor") }, 14, 200, 140, 155, 26);
+        var quickRow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = StudioColors.AppBackground,
+            Margin = new Padding(0, StudioSpacing.Medium, 0, 0),
+        };
+        _stadiumCard = BuildStadiumCard();
+        _managerCard = BuildManagerCard();
+        _rivalCard = BuildRivalCard();
+        _metadataCard = BuildMetadataCard();
+        quickRow.Controls.Add(_stadiumCard);
+        quickRow.Controls.Add(_managerCard);
+        quickRow.Controls.Add(_rivalCard);
+        quickRow.Controls.Add(_metadataCard);
+        layout.Controls.Add(quickRow, 0, 1);
 
-        var manager = CardLayout.CreateGroup(canvas, "Manager", CardLayout.CardMuted, 1024, 478, 328, 380);
-        _teamManagerImg.Location = new Point(14, 30);
+        _kitsCard = BuildKitsCard();
+        layout.Controls.Add(_kitsCard, 0, 2);
+
+        _actionsCard = BuildActionsCard();
+        layout.Controls.Add(_actionsCard, 0, 3);
+
+        scrollPanel.Controls.Add(layout);
+        Tabs.TabPages.Add(page);
+    }
+
+    private StudioCard BuildStadiumCard()
+    {
+        var card = StudioGroup("Stadium", StudioColors.CyanAccent);
+        card.Width = 260;
+        card.Height = 260;
+
+        _teamStadiumImg.Size = new Size(228, 140);
+        _teamStadiumImg.Location = new Point(StudioSpacing.Medium, 30);
+        card.Controls.Add(_teamStadiumImg);
+
+        _teamStadiumLabel = MakeLabel("—", StudioFonts.DataValue, StudioColors.PrimaryText, false);
+        _teamStadiumLabel.Location = new Point(StudioSpacing.Medium, 178);
+        _teamStadiumLabel.Size = new Size(228, 20);
+        card.Controls.Add(_teamStadiumLabel);
+
+        return card;
+    }
+
+    private StudioCard BuildManagerCard()
+    {
+        var card = StudioGroup("Manager", StudioColors.Yellow);
+        card.Width = 260;
+        card.Height = 260;
+
         _teamManagerImg.Size = new Size(120, 120);
-        _teamManagerImg.SizeMode = PictureBoxSizeMode.Zoom;
-        _teamManagerImg.BackColor = CardLayout.CardFieldBg;
-        _teamManagerImg.BorderStyle = BorderStyle.None;
-        manager.Controls.Add(_teamManagerImg);
-        _teamManagerNation.Location = new Point(14, 160);
-        _teamManagerNation.Size = new Size(300, 20);
-        _teamManagerNation.Font = Theme.Body;
-        _teamManagerNation.ForeColor = CardLayout.CardMuted;
-        _teamManagerNation.BackColor = CardLayout.CardWhite;
-        manager.Controls.Add(_teamManagerNation);
-        AddBoundFields(manager, new[] { ("First Name", "managerfirstname"), ("Surname", "managersurname"), ("Latitude", "latitude"), ("Longitude", "longitude"), ("UTC Offset", "utcoffset") }, 14, 186, 140, 155, 26);
+        _teamManagerImg.Location = new Point(StudioSpacing.Medium, 30);
+        card.Controls.Add(_teamManagerImg);
 
-        // ═══════════════════════════════════════════════════════════════
-        //  PERFORMANCE CARDS
-        // ═══════════════════════════════════════════════════════════════
-        var perf = CardLayout.CreateGroup(canvas, "Performance", CardLayout.Fc26Yellow, 12, 870, 440, 160);
-        AddBoundFields(perf, new[] { ("Last Year Position", "form"), ("Last Year Champion", "prev_el_champ"), ("Current Form", "form") }, 14, 30, 170, 175, 26);
+        _teamManagerName = MakeLabel("—", StudioFonts.DataValue, StudioColors.PrimaryText, false);
+        _teamManagerName.Location = new Point(StudioSpacing.Medium, 156);
+        _teamManagerName.Size = new Size(228, 20);
+        card.Controls.Add(_teamManagerName);
 
-        var ratings = CardLayout.CreateGroup(canvas, "Matchday Ratings", CardLayout.Fc26Blue, 468, 870, 440, 160);
-        AddBoundFields(ratings, new[] { ("Overall", "matchdayoverallrating"), ("Attack", "matchdayattackrating"), ("Midfield", "matchdaymidfieldrating"), ("Defence", "matchdaydefenserating") }, 14, 30, 116, 170, 26);
+        _teamManagerNation = MakeLabel("", StudioFonts.DataLabel, StudioColors.MutedText, false);
+        _teamManagerNation.Location = new Point(StudioSpacing.Medium, 180);
+        _teamManagerNation.Size = new Size(228, 20);
+        card.Controls.Add(_teamManagerNation);
 
-        var tendency = CardLayout.CreateGroup(canvas, "Team Tendency", CardLayout.Fc26Orange, 924, 870, 428, 160);
-        AddBoundFields(tendency, new[] { ("Build Up Play", "buildupplay"), ("Defensive Depth", "defensivedepth"), ("Opponent Weak", "opponentweakthreshold"), ("Opponent Strong", "opponentstrongthreshold") }, 14, 30, 190, 170, 26);
+        return card;
+    }
 
-        // Import action. Record search is already provided by SectionBase.
-        var findActions = new Panel { Location = new Point(12, 1042), Size = new Size(1340, 32), BackColor = CardLayout.CardBackground };
-        var importSquad = CardLayoutButton("Import Scraper Squad", new Point(0, 2), new Size(180, 26));
-        importSquad.Click += (_, _) => ImportScraperSquad();
-        findActions.Controls.Add(importSquad);
-        canvas.Controls.Add(findActions);
+    private StudioCard BuildRivalCard()
+    {
+        var card = StudioGroup("Rival", StudioColors.Red);
+        card.Width = 260;
+        card.Height = 260;
 
-        void ReflowOverview()
+        _teamRivalLabel = MakeLabel("—", StudioFonts.DataValue, StudioColors.PrimaryText, false);
+        _teamRivalLabel.Location = new Point(StudioSpacing.Medium, 30);
+        _teamRivalLabel.Size = new Size(228, 20);
+        card.Controls.Add(_teamRivalLabel);
+
+        return card;
+    }
+
+    private StudioCard BuildMetadataCard()
+    {
+        var card = StudioGroup("Team Metadata", StudioColors.Purple);
+        card.Width = 260;
+        card.Height = 260;
+
+        _teamFoundationLabel = MakeLabel("Founded: —", StudioFonts.DataValue, StudioColors.PrimaryText, false);
+        _teamFoundationLabel.Location = new Point(StudioSpacing.Medium, 30);
+        _teamFoundationLabel.Size = new Size(228, 20);
+        card.Controls.Add(_teamFoundationLabel);
+
+        _teamWorthLabel = MakeLabel("Worth: —", StudioFonts.DataValue, StudioColors.PrimaryText, false);
+        _teamWorthLabel.Location = new Point(StudioSpacing.Medium, 56);
+        _teamWorthLabel.Size = new Size(228, 20);
+        card.Controls.Add(_teamWorthLabel);
+
+        return card;
+    }
+
+    private StudioCard BuildKitsCard()
+    {
+        var card = StudioGroup("Kits", StudioColors.Green);
+        card.Dock = DockStyle.Top;
+        card.Height = 180;
+
+        var flow = new FlowLayoutPanel
         {
-            var width = Math.Max(760, canvas.ClientSize.Width - 28);
-            profile.Width = width;
-            quickInfo.Width = width;
-            var factWidth = Math.Max(140, (width - 64) / 5);
-            for (var index = 0; index < quickInfo.Controls.Count; index++)
-                quickInfo.Controls[index].Bounds = new Rectangle(index * (factWidth + 16), 0, factWidth, 72);
-            kits.Width = width;
-            var kitsPerRow = width >= 830 ? 4 : 2;
-            var kitWidth = Math.Min(180, Math.Max(140, (width - 40) / kitsPerRow));
-            for (var index = 0; index < kitHolders.Length; index++)
-            {
-                var row = index / kitsPerRow;
-                var column = index % kitsPerRow;
-                kitHolders[index].Location = new Point(20 + column * (kitWidth + 23), 30 + row * 100);
-                kitHolders[index].Width = kitWidth;
-                var image = kitHolders[index].Controls.OfType<PictureBox>().FirstOrDefault();
-                if (image != null) image.Width = Math.Max(110, kitWidth - 20);
-                var caption = kitHolders[index].Controls.OfType<Label>().FirstOrDefault();
-                if (caption != null) caption.Width = kitWidth;
-            }
-            kits.Height = kitsPerRow == 4 ? 140 : 240;
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, StudioSpacing.Small, 0, 0),
+        };
 
-            var nextY = kits.Bottom + 12;
-            if (width >= 1240)
-            {
-                infoGroup.Bounds = new Rectangle(12, nextY, width / 2 - 18, 380);
-                stadium.Bounds = new Rectangle(infoGroup.Right + 16, nextY, (width - infoGroup.Width - 32) / 2, 380);
-                manager.Bounds = new Rectangle(stadium.Right + 16, nextY, width - (stadium.Right - 12) - 16, 380);
-                nextY += 392;
-            }
-            else
-            {
-                infoGroup.Bounds = new Rectangle(12, nextY, width, 380);
-                nextY += 392;
-                var half = (width - 16) / 2;
-                stadium.Bounds = new Rectangle(12, nextY, half, 380);
-                manager.Bounds = new Rectangle(12 + half + 16, nextY, width - half - 16, 380);
-                nextY += 392;
-            }
+        flow.Controls.Add(BuildKitTile("Home", _teamKitHome, "home"));
+        flow.Controls.Add(BuildKitTile("Away", _teamKitAway, "away"));
+        flow.Controls.Add(BuildKitTile("Third", _teamKitThird, "third"));
+        flow.Controls.Add(BuildKitTile("Goalkeeper", _teamKitGk, "gk"));
 
-            if (width >= 1320)
-            {
-                perf.Bounds = new Rectangle(12, nextY, 440, 160);
-                ratings.Bounds = new Rectangle(468, nextY, 440, 160);
-                tendency.Bounds = new Rectangle(924, nextY, width - 912, 160);
-                nextY += 172;
-            }
-            else
-            {
-                var half = (width - 16) / 2;
-                perf.Bounds = new Rectangle(12, nextY, half, 160);
-                ratings.Bounds = new Rectangle(12 + half + 16, nextY, width - half - 16, 160);
-                nextY += 172;
-                tendency.Bounds = new Rectangle(12, nextY, width, 160);
-                nextY += 172;
-            }
-            findActions.Bounds = new Rectangle(12, nextY, width, 32);
-            canvas.AutoScrollMinSize = new Size(0, nextY + 48);
-        }
-        canvas.ClientSizeChanged += (_, _) => ReflowOverview();
-        ReflowOverview();
+        card.Controls.Add(flow);
+        return card;
     }
 
-    private void AddRatingBar(Control parent, string label, Color accent, Panel barFill, Label valueLabel, int x, int y)
+    private Control BuildKitTile(string label, PictureBox preview, string variant)
     {
-        var lbl = new Label { Text = label, Location = new Point(x, y), Size = new Size(36, 22), Font = Theme.BodyBold, ForeColor = accent, BackColor = CardLayout.CardWhite };
-        parent.Controls.Add(lbl);
-        var track = new Panel { Location = new Point(x + 40, y + 4), Size = new Size(160, 14), BackColor = CardLayout.CardFieldBg };
-        CardLayout.ApplyRounded(track, 7);
-        barFill.Location = Point.Empty;
-        barFill.Size = new Size(1, 14);
-        barFill.BackColor = accent;
-        barFill.Tag = accent;
-        track.Controls.Add(barFill);
-        parent.Controls.Add(track);
-        valueLabel.Location = new Point(x + 208, y);
-        valueLabel.Size = new Size(40, 22);
-        valueLabel.Font = Theme.BodyBold;
-        valueLabel.ForeColor = CardLayout.CardText;
-        valueLabel.BackColor = CardLayout.CardWhite;
-        parent.Controls.Add(valueLabel);
-    }
-
-    private static Panel AddKitPreview(Control parent, PictureBox preview, string label, int x, int y)
-    {
-        var holder = new Panel { Location = new Point(x, y), Size = new Size(168, 88), BackColor = CardLayout.CardWhite };
-        preview.Location = new Point(10, 4);
-        preview.Size = new Size(148, 64);
-        preview.SizeMode = PictureBoxSizeMode.Zoom;
-        preview.BackColor = CardLayout.CardFieldBg;
-        preview.BorderStyle = BorderStyle.None;
-        holder.Controls.Add(preview);
-        holder.Controls.Add(new Label { Text = label, Location = new Point(0, 69), Size = new Size(168, 16), Font = Theme.Muted9, TextAlign = ContentAlignment.MiddleCenter, ForeColor = CardLayout.CardSubtle, BackColor = CardLayout.CardWhite });
-        parent.Controls.Add(holder);
-        return holder;
-    }
-
-    private void AddFieldCard(Control parent, string title, int x, int y, params (string Label, string Field)[] fields)
-    {
-        // Five editable rows need 164px; the former 140px card clipped its
-        // final field in the real Teams overview.
-        var block = new Panel { Location = new Point(x, y), Size = new Size(300, 164), BackColor = CardLayout.CardFieldBg };
-        CardLayout.ApplyRounded(block, 8);
-        block.Controls.Add(new Label { Text = title.ToUpperInvariant(), Location = new Point(10, 6), Size = new Size(280, 16), Font = new Font(Theme.Body, FontStyle.Bold), ForeColor = CardLayout.CardSubtle });
-        var row = 0;
-        foreach (var (label, field) in fields)
+        var tile = new StudioCard
         {
-            var ry = 28 + row * 26;
-            block.Controls.Add(new Label { Text = label, Location = new Point(10, ry + 3), Size = new Size(140, 18), Font = Theme.Body, ForeColor = CardLayout.CardFieldLabel, BackColor = CardLayout.CardFieldBg, AutoEllipsis = true });
-            var editor = new TextBox { Location = new Point(155, ry), Size = new Size(135, 22), Font = LegacyFont, Tag = field, BorderStyle = BorderStyle.FixedSingle };
-            Theme.ApplyTextBox(editor);
-            editor.Leave += (_, _) => StageEditor(editor);
-            _editors.Add(editor);
-            block.Controls.Add(editor);
-            row++;
-        }
-        parent.Controls.Add(block);
+            Width = 180,
+            Height = 140,
+            Margin = new Padding(0, 0, StudioSpacing.Medium, StudioSpacing.Medium),
+        };
+
+        var title = MakeLabel(label, StudioFonts.CardTitle, StudioColors.PrimaryText);
+        title.Location = new Point(StudioSpacing.Medium, StudioSpacing.Medium);
+        tile.Controls.Add(title);
+
+        preview.Size = new Size(160, 90);
+        preview.Location = new Point(StudioSpacing.Medium, 30);
+        tile.Controls.Add(preview);
+
+        Action refresh = () => _ = LoadOneKitPreviewAsync(variant, preview);
+        LegacyAssetActions.Attach(Services, tile, preview, new Point(StudioSpacing.Medium, 124), refresh);
+
+        return tile;
+    }
+
+    private StudioCard BuildActionsCard()
+    {
+        var card = StudioGroup("Actions", StudioColors.CyanAccent);
+        card.Dock = DockStyle.Top;
+        card.Height = 90;
+
+        var flow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = Color.Transparent,
+        };
+
+        var import = StudioButton("Import Scraper Squad", 160);
+        import.Click += (_, _) => ImportScraperSquad();
+        flow.Controls.Add(import);
+
+        var edit = StudioButton("Edit Team Details", 140);
+        edit.Click += (_, _) => OpenTeamDetailsEditor();
+        flow.Controls.Add(edit);
+
+        card.Controls.Add(flow);
+        return card;
+    }
+
+    private void OpenTeamDetailsEditor()
+    {
+        if (CurrentRecordIndex < 0 || _fields.Count == 0) return;
+        var editor = new FieldEditorGrid { Dock = DockStyle.Fill };
+        editor.SetFields(_fields.Values.OrderBy(v => v.Label).ToList(), ToolTip);
+        editor.FieldEdited += (_, change) =>
+        {
+            if (StageField(TableName, CurrentRecordIndex, change.field, change.value, _stagingGrid))
+                ShowRecord(CurrentRecordIndex);
+        };
+        using var dialog = new Form
+        {
+            Text = $"Edit {(_heroCard?.TeamName ?? "Team")}",
+            StartPosition = FormStartPosition.CenterParent,
+            Size = new Size(720, 760),
+            MinimizeBox = false,
+            ShowInTaskbar = false,
+            BackColor = Theme.Background,
+        };
+        dialog.Controls.Add(editor);
+        dialog.ShowDialog(this);
     }
 
     private void AddAudioTab()
     {
         var page = Page("Audio");
         var canvas = Canvas(page);
-        var presentation = Group("Selected Team Match Audio", new Point(3, 3), new Size(475, 193));
+        var layout = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = StudioColors.AppBackground,
+        };
+
+        var presentation = StudioGroup("Selected Team Match Audio", StudioColors.CyanAccent);
+        presentation.Width = 480;
+        presentation.Height = 220;
         AddBoundFields(presentation, new[]
         {
             ("Sun Anthem Enabled", "hassuncanthem"),
@@ -764,36 +865,39 @@ public sealed class TeamsSection : SectionBase
             ("Viking Clap", "hasvikingclap"),
             ("Team Personality", "personalityid"),
             ("Tifo Enabled", "hastifo")
-        }, 15, 25, 175, 150, 26);
+        }, 15, 30, 175, 150, 26);
         presentation.Controls.Add(new Label
         {
             Text = "Match presentation settings for the selected team.",
-            Location = new Point(15, 163), Size = new Size(430, 24),
-            Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel
+            Location = new Point(15, 168), Size = new Size(430, 24),
+            Font = LegacyFont, ForeColor = StudioColors.MutedText, BackColor = Color.Transparent
         });
-        canvas.Controls.Add(presentation);
+        layout.Controls.Add(presentation);
 
-        canvas.Controls.Add(CreateAudioCatalog(
+        layout.Controls.Add(CreateAudioCatalog(
             "Custom Team Callname Catalog", "CustomizableTeamName",
-            _teamCallnameSlots, new Point(3, 204), 1));
-        canvas.Controls.Add(CreateAudioCatalog(
+            _teamCallnameSlots, 1));
+        layout.Controls.Add(CreateAudioCatalog(
             "Custom Anthem Catalog", "CustomizableAnthemChant",
-            _anthemSlots, new Point(490, 3), 1001));
-        canvas.Controls.Add(CreateAudioCatalog(
+            _anthemSlots, 1001));
+        layout.Controls.Add(CreateAudioCatalog(
             "Custom Chant / Goal Song Catalog", "CustomizableChantPackage",
-            _goalSongSlots, new Point(490, 322), 1501));
+            _goalSongSlots, 1501));
+
+        canvas.Controls.Add(layout);
+        Tabs.TabPages.Add(page);
     }
 
-    private Panel CreateAudioCatalog(
-        string title, string tableName, ListView list, Point location, int firstItemId)
+    private Panel CreateAudioCatalog(string title, string tableName, ListView list, int firstItemId)
     {
-        var width = location.X < 100 ? 475 : 610;
-        var box = Group(title, location, new Size(width, 311));
-        list.Location = new Point(10, 30);
-        list.Size = new Size(width - 20, 235);
+        var box = StudioGroup(title, StudioColors.Purple);
+        box.Width = 480;
+        box.Height = 340;
+        list.Location = new Point(10, 34);
+        list.Size = new Size(460, 260);
         list.View = View.Details;
         list.FullRowSelect = true;
-        list.GridLines = true;
+        list.GridLines = false;
         list.Font = LegacyFont;
         list.Columns.Add("Item", 65);
         list.Columns.Add("Audio Item", 90);
@@ -801,13 +905,16 @@ public sealed class TeamsSection : SectionBase
         list.Columns.Add("CM", 45);
         list.Columns.Add("Clubs", 55);
         box.Controls.Add(list);
-        var add = LegacyButton("Add", new Point(10, 279), new Size(80, 26));
+        var add = StudioButton("Add", 72);
+        add.Location = new Point(10, 302);
         add.Click += (_, _) => AddAudioCatalogEntry(tableName, list, firstItemId);
         box.Controls.Add(add);
-        var edit = LegacyButton("Edit", new Point(96, 279), new Size(80, 26));
+        var edit = StudioButton("Edit", 72);
+        edit.Location = new Point(88, 302);
         edit.Click += (_, _) => EditAudioCatalogEntry(tableName, list);
         box.Controls.Add(edit);
-        var remove = LegacyButton("Remove", new Point(182, 279), new Size(80, 26));
+        var remove = StudioButton("Remove", 72);
+        remove.Location = new Point(166, 302);
         remove.Click += (_, _) => RemoveAudioCatalogEntry(tableName, list);
         box.Controls.Add(remove);
         return box;
@@ -817,286 +924,182 @@ public sealed class TeamsSection : SectionBase
     {
         var page = Page("Roster");
         var canvas = Canvas(page);
-        // This is deliberately a docked workspace rather than a set of controls
-        // positioned on a large virtual canvas.  The latter looked acceptable at
-        // 1920px but put the squad rail outside the visible area at common laptop
-        // widths, and it caused child controls to overlap while scrolling.
         canvas.AutoScroll = false;
-        canvas.AutoScrollMinSize = Size.Empty;
 
         var workspace = new SplitContainer
         {
             Dock = DockStyle.Fill,
             Orientation = Orientation.Vertical,
-            FixedPanel = FixedPanel.Panel2,
+            BackColor = StudioColors.Divider,
             SplitterWidth = 6,
-            BackColor = CardLayout.CardBackground,
         };
-        workspace.Panel1.Padding = new Padding(3);
-        workspace.Panel2.Padding = new Padding(3);
-        workspace.Panel1.BackColor = CardLayout.CardBackground;
-        workspace.Panel2.BackColor = CardLayout.CardBackground;
+        workspace.Panel1.BackColor = StudioColors.AppBackground;
+        workspace.Panel2.BackColor = StudioColors.AppBackground;
         workspace.SizeChanged += (_, _) =>
         {
-            // Keep a useful pitch even when Windows restores a narrow window.
             if (workspace.Width > 720)
             {
                 workspace.Panel2MinSize = 310;
-                workspace.SplitterDistance = Math.Clamp(workspace.Width - 420, 390, workspace.Width - 310 - workspace.SplitterWidth);
+                workspace.SplitterDistance = Math.Clamp((int)(workspace.Width * 0.6), 390, workspace.Width - 320);
             }
         };
         canvas.Controls.Add(workspace);
 
-        // The matchday roles belong directly above the squad rail, making the
-        // common "pick player, assign role, drag to XI" workflow predictable.
-        var matchday = CreateMatchdayPanel(Point.Empty, new Size(0, 168));
-        matchday.Dock = DockStyle.Top;
-        matchday.Height = 168;
-        workspace.Panel2.Controls.Add(matchday);
-
-        // === VISUAL SQUAD LIST ===
-        // Mirrors the provided formation-board layout: the pitch is the primary
-        // canvas on the left and the searchable squad sits as a visual rail on
-        // the right, with a miniface beside each player.
-        var squadGroup = Group("Squad", Point.Empty, new Size(400, 600));
-        squadGroup.Dock = DockStyle.Fill;
-        workspace.Panel2.Controls.Add(squadGroup);
-
-        // Player count label
-        var squadCount = new Label
+        // Left: formation board
+        var pitchPanel = new Panel
         {
-            Text = "Squad (0 players)",
-            Location = new Point(10, 30),
-            Size = new Size(200, 18),
-            Font = Theme.BodyBold,
-            ForeColor = Theme.Text,
-            BackColor = Theme.Panel,
+            Dock = DockStyle.Fill,
+            Padding = new Padding(StudioSpacing.Medium),
+            BackColor = StudioColors.AppBackground,
         };
-        squadGroup.Controls.Add(squadCount);
-        _squadCountLabel = squadCount;
+        workspace.Panel1.Controls.Add(pitchPanel);
 
-        // Tools section
-        var toolsGroup = Group("Tools", new Point(10, 52), new Size(300, 62));
-        toolsGroup.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-        var btnTransfer = LegacyButton("Transfer", new Point(8, 30), new Size(90, 26));
-        btnTransfer.Click += (_, _) => OpenTransferDialog();
-        toolsGroup.Controls.Add(btnTransfer);
-        var btnLoan = LegacyButton("Loan", new Point(104, 30), new Size(90, 26));
-        btnLoan.Click += (_, _) => ShowLoanDetails();
-        toolsGroup.Controls.Add(btnLoan);
-        var btnFind = LegacyButton("Find", new Point(200, 30), new Size(70, 26));
-        btnFind.Click += (_, _) => FindSelectedPlayer();
-        toolsGroup.Controls.Add(btnFind);
-        squadGroup.Controls.Add(toolsGroup);
-
-        // Compact squad ListView
-        _teamPlayers.Location = new Point(10, 120);
-        _teamPlayers.Size = new Size(10, 10);
-        _teamPlayers.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
-        _teamPlayers.View = View.Details;
-        _teamPlayers.FullRowSelect = true;
-        _teamPlayers.GridLines = false;
-        _teamPlayers.HideSelection = false;
-        _teamPlayers.BackColor = Theme.Input;
-        _teamPlayers.ForeColor = Theme.Text;
-        _teamPlayers.Font = new Font("Segoe UI", 8.5f);
-        _teamPlayers.SmallImageList = _rosterMinifaces;
-        _teamPlayers.Columns.Add("#", 28);
-        _teamPlayers.Columns.Add("Player", 260);
-        _teamPlayers.Columns.Add("POS", 54);
-        _teamPlayers.Columns.Add("Ovr", 42);
-        _teamPlayers.Columns.Add("Role", 46);
-        _teamPlayers.HeaderStyle = ColumnHeaderStyle.Nonclickable;
-        _teamPlayers.MultiSelect = false;
-        _teamPlayers.ItemDrag += (_, e) =>
+        var topBar = new Panel
         {
-            if (e.Item is ListViewItem item && item.Tag is int playerId && playerId > 0)
-                _teamPlayers.DoDragDrop(playerId, DragDropEffects.Copy);
+            Dock = DockStyle.Top,
+            Height = 34,
+            BackColor = StudioColors.AppBackground,
         };
-        _teamPlayers.DoubleClick += (_, _) => OpenSelectedRosterPlayer();
-        squadGroup.Controls.Add(_teamPlayers);
-        squadGroup.SizeChanged += (_, _) =>
-        {
-            var width = Math.Max(240, squadGroup.ClientSize.Width - 20);
-            toolsGroup.Width = width;
-            _teamPlayers.Width = width;
-            _teamPlayers.Height = Math.Max(140, squadGroup.ClientSize.Height - _teamPlayers.Top - 10);
-        };
+        pitchPanel.Controls.Add(topBar);
 
-        // === FORMATION / PITCH ===
-        // The roster is a one-screen workspace. A compact pitch plus the
-        // dedicated caption strip keeps the exact FC26 coordinates readable.
-        var pitch = Group("Formation Board", Point.Empty, new Size(700, 600));
-        pitch.Dock = DockStyle.Fill;
-        workspace.Panel1.Controls.Add(pitch);
-        var board = new RatableBoard
-        {
-            Location = new Point(8, 28),
-            Size = new Size(600, 400),
-            BackColor = Color.FromArgb(106, 190, 87),
-            BorderStyle = BorderStyle.FixedSingle,
-            AllowDrop = true,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom
-        };
-        board.DragEnter += (_, e) => e.Effect = e.Data?.GetDataPresent(typeof(int)) == true ? DragDropEffects.Copy : DragDropEffects.None;
-        board.DragDrop += (_, e) => AssignDroppedPlayer(e, board);
-        _formationBoard = board;
-        CreateLineupSlots(board);
-        pitch.Controls.Add(board);
+        var formationLabel = MakeLabel("Formation", StudioFonts.DataValue, StudioColors.PrimaryText);
+        formationLabel.Location = new Point(StudioSpacing.Medium, 8);
+        topBar.Controls.Add(formationLabel);
 
-        // Formation selector (bottom of pitch group)
-        var formationLabel = new Label { Text = "Formation", Size = new Size(65, 20), Font = LegacyFont, BackColor = CardLayout.CardWhite };
-        pitch.Controls.Add(formationLabel);
-        _formationView.Location = new Point(80, 0);
-        _formationView.Size = new Size(180, 21);
+        _formationView.Size = new Size(180, 24);
+        _formationView.Location = new Point(90, 4);
         _formationView.Font = LegacyFont;
         _formationView.DropDownHeight = 340;
+        Theme.ApplyCombo(_formationView);
         _formationView.SelectedIndexChanged += (_, _) =>
         {
             if (!_syncFormationView && _formationView.SelectedItem is FormationChoice choice)
                 SelectTeamFormation(choice);
         };
-        pitch.Controls.Add(_formationView);
-        _formationStatus = new Label { Location = new Point(270, 0), Size = new Size(850, 20), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = CardLayout.CardWhite, Visible = true, AutoEllipsis = true };
-        pitch.Controls.Add(_formationStatus);
-        ToolTip.SetToolTip(_formationView, "Choose a formation template for this team.");
-        pitch.SizeChanged += (_, _) =>
-        {
-            var bottom = Math.Max(80, pitch.ClientSize.Height - 48);
-            board.Bounds = new Rectangle(8, 28, Math.Max(220, pitch.ClientSize.Width - 16), Math.Max(140, bottom - 28));
-            formationLabel.Location = new Point(10, bottom + 8);
-            _formationView.Location = new Point(80, bottom + 6);
-            _formationStatus.Location = new Point(270, bottom + 8);
-            _formationStatus.Width = Math.Max(80, pitch.ClientSize.Width - 280);
-        };
-        board.SizeChanged += (_, _) =>
-        {
-            // ShowRecord can run while this tab is not yet measured. Reapply
-            // normalized FC26 coordinates once the real pitch size exists;
-            // otherwise all eleven markers stay stacked at the top-left.
-            if (_activeFormationChoice is { } choice && board.Width > 220 && board.Height > 140)
-                ApplyFormationLayout(choice);
-        };
-        page.Enter += (_, _) =>
-        {
-            if (_formationView.SelectedItem is FormationChoice choice && board.Width > 220 && board.Height > 140)
-                BeginInvoke(() => ApplyFormationLayout(choice));
-        };
-        Tabs.SelectedIndexChanged += (_, _) =>
-        {
-            if (Tabs.SelectedTab == page && _formationView.SelectedItem is FormationChoice choice &&
-                board.Width > 220 && board.Height > 140)
-                BeginInvoke(() => ApplyFormationLayout(choice));
-        };
+        topBar.Controls.Add(_formationView);
 
+        _formationStatus = MakeLabel("", StudioFonts.DataLabel, StudioColors.MutedText, false);
+        _formationStatus.Location = new Point(280, 8);
+        _formationStatus.Size = new Size(300, 20);
+        topBar.Controls.Add(_formationStatus);
+
+        _formationBoard = new FormationBoard
+        {
+            Dock = DockStyle.Fill,
+            AllowDrop = true,
+        };
+        _formationBoard.PlayerDropped += FormationBoard_PlayerDropped;
+        _formationBoard.SlotClicked += FormationBoard_SlotClicked;
+        pitchPanel.Controls.Add(_formationBoard);
+
+        // Right: matchday roles + roster list
+        var rightPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = StudioColors.AppBackground,
+            Padding = new Padding(StudioSpacing.Medium),
+        };
+        workspace.Panel2.Controls.Add(rightPanel);
+
+        var rolesCard = BuildMatchdayRolesCard();
+        rolesCard.Dock = DockStyle.Top;
+        rolesCard.Height = 180;
+        rightPanel.Controls.Add(rolesCard);
+
+        var toolsPanel = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            Height = 44,
+            BackColor = StudioColors.AppBackground,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            Padding = new Padding(0, StudioSpacing.Small, 0, 0),
+        };
+        var btnTransfer = StudioButton("Transfer", 80);
+        btnTransfer.Click += (_, _) => OpenTransferDialog();
+        toolsPanel.Controls.Add(btnTransfer);
+        var btnLoan = StudioButton("Loan", 80);
+        btnLoan.Click += (_, _) => ShowLoanDetails();
+        toolsPanel.Controls.Add(btnLoan);
+        var btnFind = StudioButton("Find", 80);
+        btnFind.Click += (_, _) => FindSelectedPlayer();
+        toolsPanel.Controls.Add(btnFind);
+        rightPanel.Controls.Add(toolsPanel);
+
+        _squadCountLabel = MakeLabel("Squad", StudioFonts.CardTitle, StudioColors.PrimaryText);
+        _squadCountLabel.Dock = DockStyle.Top;
+        _squadCountLabel.Height = 24;
+        rightPanel.Controls.Add(_squadCountLabel);
+
+        _rosterScrollPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = StudioColors.AppBackground,
+            AutoScroll = true,
+            Padding = new Padding(0, StudioSpacing.Small, 0, 0),
+        };
+        rightPanel.Controls.Add(_rosterScrollPanel);
+
+        _startingXiSection = CreateRosterSection("STARTING XI");
+        _subsSection = CreateRosterSection("SUBSTITUTES");
+        _reservesSection = CreateRosterSection("RESERVES");
+        _rosterScrollPanel.Controls.Add(_startingXiSection);
+        _rosterScrollPanel.Controls.Add(_subsSection);
+        _rosterScrollPanel.Controls.Add(_reservesSection);
+
+        CreateLineupSlots();
+
+        Tabs.TabPages.Add(page);
     }
 
-    private Panel CreateMatchdayPanel(Point location, Size size)
+    private StudioCard BuildMatchdayRolesCard()
     {
-        var setPieces = Group("Matchday", location, size);
-        AddPlayerReferencePickers(setPieces, new[] {
+        var card = StudioGroup("Matchday Roles", StudioColors.CyanAccent);
+        AddPlayerReferencePickers(card, new[] {
             ("Captain", "captainid"), ("Left Corner", "leftcornerkicktakerid"),
             ("Right Corner", "rightcornerkicktakerid"), ("Penalty", "penaltytakerid"),
             ("Free Kicks", "freekicktakerid")
-        }, 8, 30, pickerX: 104, pickerWidth: 380);
-        return setPieces;
+        }, 8, 34, pickerX: 104, pickerWidth: 220);
+        return card;
     }
 
-    private Label? _squadCountLabel;
-
-    private void FindSelectedPlayer()
+    private static Panel CreateRosterSection(string title)
     {
-        if (_teamPlayers.SelectedItems.Count > 0 && _teamPlayers.SelectedItems[0].Tag is int playerId && playerId > 0)
+        var panel = new Panel
         {
-            var recordIndex = FindTableRow("players", "playerid", playerId);
-            if (recordIndex >= 0) Services.RequestRecordNavigation("players", recordIndex);
+            Dock = DockStyle.Top,
+            BackColor = StudioColors.AppBackground,
+            AutoSize = true,
+            Padding = new Padding(0, 0, 0, StudioSpacing.Small),
+        };
+        var header = new Label
+        {
+            Text = title,
+            Dock = DockStyle.Top,
+            Height = 24,
+            Font = StudioFonts.CardTitle,
+            ForeColor = StudioColors.CyanAccent,
+            BackColor = Color.Transparent,
+        };
+        panel.Controls.Add(header);
+        return panel;
+    }
+
+    private void FormationBoard_SlotClicked(object? sender, FormationSlotEventArgs e)
+    {
+        if (_formationBoard == null) return;
+        _formationBoard.SelectedSlot = e.Slot;
+        if (e.Slot != null)
+        {
+            foreach (var row in _rosterRows.Where(r => r.PlayerId == e.Slot.PlayerId))
+                SelectRosterRow(row);
         }
     }
 
-    private sealed class LineupSlot
+    private void FormationBoard_PlayerDropped(object? sender, FormationDropEventArgs e)
     {
-        public required Label Label { get; init; }
-        public required string PlayerField { get; init; }
-        public int PlayerId { get; set; }
-        public int LoadedMinifacePlayerId { get; set; }
-        public int AppliedMinifacePlayerId { get; set; }
-        public string ExpectedPosition { get; set; } = string.Empty;
-        public Point FormationPoint { get; set; }
-    }
-
-    private sealed record FormationChoice(int RecordIndex, int FormationId, string Name, bool IsGeneric)
-    {
-        public override string ToString() => Name;
-    }
-
-    /// <summary>
-    /// Paints the miniface and its two-line label in separate regions.  The
-    /// label has an outline/shadow for contrast but deliberately no caption
-    /// tile, preserving the clean on-pitch style requested for the roster.
-    /// </summary>
-    private sealed class LineupMarker : Label
-    {
-        public LineupMarker()
-        {
-            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
-                     ControlStyles.OptimizedDoubleBuffer | ControlStyles.SupportsTransparentBackColor, true);
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            // Let WinForms render the parent pitch into this transparent child;
-            // never draw the parent manually from here.
-            base.OnPaintBackground(e);
-
-            const int faceSize = 52;
-            if (Image != null)
-            {
-                e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                e.Graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-                var width = Math.Min(faceSize, Image.Width);
-                var height = Math.Min(faceSize, Image.Height);
-                e.Graphics.DrawImage(Image, new Rectangle((Width - width) / 2, 0, width, height));
-            }
-
-            var textBounds = new Rectangle(1, 52, Math.Max(1, Width - 2), Math.Max(1, Height - 52));
-            const TextFormatFlags format = TextFormatFlags.HorizontalCenter | TextFormatFlags.Top |
-                                            TextFormatFlags.WordBreak | TextFormatFlags.NoPadding;
-            // A compact black shadow makes white names readable on every pitch
-            // stripe without reintroducing a filled rectangle behind the text.
-            var shadowBounds = new Rectangle(textBounds.X + 1, textBounds.Y + 1, textBounds.Width, textBounds.Height);
-            TextRenderer.DrawText(e.Graphics, Text, Font, shadowBounds, Color.FromArgb(235, 0, 0, 0), format);
-            TextRenderer.DrawText(e.Graphics, Text, Font, textBounds, ForeColor, format);
-        }
-    }
-
-    private void CreateLineupSlots(Panel board)
-    {
-        foreach (var _ in Enumerable.Range(0, 11))
-        {
-            // Keep the original clean pitch treatment: a circular miniface and
-            // white text directly on the grass. A custom caption tile looked
-            // heavier than the rest of CM26 and could leave paint artefacts.
-            var label = new LineupMarker
-            {
-                Size = new Size(106, 84), BackColor = Color.Transparent,
-                BorderStyle = BorderStyle.None, TextAlign = ContentAlignment.BottomCenter,
-                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
-                ForeColor = Color.White, AllowDrop = true, Tag = _lineupSlots.Count,
-                ImageAlign = ContentAlignment.TopCenter,
-                Padding = Padding.Empty
-            };
-            label.DragEnter += (_, e) => e.Effect = e.Data?.GetDataPresent(typeof(int)) == true ? DragDropEffects.Copy : DragDropEffects.None;
-            label.DragDrop += (_, e) => AssignDroppedPlayer(e, label);
-            board.Controls.Add(label);
-            _lineupSlots.Add(new LineupSlot { Label = label, PlayerField = $"playerid{_lineupSlots.Count}" });
-        }
-        foreach (var slot in _lineupSlots) slot.Label.Visible = false;
-    }
-
-    private void AssignDroppedPlayer(DragEventArgs e, Control target)
-    {
-        if (e.Data?.GetData(typeof(int)) is not int playerId || playerId <= 0 || _lineupSlots.Count == 0) return;
-        var slotIndex = target.Tag is int tagged ? tagged : NearestLineupSlot(_formationBoard?.PointToClient(new Point(e.X, e.Y)) ?? Point.Empty);
+        if (e.PlayerId <= 0 || _lineupSlots.Count == 0) return;
+        var slotIndex = e.TargetSlot?.SlotIndex ?? NearestSlotIndex(e.DropLocation);
         if (slotIndex < 0 || slotIndex >= _lineupSlots.Count) return;
         if (_activeTeamSheetRow < 0)
         {
@@ -1109,24 +1112,69 @@ public sealed class TeamsSection : SectionBase
             MessageBox.Show(this, "This starting-lineup slot is read-only.", "Starting Lineup", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
-        foreach (var slot in _lineupSlots.Where(s => s.PlayerId == playerId && s != _lineupSlots[slotIndex]).ToList())
+        foreach (var slot in _lineupSlots.Where(s => s.PlayerId == e.PlayerId && s != _lineupSlots[slotIndex]).ToList())
         {
             if (StageLineupField(slot, -1))
                 slot.PlayerId = 0;
         }
-        if (StageLineupField(_lineupSlots[slotIndex], playerId))
-            _lineupSlots[slotIndex].PlayerId = playerId;
+        if (StageLineupField(_lineupSlots[slotIndex], e.PlayerId))
+            _lineupSlots[slotIndex].PlayerId = e.PlayerId;
         RenderLineup();
     }
 
-    /// <summary>
-    /// FC26 retains the default XI in <c>default_teamsheets</c>, then copies it
-    /// into one or more <c>default_mentalities</c> tactic records.  Updating only
-    /// the former is the source of many tools showing a correct XI while the game
-    /// keeps an old one.  Mirror only rows whose current player matches the source
-    /// slot, so tactic-specific variations are never overwritten blindly.
-    /// </summary>
-    private bool StageLineupField(LineupSlot slot, int playerId)
+    private int NearestSlotIndex(Point point)
+    {
+        if (_formationBoard == null) return -1;
+        var best = -1;
+        var distance = double.MaxValue;
+        for (var i = 0; i < _lineupSlots.Count; i++)
+        {
+            var x = _lineupSlots[i].Visual.RelativeX * _formationBoard.Width;
+            var y = _lineupSlots[i].Visual.RelativeY * _formationBoard.Height;
+            var d = (point.X - x) * (point.X - x) + (point.Y - y) * (point.Y - y);
+            if (d < distance) { distance = d; best = i; }
+        }
+        return best;
+    }
+    private Label? _squadCountLabel;
+
+    private void FindSelectedPlayer()
+    {
+        if (_selectedRosterPlayerId <= 0) return;
+        var recordIndex = FindTableRow("players", "playerid", _selectedRosterPlayerId);
+        if (recordIndex >= 0) Services.RequestRecordNavigation("players", recordIndex);
+    }
+
+    private sealed class SlotState
+    {
+        public required string PlayerField { get; init; }
+        public int PlayerId { get; set; }
+        public int LoadedMinifacePlayerId { get; set; }
+        public int AppliedMinifacePlayerId { get; set; }
+        public string ExpectedPosition { get; set; } = string.Empty;
+        public Point FormationPoint { get; set; }
+        public FormationSlot Visual { get; } = new();
+    }
+
+    private sealed record FormationChoice(int RecordIndex, int FormationId, string Name, bool IsGeneric)
+    {
+        public override string ToString() => Name;
+    }
+
+    private void CreateLineupSlots()
+    {
+        _lineupSlots.Clear();
+        _formationBoard?.ClearSlots();
+        foreach (var i in Enumerable.Range(0, 11))
+        {
+            var slot = new SlotState { PlayerField = $"playerid{i}" };
+            slot.Visual.SlotIndex = i;
+            _lineupSlots.Add(slot);
+            _formationBoard?.AddSlot(slot.Visual);
+        }
+    }
+
+    private bool StageLineupField(SlotState slot, int playerId)
     {
         var previousPlayerId = slot.PlayerId;
         if (!StageField("default_teamsheets", _activeTeamSheetRow, slot.PlayerField, playerId.ToString(), _stagingGrid))
@@ -1165,18 +1213,6 @@ public sealed class TeamsSection : SectionBase
                 mirrored++;
         }
         return mirrored;
-    }
-
-    private int NearestLineupSlot(Point point)
-    {
-        var best = -1; var distance = int.MaxValue;
-        for (var i = 0; i < _lineupSlots.Count; i++)
-        {
-            var centre = new Point(_lineupSlots[i].Label.Left + (_lineupSlots[i].Label.Width / 2), _lineupSlots[i].Label.Top + (_lineupSlots[i].Label.Height / 2));
-            var d = ((centre.X - point.X) * (centre.X - point.X)) + ((centre.Y - point.Y) * (centre.Y - point.Y));
-            if (d < distance) { distance = d; best = i; }
-        }
-        return best;
     }
 
     private void LoadLineup(int teamId, IReadOnlyList<TeamRosterItem> roster)
@@ -1272,66 +1308,51 @@ public sealed class TeamsSection : SectionBase
             var y = ReadFormationOffset(table, record, $"offset{i}y", _formationBoard.Height);
             var positionColumn = Col(table, $"position{i}");
             var slot = _lineupSlots[i];
-            // FC26's Y axis starts at the defending goal.  Reverse it once for
-            // the broadcast-style board: attack at the top, goalkeeper below.
             slot.FormationPoint = new Point(x, _formationBoard.Height - y);
             slot.ExpectedPosition = positionColumn >= 0 ? NameResolverService.PositionLabel(Parse(record.Get(positionColumn))) : "Not stored";
-            slot.Label.Visible = true;
         }
         ApplyGoalkeeperVisualClearance();
         ArrangeLineupInTacticalLanes();
-        _formationStatus!.Text = status ?? choice.Name;
+        if (_formationStatus != null)
+            _formationStatus.Text = status ?? choice.Name;
         RenderLineup();
     }
 
-    /// <summary>
-    /// Draw the exact tactical points stored in the FC26 formations table.
-    /// A defensive line intentionally has small Y differences (full-backs and
-    /// centre-backs), so grouping or flattening those points creates a different
-    /// formation. The only conversion is the display's reversed Y axis.
-    /// </summary>
     private void ArrangeLineupInTacticalLanes()
     {
         if (_formationBoard == null) return;
-        foreach (var slot in _lineupSlots.Where(slot => slot.Label.Visible))
-            PlaceLineupSlot(slot);
+        foreach (var slot in _lineupSlots)
+            UpdateSlotPosition(slot);
+        _formationBoard.Invalidate();
     }
 
-    /// <summary>
-    /// The stored offsets remain the source of truth. This only protects the
-    /// rendered miniface/text bounds at the goal line: otherwise a full-size
-    /// goalkeeper marker is clamped upward onto the defenders.
-    /// </summary>
+    private void UpdateSlotPosition(SlotState slot)
+    {
+        if (_formationBoard == null || _formationBoard.Width <= 20 || _formationBoard.Height <= 20) return;
+        var size = Math.Min(64, Math.Max(48, _formationBoard.Width / 16));
+        var half = size / 2 + 4;
+        var rx = Math.Clamp(slot.FormationPoint.X / (float)_formationBoard.Width, half / (float)_formationBoard.Width, 1f - half / (float)_formationBoard.Width);
+        var ry = Math.Clamp(slot.FormationPoint.Y / (float)_formationBoard.Height, half / (float)_formationBoard.Height, 1f - half / (float)_formationBoard.Height);
+        slot.Visual.RelativeX = rx;
+        slot.Visual.RelativeY = ry;
+    }
+
     private void ApplyGoalkeeperVisualClearance()
     {
         if (_formationBoard == null) return;
-        var defenders = _lineupSlots.Where(slot => slot.Label.Visible && IsDefender(slot.ExpectedPosition)).ToList();
+        var defenders = _lineupSlots.Where(slot => IsDefender(slot.ExpectedPosition)).ToList();
         if (defenders.Count == 0) return;
 
         var lastDefenderY = defenders.Max(slot => slot.FormationPoint.Y);
-        foreach (var goalkeeper in _lineupSlots.Where(slot => slot.Label.Visible && string.Equals(slot.ExpectedPosition, "GK", StringComparison.OrdinalIgnoreCase)))
+        foreach (var goalkeeper in _lineupSlots.Where(slot => string.Equals(slot.ExpectedPosition, "GK", StringComparison.OrdinalIgnoreCase)))
         {
-            // 112 px keeps the face and its two text lines visibly clear of the
-            // defending line. The bottom bound leaves the full label on pitch.
-            var bottomCentre = _formationBoard.Height - (goalkeeper.Label.Height / 2) - 2;
+            var bottomCentre = _formationBoard.Height - 42;
             var safeY = Math.Min(bottomCentre, Math.Max(goalkeeper.FormationPoint.Y, lastDefenderY + 112));
             goalkeeper.FormationPoint = new Point(goalkeeper.FormationPoint.X, safeY);
         }
     }
 
     private static bool IsDefender(string position) => position.ToUpperInvariant() is "LB" or "LWB" or "LCB" or "CB" or "RCB" or "RB" or "RWB";
-
-    private void PlaceLineupSlot(LineupSlot slot)
-    {
-        if (_formationBoard == null) return;
-        var horizontalMargin = 6;
-        var verticalMargin = string.Equals(slot.ExpectedPosition, "GK", StringComparison.OrdinalIgnoreCase) ? 2 : 6;
-        var maxLeft = Math.Max(horizontalMargin, _formationBoard.Width - slot.Label.Width - horizontalMargin);
-        var maxTop = Math.Max(verticalMargin, _formationBoard.Height - slot.Label.Height - verticalMargin);
-        slot.Label.Location = new Point(
-            Math.Clamp(slot.FormationPoint.X - (slot.Label.Width / 2), horizontalMargin, maxLeft),
-            Math.Clamp(slot.FormationPoint.Y - (slot.Label.Height / 2), verticalMargin, maxTop));
-    }
 
     private static int ReadFormationOffset(CM26.Application.Models.DbTable table, CM26.Application.Models.DbRecord record, string field, int extent)
     {
@@ -1408,8 +1429,8 @@ public sealed class TeamsSection : SectionBase
         else
         {
             _activeFormationChoice = null;
-            foreach (var slot in _lineupSlots) slot.Label.Visible = false;
-            _formationStatus!.Text = "No formation is linked to this team.";
+            if (_formationStatus != null)
+                _formationStatus.Text = "No formation is linked to this team.";
         }
     }
 
@@ -1441,31 +1462,30 @@ public sealed class TeamsSection : SectionBase
             if (_rosterByPlayerId.TryGetValue(slot.PlayerId, out var player))
             {
                 var position = DisplayLineupPosition(player.Position, slot.ExpectedPosition);
-                slot.Label.Text = $"{DisplayLineupName(player.Name)}\n{position}  •  OVR {player.Overall}";
-                ToolTip.SetToolTip(slot.Label, $"{player.Name} · {player.Position} · {player.Overall}\nDrag a roster player here to replace.");
+                slot.Visual.PlayerName = DisplayLineupName(player.Name);
+                slot.Visual.Position = position;
+                slot.Visual.Overall = int.TryParse(player.Overall, out var ovr) ? ovr : 0;
                 QueueLineupMiniface(slot, slot.PlayerId);
             }
             else if (slot.PlayerId > 0)
             {
                 var playerName = Services.Resolver?.PlayerNameByPlayerId(slot.PlayerId) ?? $"Player {slot.PlayerId}";
-                slot.Label.Text = $"{DisplayLineupName(playerName)}\n{DisplayLineupPosition(string.Empty, slot.ExpectedPosition)}  •  OVR —";
-                ToolTip.SetToolTip(slot.Label, $"{playerName} is in the saved lineup but is not currently linked to the club roster.");
+                slot.Visual.PlayerName = DisplayLineupName(playerName);
+                slot.Visual.Position = DisplayLineupPosition(string.Empty, slot.ExpectedPosition);
+                slot.Visual.Overall = 0;
                 QueueLineupMiniface(slot, slot.PlayerId);
             }
             else
             {
-                slot.Label.Text = $"Empty slot\n{DisplayLineupPosition(string.Empty, slot.ExpectedPosition)}";
-                ToolTip.SetToolTip(slot.Label, "Drag a player from Team Players onto this slot.");
+                slot.Visual.PlayerName = "Empty slot";
+                slot.Visual.Position = DisplayLineupPosition(string.Empty, slot.ExpectedPosition);
+                slot.Visual.Overall = 0;
                 ClearLineupMiniface(slot);
             }
         }
-        // Content and miniface refreshes can occur after a hidden tab becomes
-        // visible. Reassert the tactical bounds on every render so WinForms
-        // cannot leave all child labels at their construction origin (0,0).
         if (_activeFormationChoice != null)
             ArrangeLineupInTacticalLanes();
-        foreach (var slot in _lineupSlots.Where(slot => slot.Label.Visible))
-            slot.Label.BringToFront();
+        _formationBoard?.Invalidate();
     }
 
     internal void RefreshFormationLayoutForAudit()
@@ -1477,7 +1497,7 @@ public sealed class TeamsSection : SectionBase
     internal string FormationLayoutSnapshot() =>
         $"active={_activeFormationChoice?.Name ?? "<null>"}; selected={_formationView.SelectedItem}; " +
         string.Join(" | ", _lineupSlots.Select((slot, index) =>
-            $"{index}:{slot.FormationPoint.X},{slot.FormationPoint.Y}->{slot.Label.Left},{slot.Label.Top}"));
+            $"{index}:{slot.FormationPoint.X},{slot.FormationPoint.Y}->{slot.Visual.RelativeX:F2},{slot.Visual.RelativeY:F2}"));
 
     private static string DisplayLineupPosition(string position, string fallback)
     {
@@ -1503,21 +1523,17 @@ public sealed class TeamsSection : SectionBase
         return -1;
     }
 
-    private void QueueLineupMiniface(LineupSlot slot, int playerId)
+    private void QueueLineupMiniface(SlotState slot, int playerId)
     {
         if (playerId <= 0) return;
         if (slot.LoadedMinifacePlayerId == playerId && slot.AppliedMinifacePlayerId == playerId) return;
 
-        // Never leave the previous player's face visible while an asset loads
-        // (or if that asset is unavailable). This is essential when changing
-        // teams because each visual slot is reused for a different player.
         if (slot.LoadedMinifacePlayerId != playerId)
         {
-            var old = slot.Label.Image;
-            slot.Label.Image = null;
+            var old = slot.Visual.Miniface;
+            slot.Visual.Miniface = null;
             slot.AppliedMinifacePlayerId = 0;
             old?.Dispose();
-            slot.Label.Invalidate();
         }
         slot.LoadedMinifacePlayerId = playerId;
         _ = Task.Run(async () => await LoadPlayerMinifaceAsync(playerId, 60))
@@ -1534,28 +1550,27 @@ public sealed class TeamsSection : SectionBase
         }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
-    private static void ClearLineupMiniface(LineupSlot slot)
+    private static void ClearLineupMiniface(SlotState slot)
     {
         slot.LoadedMinifacePlayerId = 0;
         slot.AppliedMinifacePlayerId = 0;
-        var old = slot.Label.Image;
-        slot.Label.Image = null;
+        var old = slot.Visual.Miniface;
+        slot.Visual.Miniface = null;
         old?.Dispose();
     }
 
-    private static void SetLineupMiniface(LineupSlot slot, int playerId, Image image)
+    private static void SetLineupMiniface(SlotState slot, int playerId, Image image)
     {
         if (slot.LoadedMinifacePlayerId != playerId)
         {
             image.Dispose();
             return;
         }
-        var old = slot.Label.Image;
-        slot.Label.Image = CreateCircularMiniface(image, 52);
+        var old = slot.Visual.Miniface;
+        slot.Visual.Miniface = CreateCircularMiniface(image, 52);
         slot.AppliedMinifacePlayerId = playerId;
         image.Dispose();
         old?.Dispose();
-        slot.Label.Invalidate();
     }
 
     private async Task<Image?> LoadPlayerMinifaceAsync(int playerId, int size)
@@ -1594,122 +1609,160 @@ public sealed class TeamsSection : SectionBase
     {
         var page = Page("Adboards");
         var canvas = Canvas(page);
-        var sources = Group("Team Adboard Sources", new Point(3, 3), new Size(600, 621));
-        _adboardSources.Location = new Point(10, 30);
-        _adboardSources.Size = new Size(580, 590);
+        var layout = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = StudioColors.AppBackground,
+        };
+
+        var sources = StudioGroup("Team Adboard Sources", StudioColors.CyanAccent);
+        sources.Width = 520;
+        sources.Height = 540;
+        _adboardSources.Location = new Point(10, 34);
+        _adboardSources.Size = new Size(500, 500);
         _adboardSources.View = View.Details;
         _adboardSources.FullRowSelect = true;
-        _adboardSources.GridLines = true;
+        _adboardSources.GridLines = false;
         _adboardSources.Font = LegacyFont;
-        _adboardSources.BackColor = Theme.Input;
-        _adboardSources.ForeColor = Theme.Text;
-        _adboardSources.Columns.Add("Sponsor", 235);
+        _adboardSources.BackColor = StudioColors.InputBackground;
+        _adboardSources.ForeColor = StudioColors.PrimaryText;
+        _adboardSources.Columns.Add("Sponsor", 200);
         _adboardSources.Columns.Add("Sponsor ID", 90);
         _adboardSources.Columns.Add("Dynamic Image", 115);
         _adboardSources.Columns.Add("Approved", 80);
         _adboardSources.SelectedIndexChanged += (_, _) => ShowSelectedAdboard();
         sources.Controls.Add(_adboardSources);
-        canvas.Controls.Add(sources);
+        layout.Controls.Add(sources);
 
-        var preview = Group("Adboard / Dynamic Sponsor Preview", new Point(610, 3), new Size(620, 420));
-        _adboardPreview.Location = new Point(10, 30);
-        _adboardPreview.Size = new Size(600, 320);
-        _adboardPreview.BackColor = Theme.Input;
-        _adboardPreview.BorderStyle = BorderStyle.FixedSingle;
+        var preview = StudioGroup("Adboard / Dynamic Sponsor Preview", StudioColors.Purple);
+        preview.Width = 560;
+        preview.Height = 420;
+        _adboardPreview.Location = new Point(10, 34);
+        _adboardPreview.Size = new Size(540, 300);
+        _adboardPreview.BackColor = StudioColors.InputBackground;
+        _adboardPreview.BorderStyle = BorderStyle.None;
         _adboardPreview.SizeMode = PictureBoxSizeMode.Zoom;
         preview.Controls.Add(_adboardPreview);
-        _adboardCaption.Location = new Point(10, 350);
-        _adboardCaption.Size = new Size(600, 48);
+        _adboardCaption.Location = new Point(10, 340);
+        _adboardCaption.Size = new Size(540, 40);
         _adboardCaption.Font = LegacyFont;
         _adboardCaption.TextAlign = ContentAlignment.MiddleCenter;
+        _adboardCaption.ForeColor = StudioColors.MutedText;
+        _adboardCaption.BackColor = Color.Transparent;
         _adboardCaption.Text = "Select a linked sponsor or adboard source";
         preview.Controls.Add(_adboardCaption);
-        LegacyAssetActions.Attach(Services, preview, _adboardPreview, new Point(10, 388), ShowSelectedAdboard);
-        canvas.Controls.Add(preview);
+        LegacyAssetActions.Attach(Services, preview, _adboardPreview, new Point(10, 384), ShowSelectedAdboard);
+        layout.Controls.Add(preview);
 
-        var note = Group("Asset Mapping", new Point(610, 430), new Size(620, 126));
-        note.Controls.Add(new Label
-        {
-            Text = "Adboard content is driven by teamsponsorlinks and its dynamicimageid. " +
-                   "This view shows the exact database links and resolves the corresponding installed artwork when available.",
-            Location = new Point(14, 30), Size = new Size(590, 95), Font = LegacyFont,
-            ForeColor = Theme.Muted, BackColor = Theme.Panel
-        });
-        canvas.Controls.Add(note);
+        canvas.Controls.Add(layout);
+        Tabs.TabPages.Add(page);
     }
 
     private void AddSponsorsTab()
     {
         var page = Page("Sponsors");
         var canvas = Canvas(page);
-        var links = Group("Team Sponsor Links", new Point(3, 3), new Size(1120, 629));
-        _teamSponsors.Location = new Point(12, 30);
-        _teamSponsors.Size = new Size(660, 565);
+        var links = StudioGroup("Team Sponsor Links", StudioColors.Green);
+        links.Dock = DockStyle.Fill;
+
+        _teamSponsors.Location = new Point(12, 34);
+        _teamSponsors.Size = new Size(520, 420);
         _teamSponsors.View = View.Details;
         _teamSponsors.FullRowSelect = true;
-        _teamSponsors.GridLines = true;
+        _teamSponsors.GridLines = false;
         _teamSponsors.Font = LegacyFont;
-        _teamSponsors.BackColor = Theme.Input;
-        _teamSponsors.ForeColor = Theme.Text;
-        _teamSponsors.Columns.Add("Sponsor", 255);
+        _teamSponsors.BackColor = StudioColors.InputBackground;
+        _teamSponsors.ForeColor = StudioColors.PrimaryText;
+        _teamSponsors.Columns.Add("Sponsor", 200);
         _teamSponsors.Columns.Add("Approved", 90);
         _teamSponsors.Columns.Add("Dynamic Image", 130);
         _teamSponsors.Columns.Add("Link Key", 100);
         _teamSponsors.SelectedIndexChanged += (_, _) => ShowSelectedSponsor();
         links.Controls.Add(_teamSponsors);
-        _sponsorPreview.Location = new Point(690, 35);
-        _sponsorPreview.Size = new Size(400, 250);
-        _sponsorPreview.BackColor = Theme.Input;
-        _sponsorPreview.BorderStyle = BorderStyle.FixedSingle;
+
+        _sponsorPreview.Location = new Point(550, 34);
+        _sponsorPreview.Size = new Size(400, 220);
+        _sponsorPreview.BackColor = StudioColors.InputBackground;
+        _sponsorPreview.BorderStyle = BorderStyle.None;
         _sponsorPreview.SizeMode = PictureBoxSizeMode.Zoom;
         links.Controls.Add(_sponsorPreview);
-        _sponsorPreviewCaption.Location = new Point(690, 292);
-        _sponsorPreviewCaption.Size = new Size(400, 36);
+
+        _sponsorPreviewCaption.Location = new Point(550, 260);
+        _sponsorPreviewCaption.Size = new Size(400, 40);
         _sponsorPreviewCaption.Font = LegacyFont;
         _sponsorPreviewCaption.TextAlign = ContentAlignment.MiddleCenter;
+        _sponsorPreviewCaption.ForeColor = StudioColors.MutedText;
+        _sponsorPreviewCaption.BackColor = Color.Transparent;
         _sponsorPreviewCaption.Text = "Select a sponsor link to preview its dynamic image";
         links.Controls.Add(_sponsorPreviewCaption);
-        LegacyAssetActions.Attach(Services, links, _sponsorPreview, new Point(690, 335), ShowSelectedSponsor);
+        LegacyAssetActions.Attach(Services, links, _sponsorPreview, new Point(550, 310), ShowSelectedSponsor);
+
         links.Controls.Add(new Label
         {
             Text = "Select a sponsor relationship to preview its linked dynamic image.",
-            Location = new Point(12, 595), Size = new Size(1075, 28), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel
+            Location = new Point(12, 470), Size = new Size(900, 28),
+            Font = LegacyFont, ForeColor = StudioColors.MutedText, BackColor = Color.Transparent
         });
         canvas.Controls.Add(links);
+        Tabs.TabPages.Add(page);
     }
 
     private void AddFlagsTab()
     {
         var page = Page("Flags");
         var canvas = Canvas(page);
-        var texture = Group("Team Flags", new Point(3, 3), new Size(525, 346));
-        _teamFlagPreview.Location = new Point(10, 30);
-        _teamFlagPreview.Size = new Size(512, 256);
-        _teamFlagPreview.BackColor = Theme.Input;
-        _teamFlagPreview.BorderStyle = BorderStyle.FixedSingle;
+        var layout = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = StudioColors.AppBackground,
+        };
+
+        var texture = StudioGroup("Team Flags", StudioColors.CyanAccent);
+        texture.Width = 540;
+        texture.Height = 360;
+        _teamFlagPreview.Location = new Point(10, 34);
+        _teamFlagPreview.Size = new Size(520, 256);
+        _teamFlagPreview.BackColor = StudioColors.InputBackground;
+        _teamFlagPreview.BorderStyle = BorderStyle.None;
         _teamFlagPreview.SizeMode = PictureBoxSizeMode.Zoom;
         texture.Controls.Add(_teamFlagPreview);
-        LegacyAssetActions.Attach(Services, texture, _teamFlagPreview, new Point(10, 286), RefreshTeamFlags);
-        _teamFlagCaption.Location = new Point(10, 312);
-        _teamFlagCaption.Size = new Size(505, 28);
+        LegacyAssetActions.Attach(Services, texture, _teamFlagPreview, new Point(10, 296), RefreshTeamFlags);
+        _teamFlagCaption.Location = new Point(10, 324);
+        _teamFlagCaption.Size = new Size(520, 28);
         _teamFlagCaption.Font = LegacyFont;
         _teamFlagCaption.TextAlign = ContentAlignment.MiddleCenter;
+        _teamFlagCaption.ForeColor = StudioColors.MutedText;
+        _teamFlagCaption.BackColor = Color.Transparent;
         texture.Controls.Add(_teamFlagCaption);
-        canvas.Controls.Add(texture);
-        var flag = Group("Flags", new Point(534, 3), new Size(525, 346));
-        _nationFlagPreview.Location = new Point(10, 30);
-        _nationFlagPreview.Size = new Size(512, 256);
-        _nationFlagPreview.BackColor = Theme.Input;
-        _nationFlagPreview.BorderStyle = BorderStyle.FixedSingle;
+        layout.Controls.Add(texture);
+
+        var flag = StudioGroup("Nation Flag", StudioColors.Purple);
+        flag.Width = 540;
+        flag.Height = 360;
+        _nationFlagPreview.Location = new Point(10, 34);
+        _nationFlagPreview.Size = new Size(520, 256);
+        _nationFlagPreview.BackColor = StudioColors.InputBackground;
+        _nationFlagPreview.BorderStyle = BorderStyle.None;
         _nationFlagPreview.SizeMode = PictureBoxSizeMode.Zoom;
         flag.Controls.Add(_nationFlagPreview);
-        flag.Controls.Add(new Label { Text = "Flag n.", Location = new Point(12, 294), AutoSize = true, Font = LegacyFont });
-        _nationFlagCaption.Location = new Point(65, 286);
-        _nationFlagCaption.Size = new Size(450, 26);
+        flag.Controls.Add(new Label { Text = "Flag n.", Location = new Point(12, 296), AutoSize = true, Font = LegacyFont, ForeColor = StudioColors.MutedText, BackColor = Color.Transparent });
+        _nationFlagCaption.Location = new Point(70, 296);
+        _nationFlagCaption.Size = new Size(460, 26);
         _nationFlagCaption.Font = LegacyFont;
         _nationFlagCaption.TextAlign = ContentAlignment.MiddleLeft;
+        _nationFlagCaption.ForeColor = StudioColors.MutedText;
+        _nationFlagCaption.BackColor = Color.Transparent;
         flag.Controls.Add(_nationFlagCaption);
-        canvas.Controls.Add(flag);
+        layout.Controls.Add(flag);
+
+        canvas.Controls.Add(layout);
+        Tabs.TabPages.Add(page);
     }
 
     private void AddBoundFields(Control parent, IEnumerable<(string label, string field)> definitions, int labelX, int top, int editorX, int editorWidth, int rowHeight)
@@ -1832,17 +1885,13 @@ public sealed class TeamsSection : SectionBase
         var record = table == null ? null : Services.Session.GetRecord(TableName, recordIndex);
         if (table == null || record == null)
         {
-            _teamNameLabel.Text = "Team unavailable";
+            if (_heroCard != null) _heroCard.TeamName = "Team unavailable";
             return;
         }
         var name = record.Get(Col(table, "teamname"));
         var id = record.Get(Col(table, "teamid"));
         int.TryParse(id, out var crestTeamId);
-        try
-        {
-            ShowCrest(Services.Assets.GetTeamLogo(crestTeamId), name, crestTeamId);
-        }
-        catch (Exception ex) { Program.Log($"[CM26] Team crest preview failed: {ex.Message}"); /* Crest preview failure must not prevent the record from loading. */ }
+
         _fields.Clear();
         foreach (var field in Services.RequireData().GetFields(TableName, recordIndex, LabelMaps.Teams))
             _fields[field.FieldName] = field;
@@ -1852,107 +1901,64 @@ public sealed class TeamsSection : SectionBase
         {
             ShowTeamFlags(crestTeamId, countryColumn >= 0 ? Parse(record.Get(countryColumn)) : 0);
         }
-        catch (Exception ex) { Program.Log($"[CM26] Team flag preview failed: {ex.Message}"); /* Flag preview failure must not prevent the record from loading. */ }
+        catch (Exception ex) { Program.Log($"[CM26] Team flag preview failed: {ex.Message}"); }
 
-        foreach (var editor in _editors)
+        _activeTeamPreviewId = crestTeamId;
+
+        if (_heroCard != null)
         {
-            var key = editor.Tag as string ?? string.Empty;
-            // Player-reference fields (captain / corner / penalty / free-kick takers) resolve to a
-            // player display name — a verified real name, or "Player {id}" — never a bare key.
-            if (IsPlayerReferenceField(key) && _fields.TryGetValue(key, out var pref) &&
-                int.TryParse(pref.RawValue, out var refPlayerId) && refPlayerId > 0)
-            {
-                editor.Text = Services.Resolver?.PlayerNameByPlayerId(refPlayerId) ?? $"Player {refPlayerId}";
-                editor.ReadOnly = true;
-                editor.BackColor = CardLayout.CardFieldBg;
-                editor.ForeColor = CardLayout.CardSubtle;
-                ToolTip.SetToolTip(editor, $"{key} = {pref.RawValue} (player id)");
-            }
-            else if (IsLinkedDisplayField(key))
-            {
-                // FC26 stores some team relationships in dedicated link tables.  Present the
-                // resolved name in the CM16-style form instead of an empty/-1 raw FK.
-                editor.Text = ResolveLinkedValue(key, int.TryParse(id, out var linkedTeamId) ? linkedTeamId : 0);
-                editor.ReadOnly = true;
-                editor.BackColor = CardLayout.CardFieldBg;
-                editor.ForeColor = CardLayout.CardSubtle;
-                ToolTip.SetToolTip(editor, $"Resolved {key}; select the linked player or roster control to change it.");
-            }
-            else if (_fields.TryGetValue(key, out var value))
-            {
-                editor.Text = value.Value;
-                editor.ReadOnly = !value.IsWritable;
-                editor.BackColor = value.IsWritable ? Theme.Input : CardLayout.CardFieldBg;
-                editor.ForeColor = CardLayout.CardText;
-            }
-            else
-            {
-                editor.Text = ResolveLinkedValue(key, int.TryParse(id, out var linkedTeamId) ? linkedTeamId : 0);
-                editor.ReadOnly = true;
-                editor.BackColor = CardLayout.CardFieldBg;
-                editor.ForeColor = CardLayout.CardSubtle;
-            }
+            _heroCard.TeamName = name ?? string.Empty;
+            _heroCard.LeagueNation = $"{ResolveLinkedValue("leagueid", crestTeamId)} · {ResolveLinkedValue("countryid", crestTeamId)}";
+            _heroCard.Overall = int.TryParse(record.Get(Col(table, "overallrating")), out var ovr) ? ovr : 0;
+            _heroCard.Attack = int.TryParse(record.Get(Col(table, "attackrating")), out var att) ? att : 0;
+            _heroCard.Midfield = int.TryParse(record.Get(Col(table, "midfieldrating")), out var mid) ? mid : 0;
+            _heroCard.Defence = int.TryParse(record.Get(Col(table, "defenserating")), out var def) ? def : 0;
+            _heroCard.FoundedText = $"Founded: {record.Get(Col(table, "foundationyear")) ?? "—"}";
+            _heroCard.WorthText = $"Worth: {record.Get(Col(table, "clubworth")) ?? "—"}";
+
+            var oldCrest = _heroCard.Crest;
+            _heroCard.Crest = null;
+            oldCrest?.Dispose();
+            LoadProfileCrest(crestTeamId);
+            _heroCard.Crest = _teamCrestPreview.Image;
         }
 
-        // ── Populate FC Tools Hub club profile ──────────────────────────
-        _teamNameLabel.Text = name ?? string.Empty;
-        _teamMetaLabel.Text = $"{ResolveLinkedValue("leagueid", crestTeamId)} · {ResolveLinkedValue("countryid", crestTeamId)}";
-        _activeTeamPreviewId = crestTeamId;
+        _teamStadiumLabel.Text = ResolveLinkedValue("stadiumid", crestTeamId);
+        _teamManagerName.Text = ResolveLinkedValue("managerid", crestTeamId);
+        _teamManagerNation.Text = "";
+        _teamRivalLabel.Text = "—";
+        _teamFoundationLabel.Text = $"Founded: {record.Get(Col(table, "foundationyear")) ?? "—"}";
+        _teamWorthLabel.Text = $"Worth: {record.Get(Col(table, "clubworth")) ?? "—"}";
+
         ReplacePreviewImage(_teamKitHome, null);
         ReplacePreviewImage(_teamKitAway, null);
         ReplacePreviewImage(_teamKitThird, null);
         ReplacePreviewImage(_teamKitGk, null);
-        LoadProfileCrest(crestTeamId);
+        SetKitTargets(crestTeamId);
         _ = LoadTeamKitPreviewsAfterIdentityAsync(crestTeamId);
 
-        // Overall rating
-        var ovr = record.Get(Col(table, "overallrating"));
-        _teamOverallLabel.Text = ovr;
-        SetRatingBar(_teamOvrBar, ovr, 99);
-        SetRatingBar(_teamAttBar, record.Get(Col(table, "attackrating")), 99);
-        SetRatingBar(_teamMidBar, record.Get(Col(table, "midfieldrating")), 99);
-        SetRatingBar(_teamDefBar, record.Get(Col(table, "defenserating")), 99);
-
-        // Quick info
-        _teamFoundationLabel.Text = record.Get(Col(table, "foundationyear")) ?? "—";
-        _teamWorthLabel.Text = record.Get(Col(table, "clubworth")) ?? "—";
-        _teamStadiumLabel.Text = ResolveLinkedValue("stadiumid", crestTeamId);
-        _teamRivalLabel.Text = "—";
-        _teamManagerName.Text = ResolveLinkedValue("managerid", crestTeamId);
-        _teamManagerNation.Text = "";
-
-        // Kit previews — use crest as fallback since no kit asset resolver
         LoadTeamStadiumPreview(crestTeamId, Parse(record.Get(Col(table, "stadiumid"))));
         LoadTeamManagerPreview(crestTeamId);
+        SetAssetTarget(_teamStadiumImg, $"data/ui/imgAssets/stadium/stadium_{Parse(record.Get(Col(table, "stadiumid")))}_0.dds", 512, 256);
+        SetManagerAssetTarget(crestTeamId);
 
         _rosterMinifaces.Images.Clear();
         _pendingRosterMinifaces.Clear();
         _teamPlayers.Items.Clear();
+        ClearRosterRows();
         try
         {
             var roster = Services.RequireData().GetTeamRoster(int.TryParse(id, out var teamId) ? teamId : 0);
             LoadLineup(teamId, roster);
             SelectFormationLayout(teamId);
-            // Formation layout must be applied before the fallback so ExpectedPosition
-            // is set and empty slots can be matched by position.
             if (_activeFormationChoice != null)
             {
                 PopulateVisualLineupFallback(roster);
                 RenderLineup();
             }
-            // Force the formation board to repaint with all lineup slots.
-            foreach (var slot in _lineupSlots)
-            {
-                if (slot.PlayerId > 0)
-                {
-                    slot.Label.Visible = true;
-                    slot.Label.Invalidate();
-                }
-            }
             _formationBoard?.Invalidate(true);
             PopulatePlayerReferencePickers(roster);
 
-            // Categorize players: Starting XI, Substitutes, Reserves
             var lineupIds = new HashSet<int>();
             var subIds = new HashSet<int>();
             foreach (var slot in _lineupSlots)
@@ -1964,36 +1970,11 @@ public sealed class TeamsSection : SectionBase
             var subs = roster.Where(p => subIds.Contains(p.PlayerId) && !lineupIds.Contains(p.PlayerId)).ToList();
             var reserves = roster.Where(p => !lineupIds.Contains(p.PlayerId) && !subIds.Contains(p.PlayerId)).ToList();
 
-            _teamPlayers.BeginUpdate();
-            try
-            {
-                // Section: Starting XI
-                AddSectionHeader("STARTING XI", startingXi.Count);
-                foreach (var player in startingXi.OrderBy(p => PositionOrder(p.Position)))
-                    AddPlayerRow(player, "XI");
+            var potentials = LoadPotentials(roster);
+            BuildRosterSection(_startingXiSection, "STARTING XI", startingXi, potentials, "XI");
+            BuildRosterSection(_subsSection, "SUBSTITUTES", subs, potentials, "SUB");
+            BuildRosterSection(_reservesSection, "RESERVES", reserves, potentials, "RES");
 
-                // Section: Substitutes
-                if (subs.Count > 0)
-                {
-                    AddSectionHeader("SUBSTITUTES", subs.Count);
-                    foreach (var player in subs.OrderBy(p => PositionOrder(p.Position)))
-                        AddPlayerRow(player, "SUB");
-                }
-
-                // Section: Reserves
-                if (reserves.Count > 0)
-                {
-                    AddSectionHeader("RESERVES", reserves.Count);
-                    foreach (var player in reserves.OrderBy(p => PositionOrder(p.Position)))
-                        AddPlayerRow(player, "RES");
-                }
-
-                if (roster.Count == 0)
-                    _teamPlayers.Items.Add(new ListViewItem(new[] { "", "No players linked to this team", "", "", "" }));
-            }
-            finally { _teamPlayers.EndUpdate(); }
-
-            // Update squad count
             if (_squadCountLabel != null)
                 _squadCountLabel.Text = $"Squad ({roster.Count} players)";
 
@@ -2006,76 +1987,182 @@ public sealed class TeamsSection : SectionBase
         }
     }
 
-    private void AddSectionHeader(string title, int count)
+    private Dictionary<int, int> LoadPotentials(IReadOnlyList<TeamRosterItem> roster)
     {
-        var item = new ListViewItem(new[] { "", $"── {title} ({count}) ──", "", "", "" })
+        var result = new Dictionary<int, int>();
+        var players = Services.Session.GetTable("players");
+        if (players == null) return result;
+        var playerIdCol = Col(players, "playerid");
+        var potentialCol = Col(players, "potential");
+        if (playerIdCol < 0 || potentialCol < 0) return result;
+        var ids = roster.Select(r => r.PlayerId).ToHashSet();
+        for (var row = 0; row < players.RowCount; row++)
         {
-            BackColor = Color.FromArgb(30, 60, 80),
-            ForeColor = Theme.Accent,
-            Font = new Font("Segoe UI", 8f, FontStyle.Bold),
-            Tag = -1 // Section header marker
+            var record = Services.Session.GetRecord("players", row);
+            if (record == null) continue;
+            var pid = Parse(record.Get(playerIdCol));
+            if (ids.Contains(pid) && int.TryParse(record.Get(potentialCol), out var pot))
+                result[pid] = pot;
+        }
+        return result;
+    }
+
+    private void ClearRosterRows()
+    {
+        foreach (var row in _rosterRows)
+        {
+            row.Miniface?.Dispose();
+            row.Dispose();
+        }
+        _rosterRows.Clear();
+        _startingXiSection?.Controls.Clear();
+        _subsSection?.Controls.Clear();
+        _reservesSection?.Controls.Clear();
+        _startingXiSection?.Controls.Add(CreateSectionHeader("STARTING XI"));
+        _subsSection?.Controls.Add(CreateSectionHeader("SUBSTITUTES"));
+        _reservesSection?.Controls.Add(CreateSectionHeader("RESERVES"));
+    }
+
+    private static Label CreateSectionHeader(string title)
+    {
+        return new Label
+        {
+            Text = title,
+            Dock = DockStyle.Top,
+            Height = 24,
+            Font = StudioFonts.CardTitle,
+            ForeColor = StudioColors.CyanAccent,
+            BackColor = Color.Transparent,
         };
-        _teamPlayers.Items.Add(item);
     }
 
-    private void AddPlayerRow(TeamRosterItem player, string role)
+    private void BuildRosterSection(Panel? section, string title, List<TeamRosterItem> players, Dictionary<int, int> potentials, string role)
     {
-        var item = new ListViewItem(new[]
+        if (section == null) return;
+        section.Controls.Clear();
+        section.Controls.Add(CreateSectionHeader($"{title} ({players.Count})"));
+        foreach (var player in players.OrderBy(p => PositionOrder(p.Position)))
         {
-            player.JerseyNumber > 0 ? player.JerseyNumber.ToString() : "",
-            player.Name,
-            player.Position,
-            player.Overall,
-            role
-        }) { Tag = player.PlayerId, ImageKey = player.PlayerId.ToString() };
-        _teamPlayers.Items.Add(item);
-        QueueRosterMiniface(player.PlayerId);
+            var ovr = int.TryParse(player.Overall, out var o) ? o : 0;
+            var row = new RosterPlayerRow
+            {
+                PlayerId = player.PlayerId,
+                PlayerName = player.Name,
+                Position = player.Position,
+                Overall = ovr,
+                Potential = potentials.TryGetValue(player.PlayerId, out var pot) ? pot : ovr,
+                RoleText = role,
+                Dock = DockStyle.Top,
+            };
+            row.RowClicked += RosterRow_Clicked;
+            row.DoubleClick += (_, _) => OpenSelectedRosterPlayer();
+            _rosterRows.Add(row);
+            section.Controls.Add(row);
+            QueueRowMiniface(row, player.PlayerId);
+        }
     }
 
-    private void QueueRosterMiniface(int playerId)
+    private void RosterRow_Clicked(object? sender, EventArgs e)
+    {
+        if (sender is not RosterPlayerRow row) return;
+        SelectRosterRow(row);
+    }
+
+    private void SelectRosterRow(RosterPlayerRow row)
+    {
+        foreach (var r in _rosterRows) r.IsSelected = false;
+        row.IsSelected = true;
+        _selectedRosterPlayerId = row.PlayerId;
+        if (_formationBoard != null)
+        {
+            var slot = _lineupSlots.FirstOrDefault(s => s.PlayerId == row.PlayerId);
+            _formationBoard.SelectedSlot = slot?.Visual;
+        }
+    }
+
+    private void QueueRowMiniface(RosterPlayerRow row, int playerId)
     {
         if (playerId <= 0) return;
-        var key = playerId.ToString();
-        if (!_rosterMinifaces.Images.ContainsKey(key))
-            _rosterMinifaces.Images.Add(key, MissingRosterMiniface());
-        if (!_pendingRosterMinifaces.Add(playerId)) return;
-
         _ = Task.Run(async () => await LoadPlayerMinifaceAsync(playerId, 32)).ContinueWith(task =>
         {
-            _pendingRosterMinifaces.Remove(playerId);
             if (IsDisposed || task.Status != TaskStatus.RanToCompletion || task.Result == null) return;
             var image = task.Result;
-            // Replacing an image in place keeps every ListView item's image
-            // index stable. RemoveByKey/Add shifts later indices and was the
-            // reason faces could appear next to the wrong roster name.
-            using (image)
-            {
-                var circular = CreateCircularMiniface(image, 32);
-                var index = _rosterMinifaces.Images.IndexOfKey(key);
-                if (index >= 0)
-                {
-                    var old = _rosterMinifaces.Images[index];
-                    _rosterMinifaces.Images[index] = circular;
-                    old?.Dispose();
-                }
-                else
-                {
-                    _rosterMinifaces.Images.Add(key, circular);
-                }
-            }
-            _teamPlayers.Invalidate();
+            var circular = CreateCircularMiniface(image, 32);
+            image.Dispose();
+            if (IsDisposed) { circular.Dispose(); return; }
+            var old = row.Miniface;
+            row.Miniface = circular;
+            old?.Dispose();
+            row.Invalidate();
         }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
-    private static Image MissingRosterMiniface()
+    private void SetKitTargets(int teamId)
     {
-        var image = new Bitmap(32, 32);
-        using var graphics = Graphics.FromImage(image);
-        graphics.Clear(Color.FromArgb(25, 47, 68));
-        using var face = new SolidBrush(Color.FromArgb(150, 190, 205));
-        graphics.FillEllipse(face, 11, 6, 10, 10);
-        graphics.FillEllipse(face, 7, 16, 18, 18);
-        return image;
+        SetAssetTarget(_teamKitHome, $"data/ui/imgAssets/teamkits/team{teamId}_home.dds", 512, 512);
+        SetAssetTarget(_teamKitAway, $"data/ui/imgAssets/teamkits/team{teamId}_away.dds", 512, 512);
+        SetAssetTarget(_teamKitThird, $"data/ui/imgAssets/teamkits/team{teamId}_third.dds", 512, 512);
+        SetAssetTarget(_teamKitGk, $"data/ui/imgAssets/teamkits/team{teamId}_gk.dds", 512, 512);
+    }
+
+    private static void SetAssetTarget(PictureBox picture, string legacyPath, int width, int height)
+    {
+        LegacyAssetActions.SetTarget(picture, new LegacyAssetEditTarget(legacyPath, width, height));
+    }
+
+    private void SetManagerAssetTarget(int teamId)
+    {
+        var managers = Services.Session.GetTable("manager");
+        if (managers == null) return;
+        var teamColumn = Col(managers, "teamid");
+        var managerIdColumn = Col(managers, "managerid");
+        var headColumn = Col(managers, "headassetid");
+        for (var row = 0; row < managers.RowCount; row++)
+        {
+            var record = Services.Session.GetRecord("manager", row);
+            if (record == null || Parse(record.Get(teamColumn)) != teamId) continue;
+            var managerId = Parse(record.Get(managerIdColumn));
+            var portraitId = headColumn >= 0 ? Parse(record.Get(headColumn)) : 0;
+            if (portraitId <= 0) portraitId = managerId;
+            SetAssetTarget(_teamManagerImg, $"data/ui/imgAssets/heads_staff/heads_staff_{portraitId}.dds", 256, 256);
+            return;
+        }
+    }
+
+    private async Task LoadOneKitPreviewAsync(string variant, PictureBox preview)
+    {
+        if (_activeTeamPreviewId <= 0) return;
+        var targetPath = $"data/ui/imgAssets/teamkits/team{_activeTeamPreviewId}_{variant}.dds";
+        var replacement = LegacyAssetActions.Replacement(Services, targetPath);
+        if (!string.IsNullOrWhiteSpace(replacement))
+        {
+            FrostbitePreviewLoader.LoadLegacyUiAsset(preview, Services, replacement, targetPath, (img, _) =>
+            {
+                if (IsDisposed) { img?.Dispose(); return; }
+                ReplacePreviewImage(preview, img);
+            });
+            return;
+        }
+        if (!Services.FrostbiteAssets.IsAvailable) return;
+        try
+        {
+            var query = $"_{_activeTeamPreviewId}/{variant}_";
+            var selected = (await Task.Run(() => Services.FrostbiteAssets.SearchAssets(query, "Res", 100)))
+                .Where(match => match.ResType == 0x6BDE20BA && match.Name.EndsWith("_color", StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(match => KitTextureScore(match.Name))
+                .FirstOrDefault();
+            if (selected == null) return;
+            var path = await Task.Run(() => Services.FrostbiteAssets.ExportTexture(selected.Name));
+            if (string.IsNullOrWhiteSpace(path)) return;
+            var image = await Task.Run(() => Services.Textures.CreatePreview(path, 300, 180));
+            if (image == null || IsDisposed) { image?.Dispose(); return; }
+            if (InvokeRequired) BeginInvoke(() => ReplacePreviewImage(preview, image));
+            else ReplacePreviewImage(preview, image);
+        }
+        catch (Exception ex)
+        {
+            Program.Log($"Team {_activeTeamPreviewId} {variant} kit preview failed: {ex.Message}");
+        }
     }
 
     private void LoadAudioCatalogs()
@@ -2406,23 +2493,21 @@ public sealed class TeamsSection : SectionBase
     /// <summary>CM16 behaviour: double-clicking a roster player opens Player editor.</summary>
     private void OpenSelectedRosterPlayer()
     {
-        if (_teamPlayers.SelectedItems.Count == 0 || _teamPlayers.SelectedItems[0].Tag is not int playerId || playerId <= 0)
-            return;
+        if (_selectedRosterPlayerId <= 0) return;
         var players = Services.Session.GetTable("players");
         var playerIdColumn = players == null ? -1 : Col(players, "playerid");
         if (players == null || playerIdColumn < 0) return;
         var row = Enumerable.Range(0, players.RowCount).FirstOrDefault(index =>
         {
             var record = Services.Session.GetRecord("players", index);
-            return record != null && Parse(record.Get(playerIdColumn)) == playerId;
+            return record != null && Parse(record.Get(playerIdColumn)) == _selectedRosterPlayerId;
         }, -1);
         if (row >= 0) Services.RequestRecordNavigation("players", row);
     }
 
     private void OpenTransferDialog()
     {
-        if (_teamPlayers.SelectedItems.Count == 0 || _teamPlayers.SelectedItems[0].Tag is not int playerId ||
-            playerId <= 0 || !_rosterByPlayerId.TryGetValue(playerId, out var player))
+        if (_selectedRosterPlayerId <= 0 || !_rosterByPlayerId.TryGetValue(_selectedRosterPlayerId, out var player))
         {
             MessageBox.Show(this, "Select a Team Player first.", "Transfer", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
@@ -2442,7 +2527,7 @@ public sealed class TeamsSection : SectionBase
         var linkRow = Enumerable.Range(0, links.RowCount).FirstOrDefault(row =>
         {
             var link = Services.Session.GetRecord("teamplayerlinks", row);
-            return link != null && Parse(link.Get(playerColumn)) == playerId;
+            return link != null && Parse(link.Get(playerColumn)) == _selectedRosterPlayerId;
         }, -1);
         if (linkRow < 0 || teamColumn < 0 || jerseyColumn < 0 || positionColumn < 0 ||
             !links.Columns[teamColumn].IsWritable || !links.Columns[jerseyColumn].IsWritable || !links.Columns[positionColumn].IsWritable)
@@ -2511,8 +2596,7 @@ public sealed class TeamsSection : SectionBase
 
     private void ShowLoanDetails()
     {
-        if (_teamPlayers.SelectedItems.Count == 0 || _teamPlayers.SelectedItems[0].Tag is not int playerId ||
-            !_rosterByPlayerId.TryGetValue(playerId, out var player))
+        if (_selectedRosterPlayerId <= 0 || !_rosterByPlayerId.TryGetValue(_selectedRosterPlayerId, out var player))
         {
             MessageBox.Show(this, "Select a Team Player first.", "Loan", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
@@ -2539,7 +2623,7 @@ public sealed class TeamsSection : SectionBase
         var loanRow = Enumerable.Range(0, loans.RowCount).FirstOrDefault(row =>
         {
             var record = Services.Session.GetRecord("playerloans", row);
-            return record != null && Parse(record.Get(playerColumn)) == playerId;
+            return record != null && Parse(record.Get(playerColumn)) == _selectedRosterPlayerId;
         }, -1);
         var current = loanRow >= 0 ? Services.Session.GetRecord("playerloans", loanRow) : null;
 
@@ -2632,7 +2716,7 @@ public sealed class TeamsSection : SectionBase
             }
             Services.Pending.MarkStructuralChange();
             loanRow = 1;
-            if (!StageField("playerloans", loanRow, "playerid", playerId.ToString(), _stagingGrid)) return;
+            if (!StageField("playerloans", loanRow, "playerid", _selectedRosterPlayerId.ToString(), _stagingGrid)) return;
         }
 
         var ok = StageField("playerloans", loanRow, "teamidloanedfrom", sourceTeam.Id.ToString(), _stagingGrid);
@@ -2827,7 +2911,7 @@ public sealed class TeamsSection : SectionBase
 
     private async Task LoadTeamKitPreviewsAsync(int teamId)
     {
-        if (teamId <= 0 || !Services.FrostbiteAssets.IsAvailable) return;
+        if (teamId <= 0 || teamId != _activeTeamPreviewId) return;
         var requests = new[]
         {
             (Variant: "home", Preview: _teamKitHome),
@@ -2835,32 +2919,7 @@ public sealed class TeamsSection : SectionBase
             (Variant: "third", Preview: _teamKitThird),
             (Variant: "gk", Preview: _teamKitGk),
         };
-        await Task.WhenAll(requests.Select(LoadOneAsync));
-
-        async Task LoadOneAsync((string Variant, PictureBox Preview) request)
-        {
-            try
-            {
-                var query = $"_{teamId}/{request.Variant}_";
-                var selected = (await Task.Run(() => Services.FrostbiteAssets.SearchAssets(query, "Res", 100)))
-                    .Where(match => match.ResType == 0x6BDE20BA &&
-                                    match.Name.EndsWith("_color", StringComparison.OrdinalIgnoreCase))
-                    .OrderByDescending(match => KitTextureScore(match.Name))
-                    .FirstOrDefault();
-                if (selected == null || teamId != _activeTeamPreviewId) return;
-                var path = await Task.Run(() => Services.FrostbiteAssets.ExportTexture(selected.Name));
-                if (string.IsNullOrWhiteSpace(path) || teamId != _activeTeamPreviewId) return;
-                var image = await Task.Run(() => Services.Textures.CreatePreview(path, 300, 180));
-                if (image == null) return;
-                if (teamId != _activeTeamPreviewId || IsDisposed) { image.Dispose(); return; }
-                if (InvokeRequired) BeginInvoke(() => ReplacePreviewImage(request.Preview, image));
-                else ReplacePreviewImage(request.Preview, image);
-            }
-            catch (Exception ex)
-            {
-                Program.Log($"Team {teamId} {request.Variant} kit preview failed: {ex.Message}");
-            }
-        }
+        await Task.WhenAll(requests.Select(r => LoadOneKitPreviewAsync(r.Variant, r.Preview)));
     }
 
     private static int KitTextureScore(string name)
