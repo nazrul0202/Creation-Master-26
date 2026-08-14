@@ -387,20 +387,13 @@ public sealed class MainForm : Form
             "Yes = I have completed the vanilla launch\nNo = launch FC26 now\nCancel = do nothing",
             "CM26 Game Data Update", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
         if (choice == DialogResult.Cancel) return;
-        if (choice == DialogResult.No)
+if (choice == DialogResult.No)
         {
-            try
-            {
-                using (Process.Start(new ProcessStartInfo(Path.Combine(backup.GameRoot, "FC26.exe")) { UseShellExecute = true }))
-                { }
-                SetStatus("FC26 was launched. Reach the main menu without mods, exit it, then select Open Game again.");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, "CM26 could not launch FC26: " + ex.Message +
-                    "\n\nLaunch it from Steam/EA App without mods, then select Open Game again.",
+            var launch = CM26ModLaunchService.Launch(backup.GameRoot);
+            SetStatus(launch.Message);
+            if (!launch.Success)
+                MessageBox.Show(this, launch.Message + "\n\nLaunch it from Steam/EA App without mods, then select Open Game again.",
                     "Launch FC26", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
             return;
         }
 

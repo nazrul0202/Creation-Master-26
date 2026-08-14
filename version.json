@@ -1,6 +1,6 @@
 {
-  "version": "1.0.108",
+  "version": "1.0.109",
   "name": "Creation Master 26",
-  "notes": "v1.0.106 - Complete CM26 Studio UI rebuild: shared Studio controls, modern dark football database interface for Dashboard, Players, Teams, Countries, Leagues and all remaining sections.",
+  "notes": "v1.0.109 - Fixed game launch: FC26 now launches through the Steam DRM protocol (steam://run), with a second launcher for FET mods (-dataPath FIFAModData).",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

@@ -1,5 +1,11 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.109 - Steam-protocol game launch (2026-08-14)
+
+- Fixed "game doesn't open" after launching from CM26. FC26.exe is a Steam DRM build: starting it directly makes it exit immediately with code 100010 and no window. CM26 now launches the game through the Steam protocol (`steam://run/3405690//-dataPath%20CM26ModData`), which passes the DRM check and forwards the mod data path.
+- The Mod Manager now has two launch buttons: **Launch CM26 Mods** (`-dataPath CM26ModData`) and **Launch FET Mods** (`-dataPath FIFAModData`, the standard FIFA Mod Manager / FET convention, so FET-installed mods can be run from CM26 too).
+- Launch falls back to the plain `FC26.exe` start when Steam is not present (e.g. EA App builds), and the release self-test now locks in the Steam protocol detection and the fallback.
+
 ## Version 1.0.108 - Navigation stack-overflow hotfix (2026-08-14)
 
 - Fixed a crash on every sidebar click and after every database load: "A new guard page for the stack cannot be created" (native stack overflow). `StudioSidebar.SetActive` re-raised `ItemClicked`, which called `MainForm.NavigateTo`, which called `SetActive` again, recursing until the stack overflowed.

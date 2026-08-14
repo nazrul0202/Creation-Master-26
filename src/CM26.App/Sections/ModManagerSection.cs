@@ -53,18 +53,21 @@ public sealed class ModManagerSection : SectionBase
         };
         var import = new Button { Text = "Import CM26 Mod...", Dock = DockStyle.Left, Width = 160 };
         var build = new Button { Text = "Build CM26ModData", Dock = DockStyle.Left, Width = 165 };
-        var launch = new Button { Text = "Launch with CM26 Mods", Dock = DockStyle.Left, Width = 180 };
+        var launch = new Button { Text = "Launch CM26 Mods", Dock = DockStyle.Left, Width = 155 };
+        var launchFet = new Button { Text = "Launch FET Mods", Dock = DockStyle.Left, Width = 140 };
         var restore = new Button { Text = "Restore Original", Dock = DockStyle.Left, Width = 130 };
         var refresh = new Button { Text = "Refresh", Dock = DockStyle.Left, Width = 95 };
-        Theme.ApplyButton(import, true); Theme.ApplyButton(build, true); Theme.ApplyButton(launch, true); Theme.ApplyButton(restore); Theme.ApplyButton(refresh);
+        Theme.ApplyButton(import, true); Theme.ApplyButton(build, true); Theme.ApplyButton(launch, true); Theme.ApplyButton(launchFet, true); Theme.ApplyButton(restore); Theme.ApplyButton(refresh);
         import.Click += (_, _) => Import();
         build.Click += async (_, _) => await BuildOverlayAsync(build);
         launch.Click += async (_, _) => await LaunchAsync(
             root: FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder), button: launch);
+        launchFet.Click += async (_, _) => await LaunchFetAsync(
+            root: FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder), button: launchFet);
         restore.Click += (_, _) => Restore(root: FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder));
         refresh.Click += (_, _) => RefreshLibrary();
         var actions = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = StudioColors.RaisedSurface };
-        actions.Controls.Add(refresh); actions.Controls.Add(restore); actions.Controls.Add(launch); actions.Controls.Add(build); actions.Controls.Add(import);
+        actions.Controls.Add(refresh); actions.Controls.Add(restore); actions.Controls.Add(launchFet); actions.Controls.Add(launch); actions.Controls.Add(build); actions.Controls.Add(import);
         var hint = new Label { Dock = DockStyle.Top, Height = 52, ForeColor = StudioColors.MutedText, BackColor = Color.Transparent,
             Text = "Library: " + CM26ModLibraryService.Root + "  |  Lightweight symbolic-link overlay; only changed CAS/TOC files are copied. Original Data/Patch remains untouched.",
             Padding = new Padding(0, 8, 0, 0) };
@@ -166,17 +169,40 @@ public sealed class ModManagerSection : SectionBase
         if (!result.Success) { MessageBox.Show(this, result.Message, "CM26 Mod Manager", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
         try
         {
-            using var game = Process.Start(new ProcessStartInfo(Path.Combine(root, "FC26.exe"))
-            {
-                UseShellExecute = true,
-                WorkingDirectory = root,
-                Arguments = "-dataPath CM26ModData"
-            })
-                ?? throw new InvalidOperationException("FC26 did not start.");
             button.Enabled = false;
-            _status.Text = "FC26 launched with -dataPath CM26ModData. Original Data/Patch remains untouched.";
-            await game.WaitForExitAsync();
-            Restore(root);
+            var launch = CM26ModLaunchService.Launch(root, "-dataPath CM26ModData");
+            _status.Text = launch.Message;
+            if (!launch.Success)
+                MessageBox.Show(this, launch.Message, "Launch FC26", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            else
+                await Task.Delay(TimeSpan.FromSeconds(5));
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Launch FC26", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        finally { button.Enabled = true; }
+    }
+
+    private async Task LaunchFetAsync(string? root, Button button)
+    {
+        if (string.IsNullOrWhiteSpace(root)) return;
+        if (MessageBox.Show(this, "Launch FC26 with the FET mod data folder (FIFAModData)? " +
+                "FET's installed mods will be active; the installed Data/Patch folders will not be changed.",
+                "Launch FET Mods", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        var overlay = Path.Combine(root, "FIFAModData");
+        if (!Directory.Exists(Path.Combine(overlay, "Data")) || !Directory.Exists(Path.Combine(overlay, "Patch")))
+        {
+            MessageBox.Show(this, "FIFAModData was not found in the game folder. Apply FET mods with FIFA Editor Tool first.",
+                "Launch FET Mods", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        try
+        {
+            button.Enabled = false;
+            var launch = CM26ModLaunchService.Launch(root, "-dataPath FIFAModData");
+            _status.Text = launch.Message;
+            if (!launch.Success)
+                MessageBox.Show(this, launch.Message, "Launch FC26", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            else
+                await Task.Delay(TimeSpan.FromSeconds(5));
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Launch FC26", MessageBoxButtons.OK, MessageBoxIcon.Error); }
         finally { button.Enabled = true; }

@@ -287,6 +287,45 @@ internal static class ReleaseSelfTest
             return form.IsDisposed ? "MainForm was disposed during navigation" : null;
         });
 
+        // --- Regression: game launch goes through the Steam DRM protocol ------
+        // FC26.exe is a Steam build; starting the exe directly exits with code
+        // 100010 and no window. Launch must detect steam_appid.txt and build
+        // steam://run/<appid>//-dataPath ... instead of launching the exe.
+        Check("game launch uses the Steam DRM protocol when present", () =>
+        {
+            var temp = Path.Combine(Path.GetTempPath(), "cm26-selftest-steam-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                Directory.CreateDirectory(Path.Combine(temp, "FIFAModData"));
+                File.WriteAllText(Path.Combine(temp, "steam_appid.txt"), "3405690\n");
+                var appId = CM26ModLaunchService.ResolveSteamAppId(temp);
+                if (appId != "3405690") return "steam_appid.txt was not resolved: " + (appId ?? "<null>");
+                var protocol = CM26ModLaunchService.BuildSteamProtocol(appId, "-dataPath FIFAModData");
+                if (protocol != "steam://run/3405690//-dataPath%20FIFAModData")
+                    return "unexpected protocol: " + protocol;
+                return null;
+            }
+            catch (Exception ex) { return "protocol resolution threw: " + ex.Message; }
+            finally { try { Directory.Delete(temp, recursive: true); } catch { } }
+        });
+
+        // --- Regression: game launch falls back to the exe without Steam -------
+        Check("game launch falls back to FC26.exe when Steam is absent", () =>
+        {
+            var temp = Path.Combine(Path.GetTempPath(), "cm26-selftest-nosteam-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                Directory.CreateDirectory(temp);
+                if (CM26ModLaunchService.ResolveSteamAppId(temp) != null)
+                    return "steam app id resolved without steam_appid.txt";
+                var launch = CM26ModLaunchService.Launch(temp, "-dataPath FIFAModData");
+                if (launch.Success) return "launch unexpectedly reported success without FC26.exe";
+                return null;
+            }
+            catch (Exception ex) { return "no-steam launch threw: " + ex.Message; }
+            finally { try { Directory.Delete(temp, recursive: true); } catch { } }
+        });
+
         Console.WriteLine();
         if (failures.Count == 0)
         {
