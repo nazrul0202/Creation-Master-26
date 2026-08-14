@@ -249,15 +249,19 @@ public sealed class PlayersSection : SectionBase
     }
 
     private static Panel Canvas(TabPage p) => (Panel)p.Controls[0];
-    private static Panel Box(string name, Point point, Size size)
+    private static StudioCard Box(string name, Point point, Size size)
     {
-        var box = new Panel { Location = point, Size = size, BackColor = CardLayout.CardWhite };
-        CardLayout.ApplyRounded(box, 10);
-        box.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(size.Width, 4), BackColor = CardLayout.Fc26Green });
+        var box = new StudioCard
+        {
+            Location = point,
+            Size = size,
+            AccentColor = StudioColors.Green,
+            Padding = new Padding(6, 20, 6, 6),
+        };
         box.Controls.Add(new Label
         {
             Text = name, Location = new Point(10, 6), Size = new Size(size.Width - 20, 13),
-            Font = Theme.Muted9, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
+            Font = StudioFonts.DataLabel, ForeColor = StudioColors.Green, BackColor = Color.Transparent
         });
         return box;
     }

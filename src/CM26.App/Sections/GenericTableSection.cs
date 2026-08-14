@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 
@@ -60,20 +61,18 @@ public class GenericTableSection : SectionBase
             // The original CM16 forms place controls inside labelled group boxes
             // on a white canvas.  Retain the schema-driven editor, but present it
             // through that legacy form vocabulary instead of a modern property page.
-            var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground, Padding = new Padding(8) };
-            var group = new Panel
+            var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = StudioColors.AppBackground, Padding = new Padding(8) };
+            var group = new StudioCard
             {
                 Location = new Point(8, 8),
                 Size = new Size(620, 430),
-                BackColor = CardLayout.CardWhite,
+                AccentColor = StudioColors.Green,
                 Padding = new Padding(6, 30, 6, 6),
             };
-            CardLayout.ApplyRounded(group, 10);
-            group.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(620, 4), BackColor = CardLayout.Fc26Green });
             group.Controls.Add(new Label
             {
                 Text = kv.Key, Location = new Point(10, 9), Size = new Size(590, 16),
-                Font = Theme.BodyBold, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
+                Font = StudioFonts.CardTitle, ForeColor = StudioColors.Green, BackColor = Color.Transparent
             });
             grid.Dock = DockStyle.Fill;
             group.Controls.Add(grid);

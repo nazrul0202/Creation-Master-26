@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 
 namespace CM26.App.Controls;
@@ -21,15 +22,14 @@ public sealed class WelcomePanel : UserControl
         BackColor = Theme.Background;
         var center = new BufferedPanel { Size = new Size(600, 460), BackColor = Color.Transparent };
 
-        _card = new Panel
+        _card = new StudioCard
         {
             Dock = DockStyle.Fill,
-            BackColor = CardLayout.CardWhite,
             Padding = new Padding(28, 20, 28, 12),
+            AccentColor = StudioColors.Green,
         };
-        CardLayout.ApplyRounded(_card, 16);
         // Brand left accent bar.
-        _card.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 6, BackColor = CardLayout.Fc26Green });
+        _card.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 6, BackColor = StudioColors.Green });
 
         var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 7 };
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 96));   // logo
@@ -50,7 +50,7 @@ public sealed class WelcomePanel : UserControl
         {
             Text = "Creation Master 26",
             Font = Theme.AppTitle,
-            ForeColor = CardLayout.CardText,
+            ForeColor = StudioColors.PrimaryText,
             TextAlign = ContentAlignment.MiddleCenter,
             AutoSize = true,
             Dock = DockStyle.Top,
@@ -59,7 +59,7 @@ public sealed class WelcomePanel : UserControl
         {
             Text = "v" + Program.ProductVersion,
             Font = Theme.Body,
-            ForeColor = CardLayout.CardSubtle,
+            ForeColor = StudioColors.MutedText,
             TextAlign = ContentAlignment.MiddleCenter,
             AutoSize = true,
             Dock = DockStyle.Top,
@@ -68,7 +68,7 @@ public sealed class WelcomePanel : UserControl
         {
             Text = "FC26 database editor — real data, validated edits, safe saves",
             Font = Theme.SectionTitle,
-            ForeColor = CardLayout.CardMuted,
+            ForeColor = StudioColors.MutedText,
             TextAlign = ContentAlignment.MiddleCenter,
             AutoSize = true,
             Dock = DockStyle.Top,
@@ -87,7 +87,7 @@ public sealed class WelcomePanel : UserControl
         {
             Text = "Loads editable database and legacy assets directly from FC26 Data/Patch\r\nShortcut: Ctrl+O",
             Font = Theme.Muted9,
-            ForeColor = CardLayout.CardSubtle,
+            ForeColor = StudioColors.MutedText,
             TextAlign = ContentAlignment.MiddleCenter,
             AutoSize = true,
             Dock = DockStyle.Top,
@@ -124,10 +124,9 @@ public sealed class WelcomePanel : UserControl
     /// <summary>Re-applies the card palette after a theme toggle.</summary>
     public void ApplyTheme()
     {
-        _card.BackColor = CardLayout.CardWhite;
-        _title.ForeColor = CardLayout.CardText;
-        _version.ForeColor = CardLayout.CardSubtle;
-        _subtitle.ForeColor = CardLayout.CardMuted;
+        _title.ForeColor = StudioColors.PrimaryText;
+        _version.ForeColor = StudioColors.MutedText;
+        _subtitle.ForeColor = StudioColors.MutedText;
     }
 
     private void BuildRecentList(FlowLayoutPanel recentPanel)
@@ -139,7 +138,7 @@ public sealed class WelcomePanel : UserControl
         {
             Text = "Recent",
             Font = Theme.Label,
-            ForeColor = CardLayout.CardSubtle,
+            ForeColor = StudioColors.MutedText,
             AutoSize = true,
             Margin = new Padding(0, 10, 0, 4),
         };

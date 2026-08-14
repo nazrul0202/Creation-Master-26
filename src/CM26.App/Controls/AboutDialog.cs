@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 
 namespace CM26.App.Controls;
@@ -31,11 +32,10 @@ public static class AboutDialog
             Font = Theme.Body,
         };
 
-        var canvas = new BufferedPanel { Dock = DockStyle.Fill, BackColor = CardLayout.CardBackground, Padding = new Padding(16) };
-        canvas.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 4, BackColor = Theme.Brand });
+        var canvas = new BufferedPanel { Dock = DockStyle.Fill, BackColor = StudioColors.AppBackground, Padding = new Padding(16) };
+        canvas.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 4, BackColor = StudioColors.Green });
 
-        var card = new Panel { Dock = DockStyle.Fill, BackColor = CardLayout.CardWhite, Padding = new Padding(24) };
-        CardLayout.ApplyRounded(card, 12);
+        var card = new StudioCard { Dock = DockStyle.Fill, Padding = new Padding(24), AccentColor = StudioColors.Green };
 
         var logo = new PictureBox
         {
@@ -48,7 +48,7 @@ public static class AboutDialog
         {
             Text = "Creation Master 26",
             Font = Theme.AppTitle,
-            ForeColor = CardLayout.CardText,
+            ForeColor = StudioColors.PrimaryText,
             AutoSize = true,
             Location = new Point(124, 26),
         };
@@ -56,7 +56,7 @@ public static class AboutDialog
         {
             Text = $"Version {Program.ProductVersion}",
             Font = Theme.Label,
-            ForeColor = CardLayout.CardSubtle,
+            ForeColor = StudioColors.MutedText,
             AutoSize = true,
             Location = new Point(126, 64),
         };
@@ -66,7 +66,7 @@ public static class AboutDialog
                    "Validated edits, safe saves, and an honest read-only player-name view.\r\n" +
                    "Unofficial, independent community tool by Rizco98.",
             Font = Theme.Body,
-            ForeColor = CardLayout.CardText,
+            ForeColor = StudioColors.PrimaryText,
             AutoSize = true,
             Location = new Point(24, 128),
         };
@@ -74,7 +74,7 @@ public static class AboutDialog
         {
             Text = "Project links",
             Font = Theme.Label,
-            ForeColor = CardLayout.Fc26Green,
+            ForeColor = StudioColors.Green,
             AutoSize = true,
             Location = new Point(24, 214),
         };
@@ -88,7 +88,7 @@ public static class AboutDialog
         {
             Text = "Not affiliated with Electronic Arts. Use File > Open Game to begin — see Help > Keyboard Shortcuts.",
             Font = Theme.Muted9,
-            ForeColor = CardLayout.CardSubtle,
+            ForeColor = StudioColors.MutedText,
             AutoSize = true,
             Location = new Point(24, 296),
         };
@@ -127,10 +127,10 @@ public static class AboutDialog
             AutoSize = true,
             LinkBehavior = LinkBehavior.HoverUnderline,
             Font = Theme.Body,
-            ForeColor = CardLayout.CardText,
-            ActiveLinkColor = Theme.Link,
-            LinkColor = Theme.Link,
-            VisitedLinkColor = Theme.Link,
+            ForeColor = StudioColors.PrimaryText,
+            ActiveLinkColor = StudioColors.CyanAccent,
+            LinkColor = StudioColors.CyanAccent,
+            VisitedLinkColor = StudioColors.CyanAccent,
         };
         link.LinkClicked += (_, _) =>
         {
