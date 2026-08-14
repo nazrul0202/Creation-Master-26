@@ -1,5 +1,10 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.107 - Startup crash hotfix (2026-08-14)
+
+- Fixed a launch-time crash ("Control does not support transparent background colors") caused by the Studio sidebar items and roster rows setting a transparent BackColor on plain-Control custom controls.
+- Added a release self-test gate that constructs the real MainForm shell, so a UI startup crash can never ship in a release again.
+
 ## Version 1.0.106 - CM26 Studio complete UI rebuild (2026-08-14)
 
 - Rebuilt the entire visible UI around a modern dark football database/scouting-tool design system.

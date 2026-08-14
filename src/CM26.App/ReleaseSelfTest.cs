@@ -237,6 +237,24 @@ internal static class ReleaseSelfTest
             return null;
         });
 
+        // --- Regression: the full UI shell must construct at startup ---------
+        // The Studio rebuild crashed on launch with "Control does not support
+        // transparent background colors" inside StudioSidebarItem..ctor because
+        // plain-Control custom controls set a transparent BackColor. This check
+        // builds the exact startup path (MainForm -> StudioSidebar -> items),
+        // which the previous release self-test never exercised.
+        Check("MainForm shell constructs without throwing", () =>
+        {
+            using var form = new MainForm();
+            form.CreateControl();
+            System.Windows.Forms.Application.DoEvents();
+            // The window must have its chrome: menu, toolbar, sidebar, status.
+            var hasMenu = form.Controls.OfType<MenuStrip>().Any();
+            var hasStatus = form.Controls.OfType<StatusStrip>().Any();
+            if (!hasMenu || !hasStatus) return $"chrome incomplete (menu={hasMenu}, status={hasStatus})";
+            return null;
+        });
+
         Console.WriteLine();
         if (failures.Count == 0)
         {

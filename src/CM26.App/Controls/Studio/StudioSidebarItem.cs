@@ -14,6 +14,8 @@ public sealed class StudioSidebarItem : Control
 
     public StudioSidebarItem(StudioSidebarItemModel model)
     {
+        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint
+            | ControlStyles.OptimizedDoubleBuffer | ControlStyles.SupportsTransparentBackColor, true);
         Model = model;
         Height = 36;
         BackColor = Color.Transparent;
@@ -21,7 +23,6 @@ public sealed class StudioSidebarItem : Control
         Font = StudioFonts.RowPrimary;
         Cursor = Cursors.Hand;
         TabStop = true;
-        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
     }
 
     public StudioSidebarItemModel Model { get; }

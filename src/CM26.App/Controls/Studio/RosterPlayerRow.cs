@@ -14,13 +14,14 @@ public sealed class RosterPlayerRow : Control
 
     public RosterPlayerRow()
     {
+        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint
+            | ControlStyles.OptimizedDoubleBuffer | ControlStyles.SupportsTransparentBackColor, true);
         DoubleBuffered = true;
         Height = 42;
         Dock = DockStyle.Top;
         BackColor = Color.Transparent;
         Font = StudioFonts.RowPrimary;
         Cursor = Cursors.Hand;
-        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
         AllowDrop = true;
     }
 
