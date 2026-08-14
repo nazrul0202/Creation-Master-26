@@ -1,0 +1,123 @@
+<Window x:Class="CM26.Studio.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:CM26.Studio.Views"
+        Title="Creation Master 26 Studio"
+        Width="1480" Height="900" MinWidth="1100" MinHeight="680"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource AppBackgroundBrush}">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="230" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ============ Sidebar ============ -->
+        <Border Grid.Column="0" Background="{StaticResource RaisedSurfaceBrush}"
+                BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <!-- Brand -->
+                <Border DockPanel.Dock="Top" Padding="18,20,18,16">
+                    <StackPanel>
+                        <TextBlock Text="CREATION MASTER 26" FontSize="16" FontWeight="Bold"
+                                   Foreground="{StaticResource PrimaryTextBrush}" />
+                        <TextBlock Text="STUDIO" FontSize="11" FontWeight="SemiBold" Margin="0,2,0,0"
+                                   Foreground="{StaticResource CyanAccentBrush}" />
+                    </StackPanel>
+                </Border>
+                <Border DockPanel.Dock="Top" Height="1" Background="{StaticResource DividerBrush}" />
+
+                <!-- Nav list -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel x:Name="NavPanel" Margin="0,8,0,8">
+                        <TextBlock Text="BROWSE" Style="{StaticResource MutedText}" FontSize="10"
+                                   Margin="18,8,0,4" />
+                        <RadioButton x:Name="NavDashboard" Style="{StaticResource SidebarItem}" GroupName="Nav"
+                                     Content="  Dashboard" Tag="dashboard" Checked="Nav_Checked" IsChecked="True" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Countries"
+                                     Tag="countries" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Leagues"
+                                     Tag="leagues" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Teams"
+                                     Tag="teams" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Players"
+                                     Tag="players" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Managers"
+                                     Tag="managers" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Stadiums"
+                                     Tag="stadiums" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Stadium Audio"
+                                     Tag="stadiumaudio" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Referees"
+                                     Tag="referees" Checked="Nav_Checked" />
+
+                        <TextBlock Text="CONTENT" Style="{StaticResource MutedText}" FontSize="10"
+                                   Margin="18,12,0,4" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Kits"
+                                     Tag="kits" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Balls"
+                                     Tag="balls" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Boots"
+                                     Tag="boots" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Gloves"
+                                     Tag="gloves" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Competitions"
+                                     Tag="competitions" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Formations"
+                                     Tag="formations" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Sponsors"
+                                     Tag="sponsors" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Adboards"
+                                     Tag="adboards" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Broadcast"
+                                     Tag="scoreboard" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Audio"
+                                     Tag="audio" Checked="Nav_Checked" />
+
+                        <TextBlock Text="TOOLS" Style="{StaticResource MutedText}" FontSize="10"
+                                   Margin="18,12,0,4" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Data Sync"
+                                     Tag="transfers" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Mod Manager"
+                                     Tag="modmanager" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Database Browser"
+                                     Tag="browser" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Diagnostics"
+                                     Tag="diagnostics" Checked="Nav_Checked" />
+                        <RadioButton Style="{StaticResource SidebarItem}" GroupName="Nav" Content="  Settings"
+                                     Tag="settings" Checked="Nav_Checked" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Status -->
+                <Border DockPanel.Dock="Bottom" Background="{StaticResource SurfaceBrush}"
+                        BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,1,0,0" Padding="18,12">
+                    <StackPanel>
+                        <TextBlock x:Name="DbStatusText" Text="No database loaded" Style="{StaticResource MutedText}" FontSize="11"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="PendingCountText" Text="0 pending changes" Style="{StaticResource MutedText}" FontSize="11"
+                                   Margin="0,2,0,0" />
+                    </StackPanel>
+                </Border>
+            </DockPanel>
+        </Border>
+
+        <!-- ============ Content ============ -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="30" />
+            </Grid.RowDefinitions>
+            <ContentControl x:Name="ContentHost" Grid.Row="0" />
+            <Border Grid.Row="1" Background="{StaticResource RaisedSurfaceBrush}"
+                    BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,1,0,0">
+                <DockPanel Margin="16,0">
+                    <TextBlock x:Name="StatusBarText" Text="Ready" Style="{StaticResource MutedText}" FontSize="11" />
+                    <TextBlock x:Name="StatusBarRight" Text="" Style="{StaticResource MutedText}" FontSize="11"
+                               HorizontalAlignment="Right" />
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

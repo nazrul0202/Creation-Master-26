@@ -6,6 +6,7 @@
   <Project Path="src/CM26.ModManager/CM26.ModManager.csproj" />
   <Project Path="src/CM26.AssetBridge/CM26.AssetBridge.csproj" />
   <Project Path="src/CM26.Application/CM26.Application.csproj" />
+  <Project Path="src/CM26.WPF/CM26.WPF.csproj" />
   <Project Path="src/CM26.App/CM26.App.csproj" />
   <Project Path="tests/CM26.Tests/CM26.Tests.csproj" />
 </Solution>

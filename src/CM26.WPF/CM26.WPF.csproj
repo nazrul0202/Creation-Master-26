@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>CM26.Studio</RootNamespace>
+    <AssemblyName>CM26.Studio</AssemblyName>
+    <AssemblyTitle>Creation Master 26 Studio</AssemblyTitle>
+    <Description>Creation Master 26 Studio - modern WPF shell over the CM26 database engine</Description>
+    <ApplicationIcon>..\CM26.App\Assets\Logo\Creation Master 26.ico</ApplicationIcon>
+    <HighDpiAwareness>PerMonitorV2</HighDpiAwareness>
+    <!-- Version, Company, Product, Copyright and release debug/PathMap settings
+         are inherited from Directory.Build.props (single source of truth). -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CM26.Application\CM26.Application.csproj" />
+    <Reference Include="CM26.EngineBridge">
+      <HintPath>..\..\src-native\CM26.EngineBridge\bin\CM26.EngineBridge.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <None Include="..\..\src-native\CM26.EngineBridge\bin\Ijwhost.dll">
+      <Link>Ijwhost.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

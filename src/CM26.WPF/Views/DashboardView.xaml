@@ -1,0 +1,84 @@
+<UserControl x:Class="CM26.Studio.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:CM26.Studio"
+             Background="{StaticResource AppBackgroundBrush}">
+
+    <UserControl.Resources>
+        <conv:RatingToBrushConverter x:Key="RatingBrush" />
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="28,24,28,24">
+            <!-- Hero -->
+            <Border Style="{StaticResource StudioCard}" Background="{StaticResource SurfaceBrush}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="FC26 DATABASE STUDIO" Style="{StaticResource MutedText}" FontSize="11" />
+                        <TextBlock Text="Creation Master 26" Style="{StaticResource SectionTitle}" Margin="0,6,0,0" />
+                        <TextBlock x:Name="HeroSubtitle" Text="Loading workspace database…"
+                                   Style="{StaticResource MutedText}" Margin="0,8,0,0" />
+                    </StackPanel>
+                    <Border Grid.Column="1" Background="{StaticResource RaisedSurfaceBrush}"
+                            BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="8"
+                            Padding="16,10" VerticalAlignment="Center">
+                        <StackPanel>
+                            <TextBlock x:Name="HeroVersion" Text="v1.0.109" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{StaticResource CyanAccentBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Text="WPF STUDIO PILOT" Style="{StaticResource MutedText}" FontSize="10"
+                                       HorizontalAlignment="Center" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Metrics -->
+            <UniformGrid Columns="4" Margin="0,16,0,0">
+                <Border Style="{StaticResource StudioCard}" Margin="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock x:Name="MetricPlayers" Text="—" Style="{StaticResource MetricValue}" Foreground="{StaticResource CyanAccentBrush}" />
+                        <TextBlock Text="PLAYERS" Style="{StaticResource MetricLabel}" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource StudioCard}" Margin="8,0,8,0">
+                    <StackPanel>
+                        <TextBlock x:Name="MetricTeams" Text="—" Style="{StaticResource MetricValue}" Foreground="{StaticResource GreenBrush}" />
+                        <TextBlock Text="TEAMS" Style="{StaticResource MetricLabel}" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource StudioCard}" Margin="8,0,8,0">
+                    <StackPanel>
+                        <TextBlock x:Name="MetricLeagues" Text="—" Style="{StaticResource MetricValue}" Foreground="{StaticResource YellowBrush}" />
+                        <TextBlock Text="LEAGUES" Style="{StaticResource MetricLabel}" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource StudioCard}" Margin="8,0,0,0">
+                    <StackPanel>
+                        <TextBlock x:Name="MetricCountries" Text="—" Style="{StaticResource MetricValue}" Foreground="{StaticResource PurpleBrush}" />
+                        <TextBlock Text="COUNTRIES" Style="{StaticResource MetricLabel}" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <!-- Quick actions -->
+            <TextBlock Text="QUICK ACTIONS" Style="{StaticResource MutedText}" FontSize="10" Margin="0,20,0,8" />
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Open Database Folder" Style="{StaticResource AccentButton}" Click="OpenFolder_Click" />
+                <Button Content="Reload Database" Style="{StaticResource StudioButton}" Margin="8,0,0,0" Click="Reload_Click" />
+            </StackPanel>
+
+            <!-- Database info -->
+            <TextBlock Text="DATABASE" Style="{StaticResource MutedText}" FontSize="10" Margin="0,20,0,8" />
+            <Border Style="{StaticResource StudioCard}">
+                <StackPanel>
+                    <TextBlock x:Name="DbPathText" Text="No database loaded" Style="{StaticResource MutedText}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="DbTablesText" Text="" Style="{StaticResource MutedText}" Margin="0,6,0,0" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,17 @@
+<UserControl x:Class="CM26.Studio.Views.PlaceholderView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource AppBackgroundBrush}">
+
+    <StackPanel Margin="28,24,28,24">
+        <TextBlock x:Name="TitleText" Style="{StaticResource SectionTitle}" />
+        <Border Style="{StaticResource StudioCard}" Margin="0,16,0,0">
+            <StackPanel>
+                <TextBlock Text="This section is not implemented in the WPF Studio pilot yet."
+                           Style="{StaticResource MutedText}" TextWrapping="Wrap" />
+                <TextBlock x:Name="HintText" Text="The database engine is available; this view is the next porting milestone."
+                           Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>
