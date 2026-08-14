@@ -1,5 +1,18 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.106 - CM26 Studio complete UI rebuild (2026-08-14)
+
+- Rebuilt the entire visible UI around a modern dark football database/scouting-tool design system.
+- Introduced shared `Studio` controls: `StudioShell`, `StudioSidebar`, `StudioToolbar`, `StudioCard`, `MetricCard`, `RatingBadge`, `PositionChip`, `StatGroupCard`, `PlayerHeroCard`, `TeamHeroCard`, `PlaystyleChip`, `RosterPlayerRow`, `FormationBoard` and `EmptyStateCard`.
+- Replaced `MainForm` chrome with the Studio sidebar/toolbar and updated the global palette to the target dark colors.
+- Rebuilt Dashboard with a real tool dashboard (hero, metrics, quick actions, health cards).
+- Rebuilt Players with a scouting-style overview: hero card, OVR/GRO/POT, PAC/SHO/PAS/DRI/DEF/PHY, stat groups and playstyle chips.
+- Rebuilt Teams with a `TeamHeroCard`, metadata cards, kits gallery, and a split roster view using the new `FormationBoard` and `RosterPlayerRow`.
+- Rebuilt Countries and Leagues with hero cards, detail cards, flag/logo galleries and a club tile grid.
+- Applied the Studio card system to all remaining sections: Managers, Stadiums, Kits, Balls, Boots, Gloves, Competitions, Formations, Sponsors, Adboards, Audio, Broadcast, Database Browser, Settings, Diagnostics, Data Sync and Mod Manager.
+- Preserved all database, staging, save, validation, asset, Frostbite, mod, navigation, undo/redo, import/export and formation editing business logic.
+- Full Release and Lite packages published and verified for v1.0.106.
+
 ## Version 1.0.102 - Reliability and stability fixes (2026-08-13)
 
 - Hardened `IconService` against concurrent access and capped its cache at 200 entries to prevent unbounded memory growth.
