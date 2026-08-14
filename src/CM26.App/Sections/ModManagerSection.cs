@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Diagnostics;
 using System.Windows.Forms;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 
@@ -11,6 +12,7 @@ public sealed class ModManagerSection : SectionBase
 {
     private readonly ListView _mods = new() { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, CheckBoxes = true };
     private readonly Label _status = new() { Dock = DockStyle.Bottom, Height = 28, TextAlign = ContentAlignment.MiddleLeft };
+    private readonly StudioToolbar _toolbar;
     private bool _loading;
 
     public override string SectionKey => "modmanager";
@@ -21,12 +23,28 @@ public sealed class ModManagerSection : SectionBase
 
     public ModManagerSection(AppServices services) : base(services)
     {
+        _toolbar = new StudioToolbar
+        {
+            Title = "CM26 Mod Manager",
+            CanCreate = false,
+            ShowFilter = false,
+            Dock = DockStyle.Top,
+        };
+        _toolbar.SearchBox.PlaceholderText = "Search mods…";
+        _toolbar.SearchTextChanged += (_, _) => HighlightMod(_toolbar.SearchText);
+        _toolbar.SearchKeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            HighlightMod(_toolbar.SearchText);
+        };
+
         _mods.Columns.Add("Enabled", 72);
         _mods.Columns.Add("Mod", 280);
         _mods.Columns.Add("Payloads", 80);
         _mods.Columns.Add("Created", 160);
-        _mods.BackColor = Theme.Input;
-        _mods.ForeColor = Theme.Text;
+        _mods.BackColor = StudioColors.InputBackground;
+        _mods.ForeColor = StudioColors.PrimaryText;
         _mods.ItemChecked += (_, e) =>
         {
             if (_loading || e.Item.Tag is not CM26ModLibraryService.LibraryItem item) return;
@@ -45,13 +63,21 @@ public sealed class ModManagerSection : SectionBase
             root: FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder), button: launch);
         restore.Click += (_, _) => Restore(root: FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder));
         refresh.Click += (_, _) => RefreshLibrary();
-        var actions = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = Theme.Background };
+        var actions = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = StudioColors.RaisedSurface };
         actions.Controls.Add(refresh); actions.Controls.Add(restore); actions.Controls.Add(launch); actions.Controls.Add(build); actions.Controls.Add(import);
-        var hint = new Label { Dock = DockStyle.Top, Height = 52, ForeColor = Theme.Muted,
+        var hint = new Label { Dock = DockStyle.Top, Height = 52, ForeColor = StudioColors.MutedText, BackColor = Color.Transparent,
             Text = "Library: " + CM26ModLibraryService.Root + "  |  Lightweight symbolic-link overlay; only changed CAS/TOC files are copied. Original Data/Patch remains untouched.",
             Padding = new Padding(0, 8, 0, 0) };
-        var page = new TabPage("CM26 Mods") { BackColor = Theme.Background, Padding = new Padding(8) };
-        page.Controls.Add(_mods); page.Controls.Add(_status); page.Controls.Add(hint); page.Controls.Add(actions);
+
+        var listCard = new StudioCard { Dock = DockStyle.Fill, BackColor = StudioColors.Surface };
+        listCard.Controls.Add(_mods);
+        listCard.Controls.Add(_status);
+
+        var page = new TabPage("CM26 Mods") { BackColor = StudioColors.AppBackground, Padding = new Padding(StudioSpacing.Medium) };
+        page.Controls.Add(listCard);
+        page.Controls.Add(hint);
+        page.Controls.Add(actions);
+        page.Controls.Add(_toolbar);
         Tabs.TabPages.Add(page);
         RefreshLibrary();
     }
@@ -59,6 +85,22 @@ public sealed class ModManagerSection : SectionBase
     public override void ActivateSection() { base.ActivateSection(); RefreshLibrary(); }
     protected override IReadOnlyList<RecordListItem> GetRecords() => Array.Empty<RecordListItem>();
     protected override void ShowRecord(int recordIndex) { }
+
+    private void HighlightMod(string query)
+    {
+        var term = query.Trim();
+        if (string.IsNullOrWhiteSpace(term)) return;
+        foreach (ListViewItem item in _mods.Items)
+        {
+            if (item.Text.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                item.SubItems.Cast<ListViewItem.ListViewSubItem>().Any(sub => sub.Text.Contains(term, StringComparison.OrdinalIgnoreCase)))
+            {
+                item.Selected = true;
+                _mods.EnsureVisible(item.Index);
+                return;
+            }
+        }
+    }
 
     private void Import()
     {

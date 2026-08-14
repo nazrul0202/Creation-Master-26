@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 
@@ -58,25 +59,29 @@ internal abstract class Fc26ExtensionSection : SectionBase
     private readonly List<TextBox> _editors = [];
     private readonly Dictionary<string, FieldValue> _values = new(StringComparer.OrdinalIgnoreCase);
     private readonly FieldEditorGrid _staging = new();
+    protected StudioToolbar? _toolbar;
+
+    /// <summary>Hides the base record chooser when the section builds its own Studio toolbar.</summary>
+    protected virtual bool UseStudioToolbar => false;
+    protected override bool ShowRecordCommandStrip => !UseStudioToolbar;
 
     protected Fc26ExtensionSection(AppServices services, string key, string title, string table, string group, params string[] fields) : base(services)
     {
         _key = key; _title = title; _table = table; _fields = fields;
         Header.Visible = false;
-        var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
-        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground };
+        BackColor = StudioColors.AppBackground;
+        var page = new TabPage("General") { BackColor = StudioColors.AppBackground, Font = LegacyFont };
+        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = StudioColors.AppBackground };
         var boxHeight = Math.Max(120, 25 + ((fields.Length + 1) / 2 * 26));
         // Second-column editors end at X=638. The former 630px card clipped
         // their border by eight pixels in Sponsor/Adboard/Audio style pages.
-        var box = new Panel { Location = new Point(4, 4), Size = new Size(646, boxHeight), BackColor = CardLayout.CardWhite };
-        CardLayout.ApplyRounded(box, 10);
-        box.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(646, 4), BackColor = CardLayout.Fc26Green });
-        box.Controls.Add(new Label { Text = group, Location = new Point(10, 6), Size = new Size(626, 13), Font = Theme.Muted9, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite });
+        var box = new StudioCard { Location = new Point(4, 4), Size = new Size(646, boxHeight), BackColor = StudioColors.Surface, AccentColor = StudioColors.CyanAccent };
+        box.Controls.Add(new Label { Text = group.ToUpperInvariant(), Location = new Point(10, 6), Size = new Size(626, 13), Font = StudioFonts.DataLabel, ForeColor = StudioColors.CyanAccent, BackColor = Color.Transparent });
         for (var i = 0; i < fields.Length; i++)
         {
             var col = i % 2; var row = i / 2;
             var x = col == 0 ? 12 : 322; var y = 28 + (row * 26);
-            var label = new Label { Text = Label(fields[i]), Location = new Point(x, y + 3), Size = new Size(165, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true, ForeColor = CardLayout.CardFieldLabel, BackColor = CardLayout.CardWhite };
+            var label = new Label { Text = Label(fields[i]), Location = new Point(x, y + 3), Size = new Size(165, 18), Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true, ForeColor = StudioColors.MutedText, BackColor = Color.Transparent };
             box.Controls.Add(label);
             ToolTip.SetToolTip(label, Label(fields[i]));
             var editor = new TextBox { Location = new Point(x + 171, y), Size = new Size(145, 20), Font = LegacyFont, Tag = fields[i] };
@@ -87,6 +92,7 @@ internal abstract class Fc26ExtensionSection : SectionBase
         canvas.Controls.Add(box); page.Controls.Add(canvas); Tabs.TabPages.Add(page);
     }
 
+
     public override string SectionKey => _key;
     public override string SectionTitle => _title;
     protected override string TableName => _table;
@@ -94,24 +100,97 @@ internal abstract class Fc26ExtensionSection : SectionBase
 
     protected TabPage AddCanvasTab(string title)
     {
-        var page = new TabPage(title) { BackColor = Theme.Background, Font = LegacyFont };
-        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground });
+        var page = new TabPage(title) { BackColor = StudioColors.AppBackground, Font = LegacyFont };
+        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = StudioColors.AppBackground });
         Tabs.TabPages.Add(page);
         return page;
     }
 
-    protected static Panel Card(string title, Point location, Size size)
+    protected static StudioCard Card(string title, Point location, Size size)
     {
-        var card = new Panel { Location = location, Size = size, BackColor = CardLayout.CardWhite };
-        CardLayout.ApplyRounded(card, 10);
-        card.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(size.Width, 4), BackColor = CardLayout.Fc26Green });
+        var card = new StudioCard { Location = location, Size = size, BackColor = StudioColors.Surface, AccentColor = StudioColors.CyanAccent };
         card.Controls.Add(new Label
         {
-            Text = title, Location = new Point(10, 6), Size = new Size(Math.Max(60, size.Width - 20), 13),
-            Font = Theme.Muted9, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
+            Text = title.ToUpperInvariant(), Location = new Point(10, 6), Size = new Size(Math.Max(60, size.Width - 20), 13),
+            Font = StudioFonts.DataLabel, ForeColor = StudioColors.CyanAccent, BackColor = Color.Transparent
         });
         return card;
     }
+
+    /// <summary>Moves the current selection by the requested number of records in the displayed list.</summary>
+    protected void StepRecord(int delta)
+    {
+        var records = GetRecords();
+        var found = -1;
+        for (var i = 0; i < records.Count; i++)
+        {
+            if (records[i].RecordIndex == CurrentRecordIndex)
+            {
+                found = i;
+                break;
+            }
+        }
+        if (found < 0)
+        {
+            if (delta > 0 && records.Count > 0) GoToRecord(records[0].RecordIndex);
+            return;
+        }
+        var next = found + delta;
+        if (next >= 0 && next < records.Count)
+            GoToRecord(records[next].RecordIndex);
+    }
+
+    /// <summary>Attaches a Studio toolbar to the supplied tab page and wires the standard navigation events.</summary>
+    protected StudioToolbar AttachStudioToolbar(TabPage page, string title, bool canCreate = false, bool showFilter = true)
+    {
+        var toolbar = new StudioToolbar
+        {
+            Title = title,
+            CanCreate = canCreate,
+            ShowFilter = showFilter,
+            Dock = DockStyle.Top,
+        };
+        toolbar.SearchBox.PlaceholderText = "Search records…";
+        toolbar.NewClicked += (_, _) => CreateNewRecord();
+        toolbar.PreviousClicked += (_, _) => StepRecord(-1);
+        toolbar.NextClicked += (_, _) => StepRecord(+1);
+        toolbar.SearchClicked += (_, _) => ApplyRecordFilter(toolbar.SearchText);
+        toolbar.SearchKeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            ApplyRecordFilter(toolbar.SearchText);
+        };
+        toolbar.FilterClicked += (_, _) => toolbar.FocusSearch();
+        page.Controls.Add(toolbar);
+        _toolbar = toolbar;
+        return toolbar;
+    }
+
+    protected void UpdateToolbarCount()
+    {
+        if (_toolbar == null) return;
+        if (!Services.Session.IsLoaded)
+        {
+            _toolbar.RecordCountText = "0 records";
+            return;
+        }
+        try
+        {
+            _toolbar.RecordCountText = $"{GetRecords().Count:N0} records";
+        }
+        catch
+        {
+            _toolbar.RecordCountText = string.Empty;
+        }
+    }
+
+    public override void ActivateSection()
+    {
+        base.ActivateSection();
+        UpdateToolbarCount();
+    }
+
 
     protected override IReadOnlyList<RecordListItem> GetRecords()
     {
@@ -140,13 +219,13 @@ internal abstract class Fc26ExtensionSection : SectionBase
             if (_values.TryGetValue(key, out var value))
             {
                 editor.Text = value.Value; editor.ReadOnly = !value.IsWritable;
-                editor.BackColor = value.IsWritable ? Theme.Input : CardLayout.CardFieldBg;
-                editor.ForeColor = CardLayout.CardText;
+                editor.BackColor = value.IsWritable ? Theme.Input : StudioColors.InputBackground;
+                editor.ForeColor = StudioColors.PrimaryText;
                 ToolTip.SetToolTip(editor, value.IsWritable
                     ? Label(key)
                     : Label(key) + " (read-only)");
             }
-            else { editor.Text = ""; editor.ReadOnly = true; editor.BackColor = CardLayout.CardFieldBg; editor.ForeColor = CardLayout.CardSubtle; }
+            else { editor.Text = ""; editor.ReadOnly = true; editor.BackColor = StudioColors.InputBackground; editor.ForeColor = StudioColors.MutedText; }
         }
         OnRecordShown();
     }
@@ -174,17 +253,19 @@ internal sealed class SponsorsSection : Fc26ExtensionSection
 {
     private readonly PictureBox _preview = new();
     private readonly Label _caption = new();
+    protected override bool UseStudioToolbar => true;
 
     public SponsorsSection(AppServices s)
         : base(s, "sponsors", "Sponsors", "sponsors", "Sponsor",
             "adsponserid", "name", "basecolour", "length", "isea", "isfut")
     {
         var page = AddCanvasTab("Preview");
+        AttachStudioToolbar(page, "Sponsors");
         var canvas = (Panel)page.Controls[0];
         var box = Card("Sponsor Artwork", new Point(4, 4), new Size(850, 520));
         _preview.Location = new Point(12, 28);
         _preview.Size = new Size(825, 410);
-        _preview.BackColor = CardLayout.CardFieldBg;
+        _preview.BackColor = StudioColors.InputBackground;
         _preview.BorderStyle = BorderStyle.FixedSingle;
         _preview.SizeMode = PictureBoxSizeMode.Zoom;
         box.Controls.Add(_preview);
@@ -192,6 +273,8 @@ internal sealed class SponsorsSection : Fc26ExtensionSection
         _caption.Size = new Size(825, 40);
         _caption.Font = LegacyFont;
         _caption.TextAlign = ContentAlignment.MiddleCenter;
+        _caption.ForeColor = StudioColors.MutedText;
+        _caption.BackColor = Color.Transparent;
         box.Controls.Add(_caption);
         LegacyAssetActions.Attach(Services, box, _preview, new Point(12, 492), () => OnRecordShown());
         canvas.Controls.Add(box);
@@ -244,6 +327,7 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
     private readonly Button _stopAudio = new();
     private string? _selectedBank;
     private string? _extractedPath;
+    protected override bool UseStudioToolbar => true;
 
     public AudioNationSection(AppServices s)
         : base(s, "audio", "Audio", "audionation", "Nation Audio",
@@ -253,14 +337,16 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
             "palanguageindex", "defaultcommlang", "teamcanwhistleindex")
     {
         var page = AddCanvasTab("NewWave Banks");
+        AttachStudioToolbar(page, "Audio");
         var canvas = (Panel)page.Controls[0];
         var box = Card("NewWave Audio Banks", new Point(4, 4), new Size(1120, 610));
         box.Controls.Add(new Label
         {
             Text = "Search", Location = new Point(12, 31), Size = new Size(54, 20),
             TextAlign = ContentAlignment.MiddleRight, Font = LegacyFont,
-            ForeColor = CardLayout.CardFieldLabel, BackColor = CardLayout.CardWhite
+            ForeColor = StudioColors.MutedText, BackColor = Color.Transparent
         });
+
         _query.Location = new Point(72, 30);
         _query.Size = new Size(430, 20);
         _query.Text = "sound/chants/newwaves";
@@ -468,24 +554,34 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
 // FC26's broadcastleague table maps broadcast presentation to team/league/nation
 // IDs. It does not contain an overlay asset path, so label it accurately instead
 // of implying that this is a complete scoreboard texture editor.
-internal sealed class TvSection(AppServices s) : Fc26ExtensionSection(s, "scoreboard", "Broadcast Links", "broadcastleague", "Broadcast League Links", "artificialkey", "teamid", "leagueid", "nationid");
+internal sealed class TvSection : Fc26ExtensionSection
+{
+    protected override bool UseStudioToolbar => true;
+
+    public TvSection(AppServices s) : base(s, "scoreboard", "Broadcast Links", "broadcastleague", "Broadcast League Links", "artificialkey", "teamid", "leagueid", "nationid")
+    {
+        AttachStudioToolbar(Tabs.TabPages[0], "Broadcast Links");
+    }
+}
 // These are FC26-only data sets, surfaced as explicit CM16-style forms rather than
 // hidden behind a generic database grid.  The field order follows the game table.
 internal sealed class AdboardsSection : Fc26ExtensionSection
 {
     private readonly PictureBox _preview = new();
     private readonly Label _caption = new();
+    protected override bool UseStudioToolbar => true;
 
     public AdboardsSection(AppServices s)
         : base(s, "adboards", "Adboards", "modeadboardlinks", "Mode Adboards",
             "artificialkey", "modeid", "dynamicimageid", "adsponserid", "isapproved")
     {
         var page = AddCanvasTab("Preview");
+        AttachStudioToolbar(page, "Adboards");
         var canvas = (Panel)page.Controls[0];
         var box = Card("Dynamic Adboard Artwork", new Point(4, 4), new Size(850, 520));
         _preview.Location = new Point(12, 28);
         _preview.Size = new Size(825, 410);
-        _preview.BackColor = CardLayout.CardFieldBg;
+        _preview.BackColor = StudioColors.InputBackground;
         _preview.BorderStyle = BorderStyle.FixedSingle;
         _preview.SizeMode = PictureBoxSizeMode.Zoom;
         box.Controls.Add(_preview);
@@ -493,6 +589,8 @@ internal sealed class AdboardsSection : Fc26ExtensionSection
         _caption.Size = new Size(825, 40);
         _caption.Font = LegacyFont;
         _caption.TextAlign = ContentAlignment.MiddleCenter;
+        _caption.ForeColor = StudioColors.MutedText;
+        _caption.BackColor = Color.Transparent;
         box.Controls.Add(_caption);
         LegacyAssetActions.Attach(Services, box, _preview, new Point(12, 492), () => OnRecordShown());
         canvas.Controls.Add(box);
@@ -531,4 +629,12 @@ internal sealed class AdboardsSection : Fc26ExtensionSection
     private int Value(string field) =>
         CurrentValues.TryGetValue(field, out var value) && int.TryParse(value.RawValue, out var parsed) ? parsed : 0;
 }
-internal sealed class StadiumAudioSection(AppServices s) : Fc26ExtensionSection(s, "stadiumaudio", "Stadium Audio", "audiostadium", "Stadium Audio", "stadiumid", "stadiumpalanguageindex", "matchsizetypeindex");
+internal sealed class StadiumAudioSection : Fc26ExtensionSection
+{
+    protected override bool UseStudioToolbar => true;
+
+    public StadiumAudioSection(AppServices s) : base(s, "stadiumaudio", "Stadium Audio", "audiostadium", "Stadium Audio", "stadiumid", "stadiumpalanguageindex", "matchsizetypeindex")
+    {
+        AttachStudioToolbar(Tabs.TabPages[0], "Stadium Audio");
+    }
+}

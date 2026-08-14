@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 
@@ -14,24 +15,44 @@ public sealed class SettingsSection : SectionBase
     private Label _frostbiteStatus = null!;
     private Label _logLabel = null!;
     private readonly BufferedPanel _canvas;
+    private readonly StudioToolbar _toolbar;
     private bool _gameFolderLoading;
 
     public override string SectionKey => "settings";
     public override string SectionTitle => "Settings";
     protected override string TableName => "";
     protected override bool SinglePane => true;
+    protected override bool ShowRecordCommandStrip => false;
 
     public SettingsSection(AppServices s) : base(s)
     {
         _canvas = new BufferedPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = CardLayout.CardBackground,
+            BackColor = StudioColors.AppBackground,
             Padding = new Padding(12),
             AutoScroll = true,
         };
-        var page = new TabPage("Settings") { BackColor = Theme.Background };
+
+        _toolbar = new StudioToolbar
+        {
+            Title = "Settings",
+            CanCreate = false,
+            ShowFilter = false,
+            Dock = DockStyle.Top,
+        };
+        _toolbar.SearchBox.PlaceholderText = "Find setting…";
+        _toolbar.SearchTextChanged += (_, _) => HighlightSetting(_toolbar.SearchText);
+        _toolbar.SearchKeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            HighlightSetting(_toolbar.SearchText);
+        };
+
+        var page = new TabPage("Settings") { BackColor = StudioColors.AppBackground };
         page.Controls.Add(_canvas);
+        page.Controls.Add(_toolbar);
         Tabs.TabPages.Add(page);
         Header.SetRecord("Settings", "Application preferences", IconService.Get("settings", 44));
 
@@ -42,7 +63,7 @@ public sealed class SettingsSection : SectionBase
             AutoScroll = true,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
-            BackColor = CardLayout.CardBackground,
+            BackColor = StudioColors.AppBackground,
             Padding = new Padding(0),
         };
         _canvas.Controls.Add(flow);
@@ -67,7 +88,33 @@ public sealed class SettingsSection : SectionBase
                 if (item is not Panel wrapper) continue;
                 wrapper.Width = Math.Max(400, flow.ClientSize.Width - 24);
                 foreach (Control inner in wrapper.Controls)
+                {
+                    if (inner is Label or TextBox or Button) continue;
                     inner.Width = Math.Max(0, wrapper.Width - 16);
+                }
+            }
+        }
+    }
+
+    private void HighlightSetting(string query)
+    {
+        var term = query.Trim();
+        if (string.IsNullOrWhiteSpace(term)) return;
+        foreach (Control control in _canvas.Controls)
+        {
+            if (control is not FlowLayoutPanel flow) continue;
+            foreach (Control wrapper in flow.Controls)
+            {
+                if (wrapper is not Panel panel || panel.Controls.Count == 0) continue;
+                var card = panel.Controls[0];
+                foreach (Control child in card.Controls)
+                {
+                    if (child is Label label && label.Text.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _canvas.ScrollControlIntoView(wrapper);
+                        return;
+                    }
+                }
             }
         }
     }
@@ -82,8 +129,8 @@ public sealed class SettingsSection : SectionBase
             Checked = Theme.IsDark,
             Location = new Point(16, 44),
             AutoSize = true,
-            ForeColor = CardLayout.CardText,
-            BackColor = CardLayout.CardWhite,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = Color.Transparent,
         };
         darkMode.CheckedChanged += (_, _) =>
         {
@@ -98,7 +145,8 @@ public sealed class SettingsSection : SectionBase
             Location = new Point(16, 74),
             Size = new Size(600, 32),
             Font = Theme.Body,
-            ForeColor = CardLayout.CardSubtle,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
         });
         return wrapper;
     }
@@ -113,7 +161,8 @@ public sealed class SettingsSection : SectionBase
             Location = new Point(16, 42),
             Size = new Size(640, 18),
             Font = Theme.Label,
-            ForeColor = CardLayout.CardFieldLabel,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
         };
         _gameFolderBox = new TextBox
         {
@@ -142,9 +191,10 @@ public sealed class SettingsSection : SectionBase
             Text = Services.FrostbiteAssets.Status,
             Location = new Point(16, 96),
             Size = new Size(734, 22),
-            ForeColor = Theme.Text,
+            ForeColor = StudioColors.PrimaryText,
             Font = Theme.Body,
             AutoEllipsis = true,
+            BackColor = Color.Transparent,
         };
         card.Controls.Add(gameFolderLabel);
         card.Controls.Add(_gameFolderBox);
@@ -156,7 +206,8 @@ public sealed class SettingsSection : SectionBase
             Location = new Point(16, 124),
             Size = new Size(734, 32),
             Font = Theme.Body,
-            ForeColor = CardLayout.CardSubtle,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
         });
         return wrapper;
     }
@@ -171,7 +222,8 @@ public sealed class SettingsSection : SectionBase
             Location = new Point(16, 42),
             Size = new Size(640, 18),
             Font = Theme.Label,
-            ForeColor = CardLayout.CardFieldLabel,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
         };
         _assetBox = new TextBox
         {
@@ -203,7 +255,8 @@ public sealed class SettingsSection : SectionBase
             Location = new Point(16, 108),
             Size = new Size(640, 18),
             Font = Theme.Label,
-            ForeColor = CardLayout.CardFieldLabel,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
         };
         var scraperBox = new TextBox
         {
@@ -219,8 +272,9 @@ public sealed class SettingsSection : SectionBase
             Location = new Point(16, 164),
             Size = new Size(734, 34),
             Font = Theme.Body,
-            ForeColor = CardLayout.CardSubtle,
+            ForeColor = StudioColors.MutedText,
             AutoEllipsis = true,
+            BackColor = Color.Transparent,
         };
         void ApplyScraperRoot()
         {
@@ -281,7 +335,8 @@ public sealed class SettingsSection : SectionBase
             Size = new Size(734, 26),
             TextAlign = ContentAlignment.MiddleLeft,
             AutoEllipsis = true,
-            ForeColor = CardLayout.CardText,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = Color.Transparent,
         };
         compressBackup.Click += async (_, _) =>
         {
@@ -363,7 +418,8 @@ public sealed class SettingsSection : SectionBase
             Location = new Point(16, 118),
             Size = new Size(734, 34),
             Font = Theme.Body,
-            ForeColor = CardLayout.CardSubtle,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
         });
         return wrapper;
     }
@@ -383,7 +439,8 @@ public sealed class SettingsSection : SectionBase
             Location = new Point(16, 42),
             Size = new Size(734, 96),
             Font = Theme.Body,
-            ForeColor = CardLayout.CardText,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = Color.Transparent,
         };
         _logLabel = new Label
         {
@@ -391,8 +448,9 @@ public sealed class SettingsSection : SectionBase
             Location = new Point(16, 148),
             Size = new Size(734, 22),
             Font = Theme.Mono,
-            ForeColor = CardLayout.CardSubtle,
+            ForeColor = StudioColors.MutedText,
             AutoEllipsis = true,
+            BackColor = Color.Transparent,
         };
         var aboutBtn = new Button { Text = "About…", Location = new Point(666, 144), Width = 84, Height = 27 };
         Theme.ApplyButton(aboutBtn);
@@ -403,24 +461,23 @@ public sealed class SettingsSection : SectionBase
         return wrapper;
     }
 
-    /// <summary>Creates a white rounded card plus the transparent wrapper that owns its width.</summary>
-    private (Panel Wrapper, Panel Card) StartCard(int height)
+    /// <summary>Creates a dark Studio rounded card plus the transparent wrapper that owns its width.</summary>
+    private (Panel Wrapper, StudioCard Card) StartCard(int height)
     {
         var wrapper = new Panel
         {
             Dock = DockStyle.None,
             Height = height + 12,
-            BackColor = CardLayout.CardBackground,
+            BackColor = StudioColors.AppBackground,
             Margin = new Padding(0, 0, 0, 6),
         };
-        var card = new Panel
+        var card = new StudioCard
         {
             Location = new Point(8, 6),
             Size = new Size(Math.Max(400, _canvas.ClientSize.Width - 40), height),
-            BackColor = CardLayout.CardWhite,
+            BackColor = StudioColors.Surface,
+            AccentColor = StudioColors.CyanAccent,
         };
-        CardLayout.ApplyRounded(card, 12);
-        card.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(4, height), BackColor = CardLayout.Fc26Green });
         wrapper.Controls.Add(card);
         return (wrapper, card);
     }
@@ -432,8 +489,9 @@ public sealed class SettingsSection : SectionBase
             Text = title.ToUpperInvariant(),
             Location = new Point(16, 12),
             Size = new Size(700, 20),
-            Font = Theme.Label,
-            ForeColor = CardLayout.Fc26Green,
+            Font = StudioFonts.CardTitle,
+            ForeColor = StudioColors.CyanAccent,
+            BackColor = Color.Transparent,
         });
     }
 

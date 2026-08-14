@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 
@@ -10,16 +11,37 @@ namespace CM26.App.Sections;
 public sealed class DiagnosticsSection : SectionBase
 {
     private readonly BufferedPanel _host;
+    private readonly StudioToolbar _toolbar;
 
     public override string SectionKey => "diagnostics";
     public override string SectionTitle => "Diagnostics";
     protected override string TableName => "";
     protected override bool SinglePane => true;
+    protected override bool ShowRecordCommandStrip => false;
 
     public DiagnosticsSection(AppServices s) : base(s)
     {
-        _host = new BufferedPanel { Dock = DockStyle.Fill, BackColor = Theme.Background, Padding = new Padding(8), AutoScroll = true };
-        Tabs.TabPages.Add(MakeTab("Diagnostics", _host));
+        _host = new BufferedPanel { Dock = DockStyle.Fill, BackColor = StudioColors.AppBackground, Padding = new Padding(StudioSpacing.Medium), AutoScroll = true };
+        _toolbar = new StudioToolbar
+        {
+            Title = "Diagnostics",
+            CanCreate = false,
+            ShowFilter = false,
+            Dock = DockStyle.Top,
+        };
+        _toolbar.SearchBox.PlaceholderText = "Find in diagnostics…";
+        _toolbar.SearchTextChanged += (_, _) => HighlightDiagnostic(_toolbar.SearchText);
+        _toolbar.SearchKeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            HighlightDiagnostic(_toolbar.SearchText);
+        };
+
+        var page = new TabPage("Diagnostics") { BackColor = StudioColors.AppBackground };
+        page.Controls.Add(_host);
+        page.Controls.Add(_toolbar);
+        Tabs.TabPages.Add(page);
         Header.SetRecord("Diagnostics", "Engine and database health", IconService.Get("diagnostics", 44));
     }
 
@@ -32,6 +54,8 @@ public sealed class DiagnosticsSection : SectionBase
         // obscuring the diagnostics view.
         Render();
     }
+
+    private TextBox? _diagnosticBox;
 
     private void Render()
     {
@@ -55,7 +79,7 @@ public sealed class DiagnosticsSection : SectionBase
             foreach (var t in Services.Session.Tables.OrderByDescending(t => t.RowCount).Take(12))
                 sb.AppendLine($"  {t.Name,-32} {t.RowCount,10:N0} rows  [{(t.IsLocale ? "locale" : "main")}]");
         }
-        var box = new TextBox
+        _diagnosticBox = new TextBox
         {
             Dock = DockStyle.Fill,
             Multiline = true,
@@ -63,11 +87,23 @@ public sealed class DiagnosticsSection : SectionBase
             ScrollBars = ScrollBars.Vertical,
             Text = sb.ToString(),
             Font = Theme.Mono,
-            BackColor = Theme.Input,
-            ForeColor = Theme.Text,
-            BorderStyle = BorderStyle.FixedSingle,
+            BackColor = StudioColors.InputBackground,
+            ForeColor = StudioColors.PrimaryText,
+            BorderStyle = BorderStyle.None,
         };
-        _host.Controls.Add(box);
+        var card = new StudioCard { Dock = DockStyle.Fill, BackColor = StudioColors.Surface };
+        card.Controls.Add(_diagnosticBox);
+        _host.Controls.Add(card);
         _host.ResumeLayout();
+    }
+
+    private void HighlightDiagnostic(string query)
+    {
+        if (_diagnosticBox == null || string.IsNullOrWhiteSpace(query)) return;
+        var text = _diagnosticBox.Text;
+        var index = text.IndexOf(query, StringComparison.OrdinalIgnoreCase);
+        if (index < 0) return;
+        _diagnosticBox.Focus();
+        _diagnosticBox.Select(index, query.Length);
     }
 }

@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 
@@ -18,6 +19,7 @@ public sealed class DatabaseBrowserSection : SectionBase
     private readonly Button _nextPage;
     private readonly Button _duplicateRow;
     private readonly Button _deleteRow;
+    private readonly StudioToolbar _toolbar;
     private List<DbTable> _ordered = new();
     private DbTable? _activeTable;
     private bool _binding;
@@ -27,6 +29,7 @@ public sealed class DatabaseBrowserSection : SectionBase
     public override string SectionKey => "browser";
     public override string SectionTitle => "Database Browser";
     protected override string TableName => ""; // dynamic per selection
+    protected override bool ShowRecordCommandStrip => false;
 
     public DatabaseBrowserSection(AppServices s) : base(s)
     {
@@ -36,6 +39,8 @@ public sealed class DatabaseBrowserSection : SectionBase
             ReadOnly = false,
             AllowUserToOrderColumns = true,
             Font = Theme.Body,
+            BackgroundColor = StudioColors.AppBackground,
+            BorderStyle = BorderStyle.None,
         };
         Theme.ApplyGrid(_grid);
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells;
@@ -44,7 +49,7 @@ public sealed class DatabaseBrowserSection : SectionBase
             if (_binding || !CanEdit(e.ColumnIndex)) e.Cancel = true;
         };
         _grid.CellEndEdit += (_, e) => StageGridEdit(e.RowIndex, e.ColumnIndex);
-        _info = new Label { Dock = DockStyle.Fill, ForeColor = Theme.Muted, Font = Theme.Body, Padding = new Padding(6, 4, 0, 0) };
+        _info = new Label { Dock = DockStyle.Fill, ForeColor = StudioColors.MutedText, Font = Theme.Body, Padding = new Padding(6, 4, 0, 0), BackColor = Color.Transparent };
         _previousPage = new Button { Text = "Previous", Dock = DockStyle.Right, Width = 76, Enabled = false };
         _nextPage = new Button { Text = "Next", Dock = DockStyle.Right, Width = 60, Enabled = false };
         _previousPage.Click += (_, _) => ChangePage(-1);
@@ -57,17 +62,71 @@ public sealed class DatabaseBrowserSection : SectionBase
         Theme.ApplyButton(_nextPage);
         Theme.ApplyButton(_duplicateRow);
         Theme.ApplyButton(_deleteRow);
-        var pager = new BufferedPanel { Dock = DockStyle.Top, Height = 28, BackColor = Theme.Panel };
+        var pager = new BufferedPanel { Dock = DockStyle.Top, Height = 28, BackColor = StudioColors.Surface };
         pager.Controls.Add(_info);
         pager.Controls.Add(_nextPage);
         pager.Controls.Add(_previousPage);
         pager.Controls.Add(_deleteRow);
         pager.Controls.Add(_duplicateRow);
-        var host = new BufferedPanel { Dock = DockStyle.Fill, BackColor = Theme.Background };
-        host.Controls.Add(_grid);
-        host.Controls.Add(pager);
-        Tabs.TabPages.Add(MakeTab("Records", host));
+
+        var card = new StudioCard { Dock = DockStyle.Fill, BackColor = StudioColors.Surface };
+        card.Controls.Add(_grid);
+        card.Controls.Add(pager);
+
+        _toolbar = new StudioToolbar
+        {
+            Title = "Database Browser",
+            CanCreate = false,
+            ShowFilter = false,
+            Dock = DockStyle.Top,
+        };
+        _toolbar.SearchBox.PlaceholderText = "Search tables…";
+        _toolbar.PreviousClicked += (_, _) => StepTable(-1);
+        _toolbar.NextClicked += (_, _) => StepTable(+1);
+        _toolbar.SearchClicked += (_, _) => FindTable(_toolbar.SearchText);
+        _toolbar.SearchKeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            FindTable(_toolbar.SearchText);
+        };
+
+        var page = new TabPage("Records") { BackColor = StudioColors.AppBackground };
+        page.Controls.Add(card);
+        page.Controls.Add(_toolbar);
+        Tabs.TabPages.Add(page);
         Header.SetRecord("Database Browser", "Inspect every table and edit fields supported by the validated writer", IconService.Get("browser", 44));
+    }
+
+    private void StepTable(int delta)
+    {
+        var records = GetRecords();
+        var found = -1;
+        for (var i = 0; i < records.Count; i++)
+        {
+            if (records[i].RecordIndex == CurrentRecordIndex)
+            {
+                found = i;
+                break;
+            }
+        }
+        if (found < 0) return;
+        var next = found + delta;
+        if (next >= 0 && next < records.Count)
+            GoToRecord(records[next].RecordIndex);
+    }
+
+    private void FindTable(string query)
+    {
+        var term = query.Trim();
+        if (string.IsNullOrWhiteSpace(term)) return;
+        var match = GetRecords().FirstOrDefault(item => item.Matches(term));
+        if (match == null)
+        {
+            MessageBox.Show(this, $"No table matches '{term}'.", "Find Table", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        GoToRecord(match.RecordIndex);
     }
 
     protected override IReadOnlyList<RecordListItem> GetRecords()
@@ -112,18 +171,19 @@ public sealed class DatabaseBrowserSection : SectionBase
                 column.ToolTipText = c.IsWritable
                     ? "Editable: staged and validated before Save."
                     : "Read-only: unsupported by the validated database writer.";
-                column.HeaderCell.Style.BackColor = CardLayout.Fc26Green;
-                column.HeaderCell.Style.ForeColor = Color.White;
+                column.HeaderCell.Style.BackColor = StudioColors.RaisedSurface;
+                column.HeaderCell.Style.ForeColor = StudioColors.PrimaryText;
                 column.HeaderCell.Style.Font = Theme.Label;
-                column.HeaderCell.Style.SelectionBackColor = CardLayout.Fc26Green;
-                column.DefaultCellStyle.BackColor = CardLayout.CardWhite;
-                column.DefaultCellStyle.ForeColor = CardLayout.CardText;
-                column.DefaultCellStyle.SelectionBackColor = Theme.Accent;
-                column.DefaultCellStyle.SelectionForeColor = Color.White;
+                column.HeaderCell.Style.SelectionBackColor = StudioColors.RaisedSurface;
+                column.DefaultCellStyle.BackColor = StudioColors.Surface;
+                column.DefaultCellStyle.ForeColor = StudioColors.PrimaryText;
+                column.DefaultCellStyle.SelectionBackColor = StudioColors.CyanAccent;
+                column.DefaultCellStyle.SelectionForeColor = StudioColors.PrimaryText;
                 column.DefaultCellStyle.Font = Theme.Body;
             }
-            _grid.BackgroundColor = CardLayout.CardBackground;
+            _grid.BackgroundColor = StudioColors.AppBackground;
             _grid.EnableHeadersVisualStyles = false;
+
             int rows = Math.Min(table.RowCount - _pageStart, PageSize);
             for (int offset = 0; offset < rows; offset++)
             {

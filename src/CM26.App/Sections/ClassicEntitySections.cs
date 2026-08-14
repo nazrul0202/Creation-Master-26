@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 using CM26.Application.Services;
@@ -23,6 +24,11 @@ public abstract class ClassicEntitySection : SectionBase
     protected readonly List<TextBox> _editors = [];
     protected readonly List<TextBox> _mirrors = [];
     private readonly FieldEditorGrid _staging = new();
+    protected StudioToolbar? _toolbar;
+
+    /// <summary>Hides the base record chooser when the section builds its own Studio toolbar.</summary>
+    protected virtual bool UseStudioToolbar => false;
+    protected override bool ShowRecordCommandStrip => !UseStudioToolbar;
 
     protected ClassicEntitySection(AppServices services, string key, string title, string table,
         Func<IReadOnlyList<RecordListItem>> records, IReadOnlyDictionary<string, string> labels) : base(services)
@@ -30,6 +36,7 @@ public abstract class ClassicEntitySection : SectionBase
         _key = key; _title = title; _table = table; _records = records; _labels = labels;
         Header.Visible = false;
         Tabs.Padding = new Point(3, 1);
+        BackColor = StudioColors.AppBackground;
     }
 
     public override string SectionKey => _key;
@@ -39,8 +46,8 @@ public abstract class ClassicEntitySection : SectionBase
 
     protected TabPage AddCanvasTab(string title)
     {
-        var page = new TabPage(title) { BackColor = Theme.Background, Font = LegacyFont };
-        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground });
+        var page = new TabPage(title) { BackColor = StudioColors.AppBackground, Font = LegacyFont };
+        page.Controls.Add(new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = StudioColors.AppBackground });
         Tabs.TabPages.Add(page);
         return page;
     }
@@ -49,33 +56,25 @@ public abstract class ClassicEntitySection : SectionBase
 
     protected Panel Group(string text, Point point, Size size)
     {
-        var group = new Panel
+        var group = new StudioCard
         {
             Location = point,
             Size = size,
-            BackColor = CardLayout.CardWhite,
+            BackColor = StudioColors.Surface,
+            AccentColor = StudioColors.CyanAccent,
         };
-        CardLayout.ApplyRounded(group, 10);
-        group.Controls.Add(new Panel
-        {
-            Location = Point.Empty,
-            Size = new Size(size.Width, 4),
-            BackColor = CardLayout.Fc26Green,
-            Dock = DockStyle.Top,
-        });
         group.Controls.Add(new Label
         {
-            Text = text,
-            // Field-based legacy panels commonly begin at Y=18/20.  The title
-            // therefore occupies a compact header band which ends before row 1.
+            Text = text.ToUpperInvariant(),
             Location = new Point(10, 6),
             Size = new Size(size.Width - 20, 13),
-            Font = Theme.Muted9,
-            ForeColor = CardLayout.Fc26Green,
-            BackColor = CardLayout.CardWhite,
+            Font = StudioFonts.DataLabel,
+            ForeColor = StudioColors.CyanAccent,
+            BackColor = Color.Transparent,
         });
         return group;
     }
+
 
     protected void AddField(Control parent, string field, string caption, Point point, int width = 150)
     {
@@ -89,8 +88,8 @@ public abstract class ClassicEntitySection : SectionBase
             Font = LegacyFont,
             TextAlign = ContentAlignment.MiddleRight,
             AutoEllipsis = true,
-            BackColor = CardLayout.CardWhite,
-            ForeColor = CardLayout.CardFieldLabel,
+            BackColor = Color.Transparent,
+            ForeColor = StudioColors.MutedText,
         };
         parent.Controls.Add(label);
         ToolTip.SetToolTip(label, caption);
@@ -113,30 +112,30 @@ public abstract class ClassicEntitySection : SectionBase
             Font = LegacyFont,
             TextAlign = ContentAlignment.MiddleRight,
             AutoEllipsis = true,
-            BackColor = CardLayout.CardWhite,
-            ForeColor = CardLayout.CardFieldLabel,
+            BackColor = Color.Transparent,
+            ForeColor = StudioColors.MutedText,
         });
         var box = new TextBox { Location = point, Size = new Size(width, 20), Tag = field, ReadOnly = true, Font = LegacyFont, BorderStyle = BorderStyle.FixedSingle };
         Theme.ApplyTextBox(box);
-        box.BackColor = CardLayout.CardFieldBg;
-        box.ForeColor = CardLayout.CardText;
+        box.BackColor = StudioColors.InputBackground;
+        box.ForeColor = StudioColors.PrimaryText;
         parent.Controls.Add(box);
         _mirrors.Add(box);
     }
 
     protected PictureBox ImageSurface(Control parent, Point point, Size size, string caption)
     {
-        var holder = new Panel { Location = point, Size = new Size(size.Width, size.Height + 21), BackColor = CardLayout.CardWhite };
-        var pic = new PictureBox { Size = size, BackColor = CardLayout.CardFieldBg, BorderStyle = BorderStyle.None, SizeMode = PictureBoxSizeMode.Zoom };
+        var holder = new Panel { Location = point, Size = new Size(size.Width, size.Height + 21), BackColor = Color.Transparent };
+        var pic = new PictureBox { Size = size, BackColor = StudioColors.InputBackground, BorderStyle = BorderStyle.None, SizeMode = PictureBoxSizeMode.Zoom };
         holder.Controls.Add(pic);
-        holder.Controls.Add(new Label { Text = caption, Location = new Point(0, size.Height + 2), Size = new Size(size.Width, 18), Font = LegacyFont, ForeColor = CardLayout.CardSubtle, TextAlign = ContentAlignment.MiddleCenter, BackColor = CardLayout.CardWhite });
+        holder.Controls.Add(new Label { Text = caption, Location = new Point(0, size.Height + 2), Size = new Size(size.Width, 18), Font = LegacyFont, ForeColor = StudioColors.MutedText, TextAlign = ContentAlignment.MiddleCenter, BackColor = Color.Transparent });
         parent.Controls.Add(holder);
         return pic;
     }
 
     protected void AddReadonlyNote(Control parent, string text, Point point, Size size)
     {
-        parent.Controls.Add(new Label { Text = text, Location = point, Size = size, Font = LegacyFont, ForeColor = CardLayout.CardSubtle, BackColor = CardLayout.CardWhite, TextAlign = ContentAlignment.MiddleCenter });
+        parent.Controls.Add(new Label { Text = text, Location = point, Size = size, Font = LegacyFont, ForeColor = StudioColors.MutedText, BackColor = Color.Transparent, TextAlign = ContentAlignment.MiddleCenter });
     }
 
     /// <summary>Loads a local image (including DDS) without locking its source file.</summary>
@@ -171,6 +170,74 @@ public abstract class ClassicEntitySection : SectionBase
     protected string Value(string field) =>
         CurrentValues.TryGetValue(field, out var value) ? value.RawValue : string.Empty;
 
+    /// <summary>Moves the current selection by the requested number of records in the displayed list.</summary>
+    protected void StepRecord(int delta)
+    {
+        var records = GetRecords();
+        var found = -1;
+        for (var i = 0; i < records.Count; i++)
+        {
+            if (records[i].RecordIndex == CurrentRecordIndex)
+            {
+                found = i;
+                break;
+            }
+        }
+        if (found < 0)
+        {
+            if (delta > 0 && records.Count > 0) GoToRecord(records[0].RecordIndex);
+            return;
+        }
+        var next = found + delta;
+        if (next >= 0 && next < records.Count)
+            GoToRecord(records[next].RecordIndex);
+    }
+
+    /// <summary>Attaches a Studio toolbar to the supplied tab page and wires the standard navigation events.</summary>
+    protected StudioToolbar AttachStudioToolbar(TabPage page, string title, bool canCreate = false, bool showFilter = true)
+    {
+        var toolbar = new StudioToolbar
+        {
+            Title = title,
+            CanCreate = canCreate && SupportsCreate,
+            ShowFilter = showFilter,
+            Dock = DockStyle.Top,
+        };
+        toolbar.SearchBox.PlaceholderText = RecordSearchPlaceholder;
+        toolbar.NewClicked += (_, _) => CreateNewRecord();
+        toolbar.PreviousClicked += (_, _) => StepRecord(-1);
+        toolbar.NextClicked += (_, _) => StepRecord(+1);
+        toolbar.SearchClicked += (_, _) => ApplyRecordFilter(toolbar.SearchText);
+        toolbar.SearchKeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            ApplyRecordFilter(toolbar.SearchText);
+        };
+        toolbar.FilterClicked += (_, _) => toolbar.FocusSearch();
+        page.Controls.Add(toolbar);
+        _toolbar = toolbar;
+        return toolbar;
+    }
+
+    protected void UpdateToolbarCount()
+    {
+        if (_toolbar == null) return;
+        if (!Services.Session.IsLoaded)
+        {
+            _toolbar.RecordCountText = "0 records";
+            return;
+        }
+        try
+        {
+            _toolbar.RecordCountText = $"{GetRecords().Count:N0} records";
+        }
+        catch
+        {
+            _toolbar.RecordCountText = string.Empty;
+        }
+    }
+
     protected override void ShowRecord(int recordIndex)
     {
         _values.Clear();
@@ -183,16 +250,16 @@ public abstract class ClassicEntitySection : SectionBase
             {
                 box.Text = value.Value;
                 box.ReadOnly = !value.IsWritable;
-                box.BackColor = value.IsWritable ? Theme.Input : CardLayout.CardFieldBg;
-                box.ForeColor = CardLayout.CardText;
+                box.BackColor = value.IsWritable ? Theme.Input : StudioColors.InputBackground;
+                box.ForeColor = StudioColors.PrimaryText;
                 ToolTip.SetToolTip(box, value.IsWritable ? value.FieldName : value.FieldName + " (read-only)");
             }
             else
             {
                 box.Text = "";
                 box.ReadOnly = true;
-                box.BackColor = CardLayout.CardFieldBg;
-                box.ForeColor = CardLayout.CardSubtle;
+                box.BackColor = StudioColors.InputBackground;
+                box.ForeColor = StudioColors.MutedText;
                 ToolTip.SetToolTip(box, name + " is not present in this database");
             }
         }
@@ -203,20 +270,26 @@ public abstract class ClassicEntitySection : SectionBase
             {
                 box.Text = value.Value;
                 box.ReadOnly = true;
-                box.BackColor = CardLayout.CardFieldBg;
-                box.ForeColor = CardLayout.CardText;
+                box.BackColor = StudioColors.InputBackground;
+                box.ForeColor = StudioColors.PrimaryText;
                 ToolTip.SetToolTip(box, $"Read-only mirror of {value.FieldName} — edited in its section above.");
             }
             else
             {
                 box.Text = "";
                 box.ReadOnly = true;
-                box.BackColor = CardLayout.CardFieldBg;
-                box.ForeColor = CardLayout.CardSubtle;
+                box.BackColor = StudioColors.InputBackground;
+                box.ForeColor = StudioColors.MutedText;
                 ToolTip.SetToolTip(box, name + " is not present in this database");
             }
         }
         OnRecordShown();
+    }
+
+    public override void ActivateSection()
+    {
+        base.ActivateSection();
+        UpdateToolbarCount();
     }
 
     protected virtual void OnRecordShown() { }
@@ -232,9 +305,13 @@ public abstract class ClassicEntitySection : SectionBase
 public sealed class ManagersSection : ClassicEntitySection
 {
     private readonly PictureBox _face;
+    protected override bool UseStudioToolbar => true;
+
     public ManagersSection(AppServices s) : base(s, "managers", "Managers", "manager", () => s.RequireData().GetManagers(), LabelMaps.Managers)
     {
-        var general = AddCanvasTab("General"); var c = Canvas(general);
+        var general = AddCanvasTab("General");
+        AttachStudioToolbar(general, "Managers");
+        var c = Canvas(general);
         var identity = Group("Identity", new Point(4, 3), new Size(750, 222));
         _face = ImageSurface(identity, new Point(12, 20), new Size(128, 128), "Manager face");
         LegacyAssetActions.Attach(Services, identity, _face, new Point(12, 178), () => OnRecordShown());
@@ -350,9 +427,13 @@ public sealed class StadiumsSection : ClassicEntitySection
     private readonly PictureBox _preview;
     private readonly PictureBox _generalPreview;
     private readonly PictureBox _tifoPreview;
+    protected override bool UseStudioToolbar => true;
+
     public StadiumsSection(AppServices s) : base(s, "stadiums", "Stadiums", "stadiums", () => s.RequireData().GetStadiums(), LabelMaps.Stadiums)
     {
-        var general = AddCanvasTab("General"); var c = Canvas(general);
+        var general = AddCanvasTab("General");
+        AttachStudioToolbar(general, "Stadiums");
+        var c = Canvas(general);
         var info = Group("Info", new Point(8, 3), new Size(400, 522));
         AddField(info, "name", "Database Name", new Point(120, 18), 136);
         AddField(info, "stadiumid", "Stadium Id", new Point(120, 44), 136);
@@ -536,9 +617,13 @@ ThreeDViewerLauncher.AttachPlaceholder(model, new Point(10, 22), new Size(1024, 
 
 public sealed class RefereesSection : ClassicEntitySection
 {
+    protected override bool UseStudioToolbar => true;
+
     public RefereesSection(AppServices s) : base(s, "referees", "Referees", "referee", () => s.RequireData().GetReferees(), LabelMaps.Referees)
     {
-        var general = AddCanvasTab("General"); var c = Canvas(general);
+        var general = AddCanvasTab("General");
+        AttachStudioToolbar(general, "Referees");
+        var c = Canvas(general);
         var identity = Group("Identity", new Point(3, 3), new Size(512, 272));
         AddField(identity, "refereeid", "Referee Id", new Point(98, 18), 130);
         AddField(identity, "firstname", "First Name", new Point(98, 44), 130);
@@ -610,10 +695,13 @@ public sealed class FormationsSection : ClassicEntitySection
     private readonly Dictionary<string, ComboBox> _formationPickers = new(StringComparer.OrdinalIgnoreCase);
     private readonly FieldEditorGrid _pickerStaging = new();
     private bool _syncFormationPickers;
+    protected override bool UseStudioToolbar => true;
 
     public FormationsSection(AppServices s) : base(s, "formations", "Formations", "formations", () => s.RequireData().GetFormations(), LabelMaps.Formations)
     {
-        var general = AddCanvasTab("Position"); var c = Canvas(general);
+        var general = AddCanvasTab("Position");
+        AttachStudioToolbar(general, "Formations");
+        var c = Canvas(general);
         // Keep the tactical board and its editors in a real split workspace.
         // Fixed X/Y placement made the role map disappear or overlap the pitch
         // when the window was restored on a smaller display.
@@ -624,12 +712,13 @@ public sealed class FormationsSection : ClassicEntitySection
             Orientation = Orientation.Vertical,
             FixedPanel = FixedPanel.None,
             SplitterWidth = 6,
-            BackColor = CardLayout.CardBackground,
+            BackColor = StudioColors.Divider,
         };
         workspace.Panel1.Padding = new Padding(3);
         workspace.Panel2.Padding = new Padding(3);
-        workspace.Panel1.BackColor = CardLayout.CardBackground;
-        workspace.Panel2.BackColor = CardLayout.CardBackground;
+        workspace.Panel1.BackColor = StudioColors.AppBackground;
+        workspace.Panel2.BackColor = StudioColors.AppBackground;
+
         workspace.SizeChanged += (_, _) =>
         {
             // Setting either MinSize first makes WinForms immediately validate
@@ -668,7 +757,8 @@ public sealed class FormationsSection : ClassicEntitySection
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Pitch redraw failed: {ex.Message}"); /* A pitch redraw fault must never take down the message loop. */ }
         };
         _pitchGroup.Controls.Add(_pitch);
-        _pitchStatus = new Label { Location = new Point(12, 455), Size = new Size(550, 28), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel, AutoEllipsis = true };
+        _pitchStatus = new Label { Location = new Point(12, 455), Size = new Size(550, 28), Font = LegacyFont, ForeColor = StudioColors.MutedText, BackColor = Color.Transparent, AutoEllipsis = true };
+
         _pitchStatus.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
         _pitchGroup.Controls.Add(_pitchStatus);
         _pitchGroup.SizeChanged += (_, _) => ResizePitchPreview();
@@ -706,8 +796,8 @@ public sealed class FormationsSection : ClassicEntitySection
                 Size = new Size(74, 18),
                 Font = LegacyFont,
                 TextAlign = ContentAlignment.MiddleRight,
-                BackColor = Theme.Panel,
-                ForeColor = Theme.Text,
+                BackColor = Color.Transparent,
+                ForeColor = StudioColors.PrimaryText,
             });
             AddFormationDropdown(roles, $"position{i}", new Point(x, y), 78, PositionOptions());
             roles.Controls.Add(new Label
@@ -717,9 +807,10 @@ public sealed class FormationsSection : ClassicEntitySection
                 Size = new Size(58, 18),
                 Font = LegacyFont,
                 TextAlign = ContentAlignment.MiddleRight,
-                BackColor = Theme.Panel,
-                ForeColor = Theme.Text,
+                BackColor = Color.Transparent,
+                ForeColor = StudioColors.PrimaryText,
             });
+
             AddFormationDropdown(roles, $"pos{i}role", new Point(x + 154, y), 78, RoleOptions());
             var clearSlot = new Button
             {
@@ -750,22 +841,23 @@ public sealed class FormationsSection : ClassicEntitySection
             offsets.Controls.Add(new Label
             {
                 Text = $"Slot {i + 1}", Location = new Point(x, y + 3), Size = new Size(56, 18),
-                Font = LegacyFont, ForeColor = CardLayout.CardFieldLabel,
-                BackColor = CardLayout.CardWhite, TextAlign = ContentAlignment.MiddleRight,
+                Font = LegacyFont, ForeColor = StudioColors.MutedText,
+                BackColor = Color.Transparent, TextAlign = ContentAlignment.MiddleRight,
             });
             offsets.Controls.Add(new Label
             {
                 Text = "X", Location = new Point(x + 66, y + 3), Size = new Size(18, 18),
-                Font = LegacyFont, ForeColor = CardLayout.CardFieldLabel,
-                BackColor = CardLayout.CardWhite, TextAlign = ContentAlignment.MiddleRight,
+                Font = LegacyFont, ForeColor = StudioColors.MutedText,
+                BackColor = Color.Transparent, TextAlign = ContentAlignment.MiddleRight,
             });
             AddSlotEditor(offsets, $"offset{i}x", new Point(x + 90, y), 92);
             offsets.Controls.Add(new Label
             {
                 Text = "Y", Location = new Point(x + 194, y + 3), Size = new Size(18, 18),
-                Font = LegacyFont, ForeColor = CardLayout.CardFieldLabel,
-                BackColor = CardLayout.CardWhite, TextAlign = ContentAlignment.MiddleRight,
+                Font = LegacyFont, ForeColor = StudioColors.MutedText,
+                BackColor = Color.Transparent, TextAlign = ContentAlignment.MiddleRight,
             });
+
             AddSlotEditor(offsets, $"offset{i}y", new Point(x + 218, y), 92);
         }
         AddReadonlyNote(offsets, "Coordinates control the marker positions shown in the Formation Preview.", new Point(16, 256), new Size(760, 22));
@@ -981,10 +1073,13 @@ public sealed class KitsSection : ClassicEntitySection
     private readonly Label _assetStatus;
     private readonly Button _loadTexture;
     private CancellationTokenSource? _previewCancellation;
+    protected override bool UseStudioToolbar => true;
 
     public KitsSection(AppServices s) : base(s, "kits", "Kits", "teamkits", () => s.RequireData().GetKits(), LabelMaps.Kits)
     {
-        var general = AddCanvasTab("General"); var c = Canvas(general);
+        var general = AddCanvasTab("General");
+        AttachStudioToolbar(general, "Kits");
+        var c = Canvas(general);
         var texture = Group("Texture", new Point(3, 3), new Size(750, 560));
         _texturePreview = ImageSurface(texture, new Point(5, 20), new Size(734, 480), "Kit texture");
         _loadTexture = new Button
@@ -1011,8 +1106,8 @@ public sealed class KitsSection : ClassicEntitySection
             Location = new Point(386, 531),
             Size = new Size(316, 18),
             Font = LegacyFont,
-            ForeColor = Theme.Muted,
-            BackColor = Theme.Panel,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
         };
         texture.Controls.Add(_assetStatus);
         c.Controls.Add(texture);
@@ -1234,7 +1329,7 @@ public sealed class KitsSection : ClassicEntitySection
     {
         if (IsDisposed) return;
         _assetStatus.Text = text;
-        _assetStatus.ForeColor = isError ? Theme.Warning : Theme.Muted;
+        _assetStatus.ForeColor = isError ? StudioColors.Yellow : StudioColors.MutedText;
         ToolTip.SetToolTip(_assetStatus, text);
     }
 

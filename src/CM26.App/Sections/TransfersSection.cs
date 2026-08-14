@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 
 namespace CM26.App.Sections;
@@ -29,6 +30,7 @@ public sealed class TransfersSection : SectionBase
     private readonly Label _status = new();
     private readonly ListView _squad = new();
     private readonly List<TransfermarktPlayer> _players = [];
+    private readonly StudioToolbar _toolbar;
     private string _scraperWorkbookPath = string.Empty;
 
     public override string SectionKey => "transfers";
@@ -39,18 +41,35 @@ public sealed class TransfersSection : SectionBase
 
     public TransfersSection(AppServices services) : base(services)
     {
+        _toolbar = new StudioToolbar
+        {
+            Title = "Data Sync",
+            CanCreate = false,
+            ShowFilter = false,
+            Dock = DockStyle.Top,
+        };
+        _toolbar.SearchBox.PlaceholderText = "Find player…";
+        _toolbar.SearchTextChanged += (_, _) => HighlightSquadPlayer(_toolbar.SearchText);
+        _toolbar.SearchKeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            HighlightSquadPlayer(_toolbar.SearchText);
+        };
+
         var page = new TabPage("Team & Squad Scraper")
         {
-            BackColor = Theme.Background,
-            Padding = new Padding(8)
+            BackColor = StudioColors.AppBackground,
+            Padding = new Padding(StudioSpacing.Medium)
         };
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 6,
-            BackColor = Theme.Background
+            BackColor = StudioColors.AppBackground
         };
+
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 31));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
@@ -124,14 +143,16 @@ public sealed class TransfersSection : SectionBase
         _team.Font = Theme.RecordTitle;
         _team.Text = "CM26 Scraper import";
         _team.TextAlign = ContentAlignment.MiddleLeft;
+        _team.ForeColor = StudioColors.PrimaryText;
+        _team.BackColor = Color.Transparent;
 
         _squad.Dock = DockStyle.Fill;
         _squad.View = View.Details;
         _squad.FullRowSelect = true;
         _squad.GridLines = true;
         _squad.HideSelection = false;
-        _squad.BackColor = Theme.Input;
-        _squad.ForeColor = Theme.Text;
+        _squad.BackColor = StudioColors.InputBackground;
+        _squad.ForeColor = StudioColors.PrimaryText;
         _squad.Font = Theme.Body;
         _squad.Columns.Add("#", 48);
         _squad.Columns.Add("Player", 240);
@@ -145,6 +166,8 @@ public sealed class TransfersSection : SectionBase
         _status.Text = "Open the CM26 Scraper (bundled under Tools\\CM26 Scraper or located automatically), scrape a squad, then Refresh output. CM26 will import that output directly into the selected team database records.";
         _status.TextAlign = ContentAlignment.MiddleLeft;
         _status.AutoEllipsis = true;
+        _status.ForeColor = StudioColors.MutedText;
+        _status.BackColor = Color.Transparent;
 
         root.Controls.Add(destination, 0, 0);
         root.Controls.Add(scraperActions, 0, 1);
@@ -152,7 +175,11 @@ public sealed class TransfersSection : SectionBase
         root.Controls.Add(_team, 0, 3);
         root.Controls.Add(_squad, 0, 4);
         root.Controls.Add(_status, 0, 5);
-        page.Controls.Add(root);
+
+        var card = new StudioCard { Dock = DockStyle.Fill, BackColor = StudioColors.Surface };
+        card.Controls.Add(root);
+        page.Controls.Add(card);
+        page.Controls.Add(_toolbar);
         Tabs.TabPages.Add(page);
     }
 
@@ -166,6 +193,22 @@ public sealed class TransfersSection : SectionBase
         base.ActivateSection();
         PopulateDestinationTeams();
         DetectScraperOutput(showMissingMessage: false);
+    }
+
+    private void HighlightSquadPlayer(string query)
+    {
+        var term = query.Trim();
+        if (string.IsNullOrWhiteSpace(term)) return;
+        foreach (ListViewItem item in _squad.Items)
+        {
+            if (item.Text.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                item.SubItems.Cast<ListViewItem.ListViewSubItem>().Any(sub => sub.Text.Contains(term, StringComparison.OrdinalIgnoreCase)))
+            {
+                item.Selected = true;
+                _squad.EnsureVisible(item.Index);
+                return;
+            }
+        }
     }
 
     private void PopulateDestinationTeams()

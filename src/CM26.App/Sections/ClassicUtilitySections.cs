@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Data;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 
@@ -29,15 +30,22 @@ public sealed class CompetitionsSection : ClassicEntitySection
         ["isrealcompetition"] = "Licensed", ["crowdregion"] = "Crowd Region"
     };
 
+    protected override bool UseStudioToolbar => true;
+
     public CompetitionsSection(AppServices s) : base(s, "competitions", "Competitions", "competition", () => Records(s), Fields)
     {
-        var fifa = AddCanvasTab("FIFA"); var c = Canvas(fifa);
+        var fifa = AddCanvasTab("FIFA");
+        AttachStudioToolbar(fifa, "Competitions");
+        var c = Canvas(fifa);
         var tree = Group("Competitions", new Point(3, 3), new Size(575, 820));
         _competitionTree.Location = new Point(8, 22);
         _competitionTree.Size = new Size(555, 785);
         _competitionTree.Font = LegacyFont;
         _competitionTree.ShowRootLines = true;
         _competitionTree.ShowLines = true;
+        _competitionTree.BackColor = StudioColors.InputBackground;
+        _competitionTree.ForeColor = StudioColors.PrimaryText;
+        _competitionTree.LineColor = StudioColors.CardBorder;
         _competitionTree.AfterSelect += (_, e) =>
         {
             if (e.Node?.Tag is int recordIndex) GoToRecord(recordIndex);
@@ -95,8 +103,8 @@ public sealed class CompetitionsSection : ClassicEntitySection
         _compdataStatus.Size = new Size(1306, 18);
         _compdataStatus.Text = "Open a Compdata workbook. Validate before saving.";
         _compdataStatus.AutoEllipsis = true;
-        _compdataStatus.ForeColor = Theme.Muted;
-        _compdataStatus.BackColor = Theme.Panel;
+        _compdataStatus.ForeColor = StudioColors.MutedText;
+        _compdataStatus.BackColor = Color.Transparent;
         workspace.Controls.Add(_compdataStatus);
 
         _compdataGrid.Location = new Point(12, 62);
@@ -107,21 +115,21 @@ public sealed class CompetitionsSection : ClassicEntitySection
         _compdataGrid.RowHeadersVisible = false;
         _compdataGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _compdataGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells;
-        _compdataGrid.BackgroundColor = CardLayout.CardBackground;
+        _compdataGrid.BackgroundColor = StudioColors.AppBackground;
         _compdataGrid.BorderStyle = BorderStyle.None;
         _compdataGrid.EnableHeadersVisualStyles = false;
         _compdataGrid.ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableAlwaysIncludeHeaderText;
-        _compdataGrid.ColumnHeadersDefaultCellStyle.BackColor = CardLayout.Fc26Green;
-        _compdataGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+        _compdataGrid.ColumnHeadersDefaultCellStyle.BackColor = StudioColors.RaisedSurface;
+        _compdataGrid.ColumnHeadersDefaultCellStyle.ForeColor = StudioColors.PrimaryText;
         _compdataGrid.ColumnHeadersDefaultCellStyle.Font = Theme.Label;
-        _compdataGrid.ColumnHeadersDefaultCellStyle.SelectionBackColor = CardLayout.Fc26Green;
+        _compdataGrid.ColumnHeadersDefaultCellStyle.SelectionBackColor = StudioColors.RaisedSurface;
         _compdataGrid.ColumnHeadersHeight = 30;
-        _compdataGrid.DefaultCellStyle.BackColor = CardLayout.CardWhite;
-        _compdataGrid.DefaultCellStyle.ForeColor = CardLayout.CardText;
-        _compdataGrid.DefaultCellStyle.SelectionBackColor = Theme.Accent;
-        _compdataGrid.DefaultCellStyle.SelectionForeColor = Color.White;
+        _compdataGrid.DefaultCellStyle.BackColor = StudioColors.Surface;
+        _compdataGrid.DefaultCellStyle.ForeColor = StudioColors.PrimaryText;
+        _compdataGrid.DefaultCellStyle.SelectionBackColor = StudioColors.CyanAccent;
+        _compdataGrid.DefaultCellStyle.SelectionForeColor = StudioColors.PrimaryText;
         _compdataGrid.DefaultCellStyle.Font = Theme.Body;
-        _compdataGrid.GridColor = CardLayout.Lighten(CardLayout.Fc26Green, 200);
+        _compdataGrid.GridColor = StudioColors.CardBorder;
         workspace.Controls.Add(_compdataGrid);
         canvas.Controls.Add(workspace);
 
@@ -297,14 +305,14 @@ public sealed class CompetitionsSection : ClassicEntitySection
             _compdataGrid.EnableHeadersVisualStyles = false;
             foreach (DataGridViewColumn column in _compdataGrid.Columns)
             {
-                column.HeaderCell.Style.BackColor = CardLayout.Fc26Green;
-                column.HeaderCell.Style.ForeColor = Color.White;
+                column.HeaderCell.Style.BackColor = StudioColors.RaisedSurface;
+                column.HeaderCell.Style.ForeColor = StudioColors.PrimaryText;
                 column.HeaderCell.Style.Font = Theme.Label;
-                column.HeaderCell.Style.SelectionBackColor = CardLayout.Fc26Green;
-                column.DefaultCellStyle.BackColor = CardLayout.CardWhite;
-                column.DefaultCellStyle.ForeColor = CardLayout.CardText;
-                column.DefaultCellStyle.SelectionBackColor = Theme.Accent;
-                column.DefaultCellStyle.SelectionForeColor = Color.White;
+                column.HeaderCell.Style.SelectionBackColor = StudioColors.RaisedSurface;
+                column.DefaultCellStyle.BackColor = StudioColors.Surface;
+                column.DefaultCellStyle.ForeColor = StudioColors.PrimaryText;
+                column.DefaultCellStyle.SelectionBackColor = StudioColors.CyanAccent;
+                column.DefaultCellStyle.SelectionForeColor = StudioColors.PrimaryText;
                 column.DefaultCellStyle.Font = Theme.Body;
             }
             var limit = CompdataSchema.GetRowLimit(sheetName);
@@ -542,9 +550,13 @@ public sealed class BallsSection : ClassicEntitySection
         ["isrewardable"] = "Rewardable"
     };
 
+    protected override bool UseStudioToolbar => true;
+
     public BallsSection(AppServices s) : base(s, "balls", "Balls", "teamballs", () => Records(s), Fields)
     {
-        var general = AddCanvasTab("General"); var c = Canvas(general);
+        var general = AddCanvasTab("General");
+        AttachStudioToolbar(general, "Balls");
+        var c = Canvas(general);
         var texture = Group("Texture", new Point(3, 3), new Size(720, 580));
         _texture = ImageSurface(texture, new Point(4, 20), new Size(700, 500), "1024 x 1024");
         LegacyAssetActions.Attach(Services, texture, _texture, new Point(8, 545), () => OnRecordShown());
@@ -607,9 +619,13 @@ public sealed class BootsSection : ClassicEntitySection
         ["shoecolor2"] = "Color 2", ["islicensed"] = "Licensed", ["gender"] = "Gender"
     };
 
+    protected override bool UseStudioToolbar => true;
+
     public BootsSection(AppServices s) : base(s, "boots", "Boots", "playerboots", () => Records(s), Fields)
     {
-        var general = AddCanvasTab("General"); var c = Canvas(general);
+        var general = AddCanvasTab("General");
+        AttachStudioToolbar(general, "Boots");
+        var c = Canvas(general);
         var texture = Group("Texture", new Point(3, 3), new Size(516, 580));
         _texture = ImageSurface(texture, new Point(4, 20), new Size(500, 500), "512 x 512");
         LegacyAssetActions.Attach(Services, texture, _texture, new Point(8, 545), () => OnRecordShown());
@@ -691,9 +707,12 @@ internal sealed class GlovesSection : ClassicEntitySection
         ["islicensed"] = "Licensed", ["isembargoed"] = "Embargoed"
     };
 
+    protected override bool UseStudioToolbar => true;
+
     public GlovesSection(AppServices s) : base(s, "gloves", "Gloves", "goalkeepergloves", () => Records(s), Fields)
     {
         var general = AddCanvasTab("General");
+        AttachStudioToolbar(general, "Gloves");
         var canvas = Canvas(general);
         var texture = Group("Glove Texture", new Point(3, 3), new Size(720, 632));
         _texture = ImageSurface(texture, new Point(4, 20), new Size(700, 520), "Installed texture");
