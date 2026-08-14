@@ -1,6 +1,10 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.94 (MIT License), 2026-08-11.
+Status: Version 1.0.106 (MIT License), 2026-08-14.
+
+## User interface
+
+The v1.0.106 Studio rebuild replaces the legacy fixed-layout sections with a shared dark-card design system. Every section now uses `StudioCard`, `StudioToolbar` and related controls. Layouts were verified at common desktop resolutions, but exotic DPI combinations or very small window sizes may still need refinement. All business logic (staging, save, validation, asset loading, formation editing) was preserved.
 
 ## Direct editing
 
