@@ -1,14 +1,14 @@
 using System.Drawing;
-using System.Data;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 
 namespace CM26.App.Sections;
 
 /// <summary>
-/// FC26 data adapter presented with the original CM16 CountryForm geometry.
+/// FC26 data adapter presented with the Studio dark card layout.
 /// The CM16 source remains linked under CM16Source/CountryForm.cs as the
 /// canonical reference for this port.
 /// </summary>
@@ -32,127 +32,559 @@ public sealed class CountriesSection : SectionBase
     private bool _syncTopTier;
     private bool _suppressListReload;
 
+    private StudioToolbar? _toolbar;
+    private StudioCard? _heroCard;
+    private FlowLayoutPanel? _detailsFlow;
+    private StudioCard? _flagsCard;
+    private StudioCard? _actionsCard;
+    private StudioCard? _mapCard;
+    private StudioCard? _fieldsCard;
+    private TableLayoutPanel? _fieldsTable;
+
     public override string SectionKey => "countries";
     public override string SectionTitle => "Countries";
     protected override string TableName => "nations";
     protected override bool SupportsCreate => true;
     protected override string RecordSearchPlaceholder => "Search countries…";
+    protected override bool ShowRecordCommandStrip => false;
 
     public CountriesSection(AppServices services) : base(services)
     {
         Header.Visible = false;
-        Tabs.Padding = new Point(3, 1);
+        EmptyState.Visible = false;
+        Tabs.BringToFront();
+        Tabs.Font = LegacyFont;
+        Tabs.Padding = new Point(4, 2);
+        Theme.ApplyTabs(Tabs);
 
-        var page = new TabPage("General") { BackColor = Theme.Background, Font = LegacyFont };
-        var canvas = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = CardLayout.CardBackground };
-        canvas.AutoScrollMinSize = new Size(0, 900);
+        _mapViewer = new PictureBox
+        {
+            Size = new Size(512, 256),
+            BackColor = StudioColors.InputBackground,
+            BorderStyle = BorderStyle.None,
+            SizeMode = PictureBoxSizeMode.Zoom,
+        };
+
+        AddOverviewTab();
+        AddNationalAudioTab();
+    }
+
+    private void AddOverviewTab()
+    {
+        var page = new TabPage("General") { BackColor = StudioColors.AppBackground, Font = LegacyFont };
+
+        _toolbar = new StudioToolbar
+        {
+            Title = "Countries",
+            CanCreate = true,
+            ShowFilter = true,
+            Dock = DockStyle.Top,
+        };
+        _toolbar.SearchBox.PlaceholderText = RecordSearchPlaceholder;
+        _toolbar.NewClicked += (_, _) => CreateNewRecord();
+        _toolbar.PreviousClicked += (_, _) => StepRecord(-1);
+        _toolbar.NextClicked += (_, _) => StepRecord(+1);
+        _toolbar.SearchClicked += (_, _) => SearchCountries(_toolbar.SearchText);
+        _toolbar.SearchKeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            SearchCountries(_toolbar.SearchText);
+        };
+        _toolbar.FilterClicked += (_, _) => FocusSearchBox();
+        page.Controls.Add(_toolbar);
+
+        var scrollPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = StudioColors.AppBackground,
+            Padding = new Padding(StudioSpacing.Medium),
+            AutoScroll = true,
+        };
+        page.Controls.Add(scrollPanel);
+
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            ColumnCount = 1,
+            BackColor = StudioColors.AppBackground,
+        };
+
+        _heroCard = BuildHeroCard();
+        layout.Controls.Add(_heroCard, 0, 0);
+
+        _detailsFlow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = StudioColors.AppBackground,
+            Margin = new Padding(0, StudioSpacing.Medium, 0, 0),
+        };
+        _detailsFlow.Controls.Add(BuildMetric("Nation ID", "—", StudioColors.CyanAccent));
+        _detailsFlow.Controls.Add(BuildMetric("ISO Code", "—", StudioColors.Purple));
+        _detailsFlow.Controls.Add(BuildMetric("Confederation", "—", StudioColors.Green));
+        _detailsFlow.Controls.Add(BuildMetric("Level", "—", StudioColors.Yellow));
+        layout.Controls.Add(_detailsFlow, 0, 1);
+
+        _flagsCard = BuildFlagsCard();
+        layout.Controls.Add(_flagsCard, 0, 2);
+
+        _actionsCard = BuildActionsCard();
+        layout.Controls.Add(_actionsCard, 0, 3);
+
+        _mapCard = BuildMapCard();
+        layout.Controls.Add(_mapCard, 0, 4);
+
+        _fieldsCard = BuildFieldsCard();
+        layout.Controls.Add(_fieldsCard, 0, 5);
+
+        scrollPanel.Controls.Add(layout);
+        Tabs.TabPages.Add(page);
+    }
+
+    private StudioCard BuildHeroCard()
+    {
+        var card = new StudioCard
+        {
+            Dock = DockStyle.Top,
+            Height = 160,
+            AccentColor = StudioColors.CyanAccent,
+        };
+
+        _countryFlagPreview.Size = new Size(120, 120);
+        _countryFlagPreview.Location = new Point(StudioSpacing.Large, StudioSpacing.Large);
+        _countryFlagPreview.SizeMode = PictureBoxSizeMode.Zoom;
+        _countryFlagPreview.BackColor = Color.Transparent;
+        _countryFlagPreview.BorderStyle = BorderStyle.None;
+        card.Controls.Add(_countryFlagPreview);
+
+        _countryNameLabel.Location = new Point(152, StudioSpacing.Large);
+        _countryNameLabel.Size = new Size(500, 38);
+        _countryNameLabel.Font = StudioFonts.SectionTitle;
+        _countryNameLabel.ForeColor = StudioColors.PrimaryText;
+        _countryNameLabel.BackColor = Color.Transparent;
+        _countryNameLabel.Text = "Country Name";
+        card.Controls.Add(_countryNameLabel);
+
+        _countryMetaLabel.Location = new Point(152, 54);
+        _countryMetaLabel.Size = new Size(600, 22);
+        _countryMetaLabel.Font = StudioFonts.CardSubtitle;
+        _countryMetaLabel.ForeColor = StudioColors.MutedText;
+        _countryMetaLabel.BackColor = Color.Transparent;
+        card.Controls.Add(_countryMetaLabel);
+
+        var addCountry = StudioButton("Add Country", 120);
+        addCountry.Location = new Point(152, 90);
+        addCountry.Click += (_, _) => CreateNewRecord();
+        card.Controls.Add(addCountry);
+
+        var createNationalTeam = StudioButton("Create National Team", 150);
+        createNationalTeam.Location = new Point(280, 90);
+        createNationalTeam.Click += (_, _) => CreateNationalTeam();
+        card.Controls.Add(createNationalTeam);
+
+        _openNationalTeam.Text = "Open National Team";
+        _openNationalTeam.Location = new Point(438, 90);
+        _openNationalTeam.Size = new Size(150, 28);
+        _openNationalTeam.Font = StudioFonts.Button;
+        _openNationalTeam.Enabled = false;
+        _openNationalTeam.FlatStyle = FlatStyle.Flat;
+        _openNationalTeam.BackColor = StudioColors.RaisedSurface;
+        _openNationalTeam.ForeColor = StudioColors.PrimaryText;
+        _openNationalTeam.Cursor = Cursors.Hand;
+        _openNationalTeam.UseVisualStyleBackColor = false;
+        _openNationalTeam.Click += (_, _) => OpenLinkedNationalTeam();
+        card.Controls.Add(_openNationalTeam);
+
+        return card;
+    }
+
+    private StudioCard BuildFlagsCard()
+    {
+        var card = StudioGroup("Flag Assets", StudioColors.Green);
+        card.AutoSize = true;
+
+        var flow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = Color.Transparent,
+        };
+
+        var (largeFlag, largeCaption) = CreateFlagViewer(256, 256, "256 x 256");
+        var (crestFlag, crestCaption) = CreateFlagViewer(256, 256, "512 x 512");
+        var (cardFlag, cardCaption) = CreateFlagViewer(150, 150, "256 x 128");
+        var (miniFlag, miniCaption) = CreateFlagViewer(64, 64, "64 x 64");
+        _flagViewers.AddRange([largeFlag, crestFlag, cardFlag, miniFlag]);
+        _flagCaptions.AddRange([largeCaption, crestCaption, cardCaption, miniCaption]);
+
+        flow.Controls.Add(largeFlag.Parent);
+        flow.Controls.Add(crestFlag.Parent);
+        flow.Controls.Add(cardFlag.Parent);
+        flow.Controls.Add(miniFlag.Parent);
+
+        LegacyAssetActions.Attach(Services, card, largeFlag, new Point(StudioSpacing.Medium, 310), RefreshCurrentRecord);
+
+        card.Controls.Add(flow);
+        return card;
+    }
+
+    private static (PictureBox Picture, Label Caption) CreateFlagViewer(int width, int height, string resolution)
+    {
+        var holder = new Panel
+        {
+            Size = new Size(width + 16, height + 28),
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 0, StudioSpacing.Medium, StudioSpacing.Small),
+        };
+        var picture = new PictureBox
+        {
+            Location = new Point(8, 4),
+            Size = new Size(width, height),
+            BackColor = StudioColors.InputBackground,
+            BorderStyle = BorderStyle.None,
+            SizeMode = PictureBoxSizeMode.Zoom,
+        };
+        var caption = new Label
+        {
+            Text = resolution,
+            Location = new Point(8, height + 6),
+            Size = new Size(width, 18),
+            Font = StudioFonts.DataLabel,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
+            TextAlign = ContentAlignment.MiddleCenter,
+        };
+        holder.Controls.Add(picture);
+        holder.Controls.Add(caption);
+        return (picture, caption);
+    }
+
+    private StudioCard BuildActionsCard()
+    {
+        var card = StudioGroup("National Team", StudioColors.CyanAccent);
+        card.Height = 110;
+
+        var info = new Label
+        {
+            Text = "Create or open the national team linked to this country.",
+            Location = new Point(StudioSpacing.Medium, 34),
+            Size = new Size(520, 20),
+            Font = StudioFonts.DataLabel,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
+        };
+        card.Controls.Add(info);
+        return card;
+    }
+
+    private StudioCard BuildMapCard()
+    {
+        var card = StudioGroup("Map (Shape)", StudioColors.Purple);
+        card.Height = 360;
+
+        _mapViewer.Location = new Point(StudioSpacing.Medium, 34);
+        card.Controls.Add(_mapViewer);
+
+        LegacyAssetActions.Attach(Services, card, _mapViewer, new Point(StudioSpacing.Medium, 302), RefreshCurrentRecord);
+        return card;
+    }
+
+    private StudioCard BuildFieldsCard()
+    {
+        var card = StudioGroup("Database Fields", StudioColors.Yellow);
+        card.AutoSize = true;
+
+        _fieldsTable = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            ColumnCount = 2,
+            BackColor = Color.Transparent,
+        };
+        _fieldsTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40f));
+        _fieldsTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60f));
+
+        AddField("nationname", "Database Name");
+        AddField("nationid", "Country ID");
+        AddMirrorField("nationname", "Name");
+        AddField("nationstartingfirstletter", "Starting Letter");
+        AddField("isocountrycode", "Abbreviation");
+        AddField("confederation", "Confederation");
+        AddMirrorField("isocountrycode", "ISO Country Code");
+        AddField("groupid", "Level");
+        AddField("streetdressing", "Street Dressing");
+
+        _topTier.Text = "Top tier";
+        _topTier.AutoSize = true;
+        _topTier.Font = LegacyFont;
+        _topTier.BackColor = Color.Transparent;
+        _topTier.ForeColor = StudioColors.PrimaryText;
+        _topTier.FlatStyle = FlatStyle.Flat;
+        _topTier.Tag = "top_tier";
+        _topTier.CheckedChanged += (_, _) =>
+        {
+            if (_syncTopTier || CurrentRecordIndex < 0 || !_fields.TryGetValue("top_tier", out var value) || !value.IsWritable) return;
+            StageField(TableName, CurrentRecordIndex, "top_tier", _topTier.Checked ? "1" : "0", _stagingGrid);
+        };
+        AddFullWidthControl(_topTier);
+
+        _showAllDatabaseCountries.Text = "Show countries awaiting setup";
+        _showAllDatabaseCountries.AutoSize = true;
+        _showAllDatabaseCountries.Font = LegacyFont;
+        _showAllDatabaseCountries.BackColor = Color.Transparent;
+        _showAllDatabaseCountries.ForeColor = StudioColors.PrimaryText;
+        _showAllDatabaseCountries.FlatStyle = FlatStyle.Flat;
+        _showAllDatabaseCountries.CheckedChanged += (_, _) => { if (_suppressListReload) return; LoadData(); };
+        ToolTip.SetToolTip(_showAllDatabaseCountries, "Off: show only playable countries. On: also show database countries that still need a league, clubs and Compdata.");
+        AddFullWidthControl(_showAllDatabaseCountries);
+
+        var hint = new Label
+        {
+            Text = "Create a country ID, then add its national team, domestic league and clubs before a Career save.",
+            Font = StudioFonts.DataLabel,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
+            AutoSize = true,
+            Margin = new Padding(0, StudioSpacing.Small, 0, 0),
+        };
+        AddFullWidthControl(hint);
+
+        card.Controls.Add(_fieldsTable);
+        return card;
+    }
+
+    private void AddField(string fieldName, string label)
+    {
+        if (_fieldsTable == null) return;
+        var row = _fieldsTable.RowCount;
+        _fieldsTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        var caption = new Label
+        {
+            Text = label,
+            Font = StudioFonts.DataLabel,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
+            AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(0, 4, 0, StudioSpacing.Small),
+        };
+        var editor = new TextBox
+        {
+            Font = LegacyFont,
+            Tag = fieldName,
+            BorderStyle = BorderStyle.FixedSingle,
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 0, 0, StudioSpacing.Small),
+        };
+        Theme.ApplyTextBox(editor);
+        editor.Leave += (_, _) => Commit(editor);
+        _editors.Add(editor);
+
+        _fieldsTable.Controls.Add(caption, 0, row);
+        _fieldsTable.Controls.Add(editor, 1, row);
+    }
+
+    private void AddMirrorField(string fieldName, string label)
+    {
+        if (_fieldsTable == null) return;
+        var row = _fieldsTable.RowCount;
+        _fieldsTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        var caption = new Label
+        {
+            Text = label,
+            Font = StudioFonts.DataLabel,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
+            AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(0, 4, 0, StudioSpacing.Small),
+        };
+        var editor = new TextBox
+        {
+            Font = LegacyFont,
+            Tag = fieldName,
+            ReadOnly = true,
+            BorderStyle = BorderStyle.FixedSingle,
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 0, 0, StudioSpacing.Small),
+        };
+        Theme.ApplyTextBox(editor);
+        editor.BackColor = StudioColors.RaisedSurface;
+        editor.ForeColor = StudioColors.PrimaryText;
+        _editors.Add(editor);
+        _mirrors.Add(editor);
+
+        _fieldsTable.Controls.Add(caption, 0, row);
+        _fieldsTable.Controls.Add(editor, 1, row);
+    }
+
+    private void AddFullWidthControl(Control control)
+    {
+        if (_fieldsTable == null) return;
+        var row = _fieldsTable.RowCount;
+        _fieldsTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        _fieldsTable.SetColumnSpan(control, 2);
+        _fieldsTable.Controls.Add(control, 0, row);
+    }
+
+    private void AddNationalAudioTab()
+    {
+        var page = new TabPage("National Team Audio") { BackColor = StudioColors.AppBackground, Font = LegacyFont };
+        var canvas = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = StudioColors.AppBackground,
+            Padding = new Padding(StudioSpacing.Medium),
+        };
         page.Controls.Add(canvas);
         Tabs.TabPages.Add(page);
 
-        // ═══════════════════════════════════════════════════════════════
-        //  COUNTRY PROFILE HEADER
-        // ═══════════════════════════════════════════════════════════════
-        var profile = new Panel { Location = new Point(12, 12), Size = new Size(1340, 180), BackColor = CardLayout.CardWhite };
-        CardLayout.ApplyRounded(profile, 14);
-        profile.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(6, 180), BackColor = CardLayout.Fc26Green });
-        _countryFlagPreview.Location = new Point(24, 24);
-        _countryFlagPreview.Size = new Size(120, 120);
-        _countryFlagPreview.SizeMode = PictureBoxSizeMode.Zoom;
-        _countryFlagPreview.BackColor = CardLayout.CardFieldBg;
-        _countryFlagPreview.BorderStyle = BorderStyle.None;
-        profile.Controls.Add(_countryFlagPreview);
-        _countryNameLabel.Location = new Point(164, 30);
-        _countryNameLabel.Size = new Size(500, 38);
-        _countryNameLabel.Font = new Font("Segoe UI", 22, FontStyle.Bold);
-        _countryNameLabel.ForeColor = CardLayout.CardText;
-        profile.Controls.Add(_countryNameLabel);
-        _countryMetaLabel.Location = new Point(166, 74);
-        _countryMetaLabel.Size = new Size(600, 22);
-        _countryMetaLabel.Font = Theme.BodyBold;
-        _countryMetaLabel.ForeColor = CardLayout.CardMuted;
-        profile.Controls.Add(_countryMetaLabel);
-        var addCountry = CardLayoutButton("Add Country to Game", new Point(166, 108), new Size(180, 30));
-        addCountry.Click += (_, _) => CreateNewRecord();
-        profile.Controls.Add(addCountry);
-        var createNationalTeam = CardLayoutButton("Create National Team", new Point(354, 108), new Size(180, 30));
-        createNationalTeam.Click += (_, _) => CreateNationalTeam();
-        profile.Controls.Add(createNationalTeam);
-        _openNationalTeam.Text = "Open National Team";
-        _openNationalTeam.Location = new Point(542, 108);
-        _openNationalTeam.Size = new Size(180, 30);
-        _openNationalTeam.Font = LegacyFont;
-        _openNationalTeam.Enabled = false;
-        Theme.ApplyButton(_openNationalTeam);
-        _openNationalTeam.Click += (_, _) => OpenLinkedNationalTeam();
-        profile.Controls.Add(_openNationalTeam);
-        canvas.Controls.Add(profile);
+        var card = StudioGroup("Nation and National Team Audio", StudioColors.Green);
+        card.Width = 720;
+        card.Height = 280;
 
-        // ═══════════════════════════════════════════════════════════════
-        //  COUNTRY DETAILS + MAP
-        // ═══════════════════════════════════════════════════════════════
-        var details = CardLayout.CreateGroup(canvas, "Country Details", CardLayout.Fc26Green, 12, 204, 560, 340);
-        AddField(details, "nationname", "Database Name", new Point(130, 22), 105);
-        AddField(details, "nationid", "Country Id", new Point(130, 48), 105);
-        AddMirrorField(details, "nationname", "Name", new Point(130, 74), 105);
-        AddField(details, "nationstartingfirstletter", "Starting Letter", new Point(130, 100), 105);
-        AddField(details, "isocountrycode", "Abbreviation", new Point(130, 126), 105);
-        AddField(details, "confederation", "Confederation", new Point(130, 152), 105);
-        AddMirrorField(details, "isocountrycode", "ISO Country Code", new Point(130, 178), 105);
-        AddField(details, "groupid", "Level", new Point(130, 204), 105);
-        AddField(details, "streetdressing", "Street Dressing", new Point(130, 230), 105);
-        _topTier.Text = "Top tier";
-        _topTier.Location = new Point(11, 258); _topTier.Size = new Size(100, 22);
-        _topTier.Font = LegacyFont; _topTier.BackColor = CardLayout.CardWhite; _topTier.ForeColor = CardLayout.CardText;
-        _topTier.FlatStyle = FlatStyle.Flat; _topTier.Tag = "top_tier";
-        _topTier.CheckedChanged += (_, _) => { if (_syncTopTier || CurrentRecordIndex < 0 || !_fields.TryGetValue("top_tier", out var value) || !value.IsWritable) return; StageField(TableName, CurrentRecordIndex, "top_tier", _topTier.Checked ? "1" : "0", _stagingGrid); };
-        details.Controls.Add(_topTier);
-        _showAllDatabaseCountries.Text = "Show countries awaiting setup";
-        _showAllDatabaseCountries.Location = new Point(16, 288); _showAllDatabaseCountries.Size = new Size(210, 23);
-        _showAllDatabaseCountries.Font = LegacyFont; _showAllDatabaseCountries.BackColor = CardLayout.CardWhite;
-        _showAllDatabaseCountries.ForeColor = CardLayout.CardText; _showAllDatabaseCountries.FlatStyle = FlatStyle.Flat;
-        _showAllDatabaseCountries.CheckedChanged += (_, _) => { if (_suppressListReload) return; LoadData(); };
-        ToolTip.SetToolTip(_showAllDatabaseCountries, "Off: show only playable countries. On: also show database countries that still need a league, clubs and Compdata.");
-        details.Controls.Add(_showAllDatabaseCountries);
-        details.Controls.Add(new Label { Text = "Create a country ID, then add its national team, domestic league and clubs before a Career save.", Location = new Point(16, 316), Size = new Size(530, 20), Font = LegacyFont, ForeColor = CardLayout.CardSubtle, BackColor = CardLayout.CardWhite });
-
-        // Flag viewers
-        var flags = CardLayout.CreateGroup(canvas, "Flags", CardLayout.Fc26Blue, 588, 204, 764, 340);
-        flags.Controls.Add(CreateViewer(new Point(10, 26), new Size(256, 256), "256 x 256", out var largeFlag, out var largeCaption));
-        flags.Controls.Add(CreateViewer(new Point(276, 26), new Size(256, 256), "512 x 512", out var crestFlag, out var crestCaption));
-        flags.Controls.Add(CreateViewer(new Point(542, 26), new Size(150, 150), "256 x 128", out var cardFlag, out var cardCaption));
-        flags.Controls.Add(CreateViewer(new Point(692, 26), new Size(64, 64), "64 x 64", out var miniFlag, out var miniCaption));
-        _flagViewers.AddRange([largeFlag, crestFlag, cardFlag, miniFlag]);
-        _flagCaptions.AddRange([largeCaption, crestCaption, cardCaption, miniCaption]);
-        LegacyAssetActions.Attach(Services, flags, largeFlag, new Point(10, 310), RefreshCurrentRecord);
-
-        // Map
-        var map = CardLayout.CreateGroup(canvas, "Map (Shape)", CardLayout.Fc26Blue, 12, 556, 1340, 340);
-        map.Controls.Add(CreateViewer(new Point(8, 26), new Size(512, 256), "512 x 256", out _mapViewer, out _));
-        LegacyAssetActions.Attach(Services, map, _mapViewer, new Point(8, 302), RefreshCurrentRecord);
-
-        void ReflowCountry()
+        var table = new TableLayoutPanel
         {
-            var width = Math.Max(680, canvas.ClientSize.Width - 28);
-            profile.Width = width;
-            var mapY = 556;
-            if (width >= 1320)
-            {
-                details.Bounds = new Rectangle(12, 204, 560, 340);
-                flags.Bounds = new Rectangle(588, 204, width - 576, 340);
-            }
-            else
-            {
-                details.Bounds = new Rectangle(12, 204, width, 340);
-                flags.Bounds = new Rectangle(12, 556, width, 340);
-                mapY = 908;
-            }
-            map.Bounds = new Rectangle(12, mapY, width, 340);
-            canvas.AutoScrollMinSize = new Size(0, map.Bottom + 12);
-        }
-        canvas.ClientSizeChanged += (_, _) => ReflowCountry();
-        ReflowCountry();
+            Location = new Point(StudioSpacing.Medium, 34),
+            Size = new Size(688, 200),
+            ColumnCount = 4,
+            RowCount = 6,
+            BackColor = Color.Transparent,
+        };
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 23f));
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 27f));
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 23f));
+        table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 27f));
 
-        AddNationalAudioTab();
+        var fields = new[]
+        {
+            ("PA Language", "palanguageindex"),
+            ("Commentary Language", "defaultcommlang"),
+            ("Player Call Bank", "playercallpatchbankindex"),
+            ("SSF Player Call", "ssfplayercallindex"),
+            ("Crowd Beds Region", "crowdbedsregionindex"),
+            ("Chant Region", "chantregionindex"),
+            ("Reactions Region", "reactionsregionindex"),
+            ("Heckles Region", "hecklesregionindex"),
+            ("Ambience Region", "ambienceregionindex"),
+            ("Whistles Region", "whistlesregionindex"),
+            ("Team Can Whistle", "teamcanwhistleindex"),
+        };
+
+        for (var index = 0; index < fields.Length; index++)
+        {
+            var col = (index % 2) * 2;
+            var row = index / 2;
+            var label = new Label
+            {
+                Text = fields[index].Item1,
+                Font = StudioFonts.DataLabel,
+                ForeColor = StudioColors.MutedText,
+                BackColor = Color.Transparent,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+            };
+            var editor = new TextBox
+            {
+                Font = LegacyFont,
+                Tag = fields[index].Item2,
+                BorderStyle = BorderStyle.FixedSingle,
+                Dock = DockStyle.Fill,
+            };
+            Theme.ApplyTextBox(editor);
+            editor.Leave += (_, _) => CommitNationalAudio(editor);
+            _audioEditors.Add(editor);
+            ToolTip.SetToolTip(label, fields[index].Item1);
+            table.Controls.Add(label, col, row);
+            table.Controls.Add(editor, col + 1, row);
+        }
+
+        var description = new Label
+        {
+            Text = "Audio mappings for the selected country. They control regional commentary and crowd banks.",
+            Location = new Point(StudioSpacing.Medium, 240),
+            Size = new Size(660, 30),
+            Font = StudioFonts.DataLabel,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
+        };
+
+        card.Controls.Add(description);
+        card.Controls.Add(table);
+        canvas.Controls.Add(card);
+    }
+
+    public override void ActivateSection()
+    {
+        base.ActivateSection();
+        UpdateToolbarCount();
+        if (CurrentRecordIndex < 0 && Services.Session.IsLoaded)
+        {
+            var records = GetRecords();
+            if (records.Count > 0) GoToRecord(records[0].RecordIndex);
+        }
+    }
+
+    private void UpdateToolbarCount()
+    {
+        if (_toolbar == null) return;
+        if (!Services.Session.IsLoaded)
+        {
+            _toolbar.RecordCountText = "0 records";
+            return;
+        }
+        try
+        {
+            _toolbar.RecordCountText = $"{GetRecords().Count:N0} records";
+        }
+        catch
+        {
+            _toolbar.RecordCountText = string.Empty;
+        }
+    }
+
+    private void StepRecord(int delta)
+    {
+        var records = GetRecords();
+        var found = -1;
+        for (var i = 0; i < records.Count; i++)
+        {
+            if (records[i].RecordIndex == CurrentRecordIndex)
+            {
+                found = i;
+                break;
+            }
+        }
+        if (found < 0)
+        {
+            if (records.Count > 0) GoToRecord(records[0].RecordIndex);
+            return;
+        }
+        var next = found + delta;
+        if (next >= 0 && next < records.Count) GoToRecord(records[next].RecordIndex);
+    }
+
+    private void SearchCountries(string query)
+    {
+        var term = query.Trim();
+        if (term.Length == 0) return;
+        var result = GetRecords().FirstOrDefault(item => item.Matches(term));
+        if (result == null)
+        {
+            MessageBox.Show(this, $"No country matches '{term}'.", "Search Country",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        GoToRecord(result.RecordIndex);
     }
 
     protected override void CreateNewRecord()
@@ -160,10 +592,6 @@ public sealed class CountriesSection : SectionBase
         if (!EntityCreationDialog.TryShow(this, "Country",
                 [("Country name", "New Country"), ("ISO code", "NC")], out var values))
             return;
-        // A newly created country is deliberately not Career-playable yet. Keep
-        // it visible to its creator while they finish its league and Compdata.
-        // The load that follows (below) re-applies the filtered list, so the
-        // mid-creation CheckedChanged reload must be suppressed.
         _suppressListReload = true;
         _showAllDatabaseCountries.Checked = true;
         _suppressListReload = false;
@@ -221,11 +649,6 @@ public sealed class CountriesSection : SectionBase
         }
     }
 
-    /// <summary>
-    /// National teams belong to a country workflow, not to the club editor.
-    /// The selected country's ID is used directly so users never need to type
-    /// an internal ID or accidentally link the side to the wrong nation.
-    /// </summary>
     private void CreateNationalTeam()
     {
         if (CurrentRecordIndex < 0)
@@ -271,8 +694,6 @@ public sealed class CountriesSection : SectionBase
             }, templateRow: 0);
             var duplicate = Services.Session.DuplicateRow("teamnationlinks", 0);
             if (!duplicate.Success) throw new InvalidOperationException(duplicate.Message);
-            // The native engine inserts the duplicated row right after the
-            // template (index 1), not at the end of the table.
             var linkRow = 1;
             foreach (var (field, value) in new Dictionary<string, string>
             {
@@ -373,16 +794,16 @@ public sealed class CountriesSection : SectionBase
             {
                 editor.Text = field.Value;
                 editor.ReadOnly = !field.IsWritable;
-                editor.BackColor = field.IsWritable ? Theme.Input : CardLayout.CardFieldBg;
-                editor.ForeColor = CardLayout.CardText;
+                editor.BackColor = field.IsWritable ? StudioColors.InputBackground : StudioColors.RaisedSurface;
+                editor.ForeColor = StudioColors.PrimaryText;
                 ToolTip.SetToolTip(editor, field.IsWritable ? field.FieldName : $"{field.FieldName} (read-only)");
             }
             else
             {
                 editor.Text = string.Empty;
                 editor.ReadOnly = true;
-                editor.BackColor = CardLayout.CardFieldBg;
-                editor.ForeColor = CardLayout.CardSubtle;
+                editor.BackColor = StudioColors.RaisedSurface;
+                editor.ForeColor = StudioColors.MutedText;
                 ToolTip.SetToolTip(editor, $"{fieldName} is not present in this database");
             }
         }
@@ -412,21 +833,40 @@ public sealed class CountriesSection : SectionBase
         ShowNationalAudio(nationId);
         UpdateOpenNationalTeam(nationId);
 
-        // ── Populate header card ──────────────────────────────────────────
         _countryNameLabel.Text = nationName ?? string.Empty;
         _countryMetaLabel.Text = $"Nation ID {record.Get(Col(table, "nationid"))}  ·  {record.Get(Col(table, "isocountrycode"))}  ·  {record.Get(Col(table, "confederation"))}";
-        try
+
+        if (_detailsFlow != null)
         {
-            var flagPath = Services.Assets.GetFlag(nationId);
-            if (!string.IsNullOrWhiteSpace(flagPath) && File.Exists(flagPath))
-                _countryFlagPreview.Image = Image.FromFile(flagPath);
-            else
-                _countryFlagPreview.Image = null;
+            var metrics = _detailsFlow.Controls.OfType<MetricCard>().ToList();
+            SetMetric(metrics, "Nation ID", record.Get(Col(table, "nationid")));
+            SetMetric(metrics, "ISO Code", record.Get(Col(table, "isocountrycode")));
+            SetMetric(metrics, "Confederation", record.Get(Col(table, "confederation")));
+            SetMetric(metrics, "Level", record.Get(Col(table, "groupid")));
         }
-        catch { _countryFlagPreview.Image = null; }
+
+        UpdateToolbarCount();
     }
 
-    /// <summary>Finds the record index of the national team linked to a country.</summary>
+    private static MetricCard BuildMetric(string label, string value, Color accent)
+    {
+        return new MetricCard
+        {
+            Width = 140,
+            Height = 76,
+            Margin = new Padding(0, 0, StudioSpacing.Medium, StudioSpacing.Small),
+            AccentColor = accent,
+            LabelText = label,
+            ValueText = value,
+        };
+    }
+
+    private static void SetMetric(List<MetricCard> metrics, string label, string? value)
+    {
+        var metric = metrics.FirstOrDefault(m => m.LabelText == label);
+        if (metric != null) metric.ValueText = string.IsNullOrWhiteSpace(value) ? "—" : value;
+    }
+
     private int FindNationalTeamRow(int nationId)
     {
         var links = Services.Session.GetTable("teamnationlinks");
@@ -491,64 +931,6 @@ public sealed class CountriesSection : SectionBase
         Services.RequestRecordNavigation("teams", row);
     }
 
-    private void AddNationalAudioTab()
-    {
-        var page = new TabPage("National Team Audio")
-        {
-            BackColor = Theme.Background, Font = LegacyFont
-        };
-        var canvas = new Panel
-        {
-            Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Background
-        };
-        page.Controls.Add(canvas);
-        Tabs.TabPages.Add(page);
-        var box = LegacyGroup("Nation and National Team Audio", new Point(3, 3), new Size(710, 237));
-        var fields = new[]
-        {
-            ("PA Language", "palanguageindex"),
-            ("Commentary Language", "defaultcommlang"),
-            ("Player Call Bank", "playercallpatchbankindex"),
-            ("SSF Player Call", "ssfplayercallindex"),
-            ("Crowd Beds Region", "crowdbedsregionindex"),
-            ("Chant Region", "chantregionindex"),
-            ("Reactions Region", "reactionsregionindex"),
-            ("Heckles Region", "hecklesregionindex"),
-            ("Ambience Region", "ambienceregionindex"),
-            ("Whistles Region", "whistlesregionindex"),
-            ("Team Can Whistle", "teamcanwhistleindex")
-        };
-        for (var index = 0; index < fields.Length; index++)
-        {
-            var col = index % 2;
-            var row = index / 2;
-            var x = 16 + (col * 340);
-            var y = 28 + (row * 26);
-            var label = new Label
-            {
-                Text = fields[index].Item1, Location = new Point(x, y + 3),
-                Size = new Size(165, 18), Font = LegacyFont, AutoEllipsis = true
-            };
-            ToolTip.SetToolTip(label, fields[index].Item1);
-            var editor = new TextBox
-            {
-                Location = new Point(x + 170, y), Size = new Size(145, 20),
-                Font = LegacyFont, Tag = fields[index].Item2
-            };
-            Theme.ApplyTextBox(editor);
-            editor.Leave += (_, _) => CommitNationalAudio(editor);
-            _audioEditors.Add(editor);
-            box.Controls.Add(editor);
-        }
-        box.Controls.Add(new Label
-        {
-            Text = "Audio mappings for the selected country. They control regional commentary and crowd banks.",
-            Location = new Point(16, 186), Size = new Size(660, 45),
-            Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel
-        });
-        canvas.Controls.Add(box);
-    }
-
     private void ShowNationalAudio(int nationId)
     {
         var row = FindRow("audionation", "nationid", nationId);
@@ -559,16 +941,16 @@ public sealed class CountriesSection : SectionBase
             {
                 editor.Text = string.Empty;
                 editor.ReadOnly = true;
-                editor.BackColor = CardLayout.CardFieldBg;
-                editor.ForeColor = CardLayout.CardSubtle;
+                editor.BackColor = StudioColors.RaisedSurface;
+                editor.ForeColor = StudioColors.MutedText;
                 continue;
             }
             editor.Text = Services.Session.GetCell("audionation", row, field);
             var table = Services.Session.GetTable("audionation");
             var column = table?.Columns?.FirstOrDefault(x => x.Name.Equals(field, StringComparison.OrdinalIgnoreCase));
             editor.ReadOnly = column?.IsWritable != true;
-            editor.BackColor = editor.ReadOnly ? CardLayout.CardFieldBg : Theme.Input;
-            editor.ForeColor = CardLayout.CardText;
+            editor.BackColor = editor.ReadOnly ? StudioColors.RaisedSurface : StudioColors.InputBackground;
+            editor.ForeColor = StudioColors.PrimaryText;
         }
     }
 
@@ -591,69 +973,43 @@ public sealed class CountriesSection : SectionBase
         return -1;
     }
 
-    private Panel LegacyGroup(string text, Point location, Size size)
+    private static StudioCard StudioGroup(string title, Color accent)
     {
-        var box = new Panel { Location = location, Size = size, BackColor = CardLayout.CardWhite };
-        CardLayout.ApplyRounded(box, 10);
-        box.Controls.Add(new Panel { Location = Point.Empty, Size = new Size(size.Width, 4), BackColor = CardLayout.Fc26Green });
-        box.Controls.Add(new Label
+        var card = new StudioCard
         {
-            Text = text, Location = new Point(10, 6), Size = new Size(size.Width - 20, 13),
-            Font = Theme.Muted9, ForeColor = CardLayout.Fc26Green, BackColor = CardLayout.CardWhite
-        });
-        return box;
+            AccentColor = accent,
+            Margin = new Padding(0, StudioSpacing.Medium, 0, 0),
+        };
+        var header = new Label
+        {
+            Text = title,
+            Dock = DockStyle.Top,
+            Height = 22,
+            Font = StudioFonts.CardTitle,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = Color.Transparent,
+        };
+        card.Controls.Add(header);
+        return card;
     }
 
-    private void AddField(Control parent, string fieldName, string label, Point location, int width)
-    {
-        parent.Controls.Add(new Label
-        {
-            Text = label, Location = new Point(11, location.Y + 3), Size = new Size(Math.Max(70, location.X - 17), 18),
-            Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true,
-            ForeColor = CardLayout.CardFieldLabel, BackColor = CardLayout.CardWhite
-        });
-        var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, BorderStyle = BorderStyle.FixedSingle };
-        Theme.ApplyTextBox(editor);
-        editor.Leave += (_, _) => Commit(editor);
-        parent.Controls.Add(editor);
-        _editors.Add(editor);
-    }
-
-    private static Button CardLayoutButton(string text, Point location, Size size)
+    private static Button StudioButton(string text, int width)
     {
         var btn = new Button
         {
-            Text = text, Location = location, Size = size,
-            FlatStyle = FlatStyle.Flat, Font = Theme.BodyBold,
-            BackColor = CardLayout.CardWhite, ForeColor = CardLayout.CardText,
+            Text = text,
+            Size = new Size(width, 28),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = StudioColors.RaisedSurface,
+            ForeColor = StudioColors.PrimaryText,
+            Font = StudioFonts.Button,
             Cursor = Cursors.Hand,
+            UseVisualStyleBackColor = false,
         };
-        btn.FlatAppearance.BorderColor = Color.FromArgb(190, 190, 182);
-        btn.FlatAppearance.MouseOverBackColor = CardLayout.CardFieldBg;
+        btn.FlatAppearance.BorderColor = StudioColors.CardBorder;
+        btn.FlatAppearance.MouseOverBackColor = StudioColors.CardBorder;
+        btn.FlatAppearance.MouseDownBackColor = StudioColors.CardBorder;
         return btn;
-    }
-
-    /// <summary>
-    /// Read-only mirror of a field edited elsewhere in the same group, so "Name"
-    /// never becomes a second writable editor for nationname.
-    /// </summary>
-    private void AddMirrorField(Control parent, string fieldName, string label, Point location, int width)
-    {
-        var caption = new Label
-        {
-            Text = label, Location = new Point(11, location.Y + 3), Size = new Size(Math.Max(70, location.X - 17), 18),
-            Font = LegacyFont, TextAlign = ContentAlignment.MiddleRight, AutoEllipsis = true,
-            ForeColor = CardLayout.CardFieldLabel, BackColor = CardLayout.CardWhite
-        };
-        parent.Controls.Add(caption);
-        ToolTip.SetToolTip(caption, label);
-        var editor = new TextBox { Location = location, Size = new Size(width, 20), Font = LegacyFont, Tag = fieldName, ReadOnly = true, BorderStyle = BorderStyle.FixedSingle };
-        Theme.ApplyTextBox(editor);
-        editor.BackColor = CardLayout.CardFieldBg;
-        editor.ForeColor = CardLayout.CardText;
-        parent.Controls.Add(editor);
-        _editors.Add(editor);
-        _mirrors.Add(editor);
     }
 
     private void RefreshMirrors()
@@ -662,22 +1018,12 @@ public sealed class CountriesSection : SectionBase
         {
             var fieldName = mirror.Tag as string ?? string.Empty;
             mirror.ReadOnly = true;
-            mirror.BackColor = CardLayout.CardFieldBg;
-            mirror.ForeColor = CardLayout.CardText;
+            mirror.BackColor = StudioColors.RaisedSurface;
+            mirror.ForeColor = StudioColors.PrimaryText;
             ToolTip.SetToolTip(mirror, $"Read-only mirror of {fieldName} — edit it in its named field above.");
             if (_fields.TryGetValue(fieldName, out var field))
                 mirror.Text = field.Value;
         }
-    }
-
-    private static Panel CreateViewer(Point location, Size imageSize, string resolution, out PictureBox picture, out Label caption)
-    {
-        var holder = new Panel { Location = location, Size = new Size(imageSize.Width, imageSize.Height + 23), BackColor = Theme.Panel };
-        picture = new PictureBox { Location = Point.Empty, Size = imageSize, BackColor = Theme.Input, BorderStyle = BorderStyle.FixedSingle, SizeMode = PictureBoxSizeMode.Zoom };
-        caption = new Label { Text = "◉   ◧  ◨   " + resolution, Location = new Point(0, imageSize.Height + 2), Size = new Size(imageSize.Width, 18), Font = LegacyFont, ForeColor = Theme.Muted, BackColor = Theme.Panel };
-        holder.Controls.Add(picture);
-        holder.Controls.Add(caption);
-        return holder;
     }
 
     private void Commit(TextBox editor)
@@ -692,8 +1038,6 @@ public sealed class CountriesSection : SectionBase
 
     private void ShowFlag(string? path, int nationId, string nationName)
     {
-        var query = string.Join("_", nationName.ToLowerInvariant()
-            .Split([' ', '-', '.', '\'', '’'], StringSplitOptions.RemoveEmptyEntries));
         var flagPath = $"data/ui/imgAssets/flags512x512/light/f_{nationId}.dds";
         LegacyAssetActions.SetTarget(_flagViewers[0], new LegacyAssetEditTarget(flagPath, 512, 512));
         FrostbitePreviewLoader.LoadLegacyUiAsset(
