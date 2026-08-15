@@ -1,6 +1,6 @@
 {
-  "version": "1.0.112",
+  "version": "1.0.113",
   "name": "Creation Master 26",
-  "notes": "v1.0.112 - Hotfix: File > Open FC26 remains clickable and asynchronously reloads both the FC26 database and Frostbite assets after automatic startup loading.",
+  "notes": "v1.0.113 - Hotfix: Correct CM26 Studio pack URIs so Open FC26 can load the database, Frostbite assets and every editor section without missing-resource crashes.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

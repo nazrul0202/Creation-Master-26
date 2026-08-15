@@ -6,10 +6,21 @@ namespace CM26.Studio;
 
 public partial class App : System.Windows.Application
 {
+    internal static Exception? UiAutomationException { get; private set; }
+
     public App()
     {
+        var args = Environment.GetCommandLineArgs();
+        var isUiAutomation = args.Length >= 2 && args[1] is "--ui-smoke" or "--ui-audit";
+        UiAutomationException = null;
         DispatcherUnhandledException += (_, e) =>
         {
+            if (isUiAutomation)
+            {
+                UiAutomationException ??= e.Exception;
+                e.Handled = true;
+                return;
+            }
             try
             {
                 File.AppendAllText(
@@ -24,7 +35,6 @@ public partial class App : System.Windows.Application
         };
         Startup += (_, e) =>
         {
-            var args = Environment.GetCommandLineArgs();
             if (args.Length >= 2 && args[1] is "--ui-smoke" or "--ui-audit")
             {
                 Dispatcher.BeginInvoke(new System.Action(async () =>
@@ -43,6 +53,9 @@ public partial class App : System.Windows.Application
                         {
                             await Smoke.RunAsync();
                         }
+                        if (UiAutomationException is not null)
+                            throw new InvalidOperationException(
+                                "Unhandled WPF exception occurred during UI automation.", UiAutomationException);
                         Shutdown(0);
                     }
                     catch (Exception ex)

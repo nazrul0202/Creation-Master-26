@@ -6,7 +6,7 @@
 
     <UserControl.Resources>
         <!-- Toolstrip background: CM16 toolStrip.BackgroundImage (1x24 tiled) -->
-        <ImageBrush x:Key="StripBack" ImageSource="/Assets/Cm16/FifaControls_PickUpControl__toolStrip_BackgroundImage.png"
+        <ImageBrush x:Key="StripBack" ImageSource="/CM26.Studio;component/Assets/Cm16/FifaControls_PickUpControl__toolStrip_BackgroundImage.png"
                     TileMode="Tile" Stretch="UniformToFill" />
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
@@ -30,41 +30,41 @@
             <Button DockPanel.Dock="Right" Style="{StaticResource StripButton}" Width="23" Height="22"
                     Visibility="{Binding WizardButtonEnabled, ElementName=Root, Converter={StaticResource BoolToVis}}"
                     Click="Wizard_Click" ToolTip="Wizard">
-                <Image Source="/Assets/Cm16/FifaControls_PickUpControl__buttonWizard_Image.png" Width="16" Height="16" />
+                <Image Source="/CM26.Studio;component/Assets/Cm16/FifaControls_PickUpControl__buttonWizard_Image.png" Width="16" Height="16" />
             </Button>
 
             <!-- Clone / Remove / Create -->
             <Button DockPanel.Dock="Right" Style="{StaticResource StripButton}" Width="23" Height="22"
                     Visibility="{Binding CloneButtonEnabled, ElementName=Root, Converter={StaticResource BoolToVis}}"
                     Click="Clone_Click" ToolTip="Clone">
-                <Image Source="/Assets/Cm16/FifaControls_PickUpControl__buttonClone_Image.png" Width="16" Height="16" />
+                <Image Source="/CM26.Studio;component/Assets/Cm16/FifaControls_PickUpControl__buttonClone_Image.png" Width="16" Height="16" />
             </Button>
             <Button DockPanel.Dock="Right" Style="{StaticResource StripButton}" Width="23" Height="22"
                     Visibility="{Binding RemoveButtonEnabled, ElementName=Root, Converter={StaticResource BoolToVis}}"
                     Click="Remove_Click" ToolTip="Remove">
-                <Image Source="/Assets/Cm16/FifaControls_PickUpControl__buttonRemove_Image.png" Width="16" Height="16" />
+                <Image Source="/CM26.Studio;component/Assets/Cm16/FifaControls_PickUpControl__buttonRemove_Image.png" Width="16" Height="16" />
             </Button>
             <Button DockPanel.Dock="Right" Style="{StaticResource StripButton}" Width="23" Height="22"
                     Visibility="{Binding CreateButtonEnabled, ElementName=Root, Converter={StaticResource BoolToVis}}"
                     Click="Create_Click" ToolTip="Create">
-                <Image Source="/Assets/Cm16/FifaControls_PickUpControl__buttonNew_Image.png" Width="16" Height="16" />
+                <Image Source="/CM26.Studio;component/Assets/Cm16/FifaControls_PickUpControl__buttonNew_Image.png" Width="16" Height="16" />
             </Button>
 
             <!-- Search: [Case sensitive] textSearch [Search Exactly] [Search if starts] [Search if contains] -->
             <Button DockPanel.Dock="Right" Style="{StaticResource StripButton}" Width="23" Height="22"
                     Visibility="{Binding SearchEnabled, ElementName=Root, Converter={StaticResource BoolToVis}}"
                     Click="SearchContain_Click" ToolTip="Search if contains">
-                <Image Source="/Assets/Cm16/FifaControls_PickUpControl__buttonSearchContain_Image.png" Width="16" Height="16" />
+                <Image Source="/CM26.Studio;component/Assets/Cm16/FifaControls_PickUpControl__buttonSearchContain_Image.png" Width="16" Height="16" />
             </Button>
             <Button DockPanel.Dock="Right" Style="{StaticResource StripButton}" Width="23" Height="22"
                     Visibility="{Binding SearchEnabled, ElementName=Root, Converter={StaticResource BoolToVis}}"
                     Click="SearchStart_Click" ToolTip="Search if starts">
-                <Image Source="/Assets/Cm16/FifaControls_PickUpControl__buttonSearchStart_Image.png" Width="16" Height="16" />
+                <Image Source="/CM26.Studio;component/Assets/Cm16/FifaControls_PickUpControl__buttonSearchStart_Image.png" Width="16" Height="16" />
             </Button>
             <Button DockPanel.Dock="Right" Style="{StaticResource StripButton}" Width="23" Height="22"
                     Visibility="{Binding SearchEnabled, ElementName=Root, Converter={StaticResource BoolToVis}}"
                     Click="SearchExactly_Click" ToolTip="Search Exactly">
-                <Image Source="/Assets/Cm16/FifaControls_PickUpControl__buttonSearchExactly_Image.png" Width="16" Height="16" />
+                <Image Source="/CM26.Studio;component/Assets/Cm16/FifaControls_PickUpControl__buttonSearchExactly_Image.png" Width="16" Height="16" />
             </Button>
             <TextBox x:Name="SearchBox" DockPanel.Dock="Right" Width="150" Height="22" VerticalContentAlignment="Center"
                      FontSize="12" Margin="2,0,2,0"
@@ -74,14 +74,14 @@
                           Style="{StaticResource StripToggleButton}"
                           Visibility="{Binding SearchEnabled, ElementName=Root, Converter={StaticResource BoolToVis}}"
                           Click="CaseSensitive_Click" ToolTip="Case sensitive">
-                <Image Source="/Assets/Cm16/FifaControls_PickUpControl__buttonCaseSensitive_Image.png" Width="16" Height="16" />
+                <Image Source="/CM26.Studio;component/Assets/Cm16/FifaControls_PickUpControl__buttonCaseSensitive_Image.png" Width="16" Height="16" />
             </ToggleButton>
 
             <!-- Refresh -->
             <Button DockPanel.Dock="Right" Style="{StaticResource StripButton}" Width="23" Height="22"
                     Visibility="{Binding RefreshButtonEnabled, ElementName=Root, Converter={StaticResource BoolToVis}}"
                     Click="Refresh_Click" ToolTip="Refresh">
-                <Image Source="/Assets/Cm16/FifaControls_PickUpControl__buttonRefresh_Image.png" Width="16" Height="16" />
+                <Image Source="/CM26.Studio;component/Assets/Cm16/FifaControls_PickUpControl__buttonRefresh_Image.png" Width="16" Height="16" />
             </Button>
 
             <!-- Main selection combo (fills remaining space, CM16 width 200) -->

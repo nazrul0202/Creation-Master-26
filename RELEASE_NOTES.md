@@ -1,5 +1,11 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.113 - CM16 resource loading hotfix (2026-08-15)
+
+- Fixed the crash after Open FC26 caused by CM16 images being resolved from the executable instead of the CM26.Studio resource assembly.
+- Qualified all shell and PickUpControl image references so the toolbar and editor sections load their embedded resources reliably.
+- Strengthened UI automation so an unhandled WPF exception fails the smoke test instead of being silently reported as a pass.
+
 ## Version 1.0.112 - Open FC26 reload hotfix (2026-08-15)
 
 - Fixed File > Open FC26 becoming disabled after automatic startup loading.
