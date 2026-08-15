@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <AssemblyName>CM26.LegacyUI</AssemblyName>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x86</PlatformTarget>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RootNamespace />
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+  </ItemGroup>
+
+  <!-- ILSpy's legacy WinForms .resx payloads must be serialized by the .NET
+       Framework reader. ResourcesCompiled contains that deterministic output;
+       rebuilding it is documented by tools/LegacyResourceCompiler.cs. -->
+  <ItemGroup>
+    <EmbeddedResource Include="ResourcesCompiled\*.resources">
+      <LogicalName>%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CM26.Legacy.FifaLibrary\CM26.Legacy.FifaLibrary.csproj" />
+    <ProjectReference Include="..\CM26.Legacy.FifaControls\CM26.Legacy.FifaControls.csproj" />
+    <Reference Include="ICSharpCode.SharpZipLib">
+      <HintPath>vendor\ICSharpCode.SharpZipLib.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Microsoft.Web.WebView2.WinForms">
+      <HintPath>vendor\Microsoft.Web.WebView2.WinForms.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Microsoft.Web.WebView2.Core">
+      <HintPath>vendor\Microsoft.Web.WebView2.Core.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="HtmlAgilityPack">
+      <HintPath>vendor\HtmlAgilityPack.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="vendor\Microsoft.DirectX.dll" Link="Microsoft.DirectX.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="vendor\Microsoft.DirectX.Direct3D.dll" Link="Microsoft.DirectX.Direct3D.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="vendor\Microsoft.DirectX.Direct3DX.dll" Link="Microsoft.DirectX.Direct3DX.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="vendor\zlib.net.dll" Link="zlib.net.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="vendor\EASounds.dll" Link="EASounds.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="vendor\SpeexSharp.dll" Link="SpeexSharp.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="vendor\libspeex.dll" Link="libspeex.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="vendor\WebView2Loader.dll" Link="WebView2Loader.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

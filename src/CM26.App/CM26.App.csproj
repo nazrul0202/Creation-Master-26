@@ -76,6 +76,31 @@
           DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
   </Target>
 
+  <!-- Build the original x86 CM16 WinForms shell from source and place it next
+       to the x64 Frostbite host. The two processes communicate through the
+       FC26 snapshot bridge because the native game engine is x64-only. -->
+  <Target Name="BuildLegacyCm16Shell" AfterTargets="Build">
+    <MSBuild Projects="..\CM26.LegacyUI\CM26.LegacyUI.csproj"
+             Targets="Build" Properties="Configuration=$(Configuration)" />
+    <ItemGroup>
+      <LegacyCm16Files Include="..\CM26.LegacyUI\bin\$(Configuration)\net48\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(LegacyCm16Files)"
+          DestinationFiles="@(LegacyCm16Files->'$(OutDir)CM26.LegacyUI\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyLegacyCm16ShellToPublish" AfterTargets="Publish" Condition="'$(PublishDir)' != ''">
+    <MSBuild Projects="..\CM26.LegacyUI\CM26.LegacyUI.csproj"
+             Targets="Build" Properties="Configuration=$(Configuration)" />
+    <ItemGroup>
+      <LegacyCm16PublishFiles Include="..\CM26.LegacyUI\bin\$(Configuration)\net48\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(LegacyCm16PublishFiles)"
+          DestinationFiles="@(LegacyCm16PublishFiles->'$(PublishDir)CM26.LegacyUI\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
   <ItemGroup>
     <EmbeddedResource Include="Assets\Icons\*.png" />
     <EmbeddedResource Include="Assets\Logo\*.png" />

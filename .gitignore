@@ -20,6 +20,21 @@ Thumbs.db
 *.dll
 *.nupkg
 
+# Runtime dependencies required by the source-based original CM16 UI bridge.
+# FifaLibrary16/FifaControls themselves are rebuilt from the imported source.
+!src/CM26.LegacyUI/vendor/EASounds.dll
+!src/CM26.LegacyUI/vendor/HtmlAgilityPack.dll
+!src/CM26.LegacyUI/vendor/ICSharpCode.SharpZipLib.dll
+!src/CM26.LegacyUI/vendor/libspeex.dll
+!src/CM26.LegacyUI/vendor/Microsoft.DirectX.Direct3D.dll
+!src/CM26.LegacyUI/vendor/Microsoft.DirectX.Direct3DX.dll
+!src/CM26.LegacyUI/vendor/Microsoft.DirectX.dll
+!src/CM26.LegacyUI/vendor/Microsoft.Web.WebView2.Core.dll
+!src/CM26.LegacyUI/vendor/Microsoft.Web.WebView2.WinForms.dll
+!src/CM26.LegacyUI/vendor/SpeexSharp.dll
+!src/CM26.LegacyUI/vendor/WebView2Loader.dll
+!src/CM26.LegacyUI/vendor/zlib.net.dll
+
 # Game data (copyrighted EA FC 26 files — NOT to be shared)
 database/
 database_scratch/

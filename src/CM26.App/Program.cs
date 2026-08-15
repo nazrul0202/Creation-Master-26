@@ -28,6 +28,23 @@ internal static class Program
         if (args.Length >= 1 && args[0].StartsWith("--", StringComparison.Ordinal))
             ConsoleAttach.EnsureConsole();
 
+        // x64 FC26 bridge used by the original x86 CM16 forms. The legacy UI
+        // invokes this command for File > Open FC26, then consumes the snapshot.
+        if (args.Length >= 2 && args[0] == "--legacy-open")
+        {
+            Environment.ExitCode = ExportLegacySnapshot(args[1]);
+            return;
+        }
+
+        // Lazy asset endpoint used by the original x86 CM16 forms. Assets are
+        // extracted by the native x64 Frostbite engine and cached on disk, so
+        // the legacy UI can keep using its original Bitmap-based controls.
+        if (args.Length >= 2 && args[0] == "--legacy-asset")
+        {
+            Environment.ExitCode = ExportLegacyAsset(args[1]);
+            return;
+        }
+
         // Self-contained release checks: no game install, no database, no UI.
         // This is the gate CI runs on a clean machine.
         if (args.Length >= 1 && args[0] == "--release-selftest")
@@ -334,15 +351,103 @@ internal static class Program
             // > Open flow detects FC26 and loads the Data/Patch Frostbite source
             // through CM26.Application; the former dark WinForms workspace stays
             // available as an internal compatibility surface, not a second UI.
-            var studio = new CM26.Studio.App();
-            studio.InitializeForHost();
-            studio.Run();
+            var legacyExe = Path.Combine(AppContext.BaseDirectory, "CM26.LegacyUI", "CM26.LegacyUI.exe");
+            if (File.Exists(legacyExe))
+            {
+                using var legacy = Process.Start(new ProcessStartInfo
+                {
+                    FileName = legacyExe,
+                    Arguments = $"--cm26-host \"{Environment.ProcessPath}\"",
+                    UseShellExecute = false,
+                    WorkingDirectory = Path.GetDirectoryName(legacyExe)!
+                });
+                legacy?.WaitForExit();
+            }
+            else
+            {
+                var studio = new CM26.Studio.App();
+                studio.InitializeForHost();
+                studio.Run();
+            }
         }
         catch (Exception ex)
         {
             HandleFatal("startup", ex);
         }
         Log("=== Creation Master 26 exited ===");
+    }
+
+    private static int ExportLegacySnapshot(string outputPath)
+    {
+        try
+        {
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot))
+                throw new InvalidOperationException("FC26 installation was not detected. Configure the game folder first.");
+
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+            var workspace = Fc26WorkspaceService.Open(assets);
+            var backup = GameBackupService.EnsureCreated(workspace.GameRoot);
+            if (!backup.Success) throw new InvalidOperationException(backup.Message);
+            SettingsService.FC26GameFolder = workspace.GameRoot;
+
+            using var database = new DatabaseSession();
+            database.Load(workspace.DatabaseFolder);
+            LegacySnapshotService.Write(database, outputPath, workspace.GameRoot);
+            Console.WriteLine(outputPath);
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
+    }
+
+    private static int ExportLegacyAsset(string logicalPath)
+    {
+        try
+        {
+            var normalized = logicalPath.Replace('\\', '/').TrimStart('/');
+            var cached = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Creation Master 26", "legacy-assets",
+                normalized.Replace('/', Path.DirectorySeparatorChar));
+            if (File.Exists(cached) && new FileInfo(cached).Length > 0)
+            {
+                Console.WriteLine(cached);
+                return 0;
+            }
+
+            // An explicitly configured extracted asset pack is a useful fast
+            // path for previews that are represented as RES rather than legacy
+            // ChunkFileCollector entries in FC26.
+            var catalogPath = LegacyAssetCatalogFallback.Resolve(SettingsService.AssetRoot, normalized);
+            if (!string.IsNullOrWhiteSpace(catalogPath))
+            {
+                Console.WriteLine(catalogPath);
+                return 0;
+            }
+
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot))
+                throw new InvalidOperationException("FC26 installation was not detected.");
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+            var output = assets.ExportLegacyAsset(normalized);
+            if (string.IsNullOrWhiteSpace(output) || !File.Exists(output))
+                throw new FileNotFoundException("FC26 asset was not found.", normalized);
+            Console.WriteLine(output);
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
     }
 
     private static void HandleFatal(string context, Exception? ex)
