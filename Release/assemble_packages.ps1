@@ -163,11 +163,18 @@ function Assemble-Package {
             Copy-Item $_.FullName $dest -Force
         }
 
-    # The asset bridge is loaded in-process by CM26. The matching publish is
-    # still copied so its managed/native dependencies follow the app runtime.
-    Get-ChildItem -Path $BridgeDir -File |
-        Where-Object { $_.Extension -ne '.pdb' } |
-        ForEach-Object { Copy-Item $_.FullName (Join-Path $PackageDir $_.Name) -Force }
+    # The asset bridge is loaded in-process and is already present in the app
+    # publish through the project reference. Copy only the bridge assembly from
+    # its dedicated publish. Never merge that publish wholesale: its non-WPF
+    # WindowsBase facade would overwrite the application's full WPF runtime and
+    # make the self-contained package fail before Main can start.
+    $bridgeAssembly = Join-Path $BridgeDir 'CM26.AssetBridge.dll'
+    if (-not (Test-Path $bridgeAssembly)) {
+        $errors.Add("$Label bridge publish is missing CM26.AssetBridge.dll.")
+    }
+    else {
+        Copy-Item $bridgeAssembly (Join-Path $PackageDir 'CM26.AssetBridge.dll') -Force
+    }
 
     # Refresh VC++ CRT app-locally from System32 (matches the toolchain that built the bridge).
     foreach ($d in $vcrt) {
