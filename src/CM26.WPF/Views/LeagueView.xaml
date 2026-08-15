@@ -2,98 +2,88 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:CM26.Studio.Controls"
-             x:Name="Root"
-             Background="{StaticResource WindowBackBrush}">
-
+             x:Name="Root" Background="{StaticResource WindowBackBrush}">
     <UserControl.Resources>
         <DataTemplate x:Key="FieldTemplate">
             <controls:FieldRow Pending="{Binding StageEditDelegate, ElementName=Root}" />
         </DataTemplate>
+        <Style x:Key="LogoFrame" TargetType="Border">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushBase}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
     </UserControl.Resources>
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="5*" MinWidth="340" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="7*" MinWidth="480" />
-        </Grid.ColumnDefinitions>
+    <DockPanel>
+        <controls:PickUpControl x:Name="PickUp" DockPanel.Dock="Top"
+                                FilterEnabled="True" RefreshButtonEnabled="True" />
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <WrapPanel Margin="4">
+                <!-- Exact CM16 LeagueForm ordering: Teams, Logos, Names, Tuning. -->
+                <GroupBox Header="Teams" Width="467" Height="454" Margin="0,0,6,6">
+                    <DockPanel Margin="4">
+                        <Grid DockPanel.Dock="Top" Height="30" Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="TeamSearchBox" IsEditable="True" SelectionChanged="TeamSearchBox_SelectionChanged" />
+                            <Button Grid.Column="1" Content="+" Width="30" ToolTip="Add Team" Click="AddTeam_Click" />
+                            <Button Grid.Column="2" Content="↔" Width="30" ToolTip="Replace Team" Click="ReplaceTeam_Click" />
+                            <Button Grid.Column="3" Content="×" Width="30" ToolTip="Remove Team" Click="RemoveTeam_Click" />
+                        </Grid>
+                        <ListView x:Name="TeamList" SelectionChanged="TeamList_SelectionChanged">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="Team" Width="330" DisplayMemberBinding="{Binding Title}" />
+                                    <GridViewColumn Header="OVR" Width="70" DisplayMemberBinding="{Binding Detail}" />
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </DockPanel>
+                </GroupBox>
 
-        <!-- Left: CM16 PickUpControl (top) + league list -->
-        <DockPanel Grid.Column="0" Margin="6">
-            <controls:PickUpControl x:Name="PickUp" DockPanel.Dock="Top" Margin="0,0,0,6"
-                                    FilterEnabled="True" RefreshButtonEnabled="True" />
-            <ListView x:Name="LeagueList" SelectionChanged="LeagueList_SelectionChanged"
-                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ListView.View>
-                    <GridView>
-                        <GridViewColumn Header="Name" Width="210" DisplayMemberBinding="{Binding Title}" />
-                        <GridViewColumn Header="Country" Width="130" DisplayMemberBinding="{Binding Subtitle}" />
-                        <GridViewColumn Header="Level" Width="55" DisplayMemberBinding="{Binding Detail}" />
-                    </GridView>
-                </ListView.View>
-            </ListView>
-            <TextBlock x:Name="CountText" DockPanel.Dock="Bottom" Style="{StaticResource MutedText}" Margin="2,4,0,0" FontSize="12" />
-        </DockPanel>
+                <GroupBox Header="Logos" Width="532" Height="454" Margin="0,0,6,6">
+                    <Grid Margin="6">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="256"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="278"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource LogoFrame}">
+                            <Grid><Image x:Name="LogoLarge" Stretch="Uniform" Margin="8"/><TextBlock x:Name="LogoCaption" Text="FC26 league logo" Style="{StaticResource MutedText}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                            <Border Style="{StaticResource LogoFrame}" Height="90"><Image x:Name="LogoTiny" Stretch="Uniform" Margin="5"/></Border>
+                            <TextBlock Text="256 x 64" Margin="3"/>
+                            <Border Style="{StaticResource LogoFrame}" Height="160"><Image x:Name="LogoSmall" Stretch="Uniform" Margin="5"/></Border>
+                        </StackPanel>
+                        <Border Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource LogoFrame}" Margin="0,6,0,0">
+                            <Image x:Name="LogoBanner" Stretch="Uniform" Margin="6"/>
+                        </Border>
+                    </Grid>
+                </GroupBox>
 
-        <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
-                      Background="{StaticResource PanelBackBrush}" />
+                <GroupBox Header="Names and Other Information" Width="531" MinHeight="220" Margin="0,0,6,6">
+                    <Grid Margin="7">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="275"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <ItemsControl x:Name="NameFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        <GroupBox Grid.Column="1" Header="Position necessary to achieve objectives" Margin="8,0,0,0">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsControl x:Name="ObjectiveFields" Margin="5" ItemTemplate="{StaticResource FieldTemplate}"/></ScrollViewer>
+                        </GroupBox>
+                    </Grid>
+                </GroupBox>
 
-        <!-- Right: CM16 LeagueForm panels -->
-        <Grid Grid.Column="2" Margin="0,6,6,6">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="2*" MinHeight="200" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="3*" MinHeight="240" />
-            </Grid.RowDefinitions>
-
-            <!-- groupBoxTeams -->
-            <GroupBox Grid.Row="0" Header="Teams" Style="{StaticResource GroupCard}" Margin="0,0,0,6">
-                <DockPanel>
-                    <Border DockPanel.Dock="Top" Background="{StaticResource MenuBackBrush}"
-                            BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" Margin="0,0,0,4" Padding="4">
-                        <DockPanel>
-                            <TextBlock Text="Available:" FontWeight="Bold" Margin="0,0,6,0" />
-                            <TextBox x:Name="TeamSearchBox" TextChanged="TeamSearchBox_TextChanged" />
-                        </DockPanel>
-                    </Border>
-                    <ListView x:Name="TeamList" SelectionChanged="TeamList_SelectionChanged">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="Team" Width="220" DisplayMemberBinding="{Binding Title}" />
-                                <GridViewColumn Header="OVR" Width="50" DisplayMemberBinding="{Binding Detail}" />
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
-                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,4,0,0">
-                        <Button Content="Add Team" Style="{StaticResource ClassicButton}" Click="AddTeam_Click" />
-                        <Button Content="Replace" Style="{StaticResource ClassicButton}" Margin="6,0,0,0" Click="ReplaceTeam_Click" />
-                        <Button Content="Remove" Style="{StaticResource ClassicButton}" Margin="6,0,0,0" Click="RemoveTeam_Click" />
+                <GroupBox Header="Player Overall Tuning" Width="167" Height="139" Margin="0,0,6,6">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Button Content="+" Width="64" Height="64" FontSize="32" ToolTip="Increase league player overall" />
+                        <Button Content="−" Width="64" Height="64" FontSize="32" Margin="8,0,0,0" ToolTip="Decrease league player overall" />
                     </StackPanel>
-                </DockPanel>
-            </GroupBox>
+                </GroupBox>
 
-            <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                          Background="{StaticResource PanelBackBrush}" />
-
-            <!-- groupBoxNames: Names and Other Information -->
-            <GroupBox Grid.Row="2" Header="Names and Other Information" Style="{StaticResource GroupCard}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <GroupBox Header="League" Style="{StaticResource GroupCard}" Margin="0,0,0,6">
-                            <ItemsControl x:Name="NameFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                        </GroupBox>
-                        <GroupBox Header="Position necessary to achieve objectives" Style="{StaticResource GroupCard}" Margin="0,0,0,6">
-                            <ItemsControl x:Name="ObjectiveFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                        </GroupBox>
-                        <GroupBox Header="Player Overall Tuning" Style="{StaticResource GroupCard}" Margin="0,0,0,6">
-                            <ItemsControl x:Name="TuningFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                        </GroupBox>
-                        <GroupBox Header="Switch League Ids" Style="{StaticResource GroupCard}">
-                            <ItemsControl x:Name="SwitchFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                        </GroupBox>
-                    </StackPanel>
-                </ScrollViewer>
-            </GroupBox>
-        </Grid>
-    </Grid>
+                <GroupBox Header="Switch League Ids" Width="237" Height="139" Margin="0,0,6,6">
+                    <StackPanel Margin="8"><TextBox x:Name="CurrentLeagueName" IsReadOnly="True" TextAlignment="Center"/><Button Content="Switch" Width="70" Margin="0,8"/><ComboBox x:Name="SwitchLeagueCombo"/></StackPanel>
+                </GroupBox>
+            </WrapPanel>
+        </ScrollViewer>
+    </DockPanel>
 </UserControl>
