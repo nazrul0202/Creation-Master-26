@@ -1,6 +1,6 @@
 {
-  "version": "1.0.109",
+  "version": "1.0.110",
   "name": "Creation Master 26",
-  "notes": "v1.0.109 - Fixed game launch: FC26 now launches through the Steam DRM protocol (steam://run), with a second launcher for FET mods (-dataPath FIFAModData).",
+  "notes": "v1.0.110 - Restored the Creation Master 16 shell and section layouts on the FC26 Frostbite database and asset pipeline, including automatic game loading and real team crest previews.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

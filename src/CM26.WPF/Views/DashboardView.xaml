@@ -23,7 +23,7 @@
                             BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1"
                             Padding="16,10" VerticalAlignment="Center">
                         <StackPanel>
-                            <TextBlock x:Name="HeroVersion" Text="v1.0.109" FontSize="13" FontWeight="SemiBold"
+                            <TextBlock x:Name="HeroVersion" Text="v1.0.110" FontSize="13" FontWeight="SemiBold"
                                        Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" />
                             <TextBlock Text="STUDIO" Style="{StaticResource MutedText}" FontSize="10"
                                        HorizontalAlignment="Center" Margin="0,2,0,0" />

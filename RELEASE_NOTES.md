@@ -1,5 +1,15 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.110 - CM16 shell with FC26 Frostbite support (2026-08-15)
+
+- Restored the Creation Master 16 menu, toolbar, full blue workspace, right/bottom tool strips and classic section layout as the primary `CM26_by_Rizco98.exe` interface.
+- Added automatic FC26 installation detection, Frostbite archive indexing and database extraction/loading at startup.
+- Ported CM16-style Player, Manager, Referee, Team and Stadium controls while retaining FC26-native database field editing.
+- Team crest previews now load the installed FC26 Frostbite assets at CM16 sizes (256, 50, 32 and 16 pixels).
+- Corrected Team field grouping and moved FC26-only columns into the extensions tab instead of mixing them into CM16 panels.
+- Corrected Manager, Referee, Kit and Stadium pickup lists so they display resolved FC26 identities instead of generic record numbers.
+- Added automated WPF visual auditing across all 17 visible sections using the installed FC26 database.
+
 ## Version 1.0.109 - Steam-protocol game launch (2026-08-14)
 
 - Fixed "game doesn't open" after launching from CM26. FC26.exe is a Steam DRM build: starting it directly makes it exit immediately with code 100010 and no window. CM26 now launches the game through the Steam protocol (`steam://run/3405690//-dataPath%20CM26ModData`), which passes the DRM check and forwards the mod data path.

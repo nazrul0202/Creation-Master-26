@@ -42,7 +42,7 @@ public partial class AboutWindow : Window
         {
             // best effort; fall back to a bare release label
         }
-        return "1.0.109";
+        return "1.0.110";
     }
 
     private void GoBack_Click(object sender, RoutedEventArgs e) => Close();
