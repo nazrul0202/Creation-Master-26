@@ -129,13 +129,30 @@
                         <GroupBox Header="Face Modelling" Style="{StaticResource GroupCard}">
                             <StackPanel>
                                 <GroupBox Header="Face Type" Style="{StaticResource GroupCard}">
-                                    <ItemsControl x:Name="FaceTypeFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                                    <StackPanel>
+                                        <controls:NamedComboField x:Name="ComboSkinType" />
+                                        <controls:NamedComboField x:Name="ComboEyesBrow" />
+                                        <controls:NamedComboField x:Name="ComboFacialHair" />
+                                        <controls:NamedComboField x:Name="ComboFacialHairColor" />
+                                        <ItemsControl x:Name="FaceTypeFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                                    </StackPanel>
                                 </GroupBox>
                                 <GroupBox Header="Hair Model and Color" Style="{StaticResource GroupCard}">
-                                    <ItemsControl x:Name="HairFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                                    <StackPanel>
+                                        <controls:NamedComboField x:Name="ComboHairModel" />
+                                        <controls:NamedComboField x:Name="ComboHairColor" />
+                                        <ItemsControl x:Name="HairFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                                    </StackPanel>
                                 </GroupBox>
                                 <GroupBox Header="Head Model" Style="{StaticResource GroupCard}">
-                                    <ItemsControl x:Name="HeadFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                                    <StackPanel>
+                                        <controls:NamedComboField x:Name="ComboHeadModel" />
+                                        <controls:NamedComboField x:Name="ComboSideburns" />
+                                        <controls:NamedComboField x:Name="ComboEyesColor" />
+                                        <controls:NamedComboField x:Name="ComboFacePoser" />
+                                        <controls:NamedCheckField x:Name="CheckHighQualityHead" />
+                                        <ItemsControl x:Name="HeadFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                                    </StackPanel>
                                 </GroupBox>
                             </StackPanel>
                         </GroupBox>

@@ -95,9 +95,11 @@ public partial class PlayersView : UserControl
         TraitsGrid.Items = BuildPlaystyleFlags(fields, "trait1", "trait2");
         VirtualProGrid.Items = BuildPlaystyleFlags(fields, "icontrait1", "icontrait2");
 
-        FaceTypeFields.ItemsSource = fields.Where(f => IsFaceType(f.FieldName));
-        HairFields.ItemsSource = fields.Where(f => IsHair(f.FieldName));
-        HeadFields.ItemsSource = fields.Where(f => IsHead(f.FieldName));
+        FaceTypeFields.ItemsSource = fields.Where(f => IsFaceType(f.FieldName) && !IsNamedAppearance(f.FieldName));
+        HairFields.ItemsSource = fields.Where(f => IsHair(f.FieldName) && !IsNamedAppearance(f.FieldName));
+        HeadFields.ItemsSource = fields.Where(f => IsHead(f.FieldName) && !IsNamedAppearance(f.FieldName));
+
+        FillNamedCombos(fields);
 
         var ovr = fields.FirstOrDefault(f => f.FieldName == "overallrating");
         OverallText.Text = ovr?.Value ?? "—";
@@ -144,6 +146,39 @@ public partial class PlayersView : UserControl
         var outcome = _vm.Session.Pending.Stage("players", item.RecordIndex, fieldName, value);
         if (outcome.Success) RefreshEditor();
         return outcome;
+    }
+
+    /// <summary>Fills the CM16-style named combos (Face tab) from the current fields.
+    /// Fields covered by a named combo are excluded from the generic field lists.</summary>
+    private void FillNamedCombos(IReadOnlyList<FieldValue> fields)
+    {
+        FillCombo(ComboSkinType, "skintypecode", "Skin Type", AppearanceCatalog.SkinTypes, null, fields);
+        FillCombo(ComboEyesBrow, "eyebrowcode", "Eyes Brow", AppearanceCatalog.EyebrowTypes, null, fields);
+        FillCombo(ComboFacialHair, "facialhairtypecode", "Facial Hair", AppearanceCatalog.FacialHairTypes, null, fields);
+        FillCombo(ComboFacialHairColor, "facialhaircolorcode", "Color", AppearanceCatalog.FacialHairColors, null, fields);
+
+        var hairModels = AppearanceCatalog.FlattenModels(AppearanceCatalog.HairModelSets);
+        FillCombo(ComboHairModel, "hairtypecode", "Hair Model", hairModels.Names, hairModels.Values, fields);
+        FillCombo(ComboHairColor, "haircolorcode", "Hair Color", AppearanceCatalog.HairColors, null, fields);
+
+        var headModels = AppearanceCatalog.FlattenModels(AppearanceCatalog.HeadModelSets);
+        FillCombo(ComboHeadModel, "headtypecode", "Head Model", headModels.Names, headModels.Values, fields);
+        FillCombo(ComboSideburns, "sideburnscode", "Sideburns", AppearanceCatalog.Sideburns, null, fields);
+        FillCombo(ComboEyesColor, "eyecolorcode", "Eyes Color", AppearanceCatalog.EyeColors, null, fields, valueOffset: 1);
+        FillCombo(ComboFacePoser, "faceposerpreset", "Face Poser", AppearanceCatalog.FacePosers, null, fields);
+
+        var hq = fields.FirstOrDefault(f => f.FieldName.Equals("hashighqualityhead", StringComparison.OrdinalIgnoreCase));
+        CheckHighQualityHead.SetContent("High Quality Face", "hashighqualityhead", hq?.RawValue,
+            hq?.IsWritable ?? false, StageEdit);
+    }
+
+    private void FillCombo(NamedComboField combo, string fieldName, string label, IReadOnlyList<string> names,
+        IReadOnlyList<int>? values, IReadOnlyList<FieldValue> fields, int valueOffset = 0)
+    {
+        var fv = fields.FirstOrDefault(f => f.FieldName.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+        var valueList = values ?? Enumerable.Range(valueOffset, names.Count).ToArray();
+        combo.SetContent(label, fieldName, names, valueList, fv?.RawValue,
+            fv?.IsWritable ?? false, StageEdit);
     }
 
     private void RefreshEditor()
@@ -239,4 +274,18 @@ public partial class PlayersView : UserControl
         || n.Contains("face", StringComparison.OrdinalIgnoreCase)
         || n.Contains("beard", StringComparison.OrdinalIgnoreCase)
         || n.Contains("tattoo", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Fields rendered as CM16-style named combos/checks on the Face tab
+    /// (so they are excluded from the generic text-box field lists).</summary>
+    private static bool IsNamedAppearance(string n) => n.Equals("skintypecode", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("eyebrowcode", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("facialhairtypecode", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("facialhaircolorcode", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("hairtypecode", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("haircolorcode", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("headtypecode", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("sideburnscode", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("eyecolorcode", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("faceposerpreset", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("hashighqualityhead", StringComparison.OrdinalIgnoreCase);
 }
