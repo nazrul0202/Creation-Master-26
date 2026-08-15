@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using CM26.Application.Models;
 using CM26.Application.Services;
 using CM26.EngineBridge;
+using CM26.Studio.Controls;
 
 namespace CM26.Studio.Views;
 
@@ -16,6 +17,7 @@ public partial class PlayersView : UserControl
 {
     private readonly ViewModel _vm;
     private IReadOnlyList<RecordListItem> _all = Array.Empty<RecordListItem>();
+    private IReadOnlyList<FieldValue> _currentFields = Array.Empty<FieldValue>();
 
     /// <summary>Wired to each FieldRow so field edits stage through the pending service.</summary>
     public Func<string, string, EditOutcome?>? StageEditDelegate { get; }
@@ -25,6 +27,8 @@ public partial class PlayersView : UserControl
         InitializeComponent();
         _vm = vm;
         StageEditDelegate = StageEdit;
+        TraitsGrid.Toggle = TogglePlaystyle;
+        VirtualProGrid.Toggle = TogglePlaystyle;
         PickUp.SelectObject += LoadEditorFromPickUp;
         PickUp.FilterByList = new[] { "All", "by Team", "by Country", "Free Agents" };
         PickUp.FilterChanged += ApplyFilter;
@@ -70,7 +74,8 @@ public partial class PlayersView : UserControl
     }
     private void LoadEditor(RecordListItem item)
     {
-        var fields = _vm.Session.Sections.GetFields("players", item.RecordIndex, LabelMaps.Players);
+        _currentFields = _vm.Session.Sections.GetFields("players", item.RecordIndex, LabelMaps.Players);
+        var fields = _currentFields;
 
         IdentityFields.ItemsSource = fields.Where(f => IsIdentity(f.FieldName));
         BodyFields.ItemsSource = fields.Where(f => IsBody(f.FieldName));
@@ -87,8 +92,8 @@ public partial class PlayersView : UserControl
         PhysicalFields.ItemsSource = fields.Where(f => IsPhysical(f.FieldName));
         FreeKickFields.ItemsSource = fields.Where(f => IsFreeKick(f.FieldName));
 
-        TraitsFields.ItemsSource = fields.Where(f => IsTrait(f.FieldName));
-        VirtualProFields.ItemsSource = fields.Where(f => IsVirtualPro(f.FieldName));
+        TraitsGrid.Items = BuildPlaystyleFlags(fields, "trait1", "trait2");
+        VirtualProGrid.Items = BuildPlaystyleFlags(fields, "icontrait1", "icontrait2");
 
         FaceTypeFields.ItemsSource = fields.Where(f => IsFaceType(f.FieldName));
         HairFields.ItemsSource = fields.Where(f => IsHair(f.FieldName));
@@ -98,6 +103,39 @@ public partial class PlayersView : UserControl
         OverallText.Text = ovr?.Value ?? "—";
         OverallSlider.Value = double.TryParse(ovr?.RawValue, out var v) ? v : 0;
         EditTabs.SelectedIndex = 0;
+    }
+
+    /// <summary>Builds the 34 playstyle flags for one bitmask pair (trait1/trait2 or icontrait1/icontrait2).</summary>
+    private static IReadOnlyList<PlaystyleFlag> BuildPlaystyleFlags(IReadOnlyList<FieldValue> fields, string fieldA, string fieldB)
+    {
+        var flags = new List<PlaystyleFlag>(PlaystyleCatalog.Names.Length);
+        for (int i = 0; i < PlaystyleCatalog.Names.Length; i++)
+        {
+            var (field, bit) = i < 32 ? (fieldA, i) : (fieldB, i - 32);
+            var fv = fields.FirstOrDefault(f => f.FieldName.Equals(field, StringComparison.OrdinalIgnoreCase));
+            var mask = fv != null && uint.TryParse(fv.RawValue, out var m) ? m : 0u;
+            flags.Add(new PlaystyleFlag
+            {
+                Field = field,
+                Bit = bit,
+                Name = PlaystyleCatalog.Names[i],
+                IsSet = (mask & (1u << bit)) != 0,
+                IsWritable = fv?.IsWritable ?? false,
+            });
+        }
+        return flags;
+    }
+
+    /// <summary>Playstyle checkbox toggled: re-read the current mask, flip the bit, stage the new mask.</summary>
+    private EditOutcome? TogglePlaystyle(string fieldName, int bit, bool set)
+    {
+        if (PlayerList.SelectedItem is not RecordListItem item) return null;
+        var fv = _currentFields.FirstOrDefault(f => f.FieldName.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+        if (fv == null || !uint.TryParse(fv.RawValue, out var mask)) return null;
+        var newMask = set ? mask | (1u << bit) : mask & ~(1u << bit);
+        var outcome = _vm.Session.Pending.Stage("players", item.RecordIndex, fieldName, newMask.ToString());
+        if (outcome.Success) RefreshEditor();
+        return outcome;
     }
 
     private EditOutcome? StageEdit(string fieldName, string value)
@@ -186,15 +224,8 @@ public partial class PlayersView : UserControl
         || n.Contains("gkkick", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsSkillField(string n) => IsGk(n) || IsDefensive(n) || IsMidfielder(n) || IsMental(n)
-        || IsAttacking(n) || IsPhysical(n) || IsFreeKick(n) || IsTrait(n) || IsVirtualPro(n)
+        || IsAttacking(n) || IsPhysical(n) || IsFreeKick(n)
         || n is "overallrating" or "potential";
-
-    // ---------- CM16 Traits (trait1/trait2 bitmasks) + Virtual Pro ----------
-
-    private static bool IsTrait(string n) => n.Equals("trait1", StringComparison.OrdinalIgnoreCase)
-        || n.Equals("trait2", StringComparison.OrdinalIgnoreCase);
-    private static bool IsVirtualPro(string n) => n.Equals("icontrait1", StringComparison.OrdinalIgnoreCase)
-        || n.Equals("icontrait2", StringComparison.OrdinalIgnoreCase);
 
     // ---------- CM16 Face tab groupings ----------
 

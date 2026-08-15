@@ -56,6 +56,23 @@ public static class Smoke
                 await Task.Delay(50);
             }
 
+            // Select the first player so the playstyle checkbox grids render
+            // (traits/virtual-pro bitmask path) — any exception here fails the run.
+            var players = FindAll(window).OfType<Views.PlayersView>().FirstOrDefault();
+            if (players != null)
+            {
+                var list = players.FindName("PlayerList") as System.Windows.Controls.ListView;
+                if (list != null && list.Items.Count > 0)
+                {
+                    list.SelectedIndex = 0;
+                    window.UpdateLayout();
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(
+                        System.Windows.Threading.DispatcherPriority.ApplicationIdle, () => { });
+                    await Task.Delay(100);
+                    window.UpdateLayout();
+                }
+            }
+
             Console.WriteLine("SMOKE OK: database loaded, layout passed, navigation passed");
         }
     }

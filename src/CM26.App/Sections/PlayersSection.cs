@@ -52,13 +52,7 @@ public sealed class PlayersSection : SectionBase
     private int _currentPlayerId;
     private int _currentHeadAssetId;
     private readonly Dictionary<string, ComboBox> _referencePickers = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly string[] PlaystyleNames =
-    [
-        "Finesse Shot", "Power Shot", "Dead Ball", "Chip Shot", "Power Header", "Pinged Pass", "Long Ball Pass", "Tiki Taka",
-        "Incisive Pass", "Whipped Pass", "First Touch", "Technical", "Rapid", "Quick Step", "Trickster", "Press Proven",
-        "Flair", "Relentless", "Trivela", "Block", "Intercept", "Anticipate", "Slide Tackle", "Bruiser", "Jockey", "Aerial",
-        "Acrobatic", "Far Reach", "Footwork", "Cross Claimer", "Rush Out", "Deflector", "1v1 Close Down", "Long Throw"
-    ];
+    private static readonly string[] PlaystyleNames = PlaystyleCatalog.Names;
     private static readonly string[] RoleNames =
     [ "Goalkeeper", "Sweeper Keeper", "Defender", "Stopper", "Ball-Playing Defender", "Wide Back", "Fullback", "Wingback", "Falseback", "Attacking Wingback", "Inverted Wingback", "Holding", "Deep-Lying Playmaker", "Box-to-Box", "Playmaker", "Half Winger", "Winger", "Wide Playmaker", "Inside Forward", "Poacher", "Advanced Forward", "False 9", "Target Forward" ];
 

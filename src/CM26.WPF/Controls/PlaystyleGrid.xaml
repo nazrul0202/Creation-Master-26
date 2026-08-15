@@ -1,0 +1,8 @@
+<UserControl x:Class="CM26.Studio.Controls.PlaystyleGrid"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root">
+
+    <UniformGrid Columns="3" x:Name="Grid" HorizontalAlignment="Left">
+    </UniformGrid>
+</UserControl>

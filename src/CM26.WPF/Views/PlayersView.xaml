@@ -113,10 +113,10 @@
                             <ItemsControl x:Name="FreeKickFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
                         <GroupBox Header="Traits" Style="{StaticResource GroupCard}">
-                            <ItemsControl x:Name="TraitsFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            <controls:PlaystyleGrid x:Name="TraitsGrid" Columns="3" />
                         </GroupBox>
                         <GroupBox Header="Virtual Pro" Style="{StaticResource GroupCard}">
-                            <ItemsControl x:Name="VirtualProFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            <controls:PlaystyleGrid x:Name="VirtualProGrid" Columns="2" PlusVariant="True" />
                         </GroupBox>
                     </StackPanel>
                 </ScrollViewer>
