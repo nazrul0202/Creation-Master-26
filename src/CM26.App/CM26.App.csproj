@@ -23,6 +23,9 @@
     <!-- Keep local source snapshots available without compiling a second PlayersSection type. -->
     <Compile Remove="Sections\PlayersSectionBACKUP.cs" />
     <ProjectReference Include="..\CM26.Application\CM26.Application.csproj" />
+    <!-- CM16-exact shell used by the primary executable; it uses the same
+         CM26.Application/Frostbite services and has no dependency on CM26.App. -->
+    <ProjectReference Include="..\CM26.WPF\CM26.WPF.csproj" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
     <Reference Include="CM26.EngineBridge">
       <HintPath>..\..\src-native\CM26.EngineBridge\bin\CM26.EngineBridge.dll</HintPath>

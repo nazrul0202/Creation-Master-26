@@ -305,7 +305,10 @@ internal static class Program
                 Log("CM26 mod recovery: " + recovery.Message);
         }
 
-        if (!SettingsService.EulaAccepted)
+        // Automated Studio smoke has no interactive desktop for the EULA dialog;
+        // normal launches retain the acknowledgement requirement unchanged.
+        var isStudioSmoke = args.Length >= 1 && args[0] == "--ui-smoke";
+        if (!SettingsService.EulaAccepted && !isStudioSmoke)
         {
             var accepted = CM26.App.Controls.EulaDialog.Show(null);
             if (!accepted)
@@ -327,10 +330,13 @@ internal static class Program
 
         try
         {
-            // A normal folder argument starts the exact portable build with the
-            // selected database already loaded, avoiding stale-shortcut confusion.
-            var initialDatabaseFolder = args.Length == 1 && Directory.Exists(args[0]) ? args[0] : null;
-            WinApp.Run(new MainForm(initialDatabaseFolder));
+            // CM16's user-friendly shell is the public entry point.  Its File
+            // > Open flow detects FC26 and loads the Data/Patch Frostbite source
+            // through CM26.Application; the former dark WinForms workspace stays
+            // available as an internal compatibility surface, not a second UI.
+            var studio = new CM26.Studio.App();
+            studio.InitializeForHost();
+            studio.Run();
         }
         catch (Exception ex)
         {
