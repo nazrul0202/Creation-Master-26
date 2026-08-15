@@ -1,0 +1,84 @@
+<UserControl x:Class="CM26.Studio.Views.FormationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:CM26.Studio.Controls"
+             x:Name="Root"
+             Background="{StaticResource WindowBackBrush}">
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="FieldTemplate">
+            <controls:FieldRow Pending="{Binding StageEditDelegate, ElementName=Root}" />
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="5*" MinWidth="340" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="7*" MinWidth="520" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left: Find + formation list -->
+        <DockPanel Grid.Column="0" Margin="6">
+            <Border DockPanel.Dock="Top" Background="{StaticResource MenuBackBrush}"
+                    BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" Margin="0,0,0,6" Padding="6,4">
+                <DockPanel>
+                    <TextBlock Text="Find:" FontWeight="Bold" Margin="0,0,8,0" />
+                    <Button x:Name="NewIdButton" DockPanel.Dock="Right" Content="New ID" Style="{StaticResource ClassicButton}" Margin="8,0,0,0" Click="NewId_Click" />
+                    <TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged" />
+                </DockPanel>
+            </Border>
+            <ListView x:Name="FormationList" SelectionChanged="FormationList_SelectionChanged"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Name" Width="220" DisplayMemberBinding="{Binding Title}" />
+                        <GridViewColumn Header="Id" Width="70" DisplayMemberBinding="{Binding Detail}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            <TextBlock x:Name="CountText" DockPanel.Dock="Bottom" Style="{StaticResource MutedText}" Margin="2,4,0,0" FontSize="12" />
+        </DockPanel>
+
+        <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                      Background="{StaticResource PanelBackBrush}" />
+
+        <!-- Right: tabFormation pagePosition -->
+        <TabControl x:Name="EditTabs" Grid.Column="2" Margin="0,6,6,6"
+                    Background="{StaticResource WindowBackBrush}"
+                    BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1"
+                    FontSize="13">
+            <TabItem Header="Position">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <WrapPanel>
+                        <GroupBox Header="Name" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="NameFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Roles" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="RoleFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Positions" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="PositionFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Offsets" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="OffsetFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Structure" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="StructureFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                    </WrapPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

@@ -2,7 +2,6 @@ using System.Windows;
 using System.Windows.Controls;
 using CM26.Application.Models;
 using CM26.Studio.Services;
-using Microsoft.Win32;
 
 namespace CM26.Studio.Views;
 
@@ -23,7 +22,7 @@ public partial class DashboardView : UserControl
         if (!session.Database.IsLoaded)
         {
             MetricPlayers.Text = MetricTeams.Text = MetricLeagues.Text = MetricCountries.Text = "—";
-            DbPathText.Text = "No database loaded";
+            DbPathText.Text = "FC26 is not open yet";
             DbTablesText.Text = string.Empty;
             return;
         }
@@ -36,7 +35,7 @@ public partial class DashboardView : UserControl
             MetricCountries.Text = session.Sections.GetCountries().Count.ToString("N0");
             DbPathText.Text = session.Database.DatabasePath ?? string.Empty;
             DbTablesText.Text = session.Database.Tables.Count + " tables, " + session.Pending.Count + " pending changes";
-            HeroSubtitle.Text = "Workspace database loaded from " + session.Database.LoadedFolder;
+            HeroSubtitle.Text = "Direct FC26 editing - extracted from the game archives";
         }
         catch (Exception ex)
         {
@@ -44,46 +43,35 @@ public partial class DashboardView : UserControl
         }
     }
 
-    private void OpenFolder_Click(object sender, RoutedEventArgs e)
+    private void OpenGame_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog
-        {
-            Title = "Open FC26 database folder",
-            Filter = "FC26 Database (fifa_ng_db-meta.xml)|fifa_ng_db-meta.xml|All files (*.*)|*.*",
-        };
-        if (dialog.ShowDialog() != true) return;
-        var folder = System.IO.Path.GetDirectoryName(dialog.FileName);
-        if (folder is null) return;
-
-        var summary = _vm.Session.Database.ValidateFolder(folder);
-        if (summary.State != CM26.EngineBridge.LoadStateKind.Success)
-        {
-            MessageBox.Show("Unsupported database folder: " + summary.Message, "Open Database",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
+        var progress = new Progress<string>(phase => HeroSubtitle.Text = phase);
         try
         {
-            _vm.Session.Database.Load(folder);
-            RefreshCounts();
-            DbStatusRefresh?.Invoke();
+            string message = string.Empty;
+            var ok = Task.Run(() => _vm.Session.TryOpenGame(out message, progress)).Result;
+            HeroSubtitle.Text = ok ? "FC26 opened for direct editing." : message;
+            if (!ok)
+                MessageBox.Show(message, "Open FC26", MessageBoxButton.OK, MessageBoxImage.Warning);
+            else
+                RefreshCounts();
         }
         catch (Exception ex)
         {
-            MessageBox.Show("Database load failed: " + ex.Message, "Open Database",
+            MessageBox.Show("Open FC26 failed: " + ex.Message, "Open FC26",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
     private void Reload_Click(object sender, RoutedEventArgs e)
     {
-        var folder = _vm.Session.Database.LoadedFolder;
-        if (folder is null) return;
+        var progress = new Progress<string>(phase => HeroSubtitle.Text = phase);
         try
         {
-            _vm.Session.Database.Load(folder);
-            RefreshCounts();
-            DbStatusRefresh?.Invoke();
+            string message = string.Empty;
+            var ok = Task.Run(() => _vm.Session.ReloadFromGame(out message)).Result;
+            HeroSubtitle.Text = message;
+            if (ok) RefreshCounts();
         }
         catch (Exception ex)
         {
@@ -91,7 +79,4 @@ public partial class DashboardView : UserControl
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
-
-    /// <summary>Raised so the shell can refresh its own status text after a load.</summary>
-    public event Action? DbStatusRefresh;
 }

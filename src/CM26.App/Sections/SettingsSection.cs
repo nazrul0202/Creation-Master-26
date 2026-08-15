@@ -5,6 +5,8 @@ using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 
+using CM26.Application.Services;
+
 namespace CM26.App.Sections;
 
 /// <summary>Application settings (stored locally, not in the database).</summary>

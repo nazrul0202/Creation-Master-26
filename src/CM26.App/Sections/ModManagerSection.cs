@@ -5,6 +5,8 @@ using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 
+using CM26.Application.Services;
+
 namespace CM26.App.Sections;
 
 /// <summary>Standalone CM26 mod library. It intentionally does not read or alter FET's library.</summary>

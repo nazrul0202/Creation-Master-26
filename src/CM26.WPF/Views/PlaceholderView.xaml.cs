@@ -4,9 +4,9 @@ namespace CM26.Studio.Views;
 
 public partial class PlaceholderView : UserControl
 {
-    public PlaceholderView(string key)
+    public PlaceholderView(string title)
     {
         InitializeComponent();
-        TitleText.Text = char.ToUpperInvariant(key[0]) + key[1..];
+        TitleText.Text = title;
     }
 }

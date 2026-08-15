@@ -1,0 +1,46 @@
+<UserControl x:Class="CM26.Studio.Views.GameGraphicsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root"
+             Background="{StaticResource WindowBackBrush}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource MenuBackBrush}"
+                BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="0,0,0,1" Padding="8,4">
+            <TextBlock Text="Game Graphics" FontWeight="Bold" FontSize="15" />
+        </Border>
+
+        <!-- GameGraphicForm layout: groupMenu "Start" + groupIcons "Icons" -->
+        <Grid Grid.Row="1" Margin="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" MinWidth="260" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="3*" MinWidth="340" />
+            </Grid.ColumnDefinitions>
+
+            <GroupBox Grid.Column="0" Header="Start" Style="{StaticResource GroupCard}" Margin="0,0,6,0">
+                <StackPanel>
+                    <TextBlock Text="Start screen graphics (menu background images)."
+                               Style="{StaticResource MutedText}" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,8" />
+                    <Button Content="Save" Style="{StaticResource ClassicButton}" HorizontalAlignment="Left" />
+                </StackPanel>
+            </GroupBox>
+
+            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                          Background="{StaticResource PanelBackBrush}" />
+
+            <GroupBox Grid.Column="2" Header="Icons" Style="{StaticResource GroupCard}" Margin="6,0,0,0">
+                <StackPanel>
+                    <TextBlock Text="Game menu icons. Import / export requires the texture asset pipeline."
+                               Style="{StaticResource MutedText}" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,8" />
+                    <Button Content="Reload" Style="{StaticResource ClassicButton}" HorizontalAlignment="Left" />
+                </StackPanel>
+            </GroupBox>
+        </Grid>
+    </Grid>
+</UserControl>

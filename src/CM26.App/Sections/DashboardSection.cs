@@ -6,6 +6,8 @@ using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 
+using CM26.Application.Services;
+
 namespace CM26.App.Sections;
 
 /// <summary>Modern tool dashboard: database status, metrics, quick actions and health.</summary>

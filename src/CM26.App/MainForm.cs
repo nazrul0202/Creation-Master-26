@@ -6,6 +6,8 @@ using CM26.App.Controls.Studio;
 using CM26.App.Sections;
 using CM26.App.Theming;
 
+using CM26.Application.Services;
+
 namespace CM26.App;
 
 public sealed class MainForm : Form

@@ -17,6 +17,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- In-process Frostbite asset engine (single EXE model; no helper process). -->
+    <ProjectReference Include="..\CM26.AssetBridge\CM26.AssetBridge.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- C++/CLI assemblies cannot be referenced via ProjectReference metadata; reference the built DLL. -->
     <Reference Include="CM26.EngineBridge">
       <HintPath>..\..\src-native\CM26.EngineBridge\bin\CM26.EngineBridge.dll</HintPath>

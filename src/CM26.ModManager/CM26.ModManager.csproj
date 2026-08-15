@@ -10,25 +10,4 @@
     <ApplicationIcon>..\CM26.App\Assets\Logo\Creation Master 26.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="..\CM26.App\CM26.App.csproj" /></ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\CM26.AssetBridge\CM26.AssetBridge.csproj" ReferenceOutputAssembly="false" />
-  </ItemGroup>
-  <Target Name="CopyAssetBridge" AfterTargets="Build">
-    <PropertyGroup>
-      <AssetBridgeOutDir>..\CM26.AssetBridge\bin\$(Configuration)\net8.0-windows\</AssetBridgeOutDir>
-    </PropertyGroup>
-    <ItemGroup>
-      <AssetBridgeFiles Include="$(AssetBridgeOutDir)CM26.AssetBridge.*" />
-      <AssetBridgeFiles Include="$(AssetBridgeOutDir)CM26.MeshKit.dll" />
-    </ItemGroup>
-    <Copy SourceFiles="@(AssetBridgeFiles)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
-  </Target>
-  <Target Name="PublishAssetBridgeToManagerOutput" AfterTargets="Publish" Condition="'$(PublishDir)' != ''">
-    <PropertyGroup>
-      <AbsoluteManagerPublishDir>$([System.IO.Path]::GetFullPath('$(PublishDir)'))</AbsoluteManagerPublishDir>
-    </PropertyGroup>
-    <MSBuild Projects="..\CM26.AssetBridge\CM26.AssetBridge.csproj"
-             Targets="Publish"
-             Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=$(SelfContained);PublishDir=$(AbsoluteManagerPublishDir);DebugSymbols=false;DebugType=None" />
-  </Target>
 </Project>

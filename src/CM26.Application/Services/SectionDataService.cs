@@ -36,6 +36,38 @@ public sealed class SectionDataService
 
     // ---------- Countries ----------
 
+    /// <summary>
+    /// Generic record list for a section table: the first readable name-like column
+    /// becomes the title, the id column becomes the detail. Used by the CM16-style
+    /// generic section views (manager, stadiums, referee, formations, teamkits).
+    /// </summary>
+    public IReadOnlyList<RecordListItem> GetItems(string tableName)
+    {
+        var t = Table(tableName); if (t == null) return Array.Empty<RecordListItem>();
+        var list = new List<RecordListItem>(t.RowCount);
+        int nameCol = -1, idCol = -1;
+        for (int i = 0; i < t.Columns.Count; i++)
+        {
+            var col = t.Columns[i];
+            if (nameCol < 0 && col.KindLabel == "String") nameCol = i;
+            if (idCol < 0 && (col.Name.EndsWith("id", StringComparison.OrdinalIgnoreCase))) idCol = i;
+        }
+        for (int r = 0; r < t.RowCount; r++)
+        {
+            var rec = _session.GetRecord(tableName, r); if (rec == null) continue;
+            var title = nameCol >= 0 ? rec.Get(nameCol) : $"Record {r}";
+            var detail = idCol >= 0 ? $"ID {rec.Get(idCol)}" : string.Empty;
+            list.Add(new RecordListItem
+            {
+                RecordIndex = r,
+                Title = string.IsNullOrWhiteSpace(title) ? $"Record {r}" : title,
+                Detail = detail,
+                SearchText = idCol >= 0 ? rec.Get(idCol) : string.Empty,
+            });
+        }
+        return list.OrderBy(x => x.Title).ToList();
+    }
+
     public IReadOnlyList<RecordListItem> GetCountries()
     {
         var t = Table("nations"); if (t == null) return Array.Empty<RecordListItem>();

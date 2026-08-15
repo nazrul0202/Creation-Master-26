@@ -1,0 +1,61 @@
+<UserControl x:Class="CM26.Studio.Views.SectionListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:CM26.Studio.Controls"
+             x:Name="Root"
+             Background="{StaticResource WindowBackBrush}">
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="FieldTemplate">
+            <controls:FieldRow Pending="{Binding StageEditDelegate, ElementName=Root}" />
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="5*" MinWidth="320" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="6*" MinWidth="420" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left: Find + record list (CM16 PickUpControl + ListView) -->
+        <DockPanel Grid.Column="0" Margin="6">
+            <Border DockPanel.Dock="Top" Background="{StaticResource MenuBackBrush}"
+                    BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" Margin="0,0,0,6" Padding="6,4">
+                <DockPanel>
+                    <TextBlock Text="Find:" FontWeight="Bold" Margin="0,0,8,0" />
+                    <Button x:Name="NewIdButton" DockPanel.Dock="Right" Content="New ID" Style="{StaticResource ClassicButton}" Margin="8,0,0,0" Click="NewId_Click" />
+                    <TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged" />
+                </DockPanel>
+            </Border>
+            <ListView x:Name="RecordList" SelectionChanged="RecordList_SelectionChanged"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn x:Name="TitleColumn" Header="Name" Width="200" DisplayMemberBinding="{Binding Title}" />
+                        <GridViewColumn x:Name="SubtitleColumn" Header="Detail" Width="150" DisplayMemberBinding="{Binding Subtitle}" />
+                        <GridViewColumn x:Name="DetailColumn" Header="Info" Width="80" DisplayMemberBinding="{Binding Detail}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            <TextBlock x:Name="CountText" DockPanel.Dock="Bottom" Style="{StaticResource MutedText}" Margin="2,4,0,0" FontSize="12" />
+        </DockPanel>
+
+        <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                      Background="{StaticResource PanelBackBrush}" />
+
+        <!-- Right: edit tabs -->
+        <TabControl x:Name="EditTabs" Grid.Column="2" Margin="0,6,6,6"
+                    Background="{StaticResource WindowBackBrush}"
+                    BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1"
+                    FontSize="13">
+            <TabItem Header="Info">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <GroupBox Header="Record" Style="{StaticResource GroupCard}" Margin="6">
+                        <ItemsControl x:Name="InfoFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                    </GroupBox>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

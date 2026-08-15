@@ -1,0 +1,26 @@
+<UserControl x:Class="CM26.Studio.Views.TvView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root"
+             Background="{StaticResource WindowBackBrush}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource MenuBackBrush}"
+                BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="0,0,0,1" Padding="8,4">
+            <TextBlock Text="TV" FontWeight="Bold" FontSize="15" />
+        </Border>
+
+        <!-- TvForm in CM16 only shows a background image; keep the same empty preview area -->
+        <Grid Grid.Row="1" Margin="12">
+            <Border Background="{StaticResource PanelBackBrush}" BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1">
+                <TextBlock Text="TV channel graphics. In CM16 this section only displays a background image."
+                           Style="{StaticResource MutedText}" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center" />
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

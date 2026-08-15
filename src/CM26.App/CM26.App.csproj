@@ -19,11 +19,9 @@
          are inherited from Directory.Build.props (single source of truth). -->
   </PropertyGroup>
 
-  <ItemGroup>
+<ItemGroup>
     <!-- Keep local source snapshots available without compiling a second PlayersSection type. -->
     <Compile Remove="Sections\PlayersSectionBACKUP.cs" />
-    <ProjectReference Include="..\CM26.AssetBridge\CM26.AssetBridge.csproj"
-                      ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\CM26.Application\CM26.Application.csproj" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
     <Reference Include="CM26.EngineBridge">
@@ -35,36 +33,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
-  <!-- The asset bridge runs as a separate process next to the app. It carries its
-       own MeshKit copy via ProjectReference, so both are taken from the bridge
-       output directory. Using the bridge's own output avoids the stale-DLL trap
-       of globbing a hardcoded Debug/Release path that the solution may not build. -->
-  <Target Name="CopyAssetBridge" AfterTargets="Build">
-    <PropertyGroup>
-      <AssetBridgeOutDir>..\CM26.AssetBridge\bin\$(Configuration)\net8.0-windows\</AssetBridgeOutDir>
-    </PropertyGroup>
-    <ItemGroup>
-      <AssetBridgeFiles Include="$(AssetBridgeOutDir)CM26.AssetBridge.*" />
-      <AssetBridgeFiles Include="$(AssetBridgeOutDir)CM26.MeshKit.dll" />
-    </ItemGroup>
-    <Error Condition="'@(AssetBridgeFiles)' == ''"
-           Text="Asset bridge output not found in $(AssetBridgeOutDir). Build CM26.AssetBridge first (it is part of CM26.slnx)." />
-    <Copy SourceFiles="@(AssetBridgeFiles)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
-  </Target>
-
-  <!-- Publish the helper with the same runtime model as the main application.
-       Copying its ordinary build output made the Full Portable package depend
-       on an externally installed Microsoft.NETCore.App. -->
-  <Target Name="PublishAssetBridgeToAppOutput" AfterTargets="Publish">
-    <PropertyGroup>
-      <AbsoluteAppPublishDir>$([System.IO.Path]::GetFullPath('$(PublishDir)'))</AbsoluteAppPublishDir>
-    </PropertyGroup>
-    <MSBuild Projects="..\CM26.AssetBridge\CM26.AssetBridge.csproj"
-             Targets="Publish"
-             Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=$(SelfContained);PublishDir=$(AbsoluteAppPublishDir);DebugSymbols=false;DebugType=None"
-             Condition="'$(PublishDir)' != ''" />
-  </Target>
 
   <!-- The packaged 3D FBX viewer. Its payload is a prebuilt drop; warn loudly when
        it is absent so a package is never shipped with an empty Tools folder. -->

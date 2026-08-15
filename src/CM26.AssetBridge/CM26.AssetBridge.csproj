@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -9,7 +8,7 @@
     <AppendPlatformToOutputPath>false</AppendPlatformToOutputPath>
     <AssemblyName>CM26.AssetBridge</AssemblyName>
     <RootNamespace>CM26.AssetBridge</RootNamespace>
-    <!-- Version and release debug settings are inherited from Directory.Build.props. -->
+    <!-- Runs in-process with the application (single EXE); no console entry point. -->
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\CM26.MeshKit\CM26.MeshKit.csproj" />

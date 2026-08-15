@@ -1,0 +1,137 @@
+<UserControl x:Class="CM26.Studio.Views.PlayersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:CM26.Studio.Controls"
+             x:Name="Root"
+             Background="{StaticResource WindowBackBrush}">
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="FieldTemplate">
+            <controls:FieldRow Pending="{Binding StageEditDelegate, ElementName=Root}" />
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="5*" MinWidth="340" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="7*" MinWidth="460" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ============ Left: CM16 PickUpControl (Find) + player list ============ -->
+        <DockPanel Grid.Column="0" Margin="6">
+            <Border DockPanel.Dock="Top" Background="{StaticResource MenuBackBrush}"
+                    BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" Margin="0,0,0,6" Padding="6,4">
+                <DockPanel>
+                    <TextBlock Text="Find:" FontWeight="Bold" Margin="0,0,8,0" />
+                    <Button x:Name="NewIdButton" DockPanel.Dock="Right" Content="New ID" Style="{StaticResource ClassicButton}" Margin="8,0,0,0" Click="NewId_Click" />
+                    <TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged" />
+                </DockPanel>
+            </Border>
+            <ListView x:Name="PlayerList" SelectionChanged="PlayerList_SelectionChanged"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Name" Width="210" DisplayMemberBinding="{Binding Title}" />
+                        <GridViewColumn Header="Club" Width="130" DisplayMemberBinding="{Binding Subtitle}" />
+                        <GridViewColumn Header="OVR" Width="55" DisplayMemberBinding="{Binding Detail}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            <TextBlock x:Name="CountText" DockPanel.Dock="Bottom" Style="{StaticResource MutedText}" Margin="2,4,0,0" FontSize="12" />
+        </DockPanel>
+
+        <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                      Background="{StaticResource PanelBackBrush}" />
+
+        <!-- ============ Right: CM16 tabEditPlayer (Info / Skills / Face) ============ -->
+        <TabControl x:Name="EditTabs" Grid.Column="2" Margin="0,6,6,6"
+                    Background="{StaticResource WindowBackBrush}"
+                    BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1"
+                    FontSize="13">
+
+            <!-- ===== pageInfo ===== -->
+            <TabItem Header="Info">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <GroupBox Header="Identity Card" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="IdentityFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Body" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="BodyFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Look" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="LookFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Playing for" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="TeamFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Shoes" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="ShoesFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Playing Info" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="PositionFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ===== pageSkills ===== -->
+            <TabItem Header="Skills">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <GroupBox Header="Random Generation" Style="{StaticResource GroupCard}">
+                            <StackPanel Margin="0,4,0,0">
+                                <DockPanel Margin="0,0,0,6">
+                                    <TextBlock Text="Overall" FontWeight="Bold" Margin="0,0,8,0" />
+                                    <TextBlock x:Name="OverallText" Text="—" FontWeight="Bold" />
+                                </DockPanel>
+                                <Slider x:Name="OverallSlider" Minimum="0" Maximum="99" IsSnapToTickEnabled="True"
+                                        TickFrequency="1" ValueChanged="OverallSlider_ValueChanged" />
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Content="Superstar" Style="{StaticResource ClassicButton}" Click="Randomize_Click" Tag="99" />
+                                    <Button Content="Very Good" Style="{StaticResource ClassicButton}" Margin="6,0,0,0" Click="Randomize_Click" Tag="85" />
+                                    <Button Content="Good" Style="{StaticResource ClassicButton}" Margin="6,0,0,0" Click="Randomize_Click" Tag="75" />
+                                    <Button Content="Average" Style="{StaticResource ClassicButton}" Margin="6,0,0,0" Click="Randomize_Click" Tag="65" />
+                                    <Button Content="Poor" Style="{StaticResource ClassicButton}" Margin="6,0,0,0" Click="Randomize_Click" Tag="50" />
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Goalkeeper Skills" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="GkFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Defensive Skills" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="DefensiveFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Midfielder Skills" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="MidfielderFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Mental Skills" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="MentalFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Attacking Skills" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="AttackingFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Physical Skills" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="PhysicalFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Free Kick Skills" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="FreeKickFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ===== pageFace ===== -->
+            <TabItem Header="Face">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <GroupBox Header="Appearance" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="FaceFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

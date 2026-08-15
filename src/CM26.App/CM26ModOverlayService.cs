@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Text.Json;
 
+using CM26.Application.Services;
+
 namespace CM26.App;
 
 /// <summary>Builds an isolated Frostbite overlay. The installed Data/Patch tree is read-only input.</summary>

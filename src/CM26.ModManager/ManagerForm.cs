@@ -2,6 +2,8 @@ using CM26.App;
 using System.Diagnostics;
 using System.Windows.Forms;
 
+using CM26.Application.Services;
+
 namespace CM26.ModManager;
 
 internal sealed class ManagerForm : Form

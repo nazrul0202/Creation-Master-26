@@ -1,6 +1,8 @@
 using System.Buffers.Binary;
 using CM26.App.Sections;
 
+using CM26.Application.Services;
+
 namespace CM26.App;
 
 /// <summary>Non-UI verification that the app's service stack loads and resolves the real DB.</summary>

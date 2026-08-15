@@ -1,0 +1,194 @@
+<UserControl x:Class="CM26.Studio.Views.TournamentView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:CM26.Studio.Controls"
+             x:Name="Root"
+             Background="{StaticResource WindowBackBrush}">
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="FieldTemplate">
+            <controls:FieldRow Pending="{Binding StageEditDelegate, ElementName=Root}" />
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="5*" MinWidth="340" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="7*" MinWidth="520" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left: Find + competition list -->
+        <DockPanel Grid.Column="0" Margin="6">
+            <Border DockPanel.Dock="Top" Background="{StaticResource MenuBackBrush}"
+                    BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" Margin="0,0,0,6" Padding="6,4">
+                <DockPanel>
+                    <TextBlock Text="Find:" FontWeight="Bold" Margin="0,0,8,0" />
+                    <Button x:Name="NewIdButton" DockPanel.Dock="Right" Content="New ID" Style="{StaticResource ClassicButton}" Margin="8,0,0,0" Click="NewId_Click" />
+                    <TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged" />
+                </DockPanel>
+            </Border>
+            <ListView x:Name="CompetitionList" SelectionChanged="CompetitionList_SelectionChanged"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Name" Width="220" DisplayMemberBinding="{Binding Title}" />
+                        <GridViewColumn Header="Id" Width="70" DisplayMemberBinding="{Binding Detail}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            <TextBlock x:Name="CountText" DockPanel.Dock="Bottom" Style="{StaticResource MutedText}" Margin="2,4,0,0" FontSize="12" />
+        </DockPanel>
+
+        <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                      Background="{StaticResource PanelBackBrush}" />
+
+        <!-- Right: tabCompetitions (pageWorld / pageConfederation / pageNation / pageTrophy / pageStage / pageGroup) -->
+        <TabControl x:Name="EditTabs" Grid.Column="2" Margin="0,6,6,6"
+                    Background="{StaticResource WindowBackBrush}"
+                    BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1"
+                    FontSize="13">
+            <TabItem Header="FIFA">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <WrapPanel>
+                        <GroupBox Header="Identity" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="IdentityFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Colors" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="ColorFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Badges" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="BadgeFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Balls" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="BallFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Flags and Fan Features" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="FlagFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                    </WrapPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Confederation">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <WrapPanel>
+                        <GroupBox Header="Identity" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="ConfIdentityFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Colors" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="ConfColorFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Badges" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="ConfBadgeFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Flags and Fan Features" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="ConfFlagFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                    </WrapPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Nation">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <WrapPanel>
+                        <GroupBox Header="Identity" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="NatIdentityFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Colors" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="NatColorFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Badges" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="NatBadgeFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                    </WrapPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Trophy">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <WrapPanel>
+                        <GroupBox Header="Identity" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="TrophyIdentityFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Structure" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="TrophyStructureFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Colors" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="TrophyColorFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Badges" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="TrophyBadgeFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Balls" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="TrophyBallFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                    </WrapPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Stage">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <WrapPanel>
+                        <GroupBox Header="Identity" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="StageIdentityFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Structure" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="StageStructureFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                    </WrapPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Group">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <WrapPanel>
+                        <GroupBox Header="Identity" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="GroupIdentityFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Structure" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="GroupStructureFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
+                    </WrapPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

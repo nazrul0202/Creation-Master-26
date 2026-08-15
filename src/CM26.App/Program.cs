@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using WinApp = System.Windows.Forms.Application;
 
+using CM26.Application.Services;
+
 namespace CM26.App;
 
 internal static class Program

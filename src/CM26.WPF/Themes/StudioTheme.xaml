@@ -34,6 +34,7 @@
     <SolidColorBrush x:Key="MutedTextBrush" Color="{StaticResource MutedTextColor}" />
     <SolidColorBrush x:Key="DisabledTextBrush" Color="{StaticResource DisabledTextColor}" />
     <SolidColorBrush x:Key="CyanAccentBrush" Color="{StaticResource CyanAccentColor}" />
+    <SolidColorBrush x:Key="CyanAccentHoverBrush" Color="{StaticResource CyanAccentHoverColor}" />
     <SolidColorBrush x:Key="GreenBrush" Color="{StaticResource GreenColor}" />
     <SolidColorBrush x:Key="YellowBrush" Color="{StaticResource YellowColor}" />
     <SolidColorBrush x:Key="OrangeBrush" Color="{StaticResource OrangeColor}" />
