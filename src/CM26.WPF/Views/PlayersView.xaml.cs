@@ -18,6 +18,7 @@ public partial class PlayersView : UserControl
     private readonly ViewModel _vm;
     private IReadOnlyList<RecordListItem> _all = Array.Empty<RecordListItem>();
     private IReadOnlyList<FieldValue> _currentFields = Array.Empty<FieldValue>();
+    private RecordListItem? _current;
 
     /// <summary>Wired to each FieldRow so field edits stage through the pending service.</summary>
     public Func<string, string, EditOutcome?>? StageEditDelegate { get; }
@@ -31,7 +32,7 @@ public partial class PlayersView : UserControl
         VirtualProGrid.Toggle = TogglePlaystyle;
         PickUp.SelectObject += LoadEditorFromPickUp;
         PickUp.FilterByList = new[] { "All", "by Team", "by Country", "Free Agents" };
-        PickUp.FilterChanged += ApplyFilter;
+        PickUp.RefreshObject += LoadList;
         Loaded += (_, _) => LoadList();
     }
 
@@ -41,39 +42,11 @@ public partial class PlayersView : UserControl
     {
         _all = _vm.Session.Sections.GetPlayers();
         PickUp.ObjectList = _all;
-        ApplyFilter();
-    }
-
-    private void ApplyFilter()
-    {
-        var q = PickUp.FilterValueText;
-        var by = PickUp.FilterByComboText;
-        IEnumerable<RecordListItem> source = _all;
-        if (!string.IsNullOrWhiteSpace(by) && !string.IsNullOrWhiteSpace(q))
-        {
-            source = by switch
-            {
-                "by Team" => _all.Where(x => x.Subtitle.Contains(q, StringComparison.OrdinalIgnoreCase)),
-                "by Country" => _all.Where(x => x.SearchText.Contains(q, StringComparison.OrdinalIgnoreCase)),
-                _ => _all,
-            };
-        }
-        else if (by == "Free Agents" && string.IsNullOrWhiteSpace(q))
-        {
-            source = _all.Where(x => string.IsNullOrWhiteSpace(x.Subtitle) || x.Subtitle == "Free Agent");
-        }
-        var items = source.ToList();
-        PlayerList.ItemsSource = items;
-        CountText.Text = $"{items.Count} players" + (string.IsNullOrWhiteSpace(q) ? "" : $" matching '{q}'");
-    }
-
-    private void PlayerList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (PlayerList.SelectedItem is not RecordListItem item) return;
-        LoadEditor(item);
+        if (_all.Count > 0 && PickUp.SelectedIndex < 0) PickUp.SelectedIndex = 0;
     }
     private void LoadEditor(RecordListItem item)
     {
+        _current = item;
         _currentFields = _vm.Session.Sections.GetFields("players", item.RecordIndex, LabelMaps.Players);
         var fields = _currentFields;
 
@@ -131,7 +104,7 @@ public partial class PlayersView : UserControl
     /// <summary>Playstyle checkbox toggled: re-read the current mask, flip the bit, stage the new mask.</summary>
     private EditOutcome? TogglePlaystyle(string fieldName, int bit, bool set)
     {
-        if (PlayerList.SelectedItem is not RecordListItem item) return null;
+        if (_current is not RecordListItem item) return null;
         var fv = _currentFields.FirstOrDefault(f => f.FieldName.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
         if (fv == null || !uint.TryParse(fv.RawValue, out var mask)) return null;
         var newMask = set ? mask | (1u << bit) : mask & ~(1u << bit);
@@ -142,7 +115,7 @@ public partial class PlayersView : UserControl
 
     private EditOutcome? StageEdit(string fieldName, string value)
     {
-        if (PlayerList.SelectedItem is not RecordListItem item) return null;
+        if (_current is not RecordListItem item) return null;
         var outcome = _vm.Session.Pending.Stage("players", item.RecordIndex, fieldName, value);
         if (outcome.Success) RefreshEditor();
         return outcome;
@@ -206,13 +179,13 @@ public partial class PlayersView : UserControl
 
     private void RefreshEditor()
     {
-        if (PlayerList.SelectedItem is not RecordListItem item) return;
+        if (_current is not RecordListItem item) return;
         LoadEditor(item);
     }
 
     private void OverallSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (PlayerList.SelectedItem is not RecordListItem item) return;
+        if (_current is not RecordListItem item) return;
         var value = ((int)OverallSlider.Value).ToString();
         var outcome = _vm.Session.Pending.Stage("players", item.RecordIndex, "overallrating", value);
         if (outcome.Success) OverallText.Text = value;
@@ -221,7 +194,7 @@ public partial class PlayersView : UserControl
     private void Randomize_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button b || b.Tag is not string target) return;
-        if (PlayerList.SelectedItem is not RecordListItem item) return;
+        if (_current is not RecordListItem item) return;
         var fields = _vm.Session.Sections.GetFields("players", item.RecordIndex, LabelMaps.Players);
         var rnd = new Random();
         foreach (var f in fields.Where(f => IsSkillField(f.FieldName) && int.TryParse(f.RawValue, out _)))

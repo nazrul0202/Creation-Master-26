@@ -11,35 +11,14 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="5*" MinWidth="340" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="7*" MinWidth="460" />
-        </Grid.ColumnDefinitions>
-
-        <!-- ============ Left: CM16 PickUpControl (top) + player list ============ -->
-        <DockPanel Grid.Column="0" Margin="6">
-            <controls:PickUpControl x:Name="PickUp" DockPanel.Dock="Top" Margin="0,0,0,6"
-                                    FilterEnabled="True" RefreshButtonEnabled="True" />
-            <ListView x:Name="PlayerList" SelectionChanged="PlayerList_SelectionChanged"
-                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ListView.View>
-                    <GridView>
-                        <GridViewColumn Header="Name" Width="210" DisplayMemberBinding="{Binding Title}" />
-                        <GridViewColumn Header="Club" Width="130" DisplayMemberBinding="{Binding Subtitle}" />
-                        <GridViewColumn Header="OVR" Width="55" DisplayMemberBinding="{Binding Detail}" />
-                    </GridView>
-                </ListView.View>
-            </ListView>
-            <TextBlock x:Name="CountText" DockPanel.Dock="Bottom" Style="{StaticResource MutedText}" Margin="2,4,0,0" FontSize="12" />
-        </DockPanel>
-
-        <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
-                      Background="{StaticResource PanelBackBrush}" />
+    <DockPanel>
+        <!-- CM16 PlayerForm selects the player in this top strip; it has no
+             second master list consuming half of the editor workspace. -->
+        <controls:PickUpControl x:Name="PickUp" DockPanel.Dock="Top"
+                                FilterEnabled="True" RefreshButtonEnabled="True" />
 
         <!-- ============ Right: CM16 tabEditPlayer (Info / Skills / Face) ============ -->
-        <TabControl x:Name="EditTabs" Grid.Column="2" Margin="0,6,6,6"
+        <TabControl x:Name="EditTabs" Margin="4"
                     Background="{StaticResource WindowBackBrush}"
                     BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1"
                     FontSize="13">
@@ -47,34 +26,34 @@
             <!-- ===== pageInfo ===== -->
             <TabItem Header="Info">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <GroupBox Header="Identity Card" Style="{StaticResource GroupCard}">
+                    <WrapPanel>
+                        <GroupBox Header="Identity Card" Style="{StaticResource GroupCard}" Width="400">
                             <ItemsControl x:Name="IdentityFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Body" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Body" Style="{StaticResource GroupCard}" Width="400">
                             <ItemsControl x:Name="BodyFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Look" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Look" Style="{StaticResource GroupCard}" Width="400">
                             <ItemsControl x:Name="LookFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Playing for" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Playing for" Style="{StaticResource GroupCard}" Width="240">
                             <ItemsControl x:Name="TeamFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Shoes" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Shoes" Style="{StaticResource GroupCard}" Width="240">
                             <ItemsControl x:Name="ShoesFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Playing Info" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Playing Info" Style="{StaticResource GroupCard}" Width="240">
                             <ItemsControl x:Name="PositionFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                    </StackPanel>
+                    </WrapPanel>
                 </ScrollViewer>
             </TabItem>
 
             <!-- ===== pageSkills (CM16: ... + Traits + Virtual Pro) ===== -->
             <TabItem Header="Skills">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <GroupBox Header="Random Generation" Style="{StaticResource GroupCard}">
+                    <WrapPanel>
+                        <GroupBox Header="Random Generation" Style="{StaticResource GroupCard}" Width="270">
                             <StackPanel Margin="0,4,0,0">
                                 <DockPanel Margin="0,0,0,6">
                                     <TextBlock Text="Overall" FontWeight="Bold" Margin="0,0,8,0" />
@@ -91,34 +70,34 @@
                                 </StackPanel>
                             </StackPanel>
                         </GroupBox>
-                        <GroupBox Header="Goalkeeper Skills" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Goalkeeper Skills" Style="{StaticResource GroupCard}" Width="190">
                             <ItemsControl x:Name="GkFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Defensive Skills" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Defensive Skills" Style="{StaticResource GroupCard}" Width="190">
                             <ItemsControl x:Name="DefensiveFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Midfielder Skills" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Midfielder Skills" Style="{StaticResource GroupCard}" Width="190">
                             <ItemsControl x:Name="MidfielderFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Mental Skills" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Mental Skills" Style="{StaticResource GroupCard}" Width="190">
                             <ItemsControl x:Name="MentalFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Attacking Skills" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Attacking Skills" Style="{StaticResource GroupCard}" Width="190">
                             <ItemsControl x:Name="AttackingFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Physical Skills" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Physical Skills" Style="{StaticResource GroupCard}" Width="220">
                             <ItemsControl x:Name="PhysicalFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Free Kick Skills" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Free Kick Skills" Style="{StaticResource GroupCard}" Width="230">
                             <ItemsControl x:Name="FreeKickFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Traits" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Traits" Style="{StaticResource GroupCard}" Width="620">
                             <controls:PlaystyleGrid x:Name="TraitsGrid" Columns="3" />
                         </GroupBox>
-                        <GroupBox Header="Virtual Pro" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Virtual Pro" Style="{StaticResource GroupCard}" Width="620">
                             <controls:PlaystyleGrid x:Name="VirtualProGrid" Columns="2" PlusVariant="True" />
                         </GroupBox>
-                    </StackPanel>
+                    </WrapPanel>
                 </ScrollViewer>
             </TabItem>
 
@@ -164,5 +143,5 @@
                 </ScrollViewer>
             </TabItem>
         </TabControl>
-    </Grid>
+    </DockPanel>
 </UserControl>
