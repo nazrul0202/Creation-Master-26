@@ -11,11 +11,18 @@ public partial class MainWindow : Window
     private AppSession _session = new();
     private double _bottomHeight = 160;
     private double _rightWidth = 320;
+    private bool _suppressAutomaticGameLoad;
 
     /// <summary>Lets the smoke harness inject its own session so it can observe the load.</summary>
     public AppSession SmokeSession
     {
-        set => _session = value;
+        set
+        {
+            _session = value;
+            // The smoke runner opens the same path explicitly after the visual
+            // tree is ready, so it must not race the normal startup auto-open.
+            _suppressAutomaticGameLoad = true;
+        }
     }
 
     public MainWindow()
@@ -30,6 +37,36 @@ public partial class MainWindow : Window
         // only the open/save-less File menu items and a few tools are available.
         ApplyDatabaseState(false);
         StatusBarText.Text = "Ready";
+        if (!_suppressAutomaticGameLoad)
+            _ = AutomaticallyOpenDetectedGameAsync();
+    }
+
+    /// <summary>
+    /// Mirrors CM16's environment bootstrap, adapted for FC26: if a validated
+    /// FC26 installation is already known (settings, EA registry, or a Steam
+    /// library), open its Frostbite Data/Patch source without prompting for a
+    /// folder. An undetected or unavailable install leaves the CM16 pre-open
+    /// shell intact so File &gt; Open remains available.
+    /// </summary>
+    private async Task AutomaticallyOpenDetectedGameAsync()
+    {
+        if (string.IsNullOrWhiteSpace(FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder)))
+            return;
+
+        ProgressBar.Visibility = Visibility.Visible;
+        StatusBarText.Text = "Automatically loading FC26 Frostbite files...";
+        string message = string.Empty;
+        var progress = new Progress<string>(phase => StatusBarText.Text = phase);
+        var loaded = await Task.Run(() => _session.TryOpenGame(out message, progress));
+        if (!IsLoaded) return;
+
+        ProgressBar.Visibility = Visibility.Collapsed;
+        StatusBarText.Text = loaded ? "FC26 opened automatically for direct editing." : message;
+        if (!loaded) return;
+
+        ApplyDatabaseState(true);
+        ShowDashboard();
+        RefreshDashboardCounts();
     }
 
     /// <summary>
