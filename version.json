@@ -1,6 +1,6 @@
 {
-  "version": "1.0.110",
+  "version": "1.0.111",
   "name": "Creation Master 26",
-  "notes": "v1.0.110 - Restored the Creation Master 16 shell and section layouts on the FC26 Frostbite database and asset pipeline, including automatic game loading and real team crest previews.",
+  "notes": "v1.0.111 - Corrected the FC26 open flow and moved Country, League, Player and Kit editors toward the exact CM16 workspace using the installed FC26 Frostbite database and assets.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

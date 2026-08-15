@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.111 - FC26 open flow and CM16 editor parity update (2026-08-15)
+
+- Replaced remaining FIFA 16 / lan.db open labels with FC26 database and Data/Patch actions.
+- Removed the modern dashboard from the post-load path; FC26 now opens directly into the CM16 editor workflow.
+- Rebuilt Country and League as fixed CM16-style forms with dedicated information, team and logo/flag panels backed by the installed FC26 database and Frostbite asset paths.
+- Restored full-width CM16 Player Info/Skills/Face and Kit workspaces by removing the extra generic master lists.
+- Matched the original CM16 Microsoft Sans Serif 8.25pt font metrics throughout the classic shell.
+- Retained automatic FC26 installation detection, Frostbite archive loading, staged editing and direct-save services.
+
 ## Version 1.0.110 - CM16 shell with FC26 Frostbite support (2026-08-15)
 
 - Restored the Creation Master 16 menu, toolbar, full blue workspace, right/bottom tool strips and classic section layout as the primary `CM26_by_Rizco98.exe` interface.
