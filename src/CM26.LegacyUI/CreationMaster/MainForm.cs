@@ -507,13 +507,37 @@ public class MainForm : Form
 
 	private void ShowFormOnPanel(Form form, Panel panel)
 	{
-		panel.Controls.Clear();
-		GraphicUtil.SuspendDrawing(form);
+		if (panel.Controls.Count == 1 && ReferenceEquals(panel.Controls[0], form))
+			return;
+
+		// Some original CM16 forms synchronously resolve several FC26 Frostbite
+		// previews the first time they are shown. Freeze the host panel (which still
+		// contains the previous form) until the replacement is fully initialized;
+		// clearing it first exposed the blue MDI background and produced a visible
+		// full-window flash on every toolbar section change.
+		GraphicUtil.SuspendDrawing(panel);
+		panel.SuspendLayout();
 		Cursor.Current = Cursors.WaitCursor;
-		panel.Controls.Add(form);
-		form.Show();
-		Cursor.Current = Cursors.Default;
-		GraphicUtil.ResumeDrawing(form);
+		try
+		{
+			var previous = new Control[panel.Controls.Count];
+			panel.Controls.CopyTo(previous, 0);
+			if (!ReferenceEquals(form.Parent, panel))
+				panel.Controls.Add(form);
+			if (!form.Visible)
+				form.Show();
+			form.BringToFront();
+			foreach (var control in previous)
+			{
+				if (!ReferenceEquals(control, form)) panel.Controls.Remove(control);
+			}
+		}
+		finally
+		{
+			Cursor.Current = Cursors.Default;
+			panel.ResumeLayout(performLayout: true);
+			GraphicUtil.ResumeDrawing(panel);
+		}
 		if (panelBottom.Controls.Count == 0)
 		{
 			stripLabelBottom.Text = "Empty";

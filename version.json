@@ -1,6 +1,6 @@
 {
-  "version": "1.0.114",
+  "version": "1.0.115",
   "name": "Creation Master 26",
-  "notes": "v1.0.114 - Restore the original CM16 editor forms on FC26 data, add live Frostbite asset extraction, safe database save staging and section crash fixes.",
+  "notes": "v1.0.115 - Eliminate CM16 section-switch flicker, hide Frostbite bridge consoles and prevent duplicate editor windows.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

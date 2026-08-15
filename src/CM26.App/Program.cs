@@ -23,11 +23,6 @@ internal static class Program
         if (!AppDependencyCheck.EnsureDesktopRuntime())
             return;
 
-        // Every "--" argument is a headless console diagnostic. Attach to the parent
-        // console first so results are visible in the terminal and in CI logs.
-        if (args.Length >= 1 && args[0].StartsWith("--", StringComparison.Ordinal))
-            ConsoleAttach.EnsureConsole();
-
         // x64 FC26 bridge used by the original x86 CM16 forms. The legacy UI
         // invokes this command for File > Open FC26, then consumes the snapshot.
         if (args.Length >= 2 && args[0] == "--legacy-open")
@@ -74,6 +69,13 @@ internal static class Program
             }
             return;
         }
+
+        // User/CI diagnostics need a console. The --legacy-* commands above are
+        // invisible helper processes launched by the CM16 shell with redirected
+        // output; allocating a console for them causes a black window to flash on
+        // every section/asset request.
+        if (args.Length >= 1 && args[0].StartsWith("--", StringComparison.Ordinal))
+            ConsoleAttach.EnsureConsole();
 
         // Self-contained release checks: no game install, no database, no UI.
         // This is the gate CI runs on a clean machine.
@@ -329,6 +331,19 @@ internal static class Program
         WinApp.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         ApplicationConfiguration.Initialize();
         WinApp.SetDefaultFont(new System.Drawing.Font("Segoe UI", 9f, System.Drawing.FontStyle.Regular));
+
+        // The public x64 host owns one x86 CM16 shell for its full lifetime.
+        // A second Explorer double-click previously created another blue shell
+        // on top of the first one and made section loading look like re-entrant
+        // flicker. Hidden --legacy-* bridge invocations return above and never
+        // participate in this UI-only mutex.
+        using var singleInstance = new Mutex(true, @"Local\CreationMaster26.UI", out var isFirstInstance);
+        if (!isFirstInstance)
+        {
+            MessageBox.Show("Creation Master 26 is already running.", "Creation Master 26",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
 
         Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
         Log("=== Creation Master 26 starting ===");

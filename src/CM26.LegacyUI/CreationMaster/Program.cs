@@ -36,8 +36,11 @@ internal static class Program
 				main.Show();
 				Application.DoEvents();
 				main.LoadFc26Snapshot(args[1], showCountry: false);
-				main.ShowFc26Section(args[2]);
-				Application.DoEvents();
+				foreach (var section in args[2].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+				{
+					main.ShowFc26Section(section.Trim());
+					Application.DoEvents();
+				}
 				main.Dispose();
 				Environment.Exit(0);
 			}
