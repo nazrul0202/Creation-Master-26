@@ -15,6 +15,7 @@ public partial class KitView : UserControl
 {
     private readonly ViewModel _vm;
     private IReadOnlyList<RecordListItem> _all = Array.Empty<RecordListItem>();
+    private RecordListItem? _current;
 
     public Func<string, string, EditOutcome?>? StageEditDelegate { get; }
 
@@ -25,7 +26,7 @@ public partial class KitView : UserControl
         StageEditDelegate = StageEdit;
         PickUp.SelectObject += LoadEditorFromPickUp;
         PickUp.FilterByList = new[] { "All", "by Name", "by Id" };
-        PickUp.FilterChanged += ApplyFilter;
+        PickUp.RefreshObject += LoadList;
         Loaded += (_, _) => LoadList();
     }
 
@@ -35,36 +36,12 @@ public partial class KitView : UserControl
     {
         _all = _vm.Session.Sections.GetKits();
         PickUp.ObjectList = _all;
-        ApplyFilter();
-    }
-
-    private void ApplyFilter()
-    {
-        var q = PickUp.FilterValueText;
-        var by = PickUp.FilterByComboText;
-        IEnumerable<RecordListItem> source = _all;
-        if (!string.IsNullOrWhiteSpace(q))
-        {
-            source = by switch
-            {
-                "by Name" => _all.Where(x => x.Title.Contains(q, StringComparison.OrdinalIgnoreCase)),
-                "by Id" => _all.Where(x => x.Detail.Contains(q, StringComparison.OrdinalIgnoreCase)),
-                _ => _all.Where(x => (x.Title + " " + x.Subtitle + " " + x.Detail).Contains(q, StringComparison.OrdinalIgnoreCase)),
-            };
-        }
-        var items = source.ToList();
-        KitList.ItemsSource = items;
-        CountText.Text = $"{items.Count} kits" + (string.IsNullOrWhiteSpace(q) ? "" : $" matching '{q}'");
-    }
-
-    private void KitList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (KitList.SelectedItem is not RecordListItem item) return;
-        LoadEditor(item);
+        if (_all.Count > 0 && PickUp.SelectedIndex < 0) PickUp.SelectedIndex = 0;
     }
 
     private void LoadEditor(RecordListItem item)
     {
+        _current = item;
         var fields = _vm.Session.Sections.GetFields("teamkits", item.RecordIndex, LabelMaps.Kits);
 
         PositionFields.ItemsSource = fields.Where(f => IsPosition(f.FieldName));
@@ -74,7 +51,7 @@ public partial class KitView : UserControl
 
     private EditOutcome? StageEdit(string fieldName, string value)
     {
-        if (KitList.SelectedItem is not RecordListItem item) return null;
+        if (_current is not RecordListItem item) return null;
         var outcome = _vm.Session.Pending.Stage("teamkits", item.RecordIndex, fieldName, value);
         if (outcome.Success) RefreshEditor();
         return outcome;
@@ -82,7 +59,7 @@ public partial class KitView : UserControl
 
     private void RefreshEditor()
     {
-        if (KitList.SelectedItem is not RecordListItem item) return;
+        if (_current is not RecordListItem item) return;
         LoadEditor(item);
     }
 

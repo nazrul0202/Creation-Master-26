@@ -11,35 +11,12 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="5*" MinWidth="340" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="7*" MinWidth="520" />
-        </Grid.ColumnDefinitions>
-
-        <!-- Left: Find + kit list -->
-        <DockPanel Grid.Column="0" Margin="6">
-            <controls:PickUpControl x:Name="PickUp" DockPanel.Dock="Top" Margin="0,0,0,6"
-                                    FilterEnabled="True" RefreshButtonEnabled="True" />
-            <ListView x:Name="KitList" SelectionChanged="KitList_SelectionChanged"
-                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ListView.View>
-                    <GridView>
-                        <GridViewColumn Header="Team" Width="180" DisplayMemberBinding="{Binding Title}" />
-                        <GridViewColumn Header="Kit" Width="80" DisplayMemberBinding="{Binding Subtitle}" />
-                        <GridViewColumn Header="Id" Width="70" DisplayMemberBinding="{Binding Detail}" />
-                    </GridView>
-                </ListView.View>
-            </ListView>
-            <TextBlock x:Name="CountText" DockPanel.Dock="Bottom" Style="{StaticResource MutedText}" Margin="2,4,0,0" FontSize="12" />
-        </DockPanel>
-
-        <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
-                      Background="{StaticResource PanelBackBrush}" />
+    <DockPanel>
+        <controls:PickUpControl x:Name="PickUp" DockPanel.Dock="Top"
+                                FilterEnabled="True" RefreshButtonEnabled="True" />
 
         <!-- Right: group layout of KitForm (Positions / 3D Model / Jersey / Name) -->
-        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <WrapPanel>
                 <GroupBox Header="Positions" Style="{StaticResource GroupCard}" Margin="6" Width="320">
                     <StackPanel>
@@ -57,11 +34,11 @@
                     </StackPanel>
                 </GroupBox>
                 <GroupBox Header="3D Model" Style="{StaticResource GroupCard}" Margin="6" Width="320" Height="220">
-                    <TextBlock Text="3D kit model viewer will be supported in a later release."
+                    <TextBlock Text="FC26 Frostbite kit model / texture preview"
                                Style="{StaticResource MutedText}" FontSize="13" TextWrapping="Wrap"
                                VerticalAlignment="Center" HorizontalAlignment="Center" />
                 </GroupBox>
             </WrapPanel>
         </ScrollViewer>
-    </Grid>
+    </DockPanel>
 </UserControl>
