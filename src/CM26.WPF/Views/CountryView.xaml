@@ -49,11 +49,34 @@
                     Background="{StaticResource WindowBackBrush}"
                     BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1"
                     FontSize="13">
-            <TabItem Header="Info">
+            <TabItem Header="Country">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <GroupBox Header="Country" Style="{StaticResource GroupCard}">
                             <ItemsControl x:Name="InfoFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Map (Shape)">
+                <StackPanel Margin="12">
+                    <TextBlock Text="Country shape preview requires the map asset pipeline." Style="{StaticResource MutedText}" TextWrapping="Wrap" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Audio">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <GroupBox Header="Audio" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="AudioFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="National Team">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <GroupBox Header="National Team" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="TeamFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
                     </StackPanel>
                 </ScrollViewer>

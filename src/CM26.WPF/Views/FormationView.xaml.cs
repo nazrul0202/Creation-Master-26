@@ -55,6 +55,7 @@ public partial class FormationView : UserControl
 
         NameFields.ItemsSource = fields.Where(f => IsName(f.FieldName));
         RoleFields.ItemsSource = fields.Where(f => IsRole(f.FieldName));
+        InstructionFields.ItemsSource = fields.Where(f => IsInstruction(f.FieldName));
         PositionFields.ItemsSource = fields.Where(f => IsPosition(f.FieldName));
         OffsetFields.ItemsSource = fields.Where(f => IsOffset(f.FieldName));
         StructureFields.ItemsSource = fields.Where(f => IsStructure(f.FieldName));
@@ -95,6 +96,8 @@ public partial class FormationView : UserControl
     private static bool IsName(string n) => n is "formationid" or "formationname" or "formationfullnameid"
         or "formationaudioid" or "relativeformationid" or "teamid";
     private static bool IsRole(string n) => n.EndsWith("role", StringComparison.OrdinalIgnoreCase);
+    private static bool IsInstruction(string n) => n.Contains("instruction", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("interception", StringComparison.OrdinalIgnoreCase);
     private static bool IsPosition(string n) => n is "position0" or "position1" or "position2" or "position3"
         or "position4" or "position5" or "position6" or "position7" or "position8" or "position9" or "position10";
     private static bool IsOffset(string n) => n.Contains("offset", StringComparison.OrdinalIgnoreCase);

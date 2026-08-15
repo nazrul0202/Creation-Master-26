@@ -61,6 +61,11 @@
                                 <ItemsControl x:Name="RoleFields" ItemTemplate="{StaticResource FieldTemplate}" />
                             </StackPanel>
                         </GroupBox>
+                        <GroupBox Header="Instructions" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                            <StackPanel>
+                                <ItemsControl x:Name="InstructionFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
+                        </GroupBox>
                         <GroupBox Header="Positions" Style="{StaticResource GroupCard}" Margin="6" Width="300">
                             <StackPanel>
                                 <ItemsControl x:Name="PositionFields" ItemTemplate="{StaticResource FieldTemplate}" />

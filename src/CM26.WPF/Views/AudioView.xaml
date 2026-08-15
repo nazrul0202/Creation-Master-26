@@ -71,5 +71,38 @@
                 </StackPanel>
             </GroupBox>
         </Grid>
+
+        <Grid Grid.Row="1" Margin="12,0,12,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" MinWidth="260" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="3*" MinWidth="340" />
+            </Grid.ColumnDefinitions>
+
+            <GroupBox Grid.Column="0" Header="Patching:" Style="{StaticResource GroupCard}" Margin="0,6,6,0">
+                <StackPanel>
+                    <TextBlock Text="Audio patch creation requires the audio asset pipeline."
+                               Style="{StaticResource MutedText}" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,8" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Create Patch" Style="{StaticResource ClassicButton}" />
+                        <Button Content="Apply Patch" Style="{StaticResource ClassicButton}" Margin="6,0,0,0" />
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                          Background="{StaticResource PanelBackBrush}" />
+
+            <GroupBox Grid.Column="2" Header="Sound Split and Merge" Style="{StaticResource GroupCard}" Margin="6,6,0,0">
+                <StackPanel>
+                    <TextBlock Text="Sound splitting / merging (.sps / .wav) requires the audio asset pipeline."
+                               Style="{StaticResource MutedText}" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,8" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Split Sound" Style="{StaticResource ClassicButton}" />
+                        <Button Content="Merge Sounds" Style="{StaticResource ClassicButton}" Margin="6,0,0,0" />
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+        </Grid>
     </Grid>
 </UserControl>

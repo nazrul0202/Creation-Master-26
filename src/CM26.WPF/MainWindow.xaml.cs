@@ -29,8 +29,6 @@ public partial class MainWindow : Window
         // only the open/save-less File menu items and a few tools are available.
         ApplyDatabaseState(false);
         StatusBarText.Text = "Ready";
-        DbStatusText.Text = "FC26 not open";
-        PendingCountText.Text = _session.Pending.Count + " pending changes";
     }
 
     /// <summary>
@@ -199,13 +197,13 @@ public partial class MainWindow : Window
 
     private void MenuOpenGame_Click(object sender, RoutedEventArgs e)
     {
+        ProgressBar.Visibility = Visibility.Visible;
         StatusBarText.Text = "Opening FC26...";
         var progress = new Progress<string>(phase => StatusBarText.Text = phase);
         string message = string.Empty;
         var loaded = _session.TryOpenGame(out message, progress);
-        DbStatusText.Text = loaded ? "Database loaded - direct FC26 editing" : "No database loaded";
+        ProgressBar.Visibility = Visibility.Collapsed;
         StatusBarText.Text = loaded ? "FC26 opened for direct editing." : message;
-        PendingCountText.Text = _session.Pending.Count + " pending changes";
         if (loaded)
         {
             ApplyDatabaseState(true);

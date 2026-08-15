@@ -69,7 +69,12 @@ public partial class PlayersView : UserControl
         PhysicalFields.ItemsSource = fields.Where(f => IsPhysical(f.FieldName));
         FreeKickFields.ItemsSource = fields.Where(f => IsFreeKick(f.FieldName));
 
-        FaceFields.ItemsSource = fields.Where(f => IsFace(f.FieldName));
+        TraitsFields.ItemsSource = fields.Where(f => IsTrait(f.FieldName));
+        VirtualProFields.ItemsSource = fields.Where(f => IsVirtualPro(f.FieldName));
+
+        FaceTypeFields.ItemsSource = fields.Where(f => IsFaceType(f.FieldName));
+        HairFields.ItemsSource = fields.Where(f => IsHair(f.FieldName));
+        HeadFields.ItemsSource = fields.Where(f => IsHead(f.FieldName));
 
         var ovr = fields.FirstOrDefault(f => f.FieldName == "overallrating");
         OverallText.Text = ovr?.Value ?? "—";
@@ -177,13 +182,26 @@ public partial class PlayersView : UserControl
         || n.Contains("gkkick", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsSkillField(string n) => IsGk(n) || IsDefensive(n) || IsMidfielder(n) || IsMental(n)
-        || IsAttacking(n) || IsPhysical(n) || IsFreeKick(n) || n is "overallrating" or "potential";
+        || IsAttacking(n) || IsPhysical(n) || IsFreeKick(n) || IsTrait(n) || IsVirtualPro(n)
+        || n is "overallrating" or "potential";
 
-    private static bool IsFace(string n) => n.Contains("face", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("hair", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("head", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("skin", StringComparison.OrdinalIgnoreCase)
+    // ---------- CM16 Traits (trait1/trait2 bitmasks) + Virtual Pro ----------
+
+    private static bool IsTrait(string n) => n.Equals("trait1", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("trait2", StringComparison.OrdinalIgnoreCase);
+    private static bool IsVirtualPro(string n) => n.Equals("icontrait1", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("icontrait2", StringComparison.OrdinalIgnoreCase);
+
+    // ---------- CM16 Face tab groupings ----------
+
+    private static bool IsFaceType(string n) => n.Contains("skin", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("eyebrow", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("eyecolor", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("facialhair", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("eyedetail", StringComparison.OrdinalIgnoreCase);
+    private static bool IsHair(string n) => n.Contains("hair", StringComparison.OrdinalIgnoreCase);
+    private static bool IsHead(string n) => n.Contains("head", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("face", StringComparison.OrdinalIgnoreCase)
         || n.Contains("beard", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("eye", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("brow", StringComparison.OrdinalIgnoreCase);
+        || n.Contains("tattoo", StringComparison.OrdinalIgnoreCase);
 }

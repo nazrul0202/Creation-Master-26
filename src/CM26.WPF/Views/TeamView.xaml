@@ -44,44 +44,67 @@
         <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
                       Background="{StaticResource PanelBackBrush}" />
 
-        <!-- Right: tabEditTeam (Generic / Roster / Adboards / Flags) -->
+        <!-- Right: tabEditTeam (Generic / Roster / Adboards / Flags / Rev. Mod. Extensions) -->
         <TabControl x:Name="EditTabs" Grid.Column="2" Margin="0,6,6,6"
                     Background="{StaticResource WindowBackBrush}"
                     BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1"
                     FontSize="13">
 
-            <!-- pageTeamGeneric -->
+            <!-- pageTeamGeneric: Logos, Name, Stadium, Manager, Info, Last Year, Location, Team Traits, Kit Links -->
             <TabItem Header="Generic">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <GroupBox Header="Name" Style="{StaticResource GroupCard}">
+                    <WrapPanel>
+                        <GroupBox Header="Logos" Style="{StaticResource GroupCard}" Margin="6" Width="310">
+                            <ItemsControl x:Name="LogoFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Name" Style="{StaticResource GroupCard}" Margin="6" Width="310">
                             <ItemsControl x:Name="NameFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Stadium" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Stadium" Style="{StaticResource GroupCard}" Margin="6" Width="310">
                             <ItemsControl x:Name="StadiumFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Info" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Manager" Style="{StaticResource GroupCard}" Margin="6" Width="310">
+                            <ItemsControl x:Name="ManagerFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Info" Style="{StaticResource GroupCard}" Margin="6" Width="310">
                             <ItemsControl x:Name="InfoFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Kit Links" Style="{StaticResource GroupCard}">
+                        <GroupBox Header="Last Year Performance" Style="{StaticResource GroupCard}" Margin="6" Width="310">
+                            <ItemsControl x:Name="LastYearFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Location" Style="{StaticResource GroupCard}" Margin="6" Width="310">
+                            <ItemsControl x:Name="LocationFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Team Traits" Style="{StaticResource GroupCard}" Margin="6" Width="310">
+                            <ItemsControl x:Name="TraitsFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Kit Links" Style="{StaticResource GroupCard}" Margin="6" Width="310">
                             <ItemsControl x:Name="KitFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Defense" Style="{StaticResource GroupCard}">
-                            <ItemsControl x:Name="DefenseFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                        </GroupBox>
-                        <GroupBox Header="Build Up" Style="{StaticResource GroupCard}">
-                            <ItemsControl x:Name="BuildUpFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                        </GroupBox>
-                        <GroupBox Header="Chance Creation" Style="{StaticResource GroupCard}">
-                            <ItemsControl x:Name="ChanceFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                        </GroupBox>
-                    </StackPanel>
+                    </WrapPanel>
                 </ScrollViewer>
             </TabItem>
 
-            <!-- pageTeamRoster -->
+            <!-- pageTeamRoster: Defense, Build Up, Chance Creation, Formation, Set Pieces, Team Players, Available, Rating -->
             <TabItem Header="Roster">
                 <DockPanel Margin="6">
+                    <WrapPanel DockPanel.Dock="Top">
+                        <GroupBox Header="Defense" Style="{StaticResource GroupCard}" Margin="0,0,6,6" Width="300">
+                            <ItemsControl x:Name="DefenseFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Build Up" Style="{StaticResource GroupCard}" Margin="0,0,6,6" Width="300">
+                            <ItemsControl x:Name="BuildUpFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Chance Creation" Style="{StaticResource GroupCard}" Margin="0,0,6,6" Width="300">
+                            <ItemsControl x:Name="ChanceFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Formation" Style="{StaticResource GroupCard}" Margin="0,0,6,6" Width="300">
+                            <ItemsControl x:Name="FormationFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Set Pieces" Style="{StaticResource GroupCard}" Margin="0,0,6,6" Width="300">
+                            <ItemsControl x:Name="SetPieceFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                    </WrapPanel>
                     <Border DockPanel.Dock="Top" Background="{StaticResource MenuBackBrush}"
                             BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" Margin="0,0,0,6" Padding="6,4">
                         <DockPanel>
@@ -119,8 +142,31 @@
             <!-- pageTeamFlags -->
             <TabItem Header="Flags">
                 <StackPanel Margin="12">
-                    <TextBlock Text="Flag editing requires the flag asset pipeline." Style="{StaticResource MutedText}" TextWrapping="Wrap" />
+                    <GroupBox Header="Flags" Style="{StaticResource GroupCard}">
+                        <ItemsControl x:Name="FlagFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                    </GroupBox>
                 </StackPanel>
+            </TabItem>
+
+            <!-- pageTeamRevModExtensions -->
+            <TabItem Header="Rev. Mod. Extensions">
+                <WrapPanel Margin="12">
+                    <GroupBox Header="Unique Adboards" Style="{StaticResource GroupCard}" Margin="6" Width="310">
+                        <ItemsControl x:Name="UniqueAdboardFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                    </GroupBox>
+                    <GroupBox Header="Unique Ball" Style="{StaticResource GroupCard}" Margin="6" Width="310">
+                        <ItemsControl x:Name="UniqueBallFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                    </GroupBox>
+                    <GroupBox Header="Unique Team Manager" Style="{StaticResource GroupCard}" Margin="6" Width="310">
+                        <ItemsControl x:Name="UniqueManagerFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                    </GroupBox>
+                    <GroupBox Header="Unique Scarf" Style="{StaticResource GroupCard}" Margin="6" Width="310">
+                        <ItemsControl x:Name="UniqueScarfFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                    </GroupBox>
+                    <GroupBox Header="Unique Goal Net" Style="{StaticResource GroupCard}" Margin="6" Width="310">
+                        <ItemsControl x:Name="UniqueNetFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                    </GroupBox>
+                </WrapPanel>
             </TabItem>
         </TabControl>
     </Grid>

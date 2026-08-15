@@ -81,15 +81,21 @@
             <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" VerticalAlignment="Center"
                           Background="{StaticResource PanelBackBrush}" />
 
-            <!-- groupBoxNames -->
-            <GroupBox Grid.Row="2" Header="Names" Style="{StaticResource GroupCard}">
+            <!-- groupBoxNames: Names and Other Information -->
+            <GroupBox Grid.Row="2" Header="Names and Other Information" Style="{StaticResource GroupCard}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <GroupBox Header="League" Style="{StaticResource GroupCard}" Margin="0,0,0,6">
                             <ItemsControl x:Name="NameFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
-                        <GroupBox Header="Info" Style="{StaticResource GroupCard}">
-                            <ItemsControl x:Name="InfoFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        <GroupBox Header="Position necessary to achieve objectives" Style="{StaticResource GroupCard}" Margin="0,0,0,6">
+                            <ItemsControl x:Name="ObjectiveFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Player Overall Tuning" Style="{StaticResource GroupCard}" Margin="0,0,0,6">
+                            <ItemsControl x:Name="TuningFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </GroupBox>
+                        <GroupBox Header="Switch League Ids" Style="{StaticResource GroupCard}">
+                            <ItemsControl x:Name="SwitchFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
                     </StackPanel>
                 </ScrollViewer>

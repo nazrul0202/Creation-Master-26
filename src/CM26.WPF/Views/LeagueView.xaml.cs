@@ -55,7 +55,9 @@ public partial class LeagueView : UserControl
     {
         var fields = _vm.Session.Sections.GetFields("leagues", item.RecordIndex, LabelMaps.Leagues);
         NameFields.ItemsSource = fields.Where(f => IsName(f.FieldName));
-        InfoFields.ItemsSource = fields.Where(f => !IsName(f.FieldName));
+        ObjectiveFields.ItemsSource = fields.Where(f => !IsName(f.FieldName));
+        TuningFields.ItemsSource = Array.Empty<FieldValue>();
+        SwitchFields.ItemsSource = Array.Empty<FieldValue>();
 
         _leagueId = fields.FirstOrDefault(f => f.FieldName == "leagueid") is { RawValue: var raw }
                     && int.TryParse(raw, out var id) ? id : 0;

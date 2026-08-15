@@ -43,43 +43,28 @@
         <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
                       Background="{StaticResource PanelBackBrush}" />
 
-        <!-- Right: group layout of KitForm -->
+        <!-- Right: group layout of KitForm (Positions / 3D Model / Jersey / Name) -->
         <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
             <WrapPanel>
-                <GroupBox Header="Identity" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                <GroupBox Header="Positions" Style="{StaticResource GroupCard}" Margin="6" Width="320">
                     <StackPanel>
-                        <ItemsControl x:Name="IdentityFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        <ItemsControl x:Name="PositionFields" ItemTemplate="{StaticResource FieldTemplate}" />
                     </StackPanel>
                 </GroupBox>
-                <GroupBox Header="Colors" Style="{StaticResource GroupCard}" Margin="6" Width="300">
-                    <StackPanel>
-                        <ItemsControl x:Name="ColorFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                    </StackPanel>
-                </GroupBox>
-                <GroupBox Header="Jersey" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                <GroupBox Header="Jersey" Style="{StaticResource GroupCard}" Margin="6" Width="320">
                     <StackPanel>
                         <ItemsControl x:Name="JerseyFields" ItemTemplate="{StaticResource FieldTemplate}" />
                     </StackPanel>
                 </GroupBox>
-                <GroupBox Header="Shorts" Style="{StaticResource GroupCard}" Margin="6" Width="300">
-                    <StackPanel>
-                        <ItemsControl x:Name="ShortsFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                    </StackPanel>
-                </GroupBox>
-                <GroupBox Header="Name" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                <GroupBox Header="Name" Style="{StaticResource GroupCard}" Margin="6" Width="320">
                     <StackPanel>
                         <ItemsControl x:Name="NameFields" ItemTemplate="{StaticResource FieldTemplate}" />
                     </StackPanel>
                 </GroupBox>
-                <GroupBox Header="Numbers" Style="{StaticResource GroupCard}" Margin="6" Width="300">
-                    <StackPanel>
-                        <ItemsControl x:Name="NumberFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                    </StackPanel>
-                </GroupBox>
-                <GroupBox Header="Socks" Style="{StaticResource GroupCard}" Margin="6" Width="300">
-                    <StackPanel>
-                        <ItemsControl x:Name="SockFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                    </StackPanel>
+                <GroupBox Header="3D Model" Style="{StaticResource GroupCard}" Margin="6" Width="320" Height="220">
+                    <TextBlock Text="3D kit model viewer will be supported in a later release."
+                               Style="{StaticResource MutedText}" FontSize="13" TextWrapping="Wrap"
+                               VerticalAlignment="Center" HorizontalAlignment="Center" />
                 </GroupBox>
             </WrapPanel>
         </ScrollViewer>

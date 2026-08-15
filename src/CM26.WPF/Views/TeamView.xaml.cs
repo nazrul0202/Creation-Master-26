@@ -54,13 +54,29 @@ public partial class TeamView : UserControl
     {
         var fields = _vm.Session.Sections.GetFields("teams", item.RecordIndex, LabelMaps.Teams);
 
+        LogoFields.ItemsSource = fields.Where(f => IsLogo(f.FieldName));
         NameFields.ItemsSource = fields.Where(f => IsName(f.FieldName));
         StadiumFields.ItemsSource = fields.Where(f => IsStadium(f.FieldName));
+        ManagerFields.ItemsSource = fields.Where(f => IsManager(f.FieldName));
         InfoFields.ItemsSource = fields.Where(f => IsInfo(f.FieldName));
+        LastYearFields.ItemsSource = fields.Where(f => IsLastYear(f.FieldName));
+        LocationFields.ItemsSource = fields.Where(f => IsLocation(f.FieldName));
+        TraitsFields.ItemsSource = fields.Where(f => IsTraits(f.FieldName));
         KitFields.ItemsSource = fields.Where(f => IsKit(f.FieldName));
+
         DefenseFields.ItemsSource = fields.Where(f => IsDefense(f.FieldName));
         BuildUpFields.ItemsSource = fields.Where(f => IsBuildUp(f.FieldName));
         ChanceFields.ItemsSource = fields.Where(f => IsChance(f.FieldName));
+        FormationFields.ItemsSource = fields.Where(f => IsFormation(f.FieldName));
+        SetPieceFields.ItemsSource = fields.Where(f => IsSetPiece(f.FieldName));
+
+        FlagFields.ItemsSource = fields.Where(f => IsFlag(f.FieldName));
+
+        UniqueAdboardFields.ItemsSource = fields.Where(f => IsUniqueAdboard(f.FieldName));
+        UniqueBallFields.ItemsSource = fields.Where(f => IsUniqueBall(f.FieldName));
+        UniqueManagerFields.ItemsSource = fields.Where(f => IsUniqueManager(f.FieldName));
+        UniqueScarfFields.ItemsSource = fields.Where(f => IsUniqueScarf(f.FieldName));
+        UniqueNetFields.ItemsSource = fields.Where(f => IsUniqueNet(f.FieldName));
 
         _teamId = fields.FirstOrDefault(f => f.FieldName == "teamid") is { RawValue: var raw }
                   && int.TryParse(raw, out var id) ? id : 0;
@@ -166,37 +182,85 @@ public partial class TeamView : UserControl
 
     // ---------- CM16 Generic tab groupings ----------
 
-    private static bool IsName(string n) => n is "teamid" or "teamname" or "abbreviatedname" or "shortname" or "scoreboardname";
+    private static bool IsLogo(string n) => n is "teamid" or "assetid" or "genericbanner" or "isbannerenabled"
+        or "hastifo" or "haslargeflag" or "skinnyflags" or "iscompetitionpoleflagenabled"
+        or "iscompetitionscarfenabled" or "iscompetitioncrowdcardsenabled" or "hasstandingcrowd"
+        or "hassubstitutionboard" or "hasvikingclap";
+    private static bool IsName(string n) => n is "teamname" or "teamid" or "jerseytype" or "scoreboardname"
+        or "abbreviatedname" or "shortname";
     private static bool IsStadium(string n) => n.Contains("stadium", StringComparison.OrdinalIgnoreCase)
         || n.Contains("pitch", StringComparison.OrdinalIgnoreCase)
         || n.Contains("goalnet", StringComparison.OrdinalIgnoreCase)
         || n.Contains("mowpattern", StringComparison.OrdinalIgnoreCase)
         || n.Contains("playsurface", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("trainingstadium", StringComparison.OrdinalIgnoreCase);
+        || n.Contains("trainingstadium", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("stanchion", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("flamethrower", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("cornerflag", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("crowd", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("stadiumcapacity", StringComparison.OrdinalIgnoreCase);
+    private static bool IsManager(string n) => n.Contains("manager", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("personality", StringComparison.OrdinalIgnoreCase);
     private static bool IsInfo(string n) => n is "overallrating" or "attackrating" or "midfieldrating" or "defenserating"
         or "matchdayoverallrating" or "matchdayattackrating" or "matchdaymidfieldrating" or "matchdaydefenserating"
         or "domesticprestige" or "internationalprestige" or "foundationyear" or "clubworth" or "popularity"
-        or "youthdevelopment" or "leaguetitles" or "form" or "gender" or "cityid" or "latitude" or "longitude"
-        or "utcoffset" or "rivalteam" or "domesticcups" or "profitability" or "numtransfersin" or "ethnicity"
-        or "uefa_cl_wins" or "uefa_el_wins" or "uefa_uecl_wins" or "uefa_consecutive_wins" or "prev_el_champ";
+        or "youthdevelopment" or "form" or "gender" or "rivalteam" or "domesticcups"
+        or "profitability" or "numtransfersin" or "ethnicity" or "cityid" or "leaguetitles"
+        || n.Contains("objective", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("threshold", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("opponent", StringComparison.OrdinalIgnoreCase);
+    private static bool IsLastYear(string n) => n is "prev_el_champ" or "uefa_cl_wins" or "uefa_el_wins"
+        or "uefa_uecl_wins" or "uefa_consecutive_wins" or "prevleague" or "positionlastyear" or "ischampion";
+    private static bool IsLocation(string n) => n is "latitude" or "longitude" or "utcoffset" or "cityid";
+    private static bool IsTraits(string n) => n.Contains("trait", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("shortoutback", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("attackingathome", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("centerback", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("wingers", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("pressure", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("defendlead", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("lineup", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("rotation", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("loyal", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("impatient", StringComparison.OrdinalIgnoreCase);
     private static bool IsKit(string n) => n.Contains("kit", StringComparison.OrdinalIgnoreCase)
         || n.Contains("jersey", StringComparison.OrdinalIgnoreCase)
         || n.Contains("ballid", StringComparison.OrdinalIgnoreCase)
         || n.Contains("color", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("presasset", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("taker", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("captain", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("thrower", StringComparison.OrdinalIgnoreCase);
+        || n.Contains("presasset", StringComparison.OrdinalIgnoreCase);
     private static bool IsDefense(string n) => n.Contains("defense", StringComparison.OrdinalIgnoreCase)
         || n.Contains("defensive", StringComparison.OrdinalIgnoreCase)
         || n.Contains("offside", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("aggression", StringComparison.OrdinalIgnoreCase);
+        || n.Contains("aggression", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("mentality", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("teamwidth", StringComparison.OrdinalIgnoreCase);
     private static bool IsBuildUp(string n) => n.Contains("buildup", StringComparison.OrdinalIgnoreCase)
         || n.Contains("build", StringComparison.OrdinalIgnoreCase)
         || n.Contains("passing", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("width", StringComparison.OrdinalIgnoreCase);
+        || n.Contains("width", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("speed", StringComparison.OrdinalIgnoreCase);
     private static bool IsChance(string n) => n.Contains("chance", StringComparison.OrdinalIgnoreCase)
         || n.Contains("crossing", StringComparison.OrdinalIgnoreCase)
         || n.Contains("shooting", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("positioning", StringComparison.OrdinalIgnoreCase);
+        || n.Contains("positioning", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("cksupport", StringComparison.OrdinalIgnoreCase);
+    private static bool IsFormation(string n) => n.Contains("formation", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("teamsheet", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("line", StringComparison.OrdinalIgnoreCase);
+    private static bool IsSetPiece(string n) => n.Contains("taker", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("captain", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("thrower", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("penalty", StringComparison.OrdinalIgnoreCase);
+    private static bool IsFlag(string n) => n.Contains("flag", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("banner", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("tifo", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("substitutionboard", StringComparison.OrdinalIgnoreCase);
+
+    // ---------- CM16 Rev. Mod. Extensions tab ----------
+
+    private static bool IsUniqueAdboard(string n) => n.Contains("adboard", StringComparison.OrdinalIgnoreCase);
+    private static bool IsUniqueBall(string n) => n.Contains("ball", StringComparison.OrdinalIgnoreCase);
+    private static bool IsUniqueManager(string n) => n.Contains("manager", StringComparison.OrdinalIgnoreCase);
+    private static bool IsUniqueScarf(string n) => n.Contains("scarf", StringComparison.OrdinalIgnoreCase);
+    private static bool IsUniqueNet(string n) => n.Contains("net", StringComparison.OrdinalIgnoreCase);
 }

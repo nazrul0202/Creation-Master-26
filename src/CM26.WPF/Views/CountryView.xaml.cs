@@ -41,8 +41,29 @@ public partial class CountryView : UserControl
     private void CountryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (CountryList.SelectedItem is not RecordListItem item) return;
-        InfoFields.ItemsSource = _vm.Session.Sections.GetFields("nations", item.RecordIndex, LabelMaps.Nations);
+        LoadEditor(item);
     }
+
+    private void LoadEditor(RecordListItem item)
+    {
+        var fields = _vm.Session.Sections.GetFields("nations", item.RecordIndex, LabelMaps.Nations);
+        InfoFields.ItemsSource = fields;
+        AudioFields.ItemsSource = fields.Where(f => IsAudio(f.FieldName));
+        TeamFields.ItemsSource = fields.Where(f => IsTeam(f.FieldName));
+    }
+
+    private static bool IsAudio(string n) => n.Contains("audio", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("chant", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("whistle", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("heckle", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("reaction", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("taunt", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("ambience", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("call", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("crowdtype", StringComparison.OrdinalIgnoreCase);
+    private static bool IsTeam(string n) => n.Contains("target", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("worldcup", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("regional", StringComparison.OrdinalIgnoreCase);
 
     private EditOutcome? StageEdit(string fieldName, string value)
     {
@@ -55,7 +76,7 @@ public partial class CountryView : UserControl
     private void ReloadEditor()
     {
         if (CountryList.SelectedItem is not RecordListItem item) return;
-        InfoFields.ItemsSource = _vm.Session.Sections.GetFields("nations", item.RecordIndex, LabelMaps.Nations);
+        LoadEditor(item);
     }
 
     private void NewId_Click(object sender, RoutedEventArgs e)

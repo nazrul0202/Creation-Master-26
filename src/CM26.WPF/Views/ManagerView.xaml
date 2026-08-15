@@ -43,40 +43,58 @@
         <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
                       Background="{StaticResource PanelBackBrush}" />
 
-        <!-- Right: flowLayoutPanel1 (identity + dress) -->
-        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
-            <WrapPanel>
-                <GroupBox Header="Identity Card" Style="{StaticResource GroupCard}" Margin="6" Width="300">
-                    <StackPanel>
-                        <ItemsControl x:Name="IdentityFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                    </StackPanel>
-                </GroupBox>
-                <GroupBox Header="Body" Style="{StaticResource GroupCard}" Margin="6" Width="300">
-                    <StackPanel>
-                        <ItemsControl x:Name="BodyFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                    </StackPanel>
-                </GroupBox>
-                <GroupBox Header="Dress" Style="{StaticResource GroupCard}" Margin="6" Width="300">
-                    <StackPanel>
-                        <ItemsControl x:Name="DressFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                    </StackPanel>
-                </GroupBox>
-                <GroupBox Header="Head Model" Style="{StaticResource GroupCard}" Margin="6" Width="300">
-                    <StackPanel>
-                        <ItemsControl x:Name="HeadFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                    </StackPanel>
-                </GroupBox>
-                <GroupBox Header="Hair Model" Style="{StaticResource GroupCard}" Margin="6" Width="300">
-                    <StackPanel>
-                        <ItemsControl x:Name="HairFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                    </StackPanel>
-                </GroupBox>
-                <GroupBox Header="Texture Info" Style="{StaticResource GroupCard}" Margin="6" Width="300">
-                    <StackPanel>
-                        <ItemsControl x:Name="TextureFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                    </StackPanel>
-                </GroupBox>
-            </WrapPanel>
-        </ScrollViewer>
+        <!-- Right: splitContainer1 (dress/skin left, 3D Model right) -->
+        <Grid Grid.Column="2" Margin="0,6,6,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="5*" MinWidth="320" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="6*" MinWidth="360" />
+            </Grid.ColumnDefinitions>
+
+            <!-- splitContainer1.Panel1 -->
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                <WrapPanel>
+                    <GroupBox Header="Identity Card" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                        <StackPanel>
+                            <ItemsControl x:Name="IdentityFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Header="Body" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                        <StackPanel>
+                            <ItemsControl x:Name="BodyFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Header="Dress" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                        <StackPanel>
+                            <ItemsControl x:Name="DressFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Header="Head Model" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                        <StackPanel>
+                            <ItemsControl x:Name="HeadFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Header="Hair Model" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                        <StackPanel>
+                            <ItemsControl x:Name="HairFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Header="Texture Info" Style="{StaticResource GroupCard}" Margin="6" Width="300">
+                        <StackPanel>
+                            <ItemsControl x:Name="TextureFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        </StackPanel>
+                    </GroupBox>
+                </WrapPanel>
+            </ScrollViewer>
+
+            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                          Background="{StaticResource PanelBackBrush}" />
+
+            <!-- splitContainer1.Panel2: group3D -->
+            <GroupBox Grid.Column="2" Header="3D Model" Style="{StaticResource GroupCard}" Margin="0,6,6,6">
+                <TextBlock Text="3D manager model preview requires the model asset pipeline."
+                           Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="12" />
+            </GroupBox>
+        </Grid>
     </Grid>
 </UserControl>

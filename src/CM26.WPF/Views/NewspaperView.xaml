@@ -24,12 +24,12 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0">
-                <GroupBox Header="Newspaper" Style="{StaticResource GroupCard}" Margin="0,0,6,6">
+                <GroupBox Header="Newspapers" Style="{StaticResource GroupCard}" Margin="0,0,6,6">
                     <Border Background="{StaticResource PanelBackBrush}" BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" Height="220">
                         <TextBlock Text="Newspaper image" Style="{StaticResource MutedText}" VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </Border>
                 </GroupBox>
-                <GroupBox Header="CM Sponsor" Style="{StaticResource GroupCard}" Margin="0,0,6,0">
+                <GroupBox Header="News Sponsor" Style="{StaticResource GroupCard}" Margin="0,0,6,0">
                     <Border Background="{StaticResource PanelBackBrush}" BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" Height="120">
                         <TextBlock Text="CM sponsor image" Style="{StaticResource MutedText}" VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </Border>
