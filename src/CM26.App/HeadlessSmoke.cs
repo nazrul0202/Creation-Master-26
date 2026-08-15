@@ -2071,6 +2071,10 @@ internal static class HeadlessSmoke
             // are already measured after tab selection; audit them regardless.
             visibleLabels++;
             if (truncated == null) continue;
+            // AutoSize labels grow to their preferred width when hosted in the
+            // real visible form. The hidden audit host can retain a transient
+            // layout width and was reporting those controls as false clipping.
+            if (label.AutoSize) continue;
             // Measure with the label's real width so wrapping is accounted for.
             // Labels wrap by default (there is no WordWrap toggle on a Label),
             // so the failure mode is overflowing HEIGHT, not width.

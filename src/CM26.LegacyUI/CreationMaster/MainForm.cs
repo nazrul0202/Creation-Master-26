@@ -344,61 +344,61 @@ public class MainForm : Form
 	private void CreateForms()
 	{
 		m_FormationForm = new FormationForm();
-		m_FormationForm.MdiParent = this;
+		m_FormationForm.TopLevel = false;
 		m_FormationForm.Dock = DockStyle.Fill;
 		m_CountryForm = new CountryForm();
-		m_CountryForm.MdiParent = this;
+		m_CountryForm.TopLevel = false;
 		m_CountryForm.Dock = DockStyle.Fill;
 		m_TeamForm = new TeamForm();
-		m_TeamForm.MdiParent = this;
+		m_TeamForm.TopLevel = false;
 		m_TeamForm.Dock = DockStyle.Fill;
 		m_KitForm = new KitForm();
-		m_KitForm.MdiParent = this;
+		m_KitForm.TopLevel = false;
 		m_KitForm.Dock = DockStyle.Fill;
 		m_BallForm = new BallForm();
-		m_BallForm.MdiParent = this;
+		m_BallForm.TopLevel = false;
 		m_BallForm.Dock = DockStyle.Fill;
 		m_ManagerForm = new ManagerForm();
-		m_ManagerForm.MdiParent = this;
+		m_ManagerForm.TopLevel = false;
 		m_ManagerForm.Dock = DockStyle.Fill;
 		m_GameGraphicForm = new GameGraphicForm();
-		m_GameGraphicForm.MdiParent = this;
+		m_GameGraphicForm.TopLevel = false;
 		m_GameGraphicForm.Dock = DockStyle.Fill;
 		m_WebBrowserForm = new WebBrowserForm();
-		m_WebBrowserForm.MdiParent = this;
+		m_WebBrowserForm.TopLevel = false;
 		m_WebBrowserForm.Dock = DockStyle.Fill;
 		m_LeagueForm = new LeagueForm();
-		m_LeagueForm.MdiParent = this;
+		m_LeagueForm.TopLevel = false;
 		m_LeagueForm.Dock = DockStyle.Fill;
 		m_ShoesForm = new ShoesForm();
-		m_ShoesForm.MdiParent = this;
+		m_ShoesForm.TopLevel = false;
 		m_ShoesForm.Dock = DockStyle.Fill;
 		m_TvForm = new TvForm();
-		m_TvForm.MdiParent = this;
+		m_TvForm.TopLevel = false;
 		m_TvForm.Dock = DockStyle.Fill;
 		m_NewspapersForm = new NewspapersForm();
-		m_NewspapersForm.MdiParent = this;
+		m_NewspapersForm.TopLevel = false;
 		m_NewspapersForm.Dock = DockStyle.Fill;
 		m_RefereeForm = new RefereeForm();
-		m_RefereeForm.MdiParent = this;
+		m_RefereeForm.TopLevel = false;
 		m_RefereeForm.Dock = DockStyle.Fill;
 		m_TrophyForm = new CompetitionForm();
-		m_TrophyForm.MdiParent = this;
+		m_TrophyForm.TopLevel = false;
 		m_TrophyForm.Dock = DockStyle.Fill;
 		m_PlayerForm = new PlayerForm();
-		m_PlayerForm.MdiParent = this;
+		m_PlayerForm.TopLevel = false;
 		m_PlayerForm.Dock = DockStyle.Fill;
 		m_StadiumForm = new StadiumForm();
-		m_StadiumForm.MdiParent = this;
+		m_StadiumForm.TopLevel = false;
 		m_StadiumForm.Dock = DockStyle.Fill;
 		m_GlovesForm = new GlovesForm();
-		m_GlovesForm.MdiParent = this;
+		m_GlovesForm.TopLevel = false;
 		m_GlovesForm.Dock = DockStyle.Fill;
 		m_AudioForm = new AudioForm();
-		m_AudioForm.MdiParent = this;
+		m_AudioForm.TopLevel = false;
 		m_AudioForm.Dock = DockStyle.Fill;
 		m_ImportGraphicsForm = new ImportGraphicsForm();
-		m_ImportGraphicsForm.MdiParent = this;
+		m_ImportGraphicsForm.TopLevel = false;
 		m_ImportGraphicsForm.Dock = DockStyle.Fill;
 		m_PatchCreatorForm = new PatchCreatorForm();
 		m_PatchLoaderForm = new PatchLoaderForm();
@@ -522,9 +522,8 @@ public class MainForm : Form
 		{
 			var previous = new Control[panel.Controls.Count];
 			panel.Controls.CopyTo(previous, 0);
-			// These forms are also MDI children. If they are detached while still
-			// visible WinForms can promote them back into the MDI client, leaving a
-			// blue/blank child over the section that was just selected.
+			// Hosted editors are non-top-level controls. Hide the outgoing editor
+			// before detaching it so the panel never exposes the blue MDI client.
 			foreach (var control in previous)
 			{
 				if (!ReferenceEquals(control, form)) control.Hide();
@@ -534,6 +533,7 @@ public class MainForm : Form
 			if (!form.Visible)
 				form.Show();
 			form.BringToFront();
+			form.Update();
 			foreach (var control in previous)
 			{
 				if (!ReferenceEquals(control, form)) panel.Controls.Remove(control);
@@ -682,7 +682,7 @@ public class MainForm : Form
 
 	private void menuAbout_Click(object sender, EventArgs e)
 	{
-		m_AboutForm.labelProduct.Text = "Creation Master 16";
+		m_AboutForm.labelProduct.Text = "Creation Master 26";
 		m_AboutForm.labelRelease.Text = "Version 3.7";
 		m_AboutForm.ShowDialog();
 	}
@@ -2829,6 +2829,8 @@ public class MainForm : Form
 
 	internal void ClickFc26SectionForSmoke(string section)
 	{
+		if (!string.Equals(Text, "Creation Master 26", StringComparison.Ordinal))
+			throw new InvalidOperationException("Legacy shell still has obsolete product branding: " + Text);
 		ToolStripButton button;
 		Form expected;
 		switch ((section ?? string.Empty).ToLowerInvariant())
@@ -2854,6 +2856,7 @@ public class MainForm : Form
 			throw new InvalidOperationException("Section was not routed to the main panel: " + section);
 		if (panelRight.Controls.Contains(expected))
 			throw new InvalidOperationException("Section leaked into the right panel: " + section);
+		AssertFc26SectionVisible(section, expected);
 
 		if (ReferenceEquals(expected, m_LeagueForm))
 		{
@@ -2862,6 +2865,38 @@ public class MainForm : Form
 				if (league.ShortName == "Short League Name" || league.LongName == "Long League Name")
 					throw new InvalidDataException("FC26 league placeholder was not replaced: " + league.Id);
 			}
+		}
+	}
+
+	internal void AssertFc26SectionVisible(string section)
+	{
+		Form expected;
+		switch ((section ?? string.Empty).ToLowerInvariant())
+		{
+			case "league": expected = m_LeagueForm; break;
+			case "team": expected = m_TeamForm; break;
+			case "kit": expected = m_KitForm; break;
+			case "player": expected = m_PlayerForm; break;
+			case "stadium": expected = m_StadiumForm; break;
+			case "formation": expected = m_FormationForm; break;
+			case "ball": expected = m_BallForm; break;
+			case "shoes": expected = m_ShoesForm; break;
+			case "gloves": expected = m_GlovesForm; break;
+			case "competition": expected = m_TrophyForm; break;
+			default: expected = m_CountryForm; break;
+		}
+		AssertFc26SectionVisible(section, expected);
+	}
+
+	private void AssertFc26SectionVisible(string section, Form expected)
+	{
+		if (!ReferenceEquals(expected.Parent, panelMain) ||
+			!panelMain.Controls.Contains(expected) ||
+			!expected.Visible || !expected.IsHandleCreated ||
+			expected.Width <= 0 || expected.Height <= 0 ||
+			!expected.Bounds.IntersectsWith(panelMain.ClientRectangle))
+		{
+			throw new InvalidOperationException("Section became blank after activation: " + section);
 		}
 	}
 
@@ -4604,7 +4639,7 @@ public class MainForm : Form
 		base.MainMenuStrip = this.menuStrip;
 		this.MinimumSize = new System.Drawing.Size(200, 199);
 		base.Name = "MainForm";
-		this.Text = "Creation Master 16";
+		this.Text = "Creation Master 26";
 		base.SizeChanged += new System.EventHandler(MainForm_SizeChanged);
 		this.menuStrip.ResumeLayout(false);
 		this.menuStrip.PerformLayout();

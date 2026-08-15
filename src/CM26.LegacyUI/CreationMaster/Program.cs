@@ -38,8 +38,16 @@ internal static class Program
 				main.LoadFc26Snapshot(args[1], showCountry: false);
 				foreach (var section in args[2].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
 				{
-					main.ClickFc26SectionForSmoke(section.Trim());
-					Application.DoEvents();
+					var name = section.Trim();
+					main.ClickFc26SectionForSmoke(name);
+					// Pump delayed layout/paint messages too. The original regression
+					// passed the immediate parent check and then exposed the MDI client.
+					for (var pass = 0; pass < 4; pass++)
+					{
+						Application.DoEvents();
+						main.Update();
+					}
+					main.AssertFc26SectionVisible(name);
 				}
 				main.Dispose();
 				Environment.Exit(0);

@@ -259,6 +259,7 @@ public sealed class CountriesSection : SectionBase
             ForeColor = StudioColors.MutedText,
             BackColor = Color.Transparent,
             TextAlign = ContentAlignment.MiddleCenter,
+            AutoEllipsis = true,
         };
         holder.Controls.Add(picture);
         holder.Controls.Add(caption);

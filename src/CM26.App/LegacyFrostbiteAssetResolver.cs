@@ -27,6 +27,7 @@ internal static class LegacyFrostbiteAssetResolver
         {
             var match = assets.SearchAssets(query, "Res", 500)
                 .Where(item => item.ResType == TextureResType)
+                .Where(item => IsCompatibleMatch(normalized, item.Name, stem, query))
                 .OrderByDescending(item => Score(item.Name, stem, query))
                 .FirstOrDefault();
             if (match == null) continue;
@@ -35,6 +36,57 @@ internal static class LegacyFrostbiteAssetResolver
         }
         return null;
     }
+
+    internal static bool IsCompatibleMatch(string logicalPath, string assetName, string stem, string query)
+    {
+        var candidate = assetName.Replace('\\', '/').ToLowerInvariant();
+        var file = Path.GetFileNameWithoutExtension(candidate);
+
+        // Never accept a fuzzy result purely because a short numeric token
+        // happens to occur in its name. That previously mapped country flags
+        // to club banners and face/eye textures with the same numeric id.
+        var exactStem = file.Equals(stem, StringComparison.OrdinalIgnoreCase) ||
+                        candidate.EndsWith('/' + stem, StringComparison.OrdinalIgnoreCase);
+        var exactQuery = file.Equals(query, StringComparison.OrdinalIgnoreCase) ||
+                         candidate.EndsWith('/' + query, StringComparison.OrdinalIgnoreCase);
+
+        if (Regex.IsMatch(logicalPath,
+                @"(?:countryflags/f_|miniflags/flag_|cardflags/|flags512x512/f_|countryshapes/c)\d+"))
+        {
+            var id = MatchId(logicalPath,
+                @"(?:countryflags/f_|miniflags/flag_|cardflags/|flags512x512/f_|countryshapes/c)(\d+)");
+            if (id < 0 || !HasBoundedId(candidate, id)) return false;
+            var isShape = logicalPath.Contains("countryshapes", StringComparison.OrdinalIgnoreCase);
+            // FC26 contains club banners whose RES names look exactly like a
+            // numeric flag query (for example f_149). Country flags must come
+            // from their canonical ChunkFileCollector aliases below; accepting
+            // any fuzzy flag RES here can silently display another club/country.
+            return isShape &&
+                   (candidate.Contains("shape", StringComparison.OrdinalIgnoreCase) || exactStem);
+        }
+
+        // For every other family, require either an exact requested filename
+        // or a family-specific term. Low-confidence arbitrary textures are
+        // worse than an honest empty preview.
+        if (exactStem || exactQuery) return true;
+        if (logicalPath.Contains("/heads/", StringComparison.OrdinalIgnoreCase))
+            return candidate.Contains("head", StringComparison.OrdinalIgnoreCase) ||
+                   candidate.Contains("portrait", StringComparison.OrdinalIgnoreCase);
+        if (logicalPath.Contains("/stadium", StringComparison.OrdinalIgnoreCase))
+            return candidate.Contains("stadium", StringComparison.OrdinalIgnoreCase);
+        if (logicalPath.Contains("/ball", StringComparison.OrdinalIgnoreCase))
+            return candidate.Contains("ball", StringComparison.OrdinalIgnoreCase);
+        if (logicalPath.Contains("/boot", StringComparison.OrdinalIgnoreCase) ||
+            logicalPath.Contains("/shoe", StringComparison.OrdinalIgnoreCase))
+            return candidate.Contains("boot", StringComparison.OrdinalIgnoreCase) ||
+                   candidate.Contains("shoe", StringComparison.OrdinalIgnoreCase);
+        if (logicalPath.Contains("/crest", StringComparison.OrdinalIgnoreCase))
+            return candidate.Contains("crest", StringComparison.OrdinalIgnoreCase);
+        return false;
+    }
+
+    private static bool HasBoundedId(string value, int id) =>
+        Regex.IsMatch(value, $@"(?<!\d){id}(?!\d)", RegexOptions.IgnoreCase);
 
     private static IEnumerable<string> CollectorAliases(string logicalPath)
     {
@@ -45,8 +97,13 @@ internal static class LegacyFrostbiteAssetResolver
             @"(?:flags512x512/f_|cardflags/|countryshapes/c)(\d+)");
         if (countryId >= 0)
         {
-            yield return $"data/ui/imgAssets/countryflags/f_{countryId}.big";
-            yield return $"data/ui/imgAssets/miniflags/flag_{countryId}.big";
+            if (normalized.Contains("flags512x512", StringComparison.OrdinalIgnoreCase))
+            {
+                yield return $"data/ui/imgAssets/flags512x512/light/f_{countryId}.dds";
+                yield return $"data/ui/imgAssets/flags512x512/dark/f_{countryId}.dds";
+            }
+            yield return $"data/ui/artassets/countryflags/f_{countryId}.big";
+            yield return $"data/ui/artassets/miniflags/flag_{countryId}.big";
         }
 
         var stadiumId = MatchId(normalized, @"(?:stadium_|stadiumsbig/st_)(\d+)");

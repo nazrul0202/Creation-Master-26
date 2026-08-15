@@ -11,12 +11,18 @@ public sealed class SectionDataService
     private readonly DatabaseSession _session;
     private readonly NameResolverService _resolver;
     private readonly PendingChangesService _pending;
+    private long _dataRevision;
+    private long _rosterIndexRevision = -1;
+    private Dictionary<int, int> _playerRowById = new();
+    private Dictionary<int, Dictionary<int, int>> _linkRowByTeamAndPlayer = new();
+    private Dictionary<int, int> _loanRowByPlayerId = new();
 
     public SectionDataService(DatabaseSession session, NameResolverService resolver, PendingChangesService pending)
     {
         _session = session;
         _resolver = resolver;
         _pending = pending;
+        _pending.Changed += (_, _) => _dataRevision++;
     }
 
     // ---------- generic helpers ----------
@@ -193,49 +199,30 @@ public sealed class SectionDataService
         int cn = Col(players, "commonnameid"), pos = Col(players, "preferredposition1"), ovr = Col(players, "overallrating");
         int contractUntil = Col(players, "contractvaliduntil"), joiningDate = Col(players, "playerjointeamdate");
         var links = Table("teamplayerlinks");
-        var linkByPlayerId = new Dictionary<int, DbRecord>();
-        if (links != null)
-        {
-            var linkPlayerId = Col(links, "playerid");
-            var linkTeamId = Col(links, "teamid");
-            for (var row = 0; row < links.RowCount; row++)
-            {
-                var link = _session.GetRecord("teamplayerlinks", row); if (link == null) continue;
-                if (ParseInt(link.Get(linkTeamId)) == teamId)
-                {
-                    var linkedPlayerId = ParseInt(link.Get(linkPlayerId));
-                    if (linkedPlayerId > 0) linkByPlayerId[linkedPlayerId] = link;
-                }
-            }
-        }
-        var loanByPlayerId = new Dictionary<int, (int fromTeamId, string endDate)>();
         var loans = Table("playerloans");
-        if (loans != null)
-        {
-            var loanPlayerId = Col(loans, "playerid");
-            var loanFromTeam = Col(loans, "teamidloanedfrom");
-            var loanEnd = Col(loans, "loandateend");
-            for (var row = 0; row < loans.RowCount; row++)
-            {
-                var loan = _session.GetRecord("playerloans", row); if (loan == null) continue;
-                var playerId = ParseInt(loan.Get(loanPlayerId));
-                if (playerId > 0)
-                    loanByPlayerId[playerId] = (ParseInt(loan.Get(loanFromTeam)), loan.Get(loanEnd));
-            }
-        }
+        EnsureRosterIndexes(players, links, loans);
+        if (!_linkRowByTeamAndPlayer.TryGetValue(teamId, out var linkRows))
+            return Array.Empty<TeamRosterItem>();
+
+        var loanFromTeam = loans == null ? -1 : Col(loans, "teamidloanedfrom");
+        var loanEnd = loans == null ? -1 : Col(loans, "loandateend");
         var roster = new List<TeamRosterItem>();
-        for (var row = 0; row < players.RowCount; row++)
+        foreach (var (playerId, linkRow) in linkRows)
         {
-            var rec = _session.GetRecord("players", row); if (rec == null) continue;
-            var playerId = ParseInt(rec.Get(id));
-            // The FC26 roster relationship is owned by teamplayerlinks. The
-            // resolver keeps only one team per player for quick display and can
-            // therefore hide valid roster rows when another link is loaded later.
-            if (!linkByPlayerId.TryGetValue(playerId, out var link)) continue;
+            if (!_playerRowById.TryGetValue(playerId, out var playerRow)) continue;
+            var rec = _session.GetRecord("players", playerRow); if (rec == null) continue;
+            var link = links == null ? null : _session.GetRecord("teamplayerlinks", linkRow);
             var fnId = ParseInt(rec.Get(fn)); var lnId = ParseInt(rec.Get(ln)); var cnId = ParseInt(rec.Get(cn));
             var parts = _resolver.PlayerNameParts(playerId, fnId, lnId, cnId);
             var resolved = parts.HasAnyName;
-            loanByPlayerId.TryGetValue(playerId, out var loanInfo);
+            var loanInfo = (fromTeamId: 0, endDate: string.Empty);
+            if (loans != null && _loanRowByPlayerId.TryGetValue(playerId, out var loanRow))
+            {
+                var loan = _session.GetRecord("playerloans", loanRow);
+                if (loan != null)
+                    loanInfo = (loanFromTeam >= 0 ? ParseInt(loan.Get(loanFromTeam)) : 0,
+                        loanEnd >= 0 ? loan.Get(loanEnd) : string.Empty);
+            }
             string LinkValue(string field)
             {
                 if (link == null || links == null) return string.Empty;
@@ -266,6 +253,55 @@ public sealed class SectionDataService
         }
         return roster.OrderBy(x => x.JerseyNumber <= 0 ? int.MaxValue : x.JerseyNumber)
             .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private void EnsureRosterIndexes(DbTable players, DbTable? links, DbTable? loans)
+    {
+        if (_rosterIndexRevision == _dataRevision) return;
+
+        var playerRows = new Dictionary<int, int>();
+        var playerIdColumn = Col(players, "playerid");
+        for (var row = 0; row < players.RowCount; row++)
+        {
+            var record = _session.GetRecord("players", row);
+            var playerId = record == null || playerIdColumn < 0 ? 0 : ParseInt(record.Get(playerIdColumn));
+            if (playerId > 0) playerRows[playerId] = row;
+        }
+
+        var linkRows = new Dictionary<int, Dictionary<int, int>>();
+        if (links != null)
+        {
+            var teamIdColumn = Col(links, "teamid");
+            var playerIdLinkColumn = Col(links, "playerid");
+            for (var row = 0; row < links.RowCount; row++)
+            {
+                var record = _session.GetRecord("teamplayerlinks", row);
+                if (record == null) continue;
+                var teamId = teamIdColumn < 0 ? 0 : ParseInt(record.Get(teamIdColumn));
+                var playerId = playerIdLinkColumn < 0 ? 0 : ParseInt(record.Get(playerIdLinkColumn));
+                if (teamId <= 0 || playerId <= 0) continue;
+                if (!linkRows.TryGetValue(teamId, out var byPlayer))
+                    linkRows[teamId] = byPlayer = new Dictionary<int, int>();
+                byPlayer[playerId] = row;
+            }
+        }
+
+        var loanRows = new Dictionary<int, int>();
+        if (loans != null)
+        {
+            var loanPlayerIdColumn = Col(loans, "playerid");
+            for (var row = 0; row < loans.RowCount; row++)
+            {
+                var record = _session.GetRecord("playerloans", row);
+                var playerId = record == null || loanPlayerIdColumn < 0 ? 0 : ParseInt(record.Get(loanPlayerIdColumn));
+                if (playerId > 0) loanRows[playerId] = row;
+            }
+        }
+
+        _playerRowById = playerRows;
+        _linkRowByTeamAndPlayer = linkRows;
+        _loanRowByPlayerId = loanRows;
+        _rosterIndexRevision = _dataRevision;
     }
 
     // ---------- Managers ----------
