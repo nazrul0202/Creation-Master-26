@@ -34,7 +34,9 @@ public partial class StadiumView : UserControl
 
     private void LoadList()
     {
-        _all = _vm.Session.Sections.GetItems("stadiums");
+        // Use the FC26-aware resolver so the CM16 pickup list shows the real
+        // stadium name, home team/country and capacity instead of "Record 0".
+        _all = _vm.Session.Sections.GetStadiums();
         PickUp.ObjectList = _all;
         ApplyFilter();
     }
