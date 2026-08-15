@@ -25,31 +25,49 @@ public partial class PlayersView : UserControl
         InitializeComponent();
         _vm = vm;
         StageEditDelegate = StageEdit;
+        PickUp.SelectObject += LoadEditorFromPickUp;
+        PickUp.FilterByList = new[] { "All", "by Team", "by Country", "Free Agents" };
+        PickUp.FilterChanged += ApplyFilter;
         Loaded += (_, _) => LoadList();
     }
+
+    private void LoadEditorFromPickUp(RecordListItem item) => LoadEditor(item);
 
     private void LoadList()
     {
         _all = _vm.Session.Sections.GetPlayers();
+        PickUp.ObjectList = _all;
         ApplyFilter();
     }
 
     private void ApplyFilter()
     {
-        var q = SearchBox.Text;
-        var items = _all.Where(x => x.Matches(q)).ToList();
+        var q = PickUp.FilterValueText;
+        var by = PickUp.FilterByComboText;
+        IEnumerable<RecordListItem> source = _all;
+        if (!string.IsNullOrWhiteSpace(by) && !string.IsNullOrWhiteSpace(q))
+        {
+            source = by switch
+            {
+                "by Team" => _all.Where(x => x.Subtitle.Contains(q, StringComparison.OrdinalIgnoreCase)),
+                "by Country" => _all.Where(x => x.SearchText.Contains(q, StringComparison.OrdinalIgnoreCase)),
+                _ => _all,
+            };
+        }
+        else if (by == "Free Agents" && string.IsNullOrWhiteSpace(q))
+        {
+            source = _all.Where(x => string.IsNullOrWhiteSpace(x.Subtitle) || x.Subtitle == "Free Agent");
+        }
+        var items = source.ToList();
         PlayerList.ItemsSource = items;
         CountText.Text = $"{items.Count} players" + (string.IsNullOrWhiteSpace(q) ? "" : $" matching '{q}'");
     }
-
-    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
 
     private void PlayerList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (PlayerList.SelectedItem is not RecordListItem item) return;
         LoadEditor(item);
     }
-
     private void LoadEditor(RecordListItem item)
     {
         var fields = _vm.Session.Sections.GetFields("players", item.RecordIndex, LabelMaps.Players);
@@ -122,20 +140,6 @@ public partial class PlayersView : UserControl
         OverallSlider.Value = targetVal;
         OverallText.Text = targetVal.ToString();
         RefreshEditor();
-    }
-
-    private void NewId_Click(object sender, RoutedEventArgs e)
-    {
-        if (PlayerList.SelectedItem is not RecordListItem item) return;
-        var f = _vm.Session.Sections.GetFields("players", item.RecordIndex, LabelMaps.Players);
-        var idField = f.FirstOrDefault(x => x.FieldName.Equals("playerid", StringComparison.OrdinalIgnoreCase));
-        if (idField == null) return;
-        if (long.TryParse(idField.RawValue, out var cur) && cur > 0)
-        {
-            idField.Value = (cur + 1).ToString();
-            var outcome = _vm.Session.Pending.Stage("players", item.RecordIndex, "playerid", idField.Value);
-            if (outcome.Success) RefreshEditor();
-        }
     }
 
     // ---------- CM16 Info tab groupings ----------

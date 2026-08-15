@@ -25,25 +25,40 @@ public partial class LeagueView : UserControl
         InitializeComponent();
         _vm = vm;
         StageEditDelegate = StageEdit;
+        PickUp.SelectObject += LoadEditorFromPickUp;
+        PickUp.FilterByList = new[] { "All", "by Country", "by Level" };
+        PickUp.FilterChanged += ApplyFilter;
         Loaded += (_, _) => LoadList();
     }
+
+    private void LoadEditorFromPickUp(RecordListItem item) => LoadEditor(item);
 
     private void LoadList()
     {
         _all = _vm.Session.Sections.GetLeagues();
         _teams = _vm.Session.Sections.GetTeams();
+        PickUp.ObjectList = _all;
         ApplyFilter();
     }
 
     private void ApplyFilter()
     {
-        var q = SearchBox.Text;
-        var items = _all.Where(x => x.Matches(q)).ToList();
+        var q = PickUp.FilterValueText;
+        var by = PickUp.FilterByComboText;
+        IEnumerable<RecordListItem> source = _all;
+        if (!string.IsNullOrWhiteSpace(by) && !string.IsNullOrWhiteSpace(q))
+        {
+            source = by switch
+            {
+                "by Country" => _all.Where(x => x.Subtitle.Contains(q, StringComparison.OrdinalIgnoreCase)),
+                "by Level" => _all.Where(x => x.Detail.Contains(q, StringComparison.OrdinalIgnoreCase)),
+                _ => _all,
+            };
+        }
+        var items = source.ToList();
         LeagueList.ItemsSource = items;
         CountText.Text = $"{items.Count} leagues" + (string.IsNullOrWhiteSpace(q) ? "" : $" matching '{q}'");
     }
-
-    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
 
     private void LeagueList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -67,8 +82,8 @@ public partial class LeagueView : UserControl
     private void RefreshLeagueTeams()
     {
         var names = _vm.Session.Sections.GetLeagueTeams(_leagueId);
-        var byName = _teams.ToDictionary(t => t.Title, t => t, StringComparer.OrdinalIgnoreCase);
-        var list = names.Select(n => byName.TryGetValue(n, out var t) ? t : new RecordListItem
+        var byName = _teams.ToLookup(t => t.Title, StringComparer.OrdinalIgnoreCase);
+        var list = names.Select(n => byName[n].FirstOrDefault() ?? new RecordListItem
         {
             RecordIndex = -1,
             Title = n,
@@ -99,20 +114,6 @@ public partial class LeagueView : UserControl
     {
         if (LeagueList.SelectedItem is not RecordListItem item) return;
         LoadEditor(item);
-    }
-
-    private void NewId_Click(object sender, RoutedEventArgs e)
-    {
-        if (LeagueList.SelectedItem is not RecordListItem item) return;
-        var f = _vm.Session.Sections.GetFields("leagues", item.RecordIndex, LabelMaps.Leagues);
-        var idField = f.FirstOrDefault(x => x.FieldName == "leagueid");
-        if (idField == null) return;
-        if (long.TryParse(idField.RawValue, out var cur) && cur > 0)
-        {
-            idField.Value = (cur + 1).ToString();
-            var outcome = _vm.Session.Pending.Stage("leagues", item.RecordIndex, "leagueid", idField.Value);
-            if (outcome.Success) RefreshEditor();
-        }
     }
 
     private void AddTeam_Click(object sender, RoutedEventArgs e)

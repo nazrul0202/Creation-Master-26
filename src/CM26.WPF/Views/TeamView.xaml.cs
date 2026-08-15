@@ -25,24 +25,38 @@ public partial class TeamView : UserControl
         InitializeComponent();
         _vm = vm;
         StageEditDelegate = StageEdit;
+        PickUp.SelectObject += LoadEditorFromPickUp;
+        PickUp.FilterByList = new[] { "All", "by League" };
+        PickUp.FilterChanged += ApplyFilter;
         Loaded += (_, _) => LoadList();
     }
+
+    private void LoadEditorFromPickUp(RecordListItem item) => LoadEditor(item);
 
     private void LoadList()
     {
         _all = _vm.Session.Sections.GetTeams();
+        PickUp.ObjectList = _all;
         ApplyFilter();
     }
 
     private void ApplyFilter()
     {
-        var q = SearchBox.Text;
-        var items = _all.Where(x => x.Matches(q)).ToList();
+        var q = PickUp.FilterValueText;
+        var by = PickUp.FilterByComboText;
+        IEnumerable<RecordListItem> source = _all;
+        if (!string.IsNullOrWhiteSpace(by) && !string.IsNullOrWhiteSpace(q))
+        {
+            source = by switch
+            {
+                "by League" => _all.Where(x => x.Subtitle.Contains(q, StringComparison.OrdinalIgnoreCase)),
+                _ => _all,
+            };
+        }
+        var items = source.ToList();
         TeamList.ItemsSource = items;
         CountText.Text = $"{items.Count} teams" + (string.IsNullOrWhiteSpace(q) ? "" : $" matching '{q}'");
     }
-
-    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
 
     private void TeamList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -113,20 +127,6 @@ public partial class TeamView : UserControl
     {
         if (TeamList.SelectedItem is not RecordListItem item) return;
         LoadEditor(item);
-    }
-
-    private void NewId_Click(object sender, RoutedEventArgs e)
-    {
-        if (TeamList.SelectedItem is not RecordListItem item) return;
-        var f = _vm.Session.Sections.GetFields("teams", item.RecordIndex, LabelMaps.Teams);
-        var idField = f.FirstOrDefault(x => x.FieldName == "teamid");
-        if (idField == null) return;
-        if (long.TryParse(idField.RawValue, out var cur) && cur > 0)
-        {
-            idField.Value = (cur + 1).ToString();
-            var outcome = _vm.Session.Pending.Stage("teams", item.RecordIndex, "teamid", idField.Value);
-            if (outcome.Success) RefreshEditor();
-        }
     }
 
     private void CallPlayer_Click(object sender, RoutedEventArgs e)

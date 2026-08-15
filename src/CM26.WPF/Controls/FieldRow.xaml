@@ -2,10 +2,13 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:models="clr-namespace:CM26.Application.Models;assembly=CM26.Application"
+             xmlns:controls="clr-namespace:CM26.Studio.Controls"
              x:Name="Root">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <controls:InverseBoolConverter x:Key="InverseBoolConverter" />
+        <controls:ModifiedBackgroundConverter x:Key="ModifiedBackgroundConverter" />
     </UserControl.Resources>
 
     <Grid Margin="0,2">

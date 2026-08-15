@@ -18,16 +18,10 @@
             <ColumnDefinition Width="7*" MinWidth="460" />
         </Grid.ColumnDefinitions>
 
-        <!-- ============ Left: CM16 PickUpControl (Find) + player list ============ -->
+        <!-- ============ Left: CM16 PickUpControl (top) + player list ============ -->
         <DockPanel Grid.Column="0" Margin="6">
-            <Border DockPanel.Dock="Top" Background="{StaticResource MenuBackBrush}"
-                    BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" Margin="0,0,0,6" Padding="6,4">
-                <DockPanel>
-                    <TextBlock Text="Find:" FontWeight="Bold" Margin="0,0,8,0" />
-                    <Button x:Name="NewIdButton" DockPanel.Dock="Right" Content="New ID" Style="{StaticResource ClassicButton}" Margin="8,0,0,0" Click="NewId_Click" />
-                    <TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged" />
-                </DockPanel>
-            </Border>
+            <controls:PickUpControl x:Name="PickUp" DockPanel.Dock="Top" Margin="0,0,0,6"
+                                    FilterEnabled="True" RefreshButtonEnabled="True" />
             <ListView x:Name="PlayerList" SelectionChanged="PlayerList_SelectionChanged"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListView.View>

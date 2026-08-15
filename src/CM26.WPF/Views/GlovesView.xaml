@@ -20,13 +20,8 @@
 
         <!-- Left: Find + gloves list -->
         <DockPanel Grid.Column="0" Margin="6">
-            <Border DockPanel.Dock="Top" Background="{StaticResource MenuBackBrush}"
-                    BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" Margin="0,0,0,6" Padding="6,4">
-                <DockPanel>
-                    <TextBlock Text="Find:" FontWeight="Bold" Margin="0,0,8,0" />
-                    <TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged" />
-                </DockPanel>
-            </Border>
+            <controls:PickUpControl x:Name="PickUp" DockPanel.Dock="Top" Margin="0,0,0,6"
+                                    FilterEnabled="True" RefreshButtonEnabled="True" />
             <ListView x:Name="GlovesList" SelectionChanged="GlovesList_SelectionChanged"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListView.View>

@@ -28,6 +28,7 @@
       <Link>Ijwhost.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <Resource Include="Assets\**\*.png" />
   </ItemGroup>
 
 </Project>

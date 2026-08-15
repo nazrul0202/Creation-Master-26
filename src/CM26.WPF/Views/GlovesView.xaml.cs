@@ -22,24 +22,39 @@ public partial class GlovesView : UserControl
         InitializeComponent();
         _vm = vm;
         StageEditDelegate = StageEdit;
+        PickUp.SelectObject += LoadEditorFromPickUp;
+        PickUp.FilterByList = new[] { "All", "by Name", "by Id" };
+        PickUp.FilterChanged += ApplyFilter;
         Loaded += (_, _) => LoadList();
     }
+
+    private void LoadEditorFromPickUp(RecordListItem item) => LoadEditor(item);
 
     private void LoadList()
     {
         _all = _vm.Session.Sections.GetItems("goalkeepergloves");
+        PickUp.ObjectList = _all;
         ApplyFilter();
     }
 
     private void ApplyFilter()
     {
-        var q = SearchBox.Text;
-        var items = _all.Where(x => x.Matches(q)).ToList();
+        var q = PickUp.FilterValueText;
+        var by = PickUp.FilterByComboText;
+        IEnumerable<RecordListItem> source = _all;
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            source = by switch
+            {
+                "by Name" => _all.Where(x => x.Title.Contains(q, StringComparison.OrdinalIgnoreCase)),
+                "by Id" => _all.Where(x => x.Detail.Contains(q, StringComparison.OrdinalIgnoreCase)),
+                _ => _all.Where(x => (x.Title + " " + x.Subtitle + " " + x.Detail).Contains(q, StringComparison.OrdinalIgnoreCase)),
+            };
+        }
+        var items = source.ToList();
         GlovesList.ItemsSource = items;
         CountText.Text = $"{items.Count} gloves" + (string.IsNullOrWhiteSpace(q) ? "" : $" matching '{q}'");
     }
-
-    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
 
     private void GlovesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
