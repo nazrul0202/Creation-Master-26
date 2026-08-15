@@ -50,11 +50,20 @@ public static class VisualAudit
             sequence++;
         }
 
-        File.WriteAllText(Path.Combine(outputFolder, "audit.txt"),
-            $"Creation Master 26 WPF visual audit{Environment.NewLine}" +
-            $"Generated: {DateTimeOffset.Now:O}{Environment.NewLine}" +
-            $"FC26: {session.FrostbiteAssets.GameRoot}{Environment.NewLine}" +
-            $"Sections: {sectionButtons.Length}{Environment.NewLine}");
+        var report = new List<string>
+        {
+            "Creation Master 26 WPF visual audit",
+            $"Generated: {DateTimeOffset.Now:O}",
+            $"FC26: {session.FrostbiteAssets.GameRoot}",
+            $"Sections: {sectionButtons.Length}",
+        };
+        var teams = session.Database.GetTable("teams");
+        if (teams != null)
+        {
+            report.Add($"teams: rows={teams.RowCount}, columns={teams.Columns.Count}");
+            report.Add("team fields: " + string.Join(" | ", teams.Columns.Select(column => column.Name)));
+        }
+        File.WriteAllLines(Path.Combine(outputFolder, "audit.txt"), report);
         window.Close();
     }
 

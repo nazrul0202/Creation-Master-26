@@ -1,5 +1,7 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 using CM26.Application.Models;
 using CM26.Application.Services;
 using CM26.EngineBridge;
@@ -17,6 +19,7 @@ public partial class TeamView : UserControl
     private IReadOnlyList<RecordListItem> _all = Array.Empty<RecordListItem>();
     private IReadOnlyList<TeamRosterItem> _roster = Array.Empty<TeamRosterItem>();
     private int _teamId;
+    private int _crestRequest;
 
     public Func<string, string, EditOutcome?>? StageEditDelegate { get; }
 
@@ -91,11 +94,58 @@ public partial class TeamView : UserControl
         UniqueManagerFields.ItemsSource = fields.Where(f => IsUniqueManager(f.FieldName));
         UniqueScarfFields.ItemsSource = fields.Where(f => IsUniqueScarf(f.FieldName));
         UniqueNetFields.ItemsSource = fields.Where(f => IsUniqueNet(f.FieldName));
+        Fc26ExtensionFields.ItemsSource = fields.Where(f => !IsCm16Field(f.FieldName));
 
         _teamId = fields.FirstOrDefault(f => f.FieldName == "teamid") is { RawValue: var raw }
                   && int.TryParse(raw, out var id) ? id : 0;
+        _ = LoadCrestAsync(_teamId);
         LoadRoster();
         EditTabs.SelectedIndex = 0;
+    }
+
+    private async Task LoadCrestAsync(int teamId)
+    {
+        var request = ++_crestRequest;
+        CrestLarge.Source = Crest50.Source = Crest32.Source = Crest16.Source = null;
+        CrestLargeCaption.Visibility = Crest50Caption.Visibility = Crest32Caption.Visibility = Crest16Caption.Visibility = Visibility.Visible;
+        if (teamId <= 0 || !_vm.Session.FrostbiteAssets.IsAvailable) return;
+
+        var path = await Task.Run(() =>
+        {
+            foreach (var candidate in new[]
+            {
+                $"data/ui/imgAssets/crest/dark/l{teamId}.dds",
+                $"data/ui/imgAssets/crest/light/l{teamId}.dds",
+                $"data/ui/imgAssets/crest/l{teamId}.dds",
+            })
+            {
+                var exported = _vm.Session.FrostbiteAssets.ExportLegacyAsset(candidate);
+                if (!string.IsNullOrWhiteSpace(exported)) return exported;
+            }
+            return null;
+        });
+        if (request != _crestRequest || string.IsNullOrWhiteSpace(path)) return;
+
+        var bitmap = await Task.Run(() => CreateBitmapSource(path));
+        if (request != _crestRequest || bitmap == null) return;
+        CrestLarge.Source = Crest50.Source = Crest32.Source = Crest16.Source = bitmap;
+        CrestLargeCaption.Visibility = Crest50Caption.Visibility = Crest32Caption.Visibility = Crest16Caption.Visibility = Visibility.Collapsed;
+    }
+
+    private static BitmapSource? CreateBitmapSource(string path)
+    {
+        using var preview = new TexturePreviewService().CreatePreview(path, 256, 256);
+        if (preview == null) return null;
+        using var stream = new MemoryStream();
+        preview.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+        stream.Position = 0;
+        var bitmap = new BitmapImage();
+        bitmap.BeginInit();
+        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        bitmap.StreamSource = stream;
+        bitmap.EndInit();
+        bitmap.Freeze();
+        return bitmap;
     }
 
     private void LoadRoster()
@@ -182,85 +232,47 @@ public partial class TeamView : UserControl
 
     // ---------- CM16 Generic tab groupings ----------
 
-    private static bool IsLogo(string n) => n is "teamid" or "assetid" or "genericbanner" or "isbannerenabled"
-        or "hastifo" or "haslargeflag" or "skinnyflags" or "iscompetitionpoleflagenabled"
-        or "iscompetitionscarfenabled" or "iscompetitioncrowdcardsenabled" or "hasstandingcrowd"
-        or "hassubstitutionboard" or "hasvikingclap";
-    private static bool IsName(string n) => n is "teamname" or "teamid" or "jerseytype" or "scoreboardname"
-        or "abbreviatedname" or "shortname";
-    private static bool IsStadium(string n) => n.Contains("stadium", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("pitch", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("goalnet", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("mowpattern", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("playsurface", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("trainingstadium", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("stanchion", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("flamethrower", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("cornerflag", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("crowd", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("stadiumcapacity", StringComparison.OrdinalIgnoreCase);
-    private static bool IsManager(string n) => n.Contains("manager", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("personality", StringComparison.OrdinalIgnoreCase);
-    private static bool IsInfo(string n) => n is "overallrating" or "attackrating" or "midfieldrating" or "defenserating"
+    // Logos, translated team names, manager names and kit links are assets or
+    // linked tables in both CM16 and FC26. They must not be filled with
+    // unrelated columns merely because a column happens to contain "flag",
+    // "crowd" or "manager".
+    private static bool IsLogo(string n) => false;
+    private static bool IsName(string n) => n is "teamname";
+    private static bool IsStadium(string n) => n is "trainingstadium";
+    private static bool IsManager(string n) => false;
+    private static bool IsInfo(string n) => n is "teamid" or "overallrating" or "attackrating" or "midfieldrating" or "defenserating"
         or "matchdayoverallrating" or "matchdayattackrating" or "matchdaymidfieldrating" or "matchdaydefenserating"
         or "domesticprestige" or "internationalprestige" or "foundationyear" or "clubworth" or "popularity"
-        or "youthdevelopment" or "form" or "gender" or "rivalteam" or "domesticcups"
-        or "profitability" or "numtransfersin" or "ethnicity" or "cityid" or "leaguetitles"
-        || n.Contains("objective", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("threshold", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("opponent", StringComparison.OrdinalIgnoreCase);
-    private static bool IsLastYear(string n) => n is "prev_el_champ" or "uefa_cl_wins" or "uefa_el_wins"
-        or "uefa_uecl_wins" or "uefa_consecutive_wins" or "prevleague" or "positionlastyear" or "ischampion";
+        or "youthdevelopment" or "form" or "gender" or "rivalteam" or "ballid";
+    private static bool IsLastYear(string n) => n is "prevleague" or "positionlastyear" or "ischampion";
     private static bool IsLocation(string n) => n is "latitude" or "longitude" or "utcoffset" or "cityid";
-    private static bool IsTraits(string n) => n.Contains("trait", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("shortoutback", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("attackingathome", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("centerback", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("wingers", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("pressure", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("defendlead", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("lineup", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("rotation", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("loyal", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("impatient", StringComparison.OrdinalIgnoreCase);
-    private static bool IsKit(string n) => n.Contains("kit", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("jersey", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("ballid", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("color", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("presasset", StringComparison.OrdinalIgnoreCase);
-    private static bool IsDefense(string n) => n.Contains("defense", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("defensive", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("offside", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("aggression", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("mentality", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("teamwidth", StringComparison.OrdinalIgnoreCase);
-    private static bool IsBuildUp(string n) => n.Contains("buildup", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("build", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("passing", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("width", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("speed", StringComparison.OrdinalIgnoreCase);
-    private static bool IsChance(string n) => n.Contains("chance", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("crossing", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("shooting", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("positioning", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("cksupport", StringComparison.OrdinalIgnoreCase);
-    private static bool IsFormation(string n) => n.Contains("formation", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("teamsheet", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("line", StringComparison.OrdinalIgnoreCase);
-    private static bool IsSetPiece(string n) => n.Contains("taker", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("captain", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("thrower", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("penalty", StringComparison.OrdinalIgnoreCase);
-    private static bool IsFlag(string n) => n.Contains("flag", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("banner", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("tifo", StringComparison.OrdinalIgnoreCase)
-        || n.Contains("substitutionboard", StringComparison.OrdinalIgnoreCase);
+    private static bool IsTraits(string n) => n is "trait1vweak" or "trait1vequal" or "trait1vstrong";
+    private static bool IsKit(string n) => false;
+    private static bool IsDefense(string n) => n is "defensivedepth";
+    private static bool IsBuildUp(string n) => n is "buildupplay";
+    private static bool IsChance(string n) => false;
+    private static bool IsFormation(string n) => n is "favoriteteamsheetid";
+    private static bool IsSetPiece(string n) => n is "captainid" or "penaltytakerid" or "freekicktakerid"
+        or "leftfreekicktakerid" or "rightfreekicktakerid" or "longkicktakerid"
+        or "leftcornerkicktakerid" or "rightcornerkicktakerid" or "throwerleft" or "throwerright"
+        || n.StartsWith("cksupport", StringComparison.OrdinalIgnoreCase);
+    private static bool IsFlag(string n) => n is "genericbanner" or "isbannerenabled" or "hastifo"
+        or "haslargeflag" or "skinnyflags" or "iscompetitionpoleflagenabled"
+        or "iscompetitionscarfenabled" or "iscompetitioncrowdcardsenabled"
+        or "hassubstitutionboard" or "hasvikingclap" or "hasstandingcrowd";
 
     // ---------- CM16 Rev. Mod. Extensions tab ----------
 
     private static bool IsUniqueAdboard(string n) => n.Contains("adboard", StringComparison.OrdinalIgnoreCase);
-    private static bool IsUniqueBall(string n) => n.Contains("ball", StringComparison.OrdinalIgnoreCase);
-    private static bool IsUniqueManager(string n) => n.Contains("manager", StringComparison.OrdinalIgnoreCase);
-    private static bool IsUniqueScarf(string n) => n.Contains("scarf", StringComparison.OrdinalIgnoreCase);
-    private static bool IsUniqueNet(string n) => n.Contains("net", StringComparison.OrdinalIgnoreCase);
+    private static bool IsUniqueBall(string n) => false;
+    private static bool IsUniqueManager(string n) => n is "personalityid";
+    private static bool IsUniqueScarf(string n) => false;
+    private static bool IsUniqueNet(string n) => n.Contains("goalnet", StringComparison.OrdinalIgnoreCase)
+        || n.Contains("stanchion", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsCm16Field(string n) => IsLogo(n) || IsName(n) || IsStadium(n) || IsManager(n)
+        || IsInfo(n) || IsLastYear(n) || IsLocation(n) || IsTraits(n) || IsKit(n)
+        || IsDefense(n) || IsBuildUp(n) || IsChance(n) || IsFormation(n) || IsSetPiece(n)
+        || IsFlag(n) || IsUniqueAdboard(n) || IsUniqueBall(n) || IsUniqueManager(n)
+        || IsUniqueScarf(n) || IsUniqueNet(n);
 }

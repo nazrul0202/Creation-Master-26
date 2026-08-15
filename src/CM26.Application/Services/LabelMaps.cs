@@ -46,6 +46,22 @@ public static class LabelMaps
         ["popularity"] = "Popularity",
         ["youthdevelopment"] = "Youth Development",
         ["ballid"] = "Home Ball",
+        ["trainingstadium"] = "Stadium Model",
+        ["defensivedepth"] = "Defensive Depth",
+        ["buildupplay"] = "Build Up Play",
+        ["favoriteteamsheetid"] = "Formation / Team Sheet",
+        ["longkicktakerid"] = "Long Kick Taker",
+        ["leftfreekicktakerid"] = "Left Free-Kick Taker",
+        ["rightfreekicktakerid"] = "Right Free-Kick Taker",
+        ["throwerleft"] = "Left Throw-In Taker",
+        ["throwerright"] = "Right Throw-In Taker",
+        ["latitude"] = "Latitude",
+        ["longitude"] = "Longitude",
+        ["utcoffset"] = "UTC Time",
+        ["trait1vweak"] = "Trait vs Weaker Team",
+        ["trait1vequal"] = "Trait vs Equal Team",
+        ["trait1vstrong"] = "Trait vs Stronger Team",
+        ["personalityid"] = "Unique Manager Asset",
     };
 
     public static readonly Dictionary<string, string> Players = new(StringComparer.OrdinalIgnoreCase)

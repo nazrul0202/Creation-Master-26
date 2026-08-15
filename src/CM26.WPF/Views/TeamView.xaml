@@ -49,7 +49,28 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <WrapPanel>
                         <GroupBox Header="Logos" Style="{StaticResource GroupCard}" Margin="6" Width="310">
-                            <ItemsControl x:Name="LogoFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            <StackPanel>
+                                <Border Height="232" Margin="4" Background="White" BorderBrush="Gray" BorderThickness="1">
+                                    <Grid>
+                                        <Image x:Name="CrestLarge" Stretch="Uniform" Margin="8" />
+                                        <TextBlock x:Name="CrestLargeCaption" Text="256 x 256 Crest" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                                                   Margin="4" Foreground="Gray" />
+                                    </Grid>
+                                </Border>
+                                <UniformGrid Columns="3" Margin="4">
+                                    <Border Height="72" Margin="3" Background="White" BorderBrush="Gray" BorderThickness="1">
+                                        <Grid><Image x:Name="Crest50" Stretch="Uniform" Margin="4" /><TextBlock x:Name="Crest50Caption" Text="50 x 50" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray" /></Grid>
+                                    </Border>
+                                    <Border Height="72" Margin="3" Background="White" BorderBrush="Gray" BorderThickness="1">
+                                        <Grid><Image x:Name="Crest32" Stretch="Uniform" Margin="4" /><TextBlock x:Name="Crest32Caption" Text="32 x 32" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray" /></Grid>
+                                    </Border>
+                                    <Border Height="72" Margin="3" Background="White" BorderBrush="Gray" BorderThickness="1">
+                                        <Grid><Image x:Name="Crest16" Stretch="Uniform" Margin="4" /><TextBlock x:Name="Crest16Caption" Text="16 x 16" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Gray" /></Grid>
+                                    </Border>
+                                </UniformGrid>
+                                <Button Content="Replicate" Style="{StaticResource ClassicButton}" HorizontalAlignment="Center" Width="117" />
+                                <ItemsControl x:Name="LogoFields" Visibility="Collapsed" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
                         </GroupBox>
                         <GroupBox Header="Name" Style="{StaticResource GroupCard}" Margin="6" Width="310">
                             <ItemsControl x:Name="NameFields" ItemTemplate="{StaticResource FieldTemplate}" />
@@ -159,6 +180,9 @@
                     </GroupBox>
                     <GroupBox Header="Unique Goal Net" Style="{StaticResource GroupCard}" Margin="6" Width="310">
                         <ItemsControl x:Name="UniqueNetFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                    </GroupBox>
+                    <GroupBox Header="FC26 Database Extensions" Style="{StaticResource GroupCard}" Margin="6" Width="310">
+                        <ItemsControl x:Name="Fc26ExtensionFields" ItemTemplate="{StaticResource FieldTemplate}" />
                     </GroupBox>
                 </WrapPanel>
             </TabItem>
