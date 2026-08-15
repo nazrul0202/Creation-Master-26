@@ -18,22 +18,22 @@
         <Menu Grid.Row="0" Background="{StaticResource MenuBackBrush}">
             <!-- ===== File (CM16 menuFile) ===== -->
             <MenuItem Header="_File">
-                <MenuItem x:Name="MenuOpenFifa16" Header="Open - FIFA 16" Click="MenuOpenGame_Click">
+                <MenuItem x:Name="MenuOpenFifa16" Header="Open - FC 26" Click="MenuOpenGame_Click">
                     <MenuItem.Icon>
                         <Image Source="/Assets/Cm16/CreationMaster_MainForm__menuOpenFifa16_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem x:Name="MenuOpenLang16" Header="Open - Select lan.db" Click="MenuTool_Click" Tag="open-lang">
+                <MenuItem x:Name="MenuOpenLang16" Header="Open - FC 26 Database" Click="MenuOpenGame_Click">
                     <MenuItem.Icon>
                         <Image Source="/Assets/Cm16/CreationMaster_MainForm__menuOpenLang16_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem x:Name="MenuOpenAll" Header="Open - Select all" Click="MenuTool_Click" Tag="open-all">
+                <MenuItem x:Name="MenuOpenAll" Header="Open - FC 26 Data / Patch" Click="MenuOpenGame_Click">
                     <MenuItem.Icon>
                         <Image Source="/Assets/Cm16/CreationMaster_MainForm__menuOpenAll_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem x:Name="MenuReopen" Header="Open - Recent" Click="MenuTool_Click" Tag="open-recent" />
+                <MenuItem x:Name="MenuReopen" Header="Open - Recent FC 26" Click="MenuOpenGame_Click" />
                 <MenuItem x:Name="MenuSave" Header="Save" IsEnabled="False" Click="MenuTool_Click" Tag="save">
                     <MenuItem.Icon>
                         <Image Source="/Assets/Cm16/CreationMaster_MainForm__menuSave_Image.png" Width="16" Height="16" />
@@ -105,20 +105,9 @@
             </MenuItem>
 
             <!-- ===== Online Update (CM16 menuUpdateDB) ===== -->
-            <MenuItem x:Name="MenuUpdateDB" Header="_Online Update" IsEnabled="False">
-                <MenuItem Header="From FIFA 21" Click="MenuTool_Click" Tag="update-21" />
-                <MenuItem Header="From FIFA 20" Click="MenuTool_Click" Tag="update-20" />
-                <MenuItem Header="From FIFA 19" Click="MenuTool_Click" Tag="update-19">
-                    <MenuItem Header="Rosters Only" Click="MenuTool_Click" Tag="update-19-rosters" />
-                    <MenuItem Header="Rosters and Players" Click="MenuTool_Click" Tag="update-19-players" />
-                </MenuItem>
-                <MenuItem Header="From FIFA 18" Click="MenuTool_Click" Tag="update-18">
-                    <MenuItem Header="Rosters and Players" Click="MenuTool_Click" Tag="update-18-players" />
-                </MenuItem>
-                <MenuItem Header="From FIFA 16" Click="MenuTool_Click" Tag="update-16">
-                    <MenuItem Header="Rosters Only" Click="MenuTool_Click" Tag="update-16-rosters" />
-                    <MenuItem Header="Rosters and Players" Click="MenuTool_Click" Tag="update-16-players" />
-                </MenuItem>
+            <MenuItem x:Name="MenuUpdateDB" Header="_FC 26 Update" IsEnabled="False">
+                <MenuItem Header="Reload Database from FC 26" Click="MenuOpenGame_Click" />
+                <MenuItem Header="Re-index FC 26 Frostbite Assets" Click="MenuOpenGame_Click" />
             </MenuItem>
 
             <!-- ===== Help (CM16 helpToolStripMenuItem) ===== -->

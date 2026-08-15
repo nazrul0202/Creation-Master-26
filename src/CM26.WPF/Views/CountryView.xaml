@@ -2,79 +2,100 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:CM26.Studio.Controls"
-             x:Name="Root"
-             Background="{StaticResource WindowBackBrush}">
-
+             x:Name="Root" Background="{StaticResource WindowBackBrush}">
     <UserControl.Resources>
         <DataTemplate x:Key="FieldTemplate">
             <controls:FieldRow Pending="{Binding StageEditDelegate, ElementName=Root}" />
         </DataTemplate>
+        <Style x:Key="AssetFrame" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushBase}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="White" />
+        </Style>
     </UserControl.Resources>
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="5*" MinWidth="340" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="7*" MinWidth="480" />
-        </Grid.ColumnDefinitions>
+    <!-- CM16 CountryForm has a pickup strip followed by one fixed, visual form.
+         It does not use a second record list or expose the whole table as rows. -->
+    <DockPanel>
+        <controls:PickUpControl x:Name="PickUp" DockPanel.Dock="Top"
+                                FilterEnabled="False" RefreshButtonEnabled="True" />
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <WrapPanel Margin="4">
+                <GroupBox Header="Country" Width="765" Height="490" Margin="0,0,6,6">
+                    <Grid Margin="7">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="225" />
+                            <ColumnDefinition Width="255" />
+                            <ColumnDefinition Width="255" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="265" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-        <!-- Left: Find + nation list -->
-        <DockPanel Grid.Column="0" Margin="6">
-            <controls:PickUpControl x:Name="PickUp" DockPanel.Dock="Top" Margin="0,0,0,6"
-                                    FilterEnabled="True" RefreshButtonEnabled="True" />
-            <ListView x:Name="CountryList" SelectionChanged="CountryList_SelectionChanged"
-                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ListView.View>
-                    <GridView>
-                        <GridViewColumn Header="Name" Width="210" DisplayMemberBinding="{Binding Title}" />
-                        <GridViewColumn Header="Confederation" Width="130" DisplayMemberBinding="{Binding Subtitle}" />
-                        <GridViewColumn Header="Code" Width="60" DisplayMemberBinding="{Binding Detail}" />
-                    </GridView>
-                </ListView.View>
-            </ListView>
-            <TextBlock x:Name="CountText" DockPanel.Dock="Bottom" Style="{StaticResource MutedText}" Margin="2,4,0,0" FontSize="12" />
-        </DockPanel>
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <ItemsControl x:Name="IdentityFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            <GroupBox Header="National Team" Margin="0,10,0,0">
+                                <ItemsControl x:Name="TeamFields" Margin="5" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </GroupBox>
+                        </StackPanel>
 
-        <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
-                      Background="{StaticResource PanelBackBrush}" />
+                        <StackPanel Grid.Column="1" Margin="0,0,6,0">
+                            <Border Style="{StaticResource AssetFrame}" Height="255">
+                                <Grid>
+                                    <Image x:Name="FlagLarge" Stretch="Uniform" Margin="8" />
+                                    <TextBlock x:Name="FlagLargeCaption" Text="FC26 country flag 256 x 256"
+                                               Style="{StaticResource MutedText}" HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                            <TextBlock Text="Flag 256 x 256" Margin="4,3,0,0" />
+                        </StackPanel>
 
-        <!-- Right: CM16 CountryForm groupBox -->
-        <TabControl Grid.Column="2" Margin="0,6,6,6"
-                    Background="{StaticResource WindowBackBrush}"
-                    BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1"
-                    FontSize="13">
-            <TabItem Header="Country">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <GroupBox Header="Country" Style="{StaticResource GroupCard}">
-                            <ItemsControl x:Name="InfoFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                        </GroupBox>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-            <TabItem Header="Map (Shape)">
-                <StackPanel Margin="12">
-                    <TextBlock Text="Country shape preview requires the map asset pipeline." Style="{StaticResource MutedText}" TextWrapping="Wrap" />
-                </StackPanel>
-            </TabItem>
-            <TabItem Header="Audio">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <GroupBox Header="Audio" Style="{StaticResource GroupCard}">
-                            <ItemsControl x:Name="AudioFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                        </GroupBox>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-            <TabItem Header="National Team">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <GroupBox Header="National Team" Style="{StaticResource GroupCard}">
-                            <ItemsControl x:Name="TeamFields" ItemTemplate="{StaticResource FieldTemplate}" />
-                        </GroupBox>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-        </TabControl>
-    </Grid>
+                        <StackPanel Grid.Column="2">
+                            <Border Style="{StaticResource AssetFrame}" Height="255">
+                                <Grid>
+                                    <Image x:Name="Flag512" Stretch="Uniform" Margin="8" />
+                                    <TextBlock x:Name="Flag512Caption" Text="FC26 country flag 512 x 512"
+                                               Style="{StaticResource MutedText}" HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                            <TextBlock Text="Flag 512 x 512" Margin="4,3,0,0" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,12,6,0">
+                            <Border Style="{StaticResource AssetFrame}" Height="142">
+                                <Image x:Name="FlagCard" Stretch="Uniform" Margin="6" />
+                            </Border>
+                            <TextBlock Text="National-team presentation flag" Margin="4,3,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,12,0,0">
+                            <Border Style="{StaticResource AssetFrame}" Width="100" Height="64" HorizontalAlignment="Left">
+                                <Image x:Name="FlagMini" Stretch="Uniform" Margin="3" />
+                            </Border>
+                            <TextBlock Text="Mini flag" Margin="4,3,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Header="Map (Shape)" Width="528" Height="308" Margin="0,0,6,6">
+                    <Grid Margin="7">
+                        <Border Style="{StaticResource AssetFrame}">
+                            <Grid>
+                                <Image x:Name="MapShape" Stretch="Uniform" Margin="8" />
+                                <TextBlock Text="FC26 map shape (when supplied by the game asset set)"
+                                           Style="{StaticResource MutedText}" HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" TextWrapping="Wrap" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Header="Audio" Width="624" MinHeight="170" Margin="0,0,6,6">
+                    <ItemsControl x:Name="AudioFields" Margin="8" ItemTemplate="{StaticResource FieldTemplate}" />
+                </GroupBox>
+            </WrapPanel>
+        </ScrollViewer>
+    </DockPanel>
 </UserControl>

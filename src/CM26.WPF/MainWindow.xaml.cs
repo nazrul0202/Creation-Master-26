@@ -65,8 +65,7 @@ public partial class MainWindow : Window
         if (!loaded) return;
 
         ApplyDatabaseState(true);
-        ShowDashboard();
-        RefreshDashboardCounts();
+        OpenDefaultCm16Section();
     }
 
     /// <summary>
@@ -245,9 +244,16 @@ public partial class MainWindow : Window
         if (loaded)
         {
             ApplyDatabaseState(true);
-            ShowDashboard();
-            RefreshDashboardCounts();
+            OpenDefaultCm16Section();
         }
+    }
+
+    private void OpenDefaultCm16Section()
+    {
+        // CM16 opens directly on an editor section. A dashboard is not part of
+        // its workflow and made the FC26 port look like a generic database app.
+        CheckSection("countries");
+        ShowSection("countries");
     }
 
     private void MenuExit_Click(object sender, RoutedEventArgs e) => Close();
@@ -397,7 +403,6 @@ public partial class MainWindow : Window
             StripLabelRight.Text = "Empty";
     }
 }
-
 public sealed class ViewModel
 {
     public AppSession Session { get; }
