@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using CM26.Application.Services;
 using CM26.Studio.Services;
 using CM26.Studio.Views;
 
@@ -222,12 +223,75 @@ public partial class MainWindow : Window
         {
             CheckSection(key);
             ShowSection(key);
+            return;
         }
-        else
+
+        var result = RunDbTool(key);
+        if (result == null) return; // handled by UI state, nothing to report
+        StatusBarText.Text = result.Message;
+        MessageBox.Show(this, result.Message, mi.Header?.ToString() ?? key,
+            MessageBoxButton.OK, result.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
+        if (result.Success) RefreshDashboardCounts();
+    }
+
+    /// <summary>Runs one CM16-style Tools menu action against the loaded FC26 database.</summary>
+    private ToolRunResult? RunDbTool(string key)
+    {
+        if (!_session.Database.IsLoaded)
+            return new ToolRunResult(false, "The database is not loaded. Open FC26 first.");
+
+        switch (key)
         {
-            RightPanelHost.Content = null;
-            RightPanelTitle.Text = "Details";
-            ContentHost.Content = new PlaceholderView(mi.Header?.ToString() ?? key);
+            case "remove-fake":
+                return DbToolsService.RemoveFakePlayers(_session.Database, _session.Pending);
+            case "loan-dates":
+                return DbToolsService.SetContractEndAfterLoanEnd(_session.Database, _session.Pending);
+            case "freeagent-remove":
+                return DbToolsService.RemoveFromFreeAgentIfHasClub(_session.Database, _session.Pending);
+            case "freeagent-add":
+                return DbToolsService.AddToFreeAgentIfWithoutClub(_session.Database, _session.Pending);
+            case "name-rules":
+                return DbToolsService.SimplifyPlayerNameUsingCountryRules(_session.Database, _session.Pending);
+            case "commentary-reset":
+                return DbToolsService.ResetCommentaryNames(_session.Database, _session.Pending);
+            case "convert-minheads":
+                return DbToolsService.ConvertMiniheadsToPng(FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder));
+            case "enable-messages":
+                return new ToolRunResult(true, "All messages are enabled.");
+            case "save":
+                var save = new SaveService(_session.Database).SaveToSourceFolder();
+                return new ToolRunResult(save.Success, save.Message);
+            case "close":
+                return new ToolRunResult(true, "Close is not needed for direct editing; changes are staged until you save.");
+            case "regenerate":
+            case "expand-db":
+            case "align-langdb":
+            case "minimize-names":
+            case "preserve-names":
+            case "revmod":
+            case "specific-faces":
+            case "fix-problems":
+            case "dbentry-kits":
+            case "dummy-kit":
+            case "randomize-legends":
+            case "freeagent-dates":
+            case "commentary-associate":
+            case "commentary-create":
+            case "create-patch":
+            case "load-patch":
+            case "update-21":
+            case "update-20":
+            case "update-19":
+            case "update-19-rosters":
+            case "update-19-players":
+            case "update-18":
+            case "update-18-players":
+            case "update-16":
+            case "update-16-rosters":
+            case "update-16-players":
+                return DbToolsService.NotApplicable(key);
+            default:
+                return null;
         }
     }
 
@@ -250,9 +314,7 @@ public partial class MainWindow : Window
 
     private void MenuAbout_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show(
-            "Creation Master 26 - Studio\n\nCM16-style database editor for EA Sports FC 26.\nDirect edit on the installed game; changes apply to the live game database.",
-            "About", MessageBoxButton.OK, MessageBoxImage.Information);
+        new Views.AboutWindow { Owner = this }.ShowDialog();
     }
 
     // ============ CM16 toolStripBottom / toolStripRight show-hide ============
