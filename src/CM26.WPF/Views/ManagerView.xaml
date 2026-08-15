@@ -65,11 +65,13 @@
                     </GroupBox>
                     <GroupBox Header="Head Model" Style="{StaticResource GroupCard}" Margin="6" Width="300">
                         <StackPanel>
+                            <controls:GroupedModelPicker x:Name="ComboHeadModel" />
                             <ItemsControl x:Name="HeadFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </StackPanel>
                     </GroupBox>
                     <GroupBox Header="Hair Model" Style="{StaticResource GroupCard}" Margin="6" Width="300">
                         <StackPanel>
+                            <controls:GroupedModelPicker x:Name="ComboHairModel" />
                             <ItemsControl x:Name="HairFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </StackPanel>
                     </GroupBox>

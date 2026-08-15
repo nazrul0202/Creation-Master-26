@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using CM26.Application.Models;
 using CM26.Application.Services;
 using CM26.EngineBridge;
+using CM26.Studio.Controls;
 
 namespace CM26.Studio.Views;
 
@@ -70,9 +71,10 @@ public partial class ManagerView : UserControl
         IdentityFields.ItemsSource = fields.Where(f => IsIdentity(f.FieldName));
         BodyFields.ItemsSource = fields.Where(f => IsBody(f.FieldName));
         DressFields.ItemsSource = fields.Where(f => IsDress(f.FieldName));
-        HeadFields.ItemsSource = fields.Where(f => IsHead(f.FieldName));
-        HairFields.ItemsSource = fields.Where(f => IsHair(f.FieldName));
+        HeadFields.ItemsSource = fields.Where(f => IsHead(f.FieldName) && !IsNamedModel(f.FieldName));
+        HairFields.ItemsSource = fields.Where(f => IsHair(f.FieldName) && !IsNamedModel(f.FieldName));
         TextureFields.ItemsSource = fields.Where(f => IsTexture(f.FieldName));
+        FillModels(fields);
     }
 
     private EditOutcome? StageEdit(string fieldName, string value)
@@ -87,6 +89,23 @@ public partial class ManagerView : UserControl
     {
         if (ManagerList.SelectedItem is not RecordListItem item) return;
         LoadEditor(item);
+    }
+
+    private void FillModels(IReadOnlyList<FieldValue> fields)
+    {
+        FillModel(ComboHeadModel, "headtypecode", "Head Model",
+            AppearanceCatalog.HeadModelSets.Select(set => (set.Name, set.Models)), fields);
+        FillModel(ComboHairModel, "hairtypecode", "Hair Model",
+            AppearanceCatalog.HairModelSets.Select(set => (set.Name, set.Models)), fields);
+    }
+
+    private void FillModel(GroupedModelPicker picker, string fieldName, string label,
+        IEnumerable<(string Name, int[] Values)> groups, IReadOnlyList<FieldValue> fields)
+    {
+        var field = fields.FirstOrDefault(f => f.FieldName.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+        picker.Visibility = field == null ? Visibility.Collapsed : Visibility.Visible;
+        if (field != null)
+            picker.SetContent(label, field.FieldName, groups, field.RawValue, field.IsWritable, StageEdit);
     }
 
 
@@ -110,4 +129,7 @@ public partial class ManagerView : UserControl
         || n.Contains("complexion", StringComparison.OrdinalIgnoreCase)
         || n.Contains("trait", StringComparison.OrdinalIgnoreCase)
         || n.Contains("personality", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsNamedModel(string n) => n.Equals("headtypecode", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("hairtypecode", StringComparison.OrdinalIgnoreCase);
 }
