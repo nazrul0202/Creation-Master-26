@@ -29,12 +29,15 @@
     <SolidColorBrush x:Key="SelectedBrush" Color="{StaticResource SelectedColor}" />
     <SolidColorBrush x:Key="SkyBlueBrush" Color="{StaticResource SkyBlueColor}" />
 
-    <FontFamily x:Key="UiFont">Segoe UI</FontFamily>
+    <!-- CM16 designer uses Microsoft Sans Serif 8.25pt throughout. 11 DIPs is
+         the WPF equivalent at 96 DPI and keeps the original control metrics. -->
+    <FontFamily x:Key="UiFont">Microsoft Sans Serif</FontFamily>
 
     <!-- ============ Window ============ -->
     <Style TargetType="Window">
         <Setter Property="Background" Value="{StaticResource WindowBackBrush}" />
         <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        <Setter Property="FontSize" Value="11" />
         <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
         <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
     </Style>
@@ -63,7 +66,7 @@
 
     <Style TargetType="MenuItem">
         <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontSize" Value="11" />
     </Style>
 
     <!-- ============ Toolbar-style buttons (section buttons, CM16 52x52 icon buttons) ============ -->
