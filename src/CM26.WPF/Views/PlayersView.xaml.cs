@@ -152,6 +152,19 @@ public partial class PlayersView : UserControl
     /// Fields covered by a named combo are excluded from the generic field lists.</summary>
     private void FillNamedCombos(IReadOnlyList<FieldValue> fields)
     {
+        var genericFace = fields.FirstOrDefault(f => f.FieldName.Equals("headclasscode", StringComparison.OrdinalIgnoreCase));
+        CheckHasGenericFace.Visibility = genericFace == null ? Visibility.Collapsed : Visibility.Visible;
+        if (genericFace != null)
+        {
+            CheckHasGenericFace.SetContent("Has Generic Face", genericFace.FieldName, genericFace.RawValue,
+                genericFace.IsWritable, StageEdit);
+            GenericFaceControls.IsEnabled = genericFace.RawValue != "0";
+        }
+        else
+        {
+            GenericFaceControls.IsEnabled = true;
+        }
+
         FillCombo(ComboSkinType, "skintypecode", "Skin Type", AppearanceCatalog.SkinTypes, null, fields);
         FillCombo(ComboEyesBrow, "eyebrowcode", "Eyes Brow", AppearanceCatalog.EyebrowTypes, null, fields);
         FillCombo(ComboFacialHair, "facialhairtypecode", "Facial Hair", AppearanceCatalog.FacialHairTypes, null, fields);
@@ -296,5 +309,6 @@ public partial class PlayersView : UserControl
         || n.Equals("sideburnscode", StringComparison.OrdinalIgnoreCase)
         || n.Equals("eyecolorcode", StringComparison.OrdinalIgnoreCase)
         || n.Equals("faceposerpreset", StringComparison.OrdinalIgnoreCase)
-        || n.Equals("hashighqualityhead", StringComparison.OrdinalIgnoreCase);
+        || n.Equals("hashighqualityhead", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("headclasscode", StringComparison.OrdinalIgnoreCase);
 }

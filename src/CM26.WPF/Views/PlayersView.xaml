@@ -128,6 +128,8 @@
                     <StackPanel>
                         <GroupBox Header="Face Modelling" Style="{StaticResource GroupCard}">
                             <StackPanel>
+                                <controls:NamedCheckField x:Name="CheckHasGenericFace" />
+                                <StackPanel x:Name="GenericFaceControls">
                                 <GroupBox Header="Face Type" Style="{StaticResource GroupCard}">
                                     <StackPanel>
                                         <controls:NamedComboField x:Name="ComboSkinType" />
@@ -154,6 +156,7 @@
                                         <ItemsControl x:Name="HeadFields" ItemTemplate="{StaticResource FieldTemplate}" />
                                     </StackPanel>
                                 </GroupBox>
+                                </StackPanel>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>
