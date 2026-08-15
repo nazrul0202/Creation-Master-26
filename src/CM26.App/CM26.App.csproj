@@ -81,7 +81,8 @@
        FC26 snapshot bridge because the native game engine is x64-only. -->
   <Target Name="BuildLegacyCm16Shell" AfterTargets="Build">
     <MSBuild Projects="..\CM26.LegacyUI\CM26.LegacyUI.csproj"
-             Targets="Build" Properties="Configuration=$(Configuration)" />
+             Targets="Build" Properties="Configuration=$(Configuration)"
+             RemoveProperties="RuntimeIdentifier;SelfContained" />
     <ItemGroup>
       <LegacyCm16Files Include="..\CM26.LegacyUI\bin\$(Configuration)\net48\**\*" />
     </ItemGroup>
@@ -92,7 +93,8 @@
 
   <Target Name="CopyLegacyCm16ShellToPublish" AfterTargets="Publish" Condition="'$(PublishDir)' != ''">
     <MSBuild Projects="..\CM26.LegacyUI\CM26.LegacyUI.csproj"
-             Targets="Build" Properties="Configuration=$(Configuration)" />
+             Targets="Build" Properties="Configuration=$(Configuration)"
+             RemoveProperties="RuntimeIdentifier;SelfContained" />
     <ItemGroup>
       <LegacyCm16PublishFiles Include="..\CM26.LegacyUI\bin\$(Configuration)\net48\**\*" />
     </ItemGroup>
