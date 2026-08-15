@@ -6,9 +6,16 @@
         Width="1384" Height="961" MinWidth="200" MinHeight="199"
         WindowStartupLocation="CenterScreen">
 
-    <DockPanel>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
         <!-- ============ Menu strip (CM16: File | Tools | Patch | Online Update | Help) ============ -->
-        <Menu DockPanel.Dock="Top" Background="{StaticResource MenuBackBrush}">
+        <Menu Grid.Row="0" Background="{StaticResource MenuBackBrush}">
             <!-- ===== File (CM16 menuFile) ===== -->
             <MenuItem Header="_File">
                 <MenuItem x:Name="MenuOpenFifa16" Header="Open - FIFA 16" Click="MenuOpenGame_Click">
@@ -130,7 +137,7 @@
         </Menu>
 
         <!-- ============ Section toolbar (CM16 toolStripMain, disabled until DB open) ============ -->
-        <Border x:Name="SectionBarHost" DockPanel.Dock="Top" Background="{StaticResource MenuBackBrush}"
+        <Border x:Name="SectionBarHost" Grid.Row="1" Background="{StaticResource MenuBackBrush}"
                 BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="0,0,0,1" IsEnabled="False">
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                 <StackPanel Orientation="Horizontal" x:Name="SectionBar" Margin="4,2">
@@ -202,7 +209,7 @@
         </Border>
 
         <!-- ============ Main split workspace (CM16: splitVert with panelMain | toolStripRight | panelRight) ============ -->
-        <Grid x:Name="Workspace" DockPanel.Dock="Top" IsEnabled="False">
+        <Grid x:Name="Workspace" Grid.Row="2" IsEnabled="False">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="3*" MinWidth="420" />
                 <ColumnDefinition Width="Auto" />
@@ -261,7 +268,7 @@
         </Grid>
 
         <!-- ============ Bottom panel (CM16 toolStripBottom + panelBottom, starts collapsed to the 25px strip) ============ -->
-        <Border x:Name="BottomArea" DockPanel.Dock="Top" Background="{StaticResource SkyBlueBrush}"
+        <Border x:Name="BottomArea" Grid.Row="3" Background="{StaticResource SkyBlueBrush}"
                 BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="0,1,0,0" Height="25">
             <Grid>
                 <Grid.RowDefinitions>
@@ -298,7 +305,7 @@
         </Border>
 
         <!-- ============ Status strip (CM16 statusStrip: progressBar + statusBar "Ready") ============ -->
-        <StatusBar DockPanel.Dock="Bottom" Background="{StaticResource MenuBackBrush}">
+        <StatusBar Grid.Row="4" Background="{StaticResource MenuBackBrush}">
             <StatusBarItem>
                 <ProgressBar x:Name="ProgressBar" Width="100" Height="16" Visibility="Collapsed" IsIndeterminate="True" />
             </StatusBarItem>
@@ -306,5 +313,5 @@
                 <TextBlock x:Name="StatusBarText" Text="Ready" FontSize="12" />
             </StatusBarItem>
         </StatusBar>
-    </DockPanel>
+    </Grid>
 </Window>

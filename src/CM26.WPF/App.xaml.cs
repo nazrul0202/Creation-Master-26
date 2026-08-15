@@ -25,13 +25,24 @@ public partial class App : System.Windows.Application
         Startup += (_, e) =>
         {
             var args = Environment.GetCommandLineArgs();
-            if (args.Length >= 2 && args[1] == "--ui-smoke")
+            if (args.Length >= 2 && args[1] is "--ui-smoke" or "--ui-audit")
             {
                 Dispatcher.BeginInvoke(new System.Action(async () =>
                 {
                     try
                     {
-                        await Smoke.RunAsync();
+                        if (args[1] == "--ui-audit")
+                        {
+                            var output = args.Length >= 3
+                                ? args[2]
+                                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                                    "Creation Master 26", "ui-audit");
+                            await VisualAudit.RunAsync(output);
+                        }
+                        else
+                        {
+                            await Smoke.RunAsync();
+                        }
                         Shutdown(0);
                     }
                     catch (Exception ex)
