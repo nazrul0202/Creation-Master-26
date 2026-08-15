@@ -37,7 +37,8 @@ public static class Smoke
             if (!window.MenuOpenFifa16.IsEnabled)
                 throw new InvalidOperationException("File > Open FC26 is disabled before the smoke click.");
             window.MenuOpenFifa16.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
-            for (var i = 0; i < 2400 && !session.Database.IsLoaded; i++)
+            for (var i = 0; i < 2400 &&
+                 (!session.Database.IsLoaded || !window.MenuOpenFifa16.IsEnabled); i++)
             {
                 await Task.Delay(50);
                 window.UpdateLayout();
