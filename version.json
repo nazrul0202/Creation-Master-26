@@ -1,6 +1,6 @@
 {
-  "version": "1.0.111",
+  "version": "1.0.112",
   "name": "Creation Master 26",
-  "notes": "v1.0.111 - Corrected the FC26 open flow and moved Country, League, Player and Kit editors toward the exact CM16 workspace using the installed FC26 Frostbite database and assets.",
+  "notes": "v1.0.112 - Hotfix: File > Open FC26 remains clickable and asynchronously reloads both the FC26 database and Frostbite assets after automatic startup loading.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

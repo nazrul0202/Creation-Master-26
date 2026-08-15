@@ -1,5 +1,11 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.112 - Open FC26 reload hotfix (2026-08-15)
+
+- Fixed File > Open FC26 becoming disabled after automatic startup loading.
+- Open FC26 now remains available at all times and asynchronously reloads both the database and Frostbite asset index.
+- Added a real UI smoke regression test that clicks the menu item, waits for the database/assets, and verifies the command is re-enabled.
+
 ## Version 1.0.111 - FC26 open flow and CM16 editor parity update (2026-08-15)
 
 - Replaced remaining FIFA 16 / lan.db open labels with FC26 database and Data/Patch actions.
