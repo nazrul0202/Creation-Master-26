@@ -42,12 +42,28 @@ internal static class Fc26SnapshotLoader
         var gloves = new GkGlovesList();
         var competitions = BuildCompetitions(tables);
 
+        ApplyLeagueNames(leagues);
         ApplyPlayerNames(players, tables);
         FifaEnvironment.InitializeFc26Bridge(snapshot.GameRoot, snapshot.DatabaseFolder,
             countries, leagues, teams, players, stadiums, kits, formations, roles,
             referees, balls, shoes, gloves, competitions);
         LinkCore(tables, countries, leagues, teams, players, stadiums, kits, formations);
         LinkReferees(tables, referees, countries, leagues);
+    }
+
+    private static void ApplyLeagueNames(LeagueList leagues)
+    {
+        // CM16 normally gets these display strings from its FIFA 16 language
+        // database. FC26 exposes the current league name directly in the
+        // Frostbite database, so use that authoritative value instead of the
+        // constructor placeholders "Short League Name"/"Long League Name".
+        foreach (League league in leagues)
+        {
+            var databaseName = league.leaguename?.Trim();
+            if (string.IsNullOrWhiteSpace(databaseName)) continue;
+            league.ShortName = databaseName;
+            league.LongName = databaseName;
+        }
     }
 
     internal static int WriteChanges(string path)

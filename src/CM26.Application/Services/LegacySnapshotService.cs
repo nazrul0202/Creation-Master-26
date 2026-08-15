@@ -31,6 +31,11 @@ public static class LegacySnapshotService
             DatabaseFolder = session.LoadedFolder ?? string.Empty,
         };
 
+        // The x64 FC26 engine already includes the verified native Huffman
+        // decoder. Resolve names before crossing into the x86 CM16 UI so the
+        // legacy process never receives EA's encoded placeholder bytes.
+        var playerNames = new DatabasePlayerNameSource(session);
+
         foreach (var table in session.Tables.Where(t => !t.IsLocale && IncludedTables.Contains(t.Name)))
         {
             var target = new LegacyTable
@@ -42,7 +47,22 @@ public static class LegacySnapshotService
             for (var row = 0; row < table.RowCount; row++)
             {
                 var record = session.GetRecord(table.Name, row);
-                if (record is not null) target.Rows.Add(record.Values.ToArray());
+                if (record is null) continue;
+                var values = record.Values.ToArray();
+                if (table.Name.Equals("playernames", StringComparison.OrdinalIgnoreCase))
+                {
+                    var idColumn = Array.FindIndex(target.Columns,
+                        column => column.Equals("nameid", StringComparison.OrdinalIgnoreCase));
+                    var nameColumn = Array.FindIndex(target.Columns,
+                        column => column.Equals("name", StringComparison.OrdinalIgnoreCase));
+                    if (idColumn >= 0 && nameColumn >= 0 &&
+                        int.TryParse(values[idColumn], out var nameId))
+                    {
+                        var decoded = playerNames.NameById(nameId);
+                        if (!string.IsNullOrWhiteSpace(decoded)) values[nameColumn] = decoded;
+                    }
+                }
+                target.Rows.Add(values);
             }
             snapshot.Tables.Add(target);
         }

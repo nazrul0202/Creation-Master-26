@@ -1,6 +1,6 @@
 {
-  "version": "1.0.115",
+  "version": "1.0.116",
   "name": "Creation Master 26",
-  "notes": "v1.0.115 - Eliminate CM16 section-switch flicker, hide Frostbite bridge consoles and prevent duplicate editor windows.",
+  "notes": "v1.0.116 - Fix blank section switching and load real FC26 league and decoded player names through the Frostbite bridge.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

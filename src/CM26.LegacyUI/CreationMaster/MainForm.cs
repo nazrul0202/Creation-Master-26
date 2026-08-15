@@ -522,6 +522,13 @@ public class MainForm : Form
 		{
 			var previous = new Control[panel.Controls.Count];
 			panel.Controls.CopyTo(previous, 0);
+			// These forms are also MDI children. If they are detached while still
+			// visible WinForms can promote them back into the MDI client, leaving a
+			// blue/blank child over the section that was just selected.
+			foreach (var control in previous)
+			{
+				if (!ReferenceEquals(control, form)) control.Hide();
+			}
 			if (!ReferenceEquals(form.Parent, panel))
 				panel.Controls.Add(form);
 			if (!form.Visible)
@@ -556,9 +563,17 @@ public class MainForm : Form
 		}
 	}
 
+	private Panel TargetPanelFromCurrentModifiers()
+	{
+		Keys modifiers = Control.ModifierKeys;
+		return (modifiers & Keys.Alt) != 0
+			? panelRight
+			: ((modifiers & Keys.Control) != 0 ? panelBottom : panelMain);
+	}
+
 	public void JumpTo(IdObject idObject)
 	{
-		Panel panel = (m_IsAltPressed ? panelRight : (m_IsCtrlPressed ? panelBottom : panelMain));
+		Panel panel = TargetPanelFromCurrentModifiers();
 		if (idObject.GetType().Name == "Player")
 		{
 			Player player = (Player)idObject;
@@ -812,7 +827,7 @@ public class MainForm : Form
 	private void buttonMain_Click(object sender, EventArgs e)
 	{
 		ToolStripButton obj = (ToolStripButton)sender;
-		Panel panel = (m_IsAltPressed ? panelRight : (m_IsCtrlPressed ? panelBottom : panelMain));
+		Panel panel = TargetPanelFromCurrentModifiers();
 		if (obj == buttonCountry)
 		{
 			ShowFormOnPanel(m_CountryForm, panel);
@@ -1137,7 +1152,7 @@ public class MainForm : Form
 		m_IsShiftPressed = (keyData & Keys.Shift) != 0;
 		m_IsCtrlPressed = (keyData & Keys.Control) != 0;
 		m_IsAltPressed = (keyData & Keys.Alt) != 0;
-		return false;
+		return base.ProcessCmdKey(ref msg, keyData);
 	}
 
 	private void menuExpandDatabase_Click(object sender, EventArgs e)
@@ -2810,6 +2825,44 @@ public class MainForm : Form
 			default: form = m_CountryForm; break;
 		}
 		ShowFormOnPanel(form, panelMain);
+	}
+
+	internal void ClickFc26SectionForSmoke(string section)
+	{
+		ToolStripButton button;
+		Form expected;
+		switch ((section ?? string.Empty).ToLowerInvariant())
+		{
+			case "league": button = buttonLeague; expected = m_LeagueForm; break;
+			case "team": button = buttonTeam; expected = m_TeamForm; break;
+			case "kit": button = buttonKit; expected = m_KitForm; break;
+			case "player": button = buttonPlayer; expected = m_PlayerForm; break;
+			case "stadium": button = buttonStadium; expected = m_StadiumForm; break;
+			case "formation": button = buttonFormation; expected = m_FormationForm; break;
+			case "ball": button = buttonBall; expected = m_BallForm; break;
+			case "shoes": button = buttonShoes; expected = m_ShoesForm; break;
+			case "gloves": button = buttonGloves; expected = m_GlovesForm; break;
+			case "competition": button = buttonTournament; expected = m_TrophyForm; break;
+			default: button = buttonCountry; expected = m_CountryForm; break;
+		}
+
+		// Reproduce the original failure: Alt opened the menu, its cached state
+		// remained true, and the next normal toolbar click went to panelRight.
+		m_IsAltPressed = true;
+		buttonMain_Click(button, EventArgs.Empty);
+		if (!ReferenceEquals(expected.Parent, panelMain) || !panelMain.Controls.Contains(expected))
+			throw new InvalidOperationException("Section was not routed to the main panel: " + section);
+		if (panelRight.Controls.Contains(expected))
+			throw new InvalidOperationException("Section leaked into the right panel: " + section);
+
+		if (ReferenceEquals(expected, m_LeagueForm))
+		{
+			foreach (League league in FifaEnvironment.Leagues)
+			{
+				if (league.ShortName == "Short League Name" || league.LongName == "Long League Name")
+					throw new InvalidDataException("FC26 league placeholder was not replaced: " + league.Id);
+			}
+		}
 	}
 
 	private void menuOpenLang16_Click(object sender, EventArgs e)

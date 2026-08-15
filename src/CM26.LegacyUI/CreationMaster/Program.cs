@@ -38,7 +38,7 @@ internal static class Program
 				main.LoadFc26Snapshot(args[1], showCountry: false);
 				foreach (var section in args[2].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
 				{
-					main.ShowFc26Section(section.Trim());
+					main.ClickFc26SectionForSmoke(section.Trim());
 					Application.DoEvents();
 				}
 				main.Dispose();

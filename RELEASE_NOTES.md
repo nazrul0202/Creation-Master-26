@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.116 - CM16 section switching and FC26 names hotfix (2026-08-16)
+
+- Fixed toolbar sections becoming a blue blank workspace after opening another section; stale Alt/Ctrl state no longer routes ordinary clicks into the collapsed auxiliary panels.
+- Fixed CM16 MDI child forms remaining visible after reparenting, which caused section flicker and could cover the newly selected editor.
+- Populated league short and long names from the FC26 league table instead of repeating the `Short League Name` / `Long League Name` placeholders.
+- Snapshot export now resolves FC26 player names through the existing native database name decoder before the CM16 editor consumes them.
+- Added a regression smoke path that drives real toolbar clicks and verifies every requested editor remains in the main CM16 panel.
+
 ## Version 1.0.113 - CM16 resource loading hotfix (2026-08-15)
 
 - Fixed the crash after Open FC26 caused by CM16 images being resolved from the executable instead of the CM26.Studio resource assembly.
