@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using FifaLibrary;
 
@@ -11,6 +12,10 @@ namespace CreationMaster;
 
 internal static class Fc26SnapshotLoader
 {
+    private static Snapshot? s_snapshot;
+    private static readonly Dictionary<object, List<RowOrigin>> s_rowOrigins =
+        new Dictionary<object, List<RowOrigin>>(ReferenceComparer.Instance);
+
     internal static void Load(string path)
     {
         using var stream = File.OpenRead(path);
@@ -18,6 +23,8 @@ internal static class Fc26SnapshotLoader
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
             ?? throw new InvalidDataException("FC26 snapshot is empty.");
         var tables = snapshot.Tables.ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);
+        s_snapshot = snapshot;
+        s_rowOrigins.Clear();
 
         var countries = Build<CountryList, Country>(tables, "nations", "nationid");
         var leagues = Build<LeagueList, League>(tables, "leagues", "leagueid");
@@ -41,6 +48,195 @@ internal static class Fc26SnapshotLoader
             referees, balls, shoes, gloves, competitions);
         LinkCore(tables, countries, leagues, teams, players, stadiums, kits, formations);
         LinkReferees(tables, referees, countries, leagues);
+    }
+
+    internal static int WriteChanges(string path)
+    {
+        var snapshot = s_snapshot ?? throw new InvalidOperationException("No FC26 snapshot is loaded.");
+        var mappings = new (string Table, string IdColumn, System.Collections.IList? Items)[]
+        {
+            ("nations", "nationid", FifaEnvironment.Countries),
+            ("leagues", "leagueid", FifaEnvironment.Leagues),
+            ("teams", "teamid", FifaEnvironment.Teams),
+            ("players", "playerid", FifaEnvironment.Players),
+            ("stadiums", "stadiumid", FifaEnvironment.Stadiums),
+            (snapshot.Tables.Any(t => t.Name.Equals("teamkits", StringComparison.OrdinalIgnoreCase))
+                ? "teamkits" : "kits", "kitid", FifaEnvironment.Kits),
+            ("formations", "formationid", FifaEnvironment.Formations),
+            ("referee", "refereeid", FifaEnvironment.Referees),
+            ("teamballs", "ballid", FifaEnvironment.Balls),
+            ("playerboots", "shoetype", FifaEnvironment.Shoes),
+            ("fieldpositionboundingboxes", "positionid", FifaEnvironment.Roles),
+            ("leagueteamlinks", "teamid", FifaEnvironment.Teams),
+            ("teamstadiumlinks", "teamid", FifaEnvironment.Teams),
+            ("teamplayerlinks", "playerid", TeamPlayers()),
+        };
+        var changes = new List<Change>();
+        foreach (var mapping in mappings)
+        {
+            var table = snapshot.Tables.FirstOrDefault(t =>
+                t.Name.Equals(mapping.Table, StringComparison.OrdinalIgnoreCase));
+            if (table == null || mapping.Items == null) continue;
+            var idIndex = Column(table, mapping.IdColumn);
+            if (idIndex < 0) continue;
+            var rowObjects = mapping.Items.Cast<object>()
+                .SelectMany(item => Origins(item)
+                    .Where(origin => origin.TableName.Equals(table.Name, StringComparison.OrdinalIgnoreCase))
+                    .Select(origin => (origin.RowIndex, Item: item)))
+                .ToDictionary(value => value.RowIndex, value => value.Item);
+            var objects = mapping.Items.Cast<object>()
+                .Select(item => (Item: item, Id: ObjectId(item)))
+                .Where(item => item.Id != int.MinValue)
+                .GroupBy(item => item.Id)
+                .ToDictionary(group => group.Key, group => group.Select(value => value.Item).ToList());
+            var occurrences = new Dictionary<int, int>();
+            for (var rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
+            {
+                var row = table.Rows[rowIndex];
+                var id = ParseIntAt(row, idIndex);
+                object item;
+                if (!rowObjects.TryGetValue(rowIndex, out item))
+                {
+                    if (!objects.TryGetValue(id, out var matches)) continue;
+                    occurrences.TryGetValue(id, out var occurrence);
+                    occurrences[id] = occurrence + 1;
+                    if (occurrence >= matches.Count) continue;
+                    item = matches[occurrence];
+                }
+                var fields = AllFields(item.GetType())
+                    .GroupBy(field => Normalize(field.Name))
+                    .ToDictionary(group => group.Key, group => group.First());
+                for (var columnIndex = 0; columnIndex < table.Columns.Length && columnIndex < row.Length; columnIndex++)
+                {
+                    if (columnIndex == idIndex) continue;
+                    if (!fields.TryGetValue(Normalize(table.Columns[columnIndex]), out var field)) continue;
+                    var current = ToDatabaseText(field.GetValue(item), field.FieldType);
+                    if (DatabaseEquals(row[columnIndex], current, field.FieldType)) continue;
+                    changes.Add(new Change
+                    {
+                        TableName = table.Name,
+                        RowIndex = rowIndex,
+                        FieldName = table.Columns[columnIndex],
+                        Value = current
+                    });
+                }
+            }
+        }
+        AppendPlayerNameChanges(snapshot, changes);
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        File.WriteAllText(path, JsonSerializer.Serialize(new ChangePlan
+        {
+            Version = 1,
+            GameRoot = snapshot.GameRoot,
+            DatabaseFolder = snapshot.DatabaseFolder,
+            Changes = changes
+        }));
+        return changes.Count;
+    }
+
+    private static void AppendPlayerNameChanges(Snapshot snapshot, List<Change> changes)
+    {
+        var table = snapshot.Tables.FirstOrDefault(value =>
+            value.Name.Equals("playernames", StringComparison.OrdinalIgnoreCase));
+        if (table == null || FifaEnvironment.Players == null) return;
+
+        var idColumn = Column(table, "nameid");
+        var nameColumn = Column(table, "name");
+        if (idColumn < 0 || nameColumn < 0) return;
+
+        var rowsById = new Dictionary<int, int>();
+        for (var rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
+            rowsById[ParseIntAt(table.Rows[rowIndex], idColumn)] = rowIndex;
+
+        var desiredByRow = new Dictionary<int, string>();
+        foreach (Player player in FifaEnvironment.Players)
+        {
+            AddPlayerName(player.firstnameid, player.firstname);
+            AddPlayerName(player.lastnameid, player.lastname);
+            AddPlayerName(player.commonnameid, player.commonname);
+        }
+
+        foreach (var desired in desiredByRow.OrderBy(value => value.Key))
+        {
+            var original = table.Rows[desired.Key][nameColumn];
+            if (string.Equals(original, desired.Value, StringComparison.Ordinal)) continue;
+            changes.Add(new Change
+            {
+                TableName = table.Name,
+                RowIndex = desired.Key,
+                FieldName = table.Columns[nameColumn],
+                Value = desired.Value
+            });
+        }
+
+        void AddPlayerName(int nameId, string? value)
+        {
+            if (nameId <= 0 || !rowsById.TryGetValue(nameId, out var rowIndex)) return;
+            var desired = value ?? string.Empty;
+            if (desiredByRow.TryGetValue(rowIndex, out var existing) &&
+                !string.Equals(existing, desired, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    $"Shared FC26 player name id {nameId} was edited to conflicting values.");
+            desiredByRow[rowIndex] = desired;
+        }
+    }
+
+    private static int ObjectId(object item)
+    {
+        if (item is TeamPlayer teamPlayer) return teamPlayer.Player?.Id ?? int.MinValue;
+        var property = item.GetType().GetProperty("Id",
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (property?.GetValue(item) is int id) return id;
+        var field = AllFields(item.GetType()).FirstOrDefault(value => Normalize(value.Name) == "id");
+        return field?.GetValue(item) is int fieldId ? fieldId : int.MinValue;
+    }
+
+    private static System.Collections.IList TeamPlayers()
+    {
+        var result = new System.Collections.ArrayList();
+        if (FifaEnvironment.Teams == null) return result;
+        foreach (Team team in FifaEnvironment.Teams)
+            foreach (TeamPlayer player in team.Roster)
+                result.Add(player);
+        return result;
+    }
+
+    private static IEnumerable<RowOrigin> Origins(object item) =>
+        s_rowOrigins.TryGetValue(item, out var origins) ? origins : Enumerable.Empty<RowOrigin>();
+
+    private static void SetOrigin(object item, string tableName, int rowIndex)
+    {
+        if (!s_rowOrigins.TryGetValue(item, out var origins))
+            s_rowOrigins[item] = origins = new List<RowOrigin>();
+        origins.Add(new RowOrigin(tableName, rowIndex));
+    }
+
+    private static string ToDatabaseText(object? value, Type type)
+    {
+        if (value == null) return string.Empty;
+        var inner = Nullable.GetUnderlyingType(type) ?? type;
+        if (inner == typeof(bool)) return (bool)value ? "1" : "0";
+        if (inner == typeof(DateTime))
+            return FifaUtil.ConvertFromDate((DateTime)value).ToString(CultureInfo.InvariantCulture);
+        if (inner.IsEnum) return Convert.ToInt32(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
+        if (value is IFormattable formattable) return formattable.ToString(null, CultureInfo.InvariantCulture);
+        return value.ToString() ?? string.Empty;
+    }
+
+    private static bool DatabaseEquals(string original, string current, Type type)
+    {
+        var inner = Nullable.GetUnderlyingType(type) ?? type;
+        if (inner == typeof(DateTime))
+            return int.TryParse(original, NumberStyles.Integer, CultureInfo.InvariantCulture, out var gregorian) &&
+                   int.TryParse(current, NumberStyles.Integer, CultureInfo.InvariantCulture, out var currentGregorian) &&
+                   gregorian == currentGregorian;
+        if (inner == typeof(bool))
+            return (original == "1" || original.Equals("true", StringComparison.OrdinalIgnoreCase)) == (current == "1");
+        if (inner == typeof(float) || inner == typeof(double))
+            return double.TryParse(original, NumberStyles.Float, CultureInfo.InvariantCulture, out var left) &&
+                   double.TryParse(current, NumberStyles.Float, CultureInfo.InvariantCulture, out var right) &&
+                   Math.Abs(left - right) < 0.00001;
+        return string.Equals(original, current, StringComparison.Ordinal);
     }
 
     private static RoleList BuildRoles(Dictionary<string, TableSnapshot> tables)
@@ -147,12 +343,14 @@ internal static class Fc26SnapshotLoader
         var list = new TList();
         if (!tables.TryGetValue(tableName, out var table)) return list;
         var idIndex = Column(table, idColumn);
-        foreach (var row in table.Rows)
+        for (var rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
         {
+            var row = table.Rows[rowIndex];
             if (idIndex < 0 || idIndex >= row.Length || !int.TryParse(row[idIndex], out var id)) continue;
             var item = Activator.CreateInstance(typeof(TItem), id);
             if (item == null) continue;
             MapFields(item, table.Columns, row);
+            SetOrigin(item, table.Name, rowIndex);
             list.Add(item);
         }
         if (list is IdArrayList ids) ids.SortId();
@@ -193,6 +391,7 @@ internal static class Fc26SnapshotLoader
         if (inner == typeof(short)) return (short)ParseInt(value);
         if (inner == typeof(byte)) return (byte)ParseInt(value);
         if (inner == typeof(long)) return long.TryParse(value, out var l) ? l : 0L;
+        if (inner == typeof(DateTime)) return FifaUtil.ConvertToDate(ParseInt(value));
         if (inner == typeof(float)) return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var f) ? f : 0f;
         if (inner == typeof(double)) return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var d) ? d : 0d;
         return null;
@@ -227,6 +426,31 @@ internal static class Fc26SnapshotLoader
         LeagueList leagues, TeamList teams, PlayerList players, StadiumList stadiums,
         KitList kits, FormationList formations)
     {
+        if (tables.TryGetValue("leagueteamlinks", out var leagueRows))
+        {
+            var teamId = Column(leagueRows, "teamid");
+            for (var rowIndex = 0; rowIndex < leagueRows.Rows.Count; rowIndex++)
+            {
+                var row = leagueRows.Rows[rowIndex];
+                var team = teams.SearchId(ParseIntAt(row, teamId)) as Team;
+                if (team == null) continue;
+                MapFields(team, leagueRows.Columns, row);
+                SetOrigin(team, leagueRows.Name, rowIndex);
+            }
+        }
+        if (tables.TryGetValue("teamstadiumlinks", out var stadiumRows))
+        {
+            var teamId = Column(stadiumRows, "teamid");
+            for (var rowIndex = 0; rowIndex < stadiumRows.Rows.Count; rowIndex++)
+            {
+                var row = stadiumRows.Rows[rowIndex];
+                var team = teams.SearchId(ParseIntAt(row, teamId)) as Team;
+                if (team == null) continue;
+                MapFields(team, stadiumRows.Columns, row);
+                SetOrigin(team, stadiumRows.Name, rowIndex);
+            }
+        }
+
         leagues.LinkCountry(countries);
         teams.LinkCountry(countries);
         countries.LinkTeam(teams);
@@ -253,11 +477,17 @@ internal static class Fc26SnapshotLoader
         {
             var teamId = Column(playerLinks, "teamid"); var playerId = Column(playerLinks, "playerid");
             var jersey = Column(playerLinks, "jerseynumber");
-            foreach (var row in playerLinks.Rows)
+            for (var rowIndex = 0; rowIndex < playerLinks.Rows.Count; rowIndex++)
             {
+                var row = playerLinks.Rows[rowIndex];
                 var team = teams.SearchId(ParseIntAt(row, teamId)) as Team;
                 var player = players.SearchId(ParseIntAt(row, playerId)) as Player;
-                if (team != null && player != null) team.AddTeamPlayer(player, ParseIntAt(row, jersey));
+                if (team != null && player != null)
+                {
+                    var teamPlayer = team.AddTeamPlayer(player, ParseIntAt(row, jersey));
+                    MapFields(teamPlayer, playerLinks.Columns, row);
+                    SetOrigin(teamPlayer, playerLinks.Name, rowIndex);
+                }
             }
         }
         players.LinkTeam(teams);
@@ -290,5 +520,40 @@ internal static class Fc26SnapshotLoader
         public string Name { get; set; } = string.Empty;
         public string[] Columns { get; set; } = Array.Empty<string>();
         public List<string[]> Rows { get; set; } = new();
+    }
+
+    private sealed class ChangePlan
+    {
+        public int Version { get; set; }
+        public string GameRoot { get; set; } = string.Empty;
+        public string DatabaseFolder { get; set; } = string.Empty;
+        public List<Change> Changes { get; set; } = new();
+    }
+
+    private sealed class Change
+    {
+        public string TableName { get; set; } = string.Empty;
+        public int RowIndex { get; set; }
+        public string FieldName { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+    }
+
+    private sealed class RowOrigin
+    {
+        internal RowOrigin(string tableName, int rowIndex)
+        {
+            TableName = tableName;
+            RowIndex = rowIndex;
+        }
+
+        internal string TableName { get; }
+        internal int RowIndex { get; }
+    }
+
+    private sealed class ReferenceComparer : IEqualityComparer<object>
+    {
+        internal static readonly ReferenceComparer Instance = new ReferenceComparer();
+        public new bool Equals(object x, object y) => ReferenceEquals(x, y);
+        public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
     }
 }

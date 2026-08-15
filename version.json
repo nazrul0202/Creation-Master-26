@@ -1,6 +1,6 @@
 {
-  "version": "1.0.113",
+  "version": "1.0.114",
   "name": "Creation Master 26",
-  "notes": "v1.0.113 - Hotfix: Correct CM26 Studio pack URIs so Open FC26 can load the database, Frostbite assets and every editor section without missing-resource crashes.",
+  "notes": "v1.0.114 - Restore the original CM16 editor forms on FC26 data, add live Frostbite asset extraction, safe database save staging and section crash fixes.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

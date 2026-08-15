@@ -11,8 +11,42 @@ internal static class Program
 	{
 		Fc26HostBridge.Configure(args);
 		FifaLibrary.FifaEnvironment.Fc26AssetExporter = Fc26HostBridge.ExportAsset;
+		if (args.Length >= 3 && string.Equals(args[0], "--cm26-plan", StringComparison.OrdinalIgnoreCase))
+		{
+			try
+			{
+				Fc26SnapshotLoader.Load(args[1]);
+				var count = Fc26SnapshotLoader.WriteChanges(args[2]);
+				Environment.ExitCode = count == 0 ? 0 : 2;
+			}
+			catch (Exception ex)
+			{
+				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				Environment.ExitCode = 1;
+			}
+			return;
+		}
 		Application.EnableVisualStyles();
 		Application.SetCompatibleTextRenderingDefault(defaultValue: false);
+		if (args.Length >= 3 && string.Equals(args[0], "--cm26-smoke", StringComparison.OrdinalIgnoreCase))
+		{
+			try
+			{
+				using var main = new MainForm();
+				main.Show();
+				Application.DoEvents();
+				main.LoadFc26Snapshot(args[1], showCountry: false);
+				main.ShowFc26Section(args[2]);
+				Application.DoEvents();
+				main.Dispose();
+				Environment.Exit(0);
+			}
+			catch (Exception ex)
+			{
+				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				Environment.Exit(1);
+			}
+		}
 		var diagnostic = args.Length >= 1 && string.Equals(args[0], "--cm26-snapshot", StringComparison.OrdinalIgnoreCase);
 		Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
 		Application.ThreadException += (_, e) => HandleUnhandled(e.Exception, diagnostic);

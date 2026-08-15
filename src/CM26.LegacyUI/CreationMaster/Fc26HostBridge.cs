@@ -93,4 +93,35 @@ internal static class Fc26HostBridge
             }
         }
     }
+
+    internal static string Save()
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
+            throw new FileNotFoundException("CM26 FC26 host executable was not found.", s_HostPath);
+        var outputDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Creation Master 26", "legacy");
+        Directory.CreateDirectory(outputDirectory);
+        var planPath = Path.Combine(outputDirectory, "fc26-changes.json");
+        var changeCount = Fc26SnapshotLoader.WriteChanges(planPath);
+        if (changeCount == 0) return "No FC26 database changes to save.";
+
+        var start = new ProcessStartInfo
+        {
+            FileName = s_HostPath,
+            Arguments = "--legacy-save \"" + planPath + "\"",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
+        };
+        using var process = Process.Start(start) ?? throw new InvalidOperationException("Unable to start the FC26 save engine.");
+        var output = process.StandardOutput.ReadToEnd().Trim();
+        var error = process.StandardError.ReadToEnd().Trim();
+        process.WaitForExit();
+        if (process.ExitCode != 0)
+            throw new InvalidOperationException(string.IsNullOrWhiteSpace(error) ? output : error);
+        return string.IsNullOrWhiteSpace(output) ? $"Saved {changeCount} FC26 change(s)." : output;
+    }
 }

@@ -45,6 +45,36 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 2 && args[0] == "--legacy-save")
+        {
+            try
+            {
+                Console.WriteLine(LegacyFc26SaveService.Apply(args[1]));
+                Environment.ExitCode = 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex.Message);
+                Environment.ExitCode = 1;
+            }
+            return;
+        }
+
+        if (args.Length >= 2 && args[0] == "--legacy-save-verify")
+        {
+            try
+            {
+                Console.WriteLine(LegacyFc26SaveService.Apply(args[1], applyDirect: false));
+                Environment.ExitCode = 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex.Message);
+                Environment.ExitCode = 1;
+            }
+            return;
+        }
+
         // Self-contained release checks: no game install, no database, no UI.
         // This is the gate CI runs on a clean machine.
         if (args.Length >= 1 && args[0] == "--release-selftest")
@@ -437,7 +467,7 @@ internal static class Program
             var assets = new FrostbiteAssetSession();
             assets.Open(gameRoot);
             if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
-            var output = assets.ExportLegacyAsset(normalized);
+            var output = LegacyFrostbiteAssetResolver.Resolve(assets, normalized);
             if (string.IsNullOrWhiteSpace(output) || !File.Exists(output))
                 throw new FileNotFoundException("FC26 asset was not found.", normalized);
             Console.WriteLine(output);

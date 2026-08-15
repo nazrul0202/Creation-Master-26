@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.IO;
 
 namespace FifaLibrary;
 
@@ -413,8 +414,10 @@ public class Kit : IdObject
 		{
 			return;
 		}
-		s_JerseyWrinkle = new Bitmap(FifaEnvironment.LaunchDir + "\\Templates\\JerseyBump1.png");
-		s_ShortsWrinkle = new Bitmap(FifaEnvironment.LaunchDir + "\\Templates\\ShortsBump.png");
+		string jerseyBump = FifaEnvironment.LaunchDir + "\\Templates\\JerseyBump1.png";
+		string shortsBump = FifaEnvironment.LaunchDir + "\\Templates\\ShortsBump.png";
+		s_JerseyWrinkle = File.Exists(jerseyBump) ? new Bitmap(jerseyBump) : CreateNeutralBump();
+		s_ShortsWrinkle = File.Exists(shortsBump) ? new Bitmap(shortsBump) : CreateNeutralBump();
 		Rx3Vertex.FloatType = Rx3Vertex.EFloatType.Float32;
 		Rx3File rx3File;
 		for (int i = 0; i < s_JerseyModel3D.Length; i++)
@@ -440,6 +443,14 @@ public class Kit : IdObject
 		{
 			s_SocksModel3D = new Model3D(rx3File.Rx3IndexArrays[0], rx3File.Rx3VertexArrays[0], null);
 		}
+	}
+
+	private static Bitmap CreateNeutralBump()
+	{
+		Bitmap bitmap = new Bitmap(4, 4);
+		using Graphics graphics = Graphics.FromImage(bitmap);
+		graphics.Clear(Color.FromArgb(128, 128, 255));
+		return bitmap;
 	}
 
 	public override string ToString()

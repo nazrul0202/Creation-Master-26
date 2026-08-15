@@ -177,7 +177,9 @@ public class LeagueForm : Form
 			FifaEnvironment.Countries
 		};
 		pickUpControl.FilterValues = filterValues;
-		numericLeagueId.Maximum = FifaEnvironment.Leagues.MaxId;
+		// FC26 uses sparse league ids and the legacy list's MaxId metadata is not
+		// guaranteed to describe every imported record.
+		numericLeagueId.Maximum = Math.Max(200000, FifaEnvironment.Leagues.MaxId);
 		RefreshComboBoxes();
 		pickUpControl.ObjectList = FifaEnvironment.Leagues;
 	}
@@ -305,7 +307,7 @@ public class LeagueForm : Form
 			m_CurrentLeague = league;
 			leagueBindingSource.DataSource = m_CurrentLeague;
 			comboTeamAvailable.Text = "";
-			numericLeagueId.Value = m_CurrentLeague.Id;
+			SetNumericValue(numericLeagueId, m_CurrentLeague.Id);
 			if (m_CurrentLeague.Country == null)
 			{
 				comboLeagueCountry.SelectedIndex = 0;
@@ -320,14 +322,20 @@ public class LeagueForm : Form
 			viewer2DLeague512x128Logo.CurrentBitmap = league.GetLogo512x128();
 			labelThisLeague.Text = league.ShortName;
 			buttonSwitchLeagueIds.Enabled = comboSwitchLeagues.SelectedItem != null;
-			comboLeaguePrestige.SelectedIndex = (int)m_CurrentLeague.Prestige;
-			numericBoardOutcome1.Value = m_CurrentLeague.boardoutcomes[0];
-			numericBoardOutcome2.Value = m_CurrentLeague.boardoutcomes[1];
-			numericBoardOutcome3.Value = m_CurrentLeague.boardoutcomes[2];
-			numericBoardOutcome4.Value = m_CurrentLeague.boardoutcomes[3];
-			numericBoardOutcome5.Value = m_CurrentLeague.boardoutcomes[4];
+			int prestige = (int)m_CurrentLeague.Prestige;
+			comboLeaguePrestige.SelectedIndex = prestige >= 0 && prestige < comboLeaguePrestige.Items.Count ? prestige : -1;
+			SetNumericValue(numericBoardOutcome1, m_CurrentLeague.boardoutcomes[0]);
+			SetNumericValue(numericBoardOutcome2, m_CurrentLeague.boardoutcomes[1]);
+			SetNumericValue(numericBoardOutcome3, m_CurrentLeague.boardoutcomes[2]);
+			SetNumericValue(numericBoardOutcome4, m_CurrentLeague.boardoutcomes[3]);
+			SetNumericValue(numericBoardOutcome5, m_CurrentLeague.boardoutcomes[4]);
 			m_Locked = false;
 		}
+	}
+
+	private static void SetNumericValue(NumericUpDown control, int value)
+	{
+		control.Value = Math.Max(control.Minimum, Math.Min(control.Maximum, value));
 	}
 
 	private void InitListViewPlayingTeams(TeamList playingTeams)
@@ -378,7 +386,7 @@ public class LeagueForm : Form
 
 	private void numericLeagueId_ValueChanged(object sender, EventArgs e)
 	{
-		if (m_Locked)
+		if (m_Locked || m_CurrentLeague == null)
 		{
 			return;
 		}

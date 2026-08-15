@@ -2116,7 +2116,9 @@ public class CompetitionForm : Form
 		}
 		m_Competitions = FifaEnvironment.CompetitionObjects;
 		m_CurrentWorld = m_Competitions.World;
-		numericBall.Maximum = FifaEnvironment.FifaDb.Table[TI.teamballs].TableDescriptor.MaxValues[FI.teamballs_ballid];
+		numericBall.Maximum = FifaEnvironment.FifaDb != null
+			? FifaEnvironment.FifaDb.Table[TI.teamballs].TableDescriptor.MaxValues[FI.teamballs_ballid]
+			: Math.Max(200000, FifaEnvironment.Balls?.MaxId ?? 0);
 	}
 
 	private void CompetitionsForm_Load(object sender, EventArgs e)

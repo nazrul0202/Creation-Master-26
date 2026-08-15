@@ -262,7 +262,7 @@ public class StadiumForm : Form
 	public void Preset()
 	{
 		m_NewIdCreator.IdList = FifaEnvironment.Stadiums;
-		numericStadiumId.Maximum = FifaEnvironment.Stadiums.MaxId;
+		numericStadiumId.Maximum = Math.Max(200000, FifaEnvironment.Stadiums.MaxId);
 		numericMowing.Maximum = FifaEnvironment.Year == 26 ? 9999 : FifaEnvironment.FifaDb.Table[TI.stadiums].TableDescriptor.MaxValues[FI.stadiums_stadiummowpattern_code];
 		numericNet.Maximum = FifaEnvironment.Year == 26 ? 9999 : FifaEnvironment.FifaDb.Table[TI.stadiums].TableDescriptor.MaxValues[FI.stadiums_stadiumgoalnetstyle];
 		IdArrayList[] filterValues = new IdArrayList[2]
@@ -683,7 +683,7 @@ public class StadiumForm : Form
 
 	private void numericStadiumId_ValueChanged(object sender, EventArgs e)
 	{
-		if (m_Locked)
+		if (m_Locked || m_CurrentStadium == null)
 		{
 			return;
 		}

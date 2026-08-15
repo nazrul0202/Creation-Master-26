@@ -1067,6 +1067,13 @@ public class MainForm : Form
 
 	private void SaveFiles()
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			statusBar.Text = "Saving FC26 database and Frostbite archives...";
+			statusBar.GetCurrentParent().Refresh();
+			statusBar.Text = Fc26HostBridge.Save();
+			return;
+		}
 		FifaEnvironment.Save(statusBar);
 	}
 
