@@ -23,27 +23,27 @@ public static class IconService
         // navigation-only modules use the clean vector badge fallback.
         ["dashboard"] = "",
         ["players"] = "CM26.App.Assets.Icons.Player.png",
-        ["teams"] = "CM26.App.Assets.Icons.Kit.png",
+        ["teams"] = "CM26.App.Assets.Icons.Team.png",
         ["leagues"] = "CM26.App.Assets.Icons.League.png",
         ["countries"] = "CM26.App.Assets.Icons.Country.png",
         ["managers"] = "CM26.App.Assets.Icons.Manager.png",
         ["stadiums"] = "CM26.App.Assets.Icons.Stadium.png",
         ["kits"] = "CM26.App.Assets.Icons.Kit.png",
-        ["competitions"] = "CM26.App.Assets.Icons.League.png",
+        ["competitions"] = "CM26.App.Assets.Icons.Tournament.png",
         ["formations"] = "CM26.App.Assets.Icons.Formation.png",
         ["transfers"] = "CM26.App.Assets.Icons.TransferMarket.png",
         ["balls"] = "CM26.App.Assets.Icons.Ball.png",
         ["boots"] = "CM26.App.Assets.Icons.Boots.png",
+        ["gloves"] = "CM26.App.Assets.Icons.Gloves.png",
+        ["sponsors"] = "CM26.App.Assets.Icons.Sponsor.png",
+        ["audio"] = "CM26.App.Assets.Icons.Audio.png",
+        ["scoreboard"] = "CM26.App.Assets.Icons.GameGraphics.png",
+        ["referees"] = "CM26.App.Assets.Icons.Referee.png",
+        ["browser"] = "CM26.App.Assets.Icons.Browser.png",
         // Sections without a dedicated PNG fall back to a distinct letter badge
         // (see DrawFallback) rather than reusing another section's icon.
-        ["gloves"] = "",
-        ["sponsors"] = "",
         ["adboards"] = "",
-        ["audio"] = "",
         ["stadiumaudio"] = "",
-        ["scoreboard"] = "",
-        ["referees"] = "",
-        ["browser"] = "",
         ["diagnostics"] = "",
         ["settings"] = "",
     };
@@ -51,13 +51,8 @@ public static class IconService
     /// <summary>Distinct accent colour per section used for the letter badge fallback.</summary>
     private static readonly Dictionary<string, Color> BadgeColorByKey = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["gloves"] = Color.FromArgb(110, 122, 145),
-        ["sponsors"] = Color.FromArgb(96, 118, 170),
         ["adboards"] = Color.FromArgb(88, 108, 120),
-        ["audio"] = Color.FromArgb(0, 120, 212),
         ["stadiumaudio"] = Color.FromArgb(83, 116, 160),
-        ["scoreboard"] = Color.FromArgb(72, 92, 130),
-        ["referees"] = Color.FromArgb(138, 147, 162),
     };
 
     /// <summary>Get an icon scaled to <paramref name="size"/> keeping aspect ratio; fallback drawn if missing.</summary>
