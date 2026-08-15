@@ -166,6 +166,7 @@ public partial class PlayersView : UserControl
         }
 
         FillCombo(ComboSkinType, "skintypecode", "Skin Type", AppearanceCatalog.SkinTypes, null, fields);
+        FillCombo(ComboSkinTone, "skintonecode", "Skin Tone", AppearanceCatalog.SkinTones, null, fields, valueOffset: 1);
         FillCombo(ComboEyesBrow, "eyebrowcode", "Eyes Brow", AppearanceCatalog.EyebrowTypes, null, fields);
         FillCombo(ComboFacialHair, "facialhairtypecode", "Facial Hair", AppearanceCatalog.FacialHairTypes, null, fields);
         FillCombo(ComboFacialHairColor, "facialhaircolorcode", "Color", AppearanceCatalog.FacialHairColors, null, fields);
@@ -300,6 +301,7 @@ public partial class PlayersView : UserControl
     /// <summary>Fields rendered as CM16-style named combos/checks on the Face tab
     /// (so they are excluded from the generic text-box field lists).</summary>
     private static bool IsNamedAppearance(string n) => n.Equals("skintypecode", StringComparison.OrdinalIgnoreCase)
+        || n.Equals("skintonecode", StringComparison.OrdinalIgnoreCase)
         || n.Equals("eyebrowcode", StringComparison.OrdinalIgnoreCase)
         || n.Equals("facialhairtypecode", StringComparison.OrdinalIgnoreCase)
         || n.Equals("facialhaircolorcode", StringComparison.OrdinalIgnoreCase)

@@ -77,6 +77,7 @@
                             <GroupBox Header="Face Type" Style="{StaticResource GroupCard}">
                                 <StackPanel>
                                     <controls:NamedComboField x:Name="ComboSkinType" />
+                                    <controls:NamedComboField x:Name="ComboSkinTone" />
                                     <controls:NamedComboField x:Name="ComboEyesBrow" />
                                     <controls:NamedComboField x:Name="ComboFacialHair" />
                                     <controls:NamedComboField x:Name="ComboFacialHairColor" />

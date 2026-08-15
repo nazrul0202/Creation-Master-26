@@ -37,6 +37,14 @@ public static class AppearanceCatalog
         "Type Female 5", "Type Female 6", "Type Female 7"
     ];
 
+    /// <summary>CM16 skin-tone labels; codes are one-based. Values outside
+    /// this standard palette remain untouched until explicitly changed.</summary>
+    public static readonly string[] SkinTones =
+    [
+        "Light Pink", "Pink", "Dark Pink", "Light Yellow", "Medium Yellow",
+        "Dark Yellow", "Very Light Brown", "Light Brown", "Medium Brown", "Dark Brown"
+    ];
+
     /// <summary>CM16 comboEyeBow items; index = eyebrowcode.</summary>
     public static readonly string[] EyebrowTypes =
     [
