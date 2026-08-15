@@ -85,14 +85,14 @@
                             </GroupBox>
                             <GroupBox Header="Hair Model" Style="{StaticResource GroupCard}">
                                 <StackPanel>
-                                    <controls:NamedComboField x:Name="ComboHairModel" />
+                                    <controls:GroupedModelPicker x:Name="ComboHairModel" />
                                     <controls:NamedComboField x:Name="ComboHairColor" />
                                     <ItemsControl x:Name="HairFields" ItemTemplate="{StaticResource FieldTemplate}" />
                                 </StackPanel>
                             </GroupBox>
                             <GroupBox Header="Head Model" Style="{StaticResource GroupCard}">
                                 <StackPanel>
-                                    <controls:NamedComboField x:Name="ComboHeadModel" />
+                                    <controls:GroupedModelPicker x:Name="ComboHeadModel" />
                                     <controls:NamedComboField x:Name="ComboSideburns" />
                                     <controls:NamedComboField x:Name="ComboEyesColor" />
                                     <controls:NamedComboField x:Name="ComboFacePoser" />

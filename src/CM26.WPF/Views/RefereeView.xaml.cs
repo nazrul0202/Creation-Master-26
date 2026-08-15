@@ -102,12 +102,12 @@ public partial class RefereeView : UserControl
         FillCombo(ComboFacialHair, "facialhairtypecode", "Facial Hair", AppearanceCatalog.FacialHairTypes, null, fields);
         FillCombo(ComboFacialHairColor, "facialhaircolorcode", "Color", AppearanceCatalog.FacialHairColors, null, fields);
 
-        var hairModels = AppearanceCatalog.FlattenModels(AppearanceCatalog.HairModelSets);
-        FillCombo(ComboHairModel, "hairtypecode", "Hair Model", hairModels.Names, hairModels.Values, fields);
+        FillModel(ComboHairModel, "hairtypecode", "Hair Model",
+            AppearanceCatalog.HairModelSets.Select(set => (set.Name, set.Models)), fields);
         FillCombo(ComboHairColor, "haircolorcode", "Hair Color", AppearanceCatalog.HairColors, null, fields);
 
-        var headModels = AppearanceCatalog.FlattenModels(AppearanceCatalog.HeadModelSets);
-        FillCombo(ComboHeadModel, "headtypecode", "Head Model", headModels.Names, headModels.Values, fields);
+        FillModel(ComboHeadModel, "headtypecode", "Head Model",
+            AppearanceCatalog.HeadModelSets.Select(set => (set.Name, set.Models)), fields);
         FillCombo(ComboSideburns, "sideburnscode", "Sideburns", AppearanceCatalog.Sideburns, null, fields);
         FillCombo(ComboEyesColor, "eyecolorcode", "Eyes Color", AppearanceCatalog.EyeColors, null, fields, valueOffset: 1);
         FillCombo(ComboFacePoser, "faceposerpreset", "Face Poser", AppearanceCatalog.FacePosers, null, fields);
@@ -127,6 +127,15 @@ public partial class RefereeView : UserControl
 
         var valueList = values ?? Enumerable.Range(valueOffset, names.Count).ToArray();
         combo.SetContent(label, field.FieldName, names, valueList, field.RawValue, field.IsWritable, StageEdit);
+    }
+
+    private void FillModel(GroupedModelPicker picker, string fieldName, string label,
+        IEnumerable<(string Name, int[] Values)> groups, IReadOnlyList<FieldValue> fields)
+    {
+        var field = fields.FirstOrDefault(f => f.FieldName.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+        picker.Visibility = field == null ? Visibility.Collapsed : Visibility.Visible;
+        if (field != null)
+            picker.SetContent(label, field.FieldName, groups, field.RawValue, field.IsWritable, StageEdit);
     }
 
 
