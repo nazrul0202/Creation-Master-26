@@ -34,7 +34,7 @@ public partial class RefereeView : UserControl
 
     private void LoadList()
     {
-        _all = _vm.Session.Sections.GetItems("referee");
+        _all = _vm.Session.Sections.GetReferees();
         PickUp.ObjectList = _all;
         ApplyFilter();
     }

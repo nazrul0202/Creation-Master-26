@@ -34,7 +34,7 @@ public partial class ManagerView : UserControl
 
     private void LoadList()
     {
-        _all = _vm.Session.Sections.GetItems("manager");
+        _all = _vm.Session.Sections.GetManagers();
         PickUp.ObjectList = _all;
         ApplyFilter();
     }

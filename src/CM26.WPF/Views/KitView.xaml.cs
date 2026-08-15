@@ -33,7 +33,7 @@ public partial class KitView : UserControl
 
     private void LoadList()
     {
-        _all = _vm.Session.Sections.GetItems("teamkits");
+        _all = _vm.Session.Sections.GetKits();
         PickUp.ObjectList = _all;
         ApplyFilter();
     }
