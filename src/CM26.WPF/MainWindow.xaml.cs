@@ -74,10 +74,13 @@ public partial class MainWindow : Window
     /// </summary>
     private void ApplyDatabaseState(bool open)
     {
-        MenuOpenFifa16.IsEnabled = !open;
-        MenuOpenLang16.IsEnabled = !open;
-        MenuOpenAll.IsEnabled = !open;
-        MenuReopen.IsEnabled = !open;
+        // FC26 can be re-indexed/reloaded at any time. Disabling these after
+        // automatic startup loading made File > Open FC26 appear dead, even
+        // though users reasonably expect it to reload both DB and assets.
+        MenuOpenFifa16.IsEnabled = true;
+        MenuOpenLang16.IsEnabled = true;
+        MenuOpenAll.IsEnabled = true;
+        MenuReopen.IsEnabled = true;
         MenuSave.IsEnabled = open;
         MenuClose.IsEnabled = open;
         MenuRegenerate.IsEnabled = true; // CM16 keeps Regenerate enabled in both states
@@ -232,19 +235,33 @@ public partial class MainWindow : Window
         if (ContentHost.Content is DashboardView dashboard) dashboard.RefreshCounts();
     }
 
-    private void MenuOpenGame_Click(object sender, RoutedEventArgs e)
+    private async void MenuOpenGame_Click(object sender, RoutedEventArgs e)
     {
-        ProgressBar.Visibility = Visibility.Visible;
-        StatusBarText.Text = "Opening FC26...";
-        var progress = new Progress<string>(phase => StatusBarText.Text = phase);
-        string message = string.Empty;
-        var loaded = _session.TryOpenGame(out message, progress);
-        ProgressBar.Visibility = Visibility.Collapsed;
-        StatusBarText.Text = loaded ? "FC26 opened for direct editing." : message;
-        if (loaded)
+        var menuItem = sender as MenuItem;
+        if (menuItem != null) menuItem.IsEnabled = false;
+        try
         {
-            ApplyDatabaseState(true);
-            OpenDefaultCm16Section();
+            ProgressBar.Visibility = Visibility.Visible;
+            StatusBarText.Text = "Loading FC26 database and Frostbite assets...";
+            var progress = new Progress<string>(phase => StatusBarText.Text = phase);
+            string message = string.Empty;
+            var loaded = await Task.Run(() => _session.TryOpenGame(out message, progress));
+            if (!IsLoaded) return;
+            StatusBarText.Text = loaded ? "FC26 database and Frostbite assets loaded." : message;
+            if (loaded)
+            {
+                ApplyDatabaseState(true);
+                OpenDefaultCm16Section();
+            }
+            else
+            {
+                MessageBox.Show(this, message, "Open FC26", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        finally
+        {
+            ProgressBar.Visibility = Visibility.Collapsed;
+            if (menuItem != null) menuItem.IsEnabled = true;
         }
     }
 

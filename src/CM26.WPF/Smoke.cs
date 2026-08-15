@@ -8,7 +8,7 @@ namespace CM26.Studio;
 
 /// <summary>
 /// Headless-ish UI smoke: opens the real MainWindow, opens the workspace
-/// database through the same "Open - FIFA 16" flow the menu uses, forces
+/// database through the same "Open FC26" flow the menu uses, forces
 /// layout/render passes and exercises navigation. Any unhandled exception
 /// fails the run.
 /// </summary>
@@ -23,8 +23,9 @@ public static class Smoke
             window.SmokeSession = session;
             window.Show();
 
-            // Let OnLoaded set the CM16 pre-load state, then open the database
-            // through the same path as the File > Open - FIFA 16 menu item.
+            // Let OnLoaded set the CM16 pre-load state, then invoke the actual
+            // File > Open FC26 menu item. This locks in the regression where
+            // automatic loading disabled Open and made the command unclickable.
             for (var i = 0; i < 40; i++)
             {
                 await Task.Delay(50);
@@ -33,13 +34,24 @@ public static class Smoke
                     System.Windows.Threading.DispatcherPriority.ApplicationIdle, () => { });
             }
 
-            string message;
-            var loaded = session.TryOpenGame(out message, new Progress<string>(_ => { }));
-            if (!loaded)
-                throw new InvalidOperationException("FC26 database did not load in smoke run: " + message);
+            if (!window.MenuOpenFifa16.IsEnabled)
+                throw new InvalidOperationException("File > Open FC26 is disabled before the smoke click.");
+            window.MenuOpenFifa16.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            for (var i = 0; i < 2400 && !session.Database.IsLoaded; i++)
+            {
+                await Task.Delay(50);
+                window.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(
+                    System.Windows.Threading.DispatcherPriority.ApplicationIdle, () => { });
+            }
+            if (!session.Database.IsLoaded)
+                throw new InvalidOperationException("Open FC26 click did not load the database and Frostbite assets.");
+            if (!window.MenuOpenFifa16.IsEnabled)
+                throw new InvalidOperationException("File > Open FC26 stayed disabled after loading.");
             window.UpdateLayout();
 
             // Simulate the "Reload Database" path on the UI thread.
+            string message;
             if (!session.ReloadFromGame(out message))
                 throw new InvalidOperationException("Reload failed in smoke run: " + message);
             window.UpdateLayout();
