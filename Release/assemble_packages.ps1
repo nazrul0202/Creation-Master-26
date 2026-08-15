@@ -163,8 +163,8 @@ function Assemble-Package {
             Copy-Item $_.FullName $dest -Force
         }
 
-    # The asset bridge is a separate process. Full Portable receives its own
-    # self-contained bridge; Lite receives the framework-dependent bridge.
+    # The asset bridge is loaded in-process by CM26. The matching publish is
+    # still copied so its managed/native dependencies follow the app runtime.
     Get-ChildItem -Path $BridgeDir -File |
         Where-Object { $_.Extension -ne '.pdb' } |
         ForEach-Object { Copy-Item $_.FullName (Join-Path $PackageDir $_.Name) -Force }
@@ -191,7 +191,7 @@ function Assemble-Package {
     Write-Host ("    files={0}  size={1:N1} MB" -f $files.Count, $mb)
 
     $must = @('CM26_by_Rizco98.exe','CM26_by_Rizco98.dll','CM26.Application.dll',
-              'CM26.EngineBridge.dll','CM26.AssetBridge.exe','CM26.AssetBridge.dll',
+              'CM26.EngineBridge.dll','CM26.AssetBridge.dll',
               'CM26.MeshKit.dll',
               'Ijwhost.dll','msvcp140.dll','vcruntime140.dll','vcruntime140_1.dll',
               'README.md','KNOWN_LIMITATIONS.md','THIRD_PARTY_NOTICES.md',
