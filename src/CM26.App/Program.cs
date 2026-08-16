@@ -52,6 +52,12 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 3 && args[0] == "--legacy-face-mesh")
+        {
+            Environment.ExitCode = ExportLegacyFaceMesh(args[1], args[2], args.Length >= 4 ? args[3] : null);
+            return;
+        }
+
         if (args.Length >= 2 && args[0] == "--legacy-save")
         {
             try
@@ -595,6 +601,48 @@ internal static class Program
         if (name.Contains("crest_", StringComparison.OrdinalIgnoreCase)) score -= 80;
         if (name.Contains("number_", StringComparison.OrdinalIgnoreCase)) score -= 80;
         return score;
+    }
+
+    private static int ExportLegacyFaceMesh(string playerText, string headText, string? responsePath)
+    {
+        try
+        {
+            if (!int.TryParse(playerText, out var playerId) || playerId <= 0)
+                throw new ArgumentException("Invalid FC26 player id.");
+            if (!int.TryParse(headText, out var headAssetId) || headAssetId < 0)
+                throw new ArgumentException("Invalid FC26 head asset id.");
+
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot))
+                throw new InvalidOperationException("FC26 installation was not detected.");
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+
+            var queries = new[] { headAssetId > 0 ? $"head_{headAssetId}" : string.Empty, $"head_{playerId}" }
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            var exported = assets.ExportMeshForQuery(queries, 250);
+            if (string.IsNullOrWhiteSpace(exported) || !File.Exists(exported))
+                throw new FileNotFoundException($"No FC26 Frostbite head mesh was found for player {playerId}.");
+            if (!string.IsNullOrWhiteSpace(responsePath))
+            {
+                var responseDirectory = Path.GetDirectoryName(responsePath);
+                if (!string.IsNullOrWhiteSpace(responseDirectory)) Directory.CreateDirectory(responseDirectory);
+                File.WriteAllText(responsePath, exported);
+            }
+            else
+            {
+                Console.WriteLine(exported);
+            }
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
     }
 
     private static int ExportLegacyAssets(string requestPath)

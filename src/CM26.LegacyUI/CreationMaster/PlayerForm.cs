@@ -80,6 +80,12 @@ public class PlayerForm : Form
 
 	private Viewer3D viewer3D;
 
+	private Panel m_Fc26Face3dPanel;
+
+	private Label m_Fc26Face3dStatus;
+
+	private Button m_Fc26Face3dButton;
+
 	private IContainer components;
 
 	public PickUpControl pickUpControl;
@@ -830,6 +836,7 @@ public class PlayerForm : Form
 		viewer3D.ViewY = 171f;
 		viewer3D.ViewZ = 49f;
 		viewer3D.ZbufferRenderState = null;
+		InitializeFc26Face3dControls();
 		comboLatinModels.Items.Clear();
 		for (int i = 0; i < GenericHead.c_LatinModels.Length; i++)
 		{
@@ -1213,6 +1220,63 @@ public class PlayerForm : Form
 			numericShoesDesign.Value = 0m;
 		}
 		viewer2DShoes.CurrentBitmap = Shoes.GetShoesColorTexture(m_CurrentPlayer.shoetypecode, m_CurrentPlayer.shoedesigncode);
+	}
+
+	private void InitializeFc26Face3dControls()
+	{
+		m_Fc26Face3dPanel = new Panel
+		{
+			Dock = DockStyle.Fill,
+			BackColor = Color.Gray,
+			Visible = false
+		};
+		m_Fc26Face3dStatus = new Label
+		{
+			Dock = DockStyle.Fill,
+			TextAlign = ContentAlignment.MiddleCenter,
+			ForeColor = Color.White,
+			BackColor = Color.Gray,
+			Text = "FC26 Frostbite 3D face\r\nExport and open the real FBX head mesh."
+		};
+		m_Fc26Face3dButton = new Button
+		{
+			Dock = DockStyle.Bottom,
+			Height = 38,
+			Text = "Open real FC26 3D face…"
+		};
+		m_Fc26Face3dButton.Click += Fc26Face3dButton_Click;
+		m_Fc26Face3dPanel.Controls.Add(m_Fc26Face3dStatus);
+		m_Fc26Face3dPanel.Controls.Add(m_Fc26Face3dButton);
+		splitContainer2.Panel1.Controls.Add(m_Fc26Face3dPanel);
+		m_Fc26Face3dPanel.BringToFront();
+	}
+
+	private async void Fc26Face3dButton_Click(object sender, EventArgs e)
+	{
+		if (m_CurrentPlayer == null) return;
+		var playerId = m_CurrentPlayer.m_assetid > 0 ? m_CurrentPlayer.m_assetid : m_CurrentPlayer.Id;
+		var headAssetId = m_CurrentPlayer.headtypecode;
+		m_Fc26Face3dButton.Enabled = false;
+		m_Fc26Face3dStatus.Text = "Exporting the selected FC26 Frostbite head mesh…";
+		try
+		{
+			var mesh = await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.ExportFaceMesh(playerId, headAssetId));
+			if (IsDisposed) return;
+			m_Fc26Face3dStatus.Text = "FC26 FBX exported. Opening the 3D viewer…";
+			Fc26HostBridge.OpenFaceViewer(mesh);
+		}
+		catch (Exception ex)
+		{
+			if (!IsDisposed)
+			{
+				m_Fc26Face3dStatus.Text = "No viewable FC26 head mesh was exported for this player.";
+				MessageBox.Show(this, ex.Message, "FC26 3D Face", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+			}
+		}
+		finally
+		{
+			if (!IsDisposed) m_Fc26Face3dButton.Enabled = true;
+		}
 	}
 
 	private static Color SafePaletteColor(int index)
@@ -2418,6 +2482,14 @@ public class PlayerForm : Form
 		SetSelectedIndex(comboFacialHairColor, m_CurrentPlayer.facialhaircolorcode);
 		m_GenericAppearanceSema = true;
 		viewer2DPlayerGui.CurrentBitmap = m_CurrentPlayer.GetPhoto();
+		if (FifaEnvironment.Year == 26)
+		{
+			m_Fc26Face3dPanel.Visible = true;
+			m_Fc26Face3dPanel.BringToFront();
+			m_Fc26Face3dStatus.Text = "FC26 Frostbite 3D face\r\nExport and open the real FBX head mesh.";
+			return;
+		}
+		m_Fc26Face3dPanel.Visible = false;
 		GetAndShowTextures();
 		UpdateAndShowHead3D();
 	}
@@ -2789,6 +2861,12 @@ public class PlayerForm : Form
 
 	private void UpdateAndShowHead3D()
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			m_Fc26Face3dPanel.Visible = true;
+			m_Fc26Face3dPanel.BringToFront();
+			return;
+		}
 		EnableTool3DButtons();
 		if (!buttonShow3DModel.Checked)
 		{
@@ -2798,14 +2876,7 @@ public class PlayerForm : Form
 		Bitmap faceTexture = m_CurrentPlayer.GetFaceTexture();
 		Bitmap eyesTexture = m_CurrentPlayer.GetEyesTexture();
 		Rx3File headModel = m_CurrentPlayer.GetHeadModel();
-		if (headModel == null)
-		{
-			// FC26 uses Frostbite meshes rather than the FIFA 16 RX3 head model.
-			// Keep the CM16 face panel useful by showing the authoritative FC26
-			// portrait until a Frostbite mesh renderer is available here.
-			viewer3D.ShowImage(m_CurrentPlayer.GetPhoto() ?? faceTexture);
-			return;
-		}
+		if (headModel == null) { viewer3D.ShowEmpty(); return; }
 		Player.s_Model3DHead = null;
 		Player.s_Model3DEyes = null;
 		Player.s_Model3DHairPart4 = null;

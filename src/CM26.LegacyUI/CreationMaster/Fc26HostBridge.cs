@@ -152,6 +152,82 @@ internal static class Fc26HostBridge
         }
     }
 
+    internal static string ExportFaceMesh(int playerId, int headAssetId)
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
+            throw new FileNotFoundException("CM26 FC26 host executable was not found.", s_HostPath);
+        var responsePath = Path.Combine(Path.GetTempPath(), "cm26-face-" + Guid.NewGuid().ToString("N") + ".txt");
+        var hostDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory;
+        var arguments = "--legacy-face-mesh " + playerId + " " + headAssetId + " \"" + responsePath + "\"";
+        var hostDll = Path.Combine(hostDirectory, Path.GetFileNameWithoutExtension(s_HostPath) + ".dll");
+
+        // Framework-dependent apphosts can return before a helper command has run when the
+        // graphical host is already active. Invoking the sibling assembly through dotnet keeps
+        // this legacy x86 -> Frostbite x64 endpoint deterministic. Full self-contained packages
+        // fall back to their apphost because they deliberately do not require a system dotnet.
+        var useDotnetHost = File.Exists(hostDll) && DotnetHostIsAvailable();
+        var start = new ProcessStartInfo
+        {
+            FileName = useDotnetHost ? "dotnet" : s_HostPath,
+            Arguments = useDotnetHost ? "\"" + hostDll + "\" " + arguments : arguments,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            WorkingDirectory = hostDirectory
+        };
+        using var process = Process.Start(start) ?? throw new InvalidOperationException("Unable to start the FC26 mesh exporter.");
+        process.StandardOutput.ReadToEnd();
+        var error = process.StandardError.ReadToEnd().Trim();
+        process.WaitForExit();
+        var output = File.Exists(responsePath) ? File.ReadAllText(responsePath).Trim() : string.Empty;
+        try { if (File.Exists(responsePath)) File.Delete(responsePath); } catch { }
+        if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(output) || !File.Exists(output))
+            throw new InvalidOperationException(string.IsNullOrWhiteSpace(error)
+                ? "The selected player has no indexed FC26 Frostbite head mesh."
+                : error);
+        return output;
+    }
+
+    private static bool DotnetHostIsAvailable()
+    {
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo("dotnet", "--info")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+            if (process == null) return false;
+            process.StandardOutput.ReadToEnd();
+            process.StandardError.ReadToEnd();
+            return process.WaitForExit(5000) && process.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    internal static void OpenFaceViewer(string meshPath)
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath))
+            throw new InvalidOperationException("CM26 FC26 host is not configured.");
+        var viewer = Path.Combine(Path.GetDirectoryName(s_HostPath) ?? string.Empty,
+            "Tools", "CM26.3DViewer", "3D Face Viewer By Rizco98 FET Renderer.exe");
+        if (!File.Exists(viewer))
+            throw new FileNotFoundException("The packaged CM26 3D viewer is unavailable.", viewer);
+        var start = new ProcessStartInfo(viewer)
+        {
+            UseShellExecute = true,
+            WorkingDirectory = Path.GetDirectoryName(viewer) ?? Environment.CurrentDirectory,
+            Arguments = "\"" + meshPath.Replace("\"", string.Empty) + "\""
+        };
+        Process.Start(start);
+    }
+
     internal static void PreloadAssets(IEnumerable<string> logicalPaths)
     {
         if (logicalPaths == null || string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath)) return;
