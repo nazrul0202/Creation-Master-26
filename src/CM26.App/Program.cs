@@ -619,7 +619,13 @@ internal static class Program
             assets.Open(gameRoot);
             if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
 
-            var queries = new[] { headAssetId > 0 ? $"head_{headAssetId}" : string.Empty, $"head_{playerId}" }
+            var queries = new[]
+                {
+                    headAssetId > 0 ? $"head_{headAssetId}_0_0_mesh" : string.Empty,
+                    headAssetId > 0 ? $"head_{headAssetId}" : string.Empty,
+                    $"head_{playerId}_0_0_mesh",
+                    $"head_{playerId}"
+                }
                 .Where(value => !string.IsNullOrWhiteSpace(value))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();

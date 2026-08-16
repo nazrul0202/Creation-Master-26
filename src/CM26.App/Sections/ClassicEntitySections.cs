@@ -1113,8 +1113,8 @@ public sealed class KitsSection : ClassicEntitySection
         c.Controls.Add(texture);
         var model = Group("3D Model", new Point(759, 3), new Size(750, 560));
         ThreeDViewerLauncher.AttachPlaceholder(model, new Point(5, 20), new Size(730, 480), "kit",
-            () => new[] { Value("teamkitid"), "kit_" + Value("teamkitid"), Value("jerseytemplateindex") },
-            () => Services.FrostbiteAssets.ExportMeshForQuery(new[] { $"kit_{Value("teamkittypetechid")}", $"kit_{Value("teamtechid")}_{Value("teamkittypetechid")}" }));
+            BuildKitMeshQueries,
+            () => Services.FrostbiteAssets.ExportMeshForQuery(BuildKitMeshQueries()));
         c.Controls.Add(model);
 
         // Uniform rows below the previews: every group in a row shares the row's
@@ -1314,6 +1314,30 @@ public sealed class KitsSection : ClassicEntitySection
                int.TryParse(current.RawValue, out value);
     }
 
+    private string[] BuildKitMeshQueries()
+    {
+        var queries = new List<string>();
+        if (TryRawInt("jerseytemplateindex", out var template) && template >= 0)
+        {
+            TryRawInt("jerseyshapestyle", out var shape);
+            TryRawInt("jerseycollargeometrytype", out var collar);
+            TryRawInt("jerseyfit", out var fit);
+            TryRawInt("renderingmaterialtype", out var material);
+
+            // FC26 kit geometry is a generic Frostbite jersey MeshSet. FET names
+            // these jersey_0_<template>_<shape>_<collar>_<fit>_<material>_0_mesh.
+            queries.Add($"jersey_0_{template}_{shape}_{collar}_{fit}_{material}_0_mesh");
+            queries.Add($"jersey_0_{template}_{shape}_{collar}_{fit}_{material}_0");
+            queries.Add($"jersey_0_{template}_{shape}_{collar}_{fit}");
+            queries.Add($"jersey_0_{template}_");
+        }
+        if (TryRawInt("teamkitid", out var kitId) && kitId > 0)
+            queries.Add($"jersey_{kitId}");
+        return queries.Where(query => !string.IsNullOrWhiteSpace(query))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     private static int TextureScore(string name)
     {
         var score = 0;
@@ -1414,7 +1438,8 @@ public sealed class KitsSection : ClassicEntitySection
 
     private void OpenKitHotspot()
     {
-        if (!TryRawInt("teamtechid", out var teamId) || !TryRawInt("teamkittypetechid", out var kitType))
+        var queries = BuildKitMeshQueries();
+        if (queries.Length == 0)
         {
             MessageBox.Show(FindForm(), "Kit identifiers are unavailable. Select a kit record first.",
                 "Kit Hotspot", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -1422,7 +1447,7 @@ public sealed class KitsSection : ClassicEntitySection
         }
         _ = ThreeDViewerLauncher.OpenAsync(
             this, "kit",
-            new[] { Value("teamkitid"), "kit_" + Value("teamkitid"), Value("jerseytemplateindex") },
-            () => Services.FrostbiteAssets.ExportMeshForQuery(new[] { $"kit_{kitType}", $"{teamId}_{kitType}" }));
+            queries,
+            () => Services.FrostbiteAssets.ExportMeshForQuery(queries));
     }
 }

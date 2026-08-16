@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.119 - FC26 face and kit 3D FBX viewer update (2026-08-16)
+
+- Added accent-insensitive player search so names such as Benjamin Šeško can be found with either accented or plain text.
+- Corrected player face mesh selection to use the FC26 `headassetid`, with safe player-ID fallbacks for alternate database records.
+- Added FC26 kit MeshSet resolution from the current team-kit template, shape, collar, fit and rendering-material fields.
+- Added deterministic mesh candidate ranking so exact `head_*_mesh` and `jersey_*_mesh` assets are selected ahead of unrelated Frostbite matches.
+- Verified real FC26 face and kit MeshSets through the bundled ASCII FBX exporter and packaged 3D viewer launch path.
+- Retained the CM16-style UI and passed the full section navigation and layout regression audits before packaging.
+
 ## Version 1.0.117 - FC26 Frostbite format coverage and audit release (2026-08-16)
 
 - Added exhaustive Frostbite payload auditing across every indexed FC26 asset and support for Zstandard-compressed archive blocks.

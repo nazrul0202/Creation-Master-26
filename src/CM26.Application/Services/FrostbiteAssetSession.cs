@@ -228,32 +228,56 @@ public sealed class FrostbiteAssetSession
     }
 
     /// <summary>
-    /// Resolves an FC26 MeshSet RES among the supplied query tokens (the first
-    /// hit that is a MeshSet and looks like an actual geometry RES) and exports
-    /// it to the shared exported-meshes folder for the 3D viewer.
+    /// Resolves the best matching FC26 MeshSet RES among the supplied query
+    /// tokens and exports it to the shared exported-meshes folder for the 3D
+    /// viewer. Specific queries must precede broad fallback queries.
     /// </summary>
     public string? ExportMeshForQuery(IReadOnlyList<string> queries, int maximum = 100)
     {
         if (!IsAvailable || string.IsNullOrWhiteSpace(GameRoot) || queries == null) return null;
+        var usableQueries = queries.Where(q => !string.IsNullOrWhiteSpace(q))
+            .Select(q => q.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (usableQueries.Length == 0) return null;
+
         AssetMatch? selected = null;
-        var textureToken = queries.FirstOrDefault(q => !string.IsNullOrWhiteSpace(q));
-        foreach (var query in queries.Where(q => !string.IsNullOrWhiteSpace(q)))
+        string? textureToken = usableQueries[0];
+        var selectedScore = int.MinValue;
+        for (var queryIndex = 0; queryIndex < usableQueries.Length; queryIndex++)
         {
+            var query = usableQueries[queryIndex];
             foreach (var match in SearchAssets(query, "Res", maximum))
             {
                 if (match.ResType != MeshSetResourceType) continue;
-                if (match.Name.EndsWith("_mesh", StringComparison.OrdinalIgnoreCase) ||
-                    match.Name.EndsWith("mesh", StringComparison.OrdinalIgnoreCase))
+                if (!match.Name.EndsWith("_mesh", StringComparison.OrdinalIgnoreCase) &&
+                    !match.Name.EndsWith("mesh", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var score = ScoreMeshCandidate(match.Name, query, queryIndex, usableQueries.Length);
+                if (score > selectedScore)
                 {
                     selected = match;
                     textureToken = query;
-                    break;
+                    selectedScore = score;
                 }
             }
-            if (selected != null) break;
         }
         if (selected == null) return null;
         return ExportMesh(selected.Name, textureToken);
+    }
+
+    internal static int ScoreMeshCandidate(string assetName, string query, int queryIndex, int queryCount)
+    {
+        var normalizedName = assetName.Replace('\\', '/');
+        var fileName = normalizedName[(normalizedName.LastIndexOf('/') + 1)..];
+        var score = Math.Max(0, queryCount - queryIndex) * 10_000;
+        if (fileName.Equals(query, StringComparison.OrdinalIgnoreCase)) score += 8_000;
+        else if (fileName.Equals(query + "_mesh", StringComparison.OrdinalIgnoreCase)) score += 7_500;
+        else if (fileName.StartsWith(query, StringComparison.OrdinalIgnoreCase)) score += 5_000;
+        else if (normalizedName.Contains(query, StringComparison.OrdinalIgnoreCase)) score += 1_000;
+        if (fileName.EndsWith("_mesh", StringComparison.OrdinalIgnoreCase)) score += 250;
+        return score;
     }
 
     /// <summary>Exports a named legacy UI file through FC26's own collector.</summary>

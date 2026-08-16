@@ -1085,8 +1085,15 @@ public sealed class PlayersSection : SectionBase
             _facePreviewCaption.Text = "Searching for the selected player's head mesh…";
             var headAssetId = _currentHeadAssetId;
             var playerId = _currentPlayerId;
+            var queries = new[]
+            {
+                headAssetId > 0 ? $"head_{headAssetId}_0_0_mesh" : string.Empty,
+                headAssetId > 0 ? $"head_{headAssetId}" : string.Empty,
+                playerId > 0 ? $"head_{playerId}_0_0_mesh" : string.Empty,
+                playerId > 0 ? $"head_{playerId}" : string.Empty,
+            };
             var exported = await Task.Run(() => Services.FrostbiteAssets.ExportMeshForQuery(
-                new[] { $"head_{headAssetId}", $"head_{playerId}" }));
+                queries));
             if (IsDisposed || playerId != _currentPlayerId) return;
             if (!string.IsNullOrWhiteSpace(exported))
             {
@@ -1449,9 +1456,17 @@ public sealed class PlayersSection : SectionBase
         foreach (var field in Services.RequireData().GetFields(TableName, recordIndex, LabelMaps.Players))
             _fields[field.FieldName] = field;
         RefreshShoePreview();
-        _currentHeadAssetId = _fields.TryGetValue("headclasscode", out var head)
-            ? Parse(head.RawValue)
+        // FC26's real Frostbite head mesh link is headassetid. headclasscode is
+        // only a legacy/generic class and frequently points at the wrong mesh.
+        var headAssetId = _fields.TryGetValue("headassetid", out var headAsset)
+            ? Parse(headAsset.RawValue)
             : 0;
+        var headClassCode = _fields.TryGetValue("headclasscode", out var headClass)
+            ? Parse(headClass.RawValue)
+            : 0;
+        _currentHeadAssetId = headAssetId > 0 ? headAssetId
+            : headClassCode > 0 ? headClassCode
+            : playerId;
         RenderDatabaseTraits(table);
         foreach (var edit in _editors)
         {

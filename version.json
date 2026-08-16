@@ -1,6 +1,6 @@
 {
-  "version": "1.0.118",
+  "version": "1.0.119",
   "name": "Creation Master 26",
-  "notes": "v1.0.118 - Hardened CM16-style FC26 section switching, record navigation, numeric ranges and full legacy UI smoke coverage.",
+  "notes": "v1.0.119 - Added accent-insensitive player search and verified FC26 FBX mesh export/viewing for player faces and team kits.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

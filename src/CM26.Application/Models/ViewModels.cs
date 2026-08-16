@@ -1,8 +1,13 @@
+using System.Globalization;
+using System.Text;
+
 namespace CM26.Application.Models;
 
 /// <summary>A row in a section browser list: resolved display text plus the underlying record index.</summary>
 public sealed class RecordListItem
 {
+    private string? _normalizedSearchText;
+
     public required int RecordIndex { get; init; }
     public required string Title { get; init; }
     public string Subtitle { get; init; } = string.Empty;
@@ -14,10 +19,30 @@ public sealed class RecordListItem
     public bool Matches(string query)
     {
         if (string.IsNullOrWhiteSpace(query)) return true;
-        return Title.Contains(query, StringComparison.OrdinalIgnoreCase)
+        if (Title.Contains(query, StringComparison.OrdinalIgnoreCase)
             || Subtitle.Contains(query, StringComparison.OrdinalIgnoreCase)
             || Detail.Contains(query, StringComparison.OrdinalIgnoreCase)
-            || SearchText.Contains(query, StringComparison.OrdinalIgnoreCase);
+            || SearchText.Contains(query, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // FC26 contains many names with diacritics (for example Benjamin Sesko's
+        // display spelling is Benjamin Šeško). CM16 users expect an ASCII query
+        // to find those records, so keep a folded search value per list item.
+        _normalizedSearchText ??= FoldForSearch($"{Title}\n{Subtitle}\n{Detail}\n{SearchText}");
+        return _normalizedSearchText.Contains(FoldForSearch(query), StringComparison.Ordinal);
+    }
+
+    internal static string FoldForSearch(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        var decomposed = value.Normalize(NormalizationForm.FormD);
+        var result = new StringBuilder(decomposed.Length);
+        foreach (var character in decomposed)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
+                result.Append(char.ToUpperInvariant(character));
+        }
+        return result.ToString().Normalize(NormalizationForm.FormC);
     }
 
     /// <summary>Compact text used by the CM16-style record selector.</summary>
