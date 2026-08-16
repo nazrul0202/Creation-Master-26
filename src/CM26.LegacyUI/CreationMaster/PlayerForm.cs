@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Windows.Forms;
@@ -27,6 +28,22 @@ public class PlayerForm : Form
 	private bool m_AttributesSema = true;
 
 	private bool m_OverallSema = true;
+
+	private bool m_Fc26PlaystylesLoading;
+
+	private readonly List<CheckBox> m_Fc26PlaystyleChecks = new List<CheckBox>();
+
+	private readonly List<CheckBox> m_Fc26PlaystylePlusChecks = new List<CheckBox>();
+
+	private static readonly string[] c_Fc26PlaystyleNames = new string[34]
+	{
+		"Finesse Shot", "Power Shot", "Dead Ball", "Chip Shot", "Power Header", "Pinged Pass",
+		"Long Ball Pass", "Tiki Taka", "Incisive Pass", "Whipped Pass", "First Touch", "Technical",
+		"Rapid", "Quick Step", "Trickster", "Press Proven", "Flair", "Relentless", "Trivela",
+		"Block", "Intercept", "Anticipate", "Slide Tackle", "Bruiser", "Jockey", "Aerial",
+		"Acrobatic", "Far Reach", "Footwork", "Cross Claimer", "Rush Out", "Deflector",
+		"1v1 Close Down", "Long Throw"
+	};
 
 	private bool m_GenericAppearanceSema = true;
 
@@ -791,6 +808,7 @@ public class PlayerForm : Form
 	{
 		base.Visible = false;
 		InitializeComponent();
+		InitializeFc26PlaystyleControls();
 		viewer3D = new Viewer3D();
 		splitContainer2.Panel1.Controls.Add(viewer3D);
 		viewer3D.AmbientColor = Color.Gray;
@@ -1218,10 +1236,136 @@ public class PlayerForm : Form
 		labelSkillsStars.ImageIndex = m_CurrentPlayer.skillmoves - 1;
 		numericSkillMoves.Value = m_CurrentPlayer.skillmoves;
 		playerBindingSource.ResetBindings(metadataChanged: false);
+		RefreshFc26Playstyles();
+	}
+
+	private void InitializeFc26PlaystyleControls()
+	{
+		if (FifaEnvironment.Year != 26) return;
+
+		groupTraits.SuspendLayout();
+		groupTraits.Controls.Clear();
+		groupTraits.Text = "FC 26 PlayStyles / PlayStyles+";
+		groupTraits.Location = new Point(8, 387);
+		groupTraits.Size = new Size(1235, 254);
+
+		var grid = new TableLayoutPanel
+		{
+			Dock = DockStyle.Fill,
+			ColumnCount = 4,
+			RowCount = 9,
+			Padding = new Padding(4),
+			Margin = Padding.Empty
+		};
+		for (int column = 0; column < 4; column++)
+			grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
+		for (int row = 0; row < 9; row++)
+			grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 25f));
+
+		for (int index = 0; index < c_Fc26PlaystyleNames.Length; index++)
+		{
+			var panel = new FlowLayoutPanel
+			{
+				Dock = DockStyle.Fill,
+				FlowDirection = FlowDirection.LeftToRight,
+				WrapContents = false,
+				Margin = Padding.Empty
+			};
+			var playstyle = new CheckBox
+			{
+				AutoSize = false,
+				Width = 220,
+				Height = 22,
+				Text = c_Fc26PlaystyleNames[index],
+				Tag = index,
+				Margin = new Padding(1)
+			};
+			var plus = new CheckBox
+			{
+				AutoSize = true,
+				Text = "+",
+				Tag = index,
+				Margin = new Padding(1, 3, 1, 1)
+			};
+			playstyle.CheckedChanged += Fc26Playstyle_CheckedChanged;
+			plus.CheckedChanged += Fc26PlaystylePlus_CheckedChanged;
+			m_Fc26PlaystyleChecks.Add(playstyle);
+			m_Fc26PlaystylePlusChecks.Add(plus);
+			panel.Controls.Add(playstyle);
+			panel.Controls.Add(plus);
+			grid.Controls.Add(panel, index % 4, index / 4);
+		}
+
+		groupTraits.Controls.Add(grid);
+		groupTraits.ResumeLayout(performLayout: true);
+	}
+
+	private void RefreshFc26Playstyles()
+	{
+		if (FifaEnvironment.Year != 26 || m_CurrentPlayer == null || m_Fc26PlaystyleChecks.Count == 0)
+			return;
+		m_Fc26PlaystylesLoading = true;
+		try
+		{
+			for (int index = 0; index < c_Fc26PlaystyleNames.Length; index++)
+			{
+				m_Fc26PlaystyleChecks[index].Checked = GetFc26Playstyle(index, plus: false);
+				m_Fc26PlaystylePlusChecks[index].Checked = GetFc26Playstyle(index, plus: true);
+			}
+		}
+		finally
+		{
+			m_Fc26PlaystylesLoading = false;
+		}
+	}
+
+	private bool GetFc26Playstyle(int index, bool plus)
+	{
+		int bit = index < 32 ? index : index - 32;
+		int mask = index < 32
+			? (plus ? m_CurrentPlayer.icontrait1 : m_CurrentPlayer.trait1)
+			: (plus ? m_CurrentPlayer.icontrait2 : m_CurrentPlayer.trait2);
+		return (mask & (1 << bit)) != 0;
+	}
+
+	private void SetFc26Playstyle(int index, bool plus, bool enabled)
+	{
+		int bit = index < 32 ? index : index - 32;
+		int mask = index < 32
+			? (plus ? m_CurrentPlayer.icontrait1 : m_CurrentPlayer.trait1)
+			: (plus ? m_CurrentPlayer.icontrait2 : m_CurrentPlayer.trait2);
+		mask = enabled ? mask | (1 << bit) : mask & ~(1 << bit);
+		if (index < 32)
+		{
+			if (plus) m_CurrentPlayer.icontrait1 = mask;
+			else m_CurrentPlayer.trait1 = mask;
+		}
+		else
+		{
+			if (plus) m_CurrentPlayer.icontrait2 = mask;
+			else m_CurrentPlayer.trait2 = mask;
+		}
+	}
+
+	private void Fc26Playstyle_CheckedChanged(object sender, EventArgs e)
+	{
+		if (m_Fc26PlaystylesLoading || m_CurrentPlayer == null || sender is not CheckBox check) return;
+		SetFc26Playstyle((int)check.Tag, plus: false, check.Checked);
+	}
+
+	private void Fc26PlaystylePlus_CheckedChanged(object sender, EventArgs e)
+	{
+		if (m_Fc26PlaystylesLoading || m_CurrentPlayer == null || sender is not CheckBox check) return;
+		int index = (int)check.Tag;
+		SetFc26Playstyle(index, plus: true, check.Checked);
+		if (check.Checked && !m_Fc26PlaystyleChecks[index].Checked)
+			m_Fc26PlaystyleChecks[index].Checked = true;
 	}
 
 	public void Preset()
 	{
+		if (FifaEnvironment.Year == 26 && m_Fc26PlaystyleChecks.Count == 0)
+			InitializeFc26PlaystyleControls();
 		Kit.Prepare3DModels();
 		m_NewIdCreator.IdList = FifaEnvironment.Players;
 		IdArrayList[] filterValues = new IdArrayList[7]

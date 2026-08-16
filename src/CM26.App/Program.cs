@@ -46,6 +46,12 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 3 && args[0] == "--legacy-kit-texture")
+        {
+            Environment.ExitCode = ExportLegacyKitTexture(args[1], args[2]);
+            return;
+        }
+
         if (args.Length >= 2 && args[0] == "--legacy-save")
         {
             try
@@ -518,6 +524,77 @@ internal static class Program
             Console.Error.WriteLine(ex.Message);
             return 1;
         }
+    }
+
+    private static int ExportLegacyKitTexture(string teamText, string kitTypeText)
+    {
+        try
+        {
+            if (!int.TryParse(teamText, out var teamId) || teamId < 0)
+                throw new ArgumentException("Invalid FC26 team id.");
+            if (!int.TryParse(kitTypeText, out var kitType))
+                throw new ArgumentException("Invalid FC26 kit type.");
+
+            var variant = kitType switch
+            {
+                0 => "home",
+                1 => "away",
+                2 => "third",
+                3 => "gk",
+                4 => "gk_away",
+                5 => "gk_third",
+                _ => throw new ArgumentOutOfRangeException(nameof(kitType), "Unsupported FC26 kit type."),
+            };
+            var cached = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Creation Master 26", "legacy-kit-textures-v1", $"{teamId}_{kitType}.png");
+            if (File.Exists(cached) && new FileInfo(cached).Length > 0)
+            {
+                Console.WriteLine(cached);
+                return 0;
+            }
+
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot))
+                throw new InvalidOperationException("FC26 installation was not detected.");
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+
+            var selected = assets.SearchAssets($"_{teamId}/{variant}_", "Res", 100)
+                .Where(match => match.ResType == 0x6BDE20BA &&
+                                match.Name.EndsWith("_color", StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(match => LegacyKitTextureScore(match.Name))
+                .FirstOrDefault();
+            if (selected is null)
+                throw new FileNotFoundException($"No FC26 colour texture found for team {teamId} ({variant}).");
+
+            var source = assets.ExportTexture(selected.Name);
+            if (string.IsNullOrWhiteSpace(source) || !File.Exists(source))
+                throw new InvalidOperationException("FC26 kit texture extraction failed.");
+            using var preview = new TexturePreviewService().CreatePreview(source, 2048, 2048);
+            if (preview is null) throw new InvalidOperationException("FC26 kit texture could not be decoded.");
+            Directory.CreateDirectory(Path.GetDirectoryName(cached)!);
+            preview.Save(cached, System.Drawing.Imaging.ImageFormat.Png);
+            Console.WriteLine(cached);
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
+    }
+
+    private static int LegacyKitTextureScore(string name)
+    {
+        var score = 0;
+        if (name.Contains("/jersey_", StringComparison.OrdinalIgnoreCase)) score += 100;
+        if (name.Contains("jersey", StringComparison.OrdinalIgnoreCase)) score += 30;
+        if (name.Contains("brand_", StringComparison.OrdinalIgnoreCase)) score -= 60;
+        if (name.Contains("crest_", StringComparison.OrdinalIgnoreCase)) score -= 80;
+        if (name.Contains("number_", StringComparison.OrdinalIgnoreCase)) score -= 80;
+        return score;
     }
 
     private static int ExportLegacyAssets(string requestPath)

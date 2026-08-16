@@ -31,7 +31,9 @@ internal static class Fc26SnapshotLoader
         var teams = Build<TeamList, Team>(tables, "teams", "teamid");
         var players = Build<PlayerList, Player>(tables, "players", "playerid");
         var stadiums = Build<StadiumList, Stadium>(tables, "stadiums", "stadiumid");
-        var kits = Build<KitList, Kit>(tables, tables.ContainsKey("teamkits") ? "teamkits" : "kits", "kitid");
+        var kitTable = tables.ContainsKey("teamkits") ? "teamkits" : "kits";
+        var kitIdColumn = kitTable == "teamkits" ? "teamkitid" : "kitid";
+        var kits = Build<KitList, Kit>(tables, kitTable, kitIdColumn);
         var roles = BuildRoles(tables);
         FifaEnvironment.BeginFc26Bridge(roles);
         var formations = Build<FormationList, Formation>(tables, "formations", "formationid");
@@ -114,7 +116,9 @@ internal static class Fc26SnapshotLoader
             ("players", "playerid", FifaEnvironment.Players),
             ("stadiums", "stadiumid", FifaEnvironment.Stadiums),
             (snapshot.Tables.Any(t => t.Name.Equals("teamkits", StringComparison.OrdinalIgnoreCase))
-                ? "teamkits" : "kits", "kitid", FifaEnvironment.Kits),
+                ? "teamkits" : "kits",
+                snapshot.Tables.Any(t => t.Name.Equals("teamkits", StringComparison.OrdinalIgnoreCase))
+                    ? "teamkitid" : "kitid", FifaEnvironment.Kits),
             ("formations", "formationid", FifaEnvironment.Formations),
             ("referee", "refereeid", FifaEnvironment.Referees),
             ("teamballs", "ballid", FifaEnvironment.Balls),
@@ -162,8 +166,9 @@ internal static class Fc26SnapshotLoader
                 for (var columnIndex = 0; columnIndex < table.Columns.Length && columnIndex < row.Length; columnIndex++)
                 {
                     if (columnIndex == idIndex) continue;
-                    if (!fields.TryGetValue(Normalize(table.Columns[columnIndex]), out var field)) continue;
-                    var current = ToDatabaseText(field.GetValue(item), field.FieldType);
+                    var columnName = Normalize(table.Columns[columnIndex]);
+                    if (!TryResolveField(item.GetType(), fields, columnName, out var field)) continue;
+                    var current = ToDatabaseTextForColumn(item, field, columnName);
                     if (DatabaseEquals(row[columnIndex], current, field.FieldType)) continue;
                     changes.Add(new Change
                     {
@@ -207,6 +212,7 @@ internal static class Fc26SnapshotLoader
             AddPlayerName(player.firstnameid, player.firstname);
             AddPlayerName(player.lastnameid, player.lastname);
             AddPlayerName(player.commonnameid, player.commonname);
+            AddPlayerName(player.playerjerseynameid, player.playerjerseyname);
         }
 
         foreach (var desired in desiredByRow.OrderBy(value => value.Key))
@@ -416,8 +422,15 @@ internal static class Fc26SnapshotLoader
             .GroupBy(f => Normalize(f.Name)).ToDictionary(g => g.Key, g => g.First());
         for (var i = 0; i < columns.Length && i < values.Length; i++)
         {
-            if (!fields.TryGetValue(Normalize(columns[i]), out var field)) continue;
-            try { field.SetValue(target, ConvertValue(values[i], field.FieldType)); }
+            var columnName = Normalize(columns[i]);
+            if (!TryResolveField(target.GetType(), fields, columnName, out var field)) continue;
+            try
+            {
+                var value = ConvertValue(values[i], field.FieldType);
+                if (target is Player && columnName == "preferredfoot" && value is int preferredFoot)
+                    value = preferredFoot <= 1 ? 0 : 1;
+                field.SetValue(target, value);
+            }
             catch { /* New FC26-only columns stay in the snapshot and are ignored by CM16 forms. */ }
         }
         if (target is Country country)
@@ -425,6 +438,29 @@ internal static class Fc26SnapshotLoader
             country.LanguageName = country.DatabaseName;
             country.LanguageShortName = country.DatabaseName;
         }
+    }
+
+    private static bool TryResolveField(Type targetType, Dictionary<string, FieldInfo> fields,
+        string columnName, out FieldInfo field)
+    {
+        if (fields.TryGetValue(columnName, out field!)) return true;
+        if (targetType == typeof(Kit))
+        {
+            // Frostbite renamed the CM16 teamkits helper columns. Keep the
+            // legacy Kit object model intact and translate only at the bridge.
+            if (columnName == "teamtechid" && fields.TryGetValue("teamid", out field!)) return true;
+            if (columnName == "teamkittypetechid" && fields.TryGetValue("kittype", out field!)) return true;
+        }
+        field = null!;
+        return false;
+    }
+
+    private static string ToDatabaseTextForColumn(object item, FieldInfo field, string columnName)
+    {
+        var value = field.GetValue(item);
+        if (item is Player && columnName == "preferredfoot" && value is int preferredFoot)
+            value = (preferredFoot <= 0 ? 0 : 1) + 1;
+        return ToDatabaseText(value, field.FieldType);
     }
 
     private static IEnumerable<FieldInfo> AllFields(Type type)
@@ -456,7 +492,8 @@ internal static class Fc26SnapshotLoader
         var id = Column(names, "nameid"); var name = Column(names, "name");
         var lookup = new Dictionary<int, string>();
         foreach (var row in names.Rows)
-            if (id >= 0 && name >= 0 && int.TryParse(row[id], out var key)) lookup[key] = row[name];
+            if (id >= 0 && name >= 0 && int.TryParse(row[id], out var key))
+                lookup[key] = SanitizeDisplayName(row[name]);
 
         foreach (Player player in players)
         {
@@ -464,7 +501,20 @@ internal static class Fc26SnapshotLoader
             SetResolved(fields, player, "m_firstnameid", "m_firstname", lookup);
             SetResolved(fields, player, "m_lastnameid", "m_lastname", lookup);
             SetResolved(fields, player, "m_commonnameid", "m_commonname", lookup);
+            SetResolved(fields, player, "m_playerjerseynameid", "m_playerjerseyname", lookup);
+
+            if (string.IsNullOrWhiteSpace(player.firstname) && string.IsNullOrWhiteSpace(player.lastname) &&
+                string.IsNullOrWhiteSpace(player.commonname))
+                player.commonname = "Player " + player.Id.ToString(CultureInfo.InvariantCulture);
         }
+    }
+
+    private static string SanitizeDisplayName(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var cleaned = new string(value.Where(ch => ch != '\uFFFD' && ch != '\uFFFE' && ch != '\uFFFF' &&
+            (!char.IsControl(ch) || ch == '\t')).ToArray()).Trim();
+        return cleaned.Contains("LookBook", StringComparison.OrdinalIgnoreCase) ? string.Empty : cleaned;
     }
 
     private static void SetResolved(Dictionary<string, FieldInfo> fields, Player player,
@@ -508,8 +558,15 @@ internal static class Fc26SnapshotLoader
         teams.LinkCountry(countries);
         countries.LinkTeam(teams);
         players.LinkCountry(countries);
-        teams.LinkKits(kits);
         kits.LinkTeam(teams);
+        // FC26 teamkits are linked by teamtechid and do not populate the
+        // legacy CM16 m_teamkitidList helper. Build each team's kit collection
+        // directly so the Kit section and team/kit pickers are never empty.
+        foreach (Team team in teams) team.m_KitList.Clear();
+        foreach (Kit kit in kits)
+        {
+            if (kit.Team != null) kit.Team.m_KitList.Add(kit);
+        }
         teams.LinkStadiums(stadiums);
         stadiums.LinkTeam(teams);
         stadiums.LinkCountry(countries);

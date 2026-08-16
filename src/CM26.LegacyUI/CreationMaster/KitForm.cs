@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
@@ -33,6 +34,10 @@ public class KitForm : Form
 	private bool m_UpdatingLock;
 
 	private bool m_PositionsLock;
+
+	private readonly Dictionary<string, Bitmap[]> m_Fc26TextureCache = new Dictionary<string, Bitmap[]>(StringComparer.OrdinalIgnoreCase);
+
+	private int m_Fc26TextureRequest;
 
 	private static Color[] c_ColorPalette = new Color[20]
 	{
@@ -434,7 +439,12 @@ public class KitForm : Form
 			m_UpdatingLock = true;
 			m_CurrentKit = kit;
 			kitBindingSource.DataSource = m_CurrentKit;
-			if (multiViewer2DKit.buttonShow.Checked)
+			if (FifaEnvironment.Year == 26)
+			{
+				multiViewer2DKit.Bitmaps = GetCurrentKitTextures();
+				LoadFc26KitTextureAsync(m_CurrentKit);
+			}
+			else if (multiViewer2DKit.buttonShow.Checked)
 			{
 				multiViewer2DKit.Bitmaps = m_CurrentKit.GetKitTextures();
 			}
@@ -445,11 +455,56 @@ public class KitForm : Form
 			pictureShortsNumberColor.BackColor = c_ColorPalette[m_CurrentKit.shortsNumberColor];
 			labelCollarImage.ImageIndex = kit.jerseyCollar;
 			LoadPositions();
-			Show3DKit();
-			Show3DMinikit();
+			if (FifaEnvironment.Year != 26 || GetCurrentKitTextures() != null)
+			{
+				Show3DKit();
+				Show3DMinikit();
+			}
 			ShowFont();
 			m_UpdatingLock = false;
 		}
+	}
+
+	private string Fc26KitTextureKey(Kit kit)
+	{
+		return kit.teamid + ":" + kit.kittype;
+	}
+
+	private Bitmap[] GetCurrentKitTextures()
+	{
+		if (m_CurrentKit == null) return null;
+		if (FifaEnvironment.Year != 26) return m_CurrentKit.GetKitTextures();
+		Bitmap[] textures;
+		return m_Fc26TextureCache.TryGetValue(Fc26KitTextureKey(m_CurrentKit), out textures) ? textures : null;
+	}
+
+	private async void LoadFc26KitTextureAsync(Kit kit)
+	{
+		if (kit == null) return;
+		int request = ++m_Fc26TextureRequest;
+		string key = Fc26KitTextureKey(kit);
+		Bitmap[] cached;
+		if (!m_Fc26TextureCache.TryGetValue(key, out cached))
+		{
+			string path = await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.ExportKitTexture(kit.teamid, kit.kittype));
+			if (string.IsNullOrWhiteSpace(path) || !File.Exists(path) || IsDisposed) return;
+			try
+			{
+				using (Image source = Image.FromFile(path))
+				{
+					cached = new[] { new Bitmap(source), new Bitmap(source), new Bitmap(source), new Bitmap(source) };
+				}
+				m_Fc26TextureCache[key] = cached;
+			}
+			catch
+			{
+				return;
+			}
+		}
+		if (request != m_Fc26TextureRequest || m_CurrentKit != kit || IsDisposed) return;
+		if (multiViewer2DKit.buttonShow.Checked) multiViewer2DKit.Bitmaps = cached;
+		Show3DKit();
+		Show3DMinikit();
 	}
 
 	public void LoadPositions()
@@ -856,8 +911,9 @@ public class KitForm : Form
 			viewer3DMinikit.ShowEmpty();
 			return;
 		}
-		Bitmap[] kitTextures = m_CurrentKit.GetKitTextures();
-		if (kitTextures == null)
+		Bitmap[] kitTextures = GetCurrentKitTextures();
+		if (kitTextures == null || kitTextures.Length < 2 || kitTextures[0] == null || kitTextures[1] == null ||
+			m_CurrentKit?.Positions == null || m_CurrentKit.Positions.Length < 4)
 		{
 			viewer3DMinikit.ShowEmpty();
 			return;
@@ -875,7 +931,7 @@ public class KitForm : Form
 		}
 		viewer3DMinikit.Clean(3);
 		bitmap = GraphicUtil.EmbossBitmap(bitmap, Kit.s_JerseyWrinkle);
-		if (Kit.s_JerseyModelMinikit[m_CurrentKit.jerseyCollar] != null)
+		if (m_CurrentKit.jerseyCollar >= 0 && m_CurrentKit.jerseyCollar < Kit.s_JerseyModelMinikit.Length && Kit.s_JerseyModelMinikit[m_CurrentKit.jerseyCollar] != null)
 		{
 			Kit.s_JerseyModelMinikit[m_CurrentKit.jerseyCollar].TextureBitmap = bitmap;
 			viewer3DMinikit.SetMesh(0, Kit.s_JerseyModelMinikit[m_CurrentKit.jerseyCollar]);
@@ -891,8 +947,9 @@ public class KitForm : Form
 			viewer3DKit.ShowEmpty();
 			return;
 		}
-		Bitmap[] kitTextures = m_CurrentKit.GetKitTextures();
-		if (kitTextures == null)
+		Bitmap[] kitTextures = GetCurrentKitTextures();
+		if (kitTextures == null || kitTextures.Length < 4 || kitTextures[0] == null || kitTextures[1] == null || kitTextures[3] == null ||
+			m_CurrentKit?.Positions == null || m_CurrentKit.Positions.Length < 32)
 		{
 			viewer3DKit.ShowEmpty();
 			return;
@@ -988,7 +1045,7 @@ public class KitForm : Form
 		}
 		viewer3DKit.Clean(3);
 		bitmap = GraphicUtil.EmbossBitmap(bitmap, Kit.s_JerseyWrinkle);
-		if (Kit.s_JerseyModel3D[m_CurrentKit.jerseyCollar] != null)
+		if (m_CurrentKit.jerseyCollar >= 0 && m_CurrentKit.jerseyCollar < Kit.s_JerseyModel3D.Length && Kit.s_JerseyModel3D[m_CurrentKit.jerseyCollar] != null)
 		{
 			Kit.s_JerseyModel3D[m_CurrentKit.jerseyCollar].TextureBitmap = bitmap;
 			viewer3DKit.SetMesh(0, Kit.s_JerseyModel3D[m_CurrentKit.jerseyCollar]);
@@ -1406,6 +1463,14 @@ public class KitForm : Form
 	{
 		if (disposing && components != null)
 		{
+			foreach (Bitmap[] textures in m_Fc26TextureCache.Values)
+			{
+				foreach (Bitmap texture in textures)
+				{
+					if (texture != null) texture.Dispose();
+				}
+			}
+			m_Fc26TextureCache.Clear();
 			components.Dispose();
 		}
 		base.Dispose(disposing);

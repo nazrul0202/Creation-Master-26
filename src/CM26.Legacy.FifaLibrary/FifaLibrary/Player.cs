@@ -437,6 +437,17 @@ public class Player : IdObject
 
 	private int m_overallrating;
 
+	// FC 26 stores PlayStyles as two 32-bit masks and PlayStyles+ in the
+	// corresponding icon masks.  Keeping the raw masks on the legacy model
+	// lets the CM16-style form display and edit them without losing data.
+	private int m_trait1;
+
+	private int m_trait2;
+
+	private int m_icontrait1;
+
+	private int m_icontrait2;
+
 	private bool m_Inflexible;
 
 	private bool m_GkOneOnOne;
@@ -1319,6 +1330,30 @@ public class Player : IdObject
 		{
 			m_preferredfoot = value;
 		}
+	}
+
+	public int trait1
+	{
+		get { return m_trait1; }
+		set { m_trait1 = value; }
+	}
+
+	public int trait2
+	{
+		get { return m_trait2; }
+		set { m_trait2 = value; }
+	}
+
+	public int icontrait1
+	{
+		get { return m_icontrait1; }
+		set { m_icontrait1 = value; }
+	}
+
+	public int icontrait2
+	{
+		get { return m_icontrait2; }
+		set { m_icontrait2 = value; }
 	}
 
 	public int weakfootabilitytypecode
@@ -4103,6 +4138,10 @@ public class Player : IdObject
 		clone.m_preferredposition4 = m_preferredposition4;
 		clone.m_preferredfoot = m_preferredfoot;
 		clone.m_weakfootabilitytypecode = m_weakfootabilitytypecode;
+		clone.m_trait1 = m_trait1;
+		clone.m_trait2 = m_trait2;
+		clone.m_icontrait1 = m_icontrait1;
+		clone.m_icontrait2 = m_icontrait2;
 		clone.m_acceleration = m_acceleration;
 		clone.m_aggression = m_aggression;
 		clone.m_sprintspeed = m_sprintspeed;

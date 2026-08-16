@@ -107,6 +107,51 @@ internal static class Fc26HostBridge
         }
     }
 
+    internal static string? ExportKitTexture(int teamId, int kitType)
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath)) return null;
+        var cacheKey = "kit:" + teamId + ":" + kitType;
+        lock (s_AssetGate)
+        {
+            if (s_AssetCache.TryGetValue(cacheKey, out var known))
+                return string.IsNullOrWhiteSpace(known) ? null : known;
+            var diskCache = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Creation Master 26", "legacy-kit-textures-v1", teamId + "_" + kitType + ".png");
+            if (File.Exists(diskCache) && new FileInfo(diskCache).Length > 0)
+            {
+                s_AssetCache[cacheKey] = diskCache;
+                return diskCache;
+            }
+
+            try
+            {
+                var start = new ProcessStartInfo
+                {
+                    FileName = s_HostPath,
+                    Arguments = "--legacy-kit-texture " + teamId + " " + kitType,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
+                };
+                using var process = Process.Start(start);
+                if (process == null) return null;
+                var output = process.StandardOutput.ReadToEnd().Trim();
+                process.StandardError.ReadToEnd();
+                process.WaitForExit();
+                var resolved = process.ExitCode == 0 && File.Exists(output) ? output : null;
+                s_AssetCache[cacheKey] = resolved ?? string.Empty;
+                return resolved;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+
     internal static void PreloadAssets(IEnumerable<string> logicalPaths)
     {
         if (logicalPaths == null || string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath)) return;
