@@ -89,6 +89,8 @@ public class Viewer3D : UserControl
 
 	private IContainer components;
 
+	private PictureBox m_ImagePreview;
+
 	public bool[] ZbufferRenderState
 	{
 		get
@@ -313,12 +315,37 @@ public class Viewer3D : UserControl
 
 	public void ShowEmpty()
 	{
+		HideImagePreview();
 		m_Materials = null;
 		Render();
 	}
 
+	public void ShowImage(Bitmap bitmap)
+	{
+		m_Materials = null;
+		if (m_ImagePreview == null)
+		{
+			m_ImagePreview = new PictureBox
+			{
+				Dock = DockStyle.Fill,
+				BackColor = Color.Gray,
+				SizeMode = PictureBoxSizeMode.Zoom
+			};
+			Controls.Add(m_ImagePreview);
+		}
+		m_ImagePreview.Image = bitmap;
+		m_ImagePreview.Visible = bitmap != null;
+		m_ImagePreview.BringToFront();
+	}
+
+	private void HideImagePreview()
+	{
+		if (m_ImagePreview != null) m_ImagePreview.Visible = false;
+	}
+
 	public void Show3D(string xFileName)
 	{
+		HideImagePreview();
 		try
 		{
 			m_XFileName = Path.GetFileName(xFileName);

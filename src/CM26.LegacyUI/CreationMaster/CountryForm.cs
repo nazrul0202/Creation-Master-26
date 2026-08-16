@@ -23,6 +23,8 @@ public class CountryForm : Form
 
 	private bool m_LockUserChanges;
 
+	private int m_AssetLoadGeneration;
+
 	private IContainer components;
 
 	private FlowLayoutPanel flowLayoutPanel;
@@ -200,14 +202,39 @@ public class CountryForm : Form
 			m_LockUserChanges = true;
 			m_CurrentCountry = country;
 			countryBindingSource.DataSource = m_CurrentCountry;
-			viewer2DFlag.CurrentBitmap = m_CurrentCountry.GetFlag();
-			viewer2DFlag512.CurrentBitmap = m_CurrentCountry.GetFlag512();
-			viewer2DMiniFlag.CurrentBitmap = m_CurrentCountry.GetMiniFlag();
-			viewer2DCardFlag.CurrentBitmap = m_CurrentCountry.GetCardFlag();
-			viewer2DShape.CurrentBitmap = m_CurrentCountry.GetShape();
-			pictureNationalTeam.BackgroundImage = ((m_CurrentCountry.NationalTeam != null) ? m_CurrentCountry.NationalTeam.GetCrest() : null);
-			GC.Collect();
+			viewer2DFlag.CurrentBitmap = null;
+			viewer2DFlag512.CurrentBitmap = null;
+			viewer2DMiniFlag.CurrentBitmap = null;
+			viewer2DCardFlag.CurrentBitmap = null;
+			viewer2DShape.CurrentBitmap = null;
+			pictureNationalTeam.BackgroundImage = null;
 			m_LockUserChanges = false;
+			LoadCountryAssetsAsync(country, ++m_AssetLoadGeneration);
+		}
+	}
+
+	private async void LoadCountryAssetsAsync(Country country, int generation)
+	{
+		try
+		{
+			var paths = new System.Collections.Generic.List<string>
+			{
+				country.FlagBigFileName(), country.Flag512DdsFileName(), country.MiniFlagBigFileName(),
+				country.CardFlagBigFileName(), country.ShapeFileName()
+			};
+			if (country.NationalTeam != null) paths.Add(country.NationalTeam.CrestDdsFileName());
+			await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.PreloadAssets(paths));
+			if (IsDisposed || Disposing || m_CurrentCountry != country || generation != m_AssetLoadGeneration) return;
+			viewer2DFlag.CurrentBitmap = country.GetFlag();
+			viewer2DFlag512.CurrentBitmap = country.GetFlag512();
+			viewer2DMiniFlag.CurrentBitmap = country.GetMiniFlag();
+			viewer2DCardFlag.CurrentBitmap = country.GetCardFlag();
+			viewer2DShape.CurrentBitmap = country.GetShape();
+			pictureNationalTeam.BackgroundImage = country.NationalTeam?.GetCrest();
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine(ex);
 		}
 	}
 

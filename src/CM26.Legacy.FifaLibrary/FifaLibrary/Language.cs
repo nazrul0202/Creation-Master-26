@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace FifaLibrary;
@@ -441,19 +442,30 @@ public class Language : Dictionary<int, string>
 
 	public string GetRoleShortString(int roleId)
 	{
-		string text = null;
-		text = roleId switch
+		string fallback = roleId switch
 		{
-			28 => "Substitute", 
-			29 => "Reserve", 
-			_ => GetRoleShortConventionalString(roleId), 
+			0 => "GK", 1 => "SW", 2 => "RWB", 3 => "RB", 4 => "RCB", 5 => "CB",
+			6 => "LCB", 7 => "LB", 8 => "LWB", 9 => "RDM", 10 => "CDM", 11 => "LDM",
+			12 => "RM", 13 => "RCM", 14 => "CM", 15 => "LCM", 16 => "LM", 17 => "RAM",
+			18 => "CAM", 19 => "LAM", 20 => "RF", 21 => "CF", 22 => "LF", 23 => "RW",
+			24 => "RS", 25 => "ST", 26 => "LS", 27 => "LW", 28 => "SUB", 29 => "RES",
+			_ => string.Empty
 		};
-		string text2 = GetString(text);
-		if (text2 == null || text2 == string.Empty)
+		// FC26 snapshots do not carry FIFA 16 localization keys. Returning the
+		// fixed CM16 abbreviations also prevents an internal SoccerFormationPos
+		// key being displayed and truncated as "Soc..." in the roster grid.
+		if (FifaEnvironment.Year == 26) return fallback;
+		string conventional = GetRoleShortConventionalString(roleId);
+		string localized = conventional == null ? null : GetString(conventional);
+		if (!string.IsNullOrEmpty(localized) &&
+			!string.Equals(localized, conventional, StringComparison.OrdinalIgnoreCase) &&
+			!localized.StartsWith("SoccerFormationPos_", StringComparison.OrdinalIgnoreCase))
 		{
-			text2 = text;
+			return localized;
 		}
-		return text2;
+		// An FC26 bridge has no FIFA 16 language database.  Never expose the
+		// internal Frostbite/legacy localization key in CM16 list columns.
+		return fallback;
 	}
 
 	public void SetRoleShortString(int roleId, string roleShortName)
@@ -464,8 +476,28 @@ public class Language : Dictionary<int, string>
 
 	public string GetRoleLongString(int roleId)
 	{
+		string fallback = roleId switch
+		{
+			0 => "Goalkeeper", 1 => "Sweeper", 2 => "Right Wing Back", 3 => "Right Back",
+			4 => "Right Central Back", 5 => "Central Back", 6 => "Left Central Back", 7 => "Left Back",
+			8 => "Left Wing Back", 9 => "Right Defensive Midfielder", 10 => "Central Defensive Midfielder",
+			11 => "Left Defensive Midfielder", 12 => "Right Midfielder", 13 => "Right Central Midfielder",
+			14 => "Central Midfielder", 15 => "Left Central Midfielder", 16 => "Left Midfielder",
+			17 => "Right Attacking Midfielder", 18 => "Central Attacking Midfielder",
+			19 => "Left Attacking Midfielder", 20 => "Right Forward", 21 => "Centre Forward",
+			22 => "Left Forward", 23 => "Right Wing", 24 => "Right Striker", 25 => "Striker",
+			26 => "Left Striker", 27 => "Left Wing", 28 => "Substitute", 29 => "Reserve", _ => string.Empty
+		};
+		if (FifaEnvironment.Year == 26) return fallback;
 		string roleLongConventionalString = GetRoleLongConventionalString(roleId);
-		return GetString(roleLongConventionalString);
+		string localized = GetString(roleLongConventionalString);
+		if (!string.IsNullOrEmpty(localized) &&
+			!string.Equals(localized, roleLongConventionalString, StringComparison.OrdinalIgnoreCase) &&
+			!localized.StartsWith("SoccerFormationPosFull_", StringComparison.OrdinalIgnoreCase))
+		{
+			return localized;
+		}
+		return fallback;
 	}
 
 	public void SetRoleLongString(int roleId, string roleLongName)

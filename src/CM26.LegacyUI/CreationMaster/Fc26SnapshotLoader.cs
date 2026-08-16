@@ -43,11 +43,13 @@ internal static class Fc26SnapshotLoader
         var competitions = BuildCompetitions(tables);
 
         ApplyLeagueNames(leagues);
+        ApplyTeamNames(teams);
         ApplyPlayerNames(players, tables);
         FifaEnvironment.InitializeFc26Bridge(snapshot.GameRoot, snapshot.DatabaseFolder,
             countries, leagues, teams, players, stadiums, kits, formations, roles,
             referees, balls, shoes, gloves, competitions);
         LinkCore(tables, countries, leagues, teams, players, stadiums, kits, formations);
+        ApplyManagerNames(teams, tables);
         LinkReferees(tables, referees, countries, leagues);
     }
 
@@ -63,6 +65,41 @@ internal static class Fc26SnapshotLoader
             if (string.IsNullOrWhiteSpace(databaseName)) continue;
             league.ShortName = databaseName;
             league.LongName = databaseName;
+        }
+    }
+
+    private static void ApplyTeamNames(TeamList teams)
+    {
+        // Team(int) initializes the CM16 language fields with "Team <id>".
+        // FC26 stores the current display name directly in teams.teamname, so
+        // replace every constructor placeholder before the forms are opened.
+        foreach (Team team in teams)
+        {
+            var name = team.DatabaseName?.Trim();
+            if (string.IsNullOrWhiteSpace(name)) continue;
+            team.TeamNameFull = name;
+            team.TeamNameAbbr15 = Abbreviate(name, 15);
+            team.TeamNameAbbr10 = Abbreviate(name, 10);
+            team.TeamNameAbbr7 = Abbreviate(name, 7);
+            team.TeamNameAbbr3 = Abbreviate(name, 3).ToUpperInvariant();
+        }
+    }
+
+    private static string Abbreviate(string value, int length) =>
+        value.Length <= length ? value : value.Substring(0, length).TrimEnd();
+
+    private static void ApplyManagerNames(TeamList teams, Dictionary<string, TableSnapshot> tables)
+    {
+        if (!tables.TryGetValue("manager", out var managers)) return;
+        var teamId = Column(managers, "teamid");
+        var firstName = Column(managers, "firstname");
+        var surname = Column(managers, "surname");
+        foreach (var row in managers.Rows)
+        {
+            var team = teams.SearchId(ParseIntAt(row, teamId)) as Team;
+            if (team == null) continue;
+            if (firstName >= 0 && firstName < row.Length) team.ManagerFirstName = row[firstName];
+            if (surname >= 0 && surname < row.Length) team.ManagerSurname = row[surname];
         }
     }
 
@@ -486,7 +523,27 @@ internal static class Fc26SnapshotLoader
             {
                 var league = leagues.SearchLeague(ParseIntAt(row, leagueId));
                 var team = teams.SearchId(ParseIntAt(row, teamId)) as Team;
-                if (league != null && team != null) { league.LinkTeam(team); team.League = league; }
+                if (league != null && team != null)
+                {
+                    league.LinkTeam(team);
+                    team.League = league;
+                    // FC26 teams do not carry the legacy CM16 country helper
+                    // columns. Derive club country from the linked league.
+                    if (team.Country == null && league.Country != null) team.Country = league.Country;
+                }
+            }
+        }
+        if (tables.TryGetValue("teamnationlinks", out var nationLinks))
+        {
+            var nationId = Column(nationLinks, "nationid");
+            var teamId = Column(nationLinks, "teamid");
+            foreach (var row in nationLinks.Rows)
+            {
+                var country = countries.SearchId(ParseIntAt(row, nationId)) as Country;
+                var team = teams.SearchId(ParseIntAt(row, teamId)) as Team;
+                if (country == null || team == null) continue;
+                team.Country = country;
+                team.NationalTeam = true;
             }
         }
         if (tables.TryGetValue("teamplayerlinks", out var playerLinks))

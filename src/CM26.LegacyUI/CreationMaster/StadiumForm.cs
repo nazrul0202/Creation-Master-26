@@ -583,17 +583,17 @@ public class StadiumForm : Form
 		m_Locked = true;
 		textDatabaseStadiumName.Text = m_CurrentStadium.name;
 		textLocalStadiumName.Text = m_CurrentStadium.LocalName;
-		numericStadiumId.Value = m_CurrentStadium.Id;
-		numericCapacity.Value = m_CurrentStadium.capacity;
-		numericYearBuilt.Value = m_CurrentStadium.yearbuilt;
-		numericCrowdColor.Value = m_CurrentStadium.seatcolor;
+		SetNumericValue(numericStadiumId, m_CurrentStadium.Id);
+		SetNumericValue(numericCapacity, m_CurrentStadium.capacity);
+		SetNumericValue(numericYearBuilt, m_CurrentStadium.yearbuilt);
+		SetNumericValue(numericCrowdColor, m_CurrentStadium.seatcolor);
 		checkOrientation.Checked = m_CurrentStadium.sectionfacedbydefault == 1;
-		domainStadiumType.SelectedIndex = m_CurrentStadium.stadiumtype;
-		numericEndLineDistance.Value = m_CurrentStadium.adboardendlinedistance;
-		numericSideLineDistance.Value = m_CurrentStadium.adboardsidelinedistance;
-		numericMowing.Value = m_CurrentStadium.MowingPatternId;
-		numericNet.Value = m_CurrentStadium.NetColor;
-		comboPolice.SelectedIndex = m_CurrentStadium.policetypecode;
+		SetSelectedIndex(domainStadiumType, m_CurrentStadium.stadiumtype);
+		SetNumericValue(numericEndLineDistance, m_CurrentStadium.adboardendlinedistance);
+		SetNumericValue(numericSideLineDistance, m_CurrentStadium.adboardsidelinedistance);
+		SetNumericValue(numericMowing, m_CurrentStadium.MowingPatternId);
+		SetNumericValue(numericNet, m_CurrentStadium.NetColor);
+		SetSelectedIndex(comboPolice, m_CurrentStadium.policetypecode);
 		checkSunnyDay.Checked = m_CurrentStadium.HasSunnyDay();
 		checkNight.Checked = m_CurrentStadium.HasNight();
 		checkDeepNet.Checked = m_CurrentStadium.IsDeepNet;
@@ -605,7 +605,7 @@ public class StadiumForm : Form
 		{
 			comboCountry.SelectedItem = m_CurrentStadium.Country;
 		}
-		comboDayWeather.SelectedIndex = m_CurrentStadium.GetWeather();
+		SetSelectedIndex(comboDayWeather, m_CurrentStadium.GetWeather());
 		if (m_CurrentStadium.hometeamid == 0 || m_CurrentStadium.HomeTeam == null)
 		{
 			comboHomeTeam.SelectedItem = m_Undefined;
@@ -617,19 +617,42 @@ public class StadiumForm : Form
 			pictureHomeTeam.BackgroundImage = m_CurrentStadium.HomeTeam.GetCrest();
 		}
 		viewer2DPolice.CurrentBitmap = m_CurrentStadium.GetPolice();
-		numericCameraHeight.Value = m_CurrentStadium.cameraheight;
-		numericCameraZoom.Value = m_CurrentStadium.camerazoom;
-		numericAdboardType.Value = m_CurrentStadium.adboardtype;
-		numericTechZoneAwayMinX.Value = m_CurrentStadium.stadawaytechzoneminx;
-		numericTechZoneAwayMaxX.Value = m_CurrentStadium.stadawaytechzonemaxx;
-		numericTechZoneAwayMinZ.Value = m_CurrentStadium.stadawaytechzoneminz;
-		numericTechZoneAwayMaxZ.Value = m_CurrentStadium.stadawaytechzonemaxz;
-		numericTechZoneHomeMinX.Value = m_CurrentStadium.stadhometechzoneminx;
-		numericTechZoneHomeMaxX.Value = m_CurrentStadium.stadhometechzonemaxx;
-		numericTechZoneHomeMinZ.Value = m_CurrentStadium.stadhometechzoneminz;
-		numericTechZoneHomeMaxZ.Value = m_CurrentStadium.stadhometechzonemaxz;
+		SetNumericValue(numericCameraHeight, m_CurrentStadium.cameraheight);
+		SetNumericValue(numericCameraZoom, m_CurrentStadium.camerazoom);
+		SetNumericValue(numericAdboardType, m_CurrentStadium.adboardtype);
+		SetNumericValue(numericTechZoneAwayMinX, m_CurrentStadium.stadawaytechzoneminx);
+		SetNumericValue(numericTechZoneAwayMaxX, m_CurrentStadium.stadawaytechzonemaxx);
+		SetNumericValue(numericTechZoneAwayMinZ, m_CurrentStadium.stadawaytechzoneminz);
+		SetNumericValue(numericTechZoneAwayMaxZ, m_CurrentStadium.stadawaytechzonemaxz);
+		SetNumericValue(numericTechZoneHomeMinX, m_CurrentStadium.stadhometechzoneminx);
+		SetNumericValue(numericTechZoneHomeMaxX, m_CurrentStadium.stadhometechzonemaxx);
+		SetNumericValue(numericTechZoneHomeMinZ, m_CurrentStadium.stadhometechzoneminz);
+		SetNumericValue(numericTechZoneHomeMaxZ, m_CurrentStadium.stadhometechzonemaxz);
 		checkIsLicensed.Checked = m_CurrentStadium.islicensed;
 		m_Locked = false;
+	}
+
+	private static void SetNumericValue(NumericUpDown control, decimal value)
+	{
+		if (value < control.Minimum)
+		{
+			control.Minimum = value;
+		}
+		if (value > control.Maximum)
+		{
+			control.Maximum = value;
+		}
+		control.Value = value;
+	}
+
+	private static void SetSelectedIndex(ComboBox control, int index)
+	{
+		control.SelectedIndex = index >= 0 && index < control.Items.Count ? index : -1;
+	}
+
+	private static void SetSelectedIndex(DomainUpDown control, int index)
+	{
+		control.SelectedIndex = index >= 0 && index < control.Items.Count ? index : -1;
 	}
 
 	private void labelCountry_DoubleClick(object sender, EventArgs e)

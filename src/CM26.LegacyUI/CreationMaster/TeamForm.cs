@@ -1201,7 +1201,6 @@ public class TeamForm : Form
 				m_CurrentTeam = team;
 				teamBindingSource.DataSource = m_CurrentTeam;
 				UpdateCurrentPage();
-				GC.Collect();
 				m_Locked = false;
 			}
 		}
@@ -1216,10 +1215,11 @@ public class TeamForm : Form
 		comboMaxOnjective.SelectedIndex = m_CurrentTeam.highestpossible;
 		comboProbObjective.SelectedIndex = m_CurrentTeam.highestprobable;
 		teamBindingSource.ResetBindings(metadataChanged: false);
-		viewer2DCrestLarge.CurrentBitmap = m_CurrentTeam.GetCrest();
-		viewer2DCrest50.CurrentBitmap = m_CurrentTeam.GetCrest50();
-		viewer2DCrest32.CurrentBitmap = m_CurrentTeam.GetCrest32();
-		viewer2DCrest16.CurrentBitmap = m_CurrentTeam.GetCrest16();
+		viewer2DCrestLarge.CurrentBitmap = null;
+		viewer2DCrest50.CurrentBitmap = null;
+		viewer2DCrest32.CurrentBitmap = null;
+		viewer2DCrest16.CurrentBitmap = null;
+		LoadTeamCrestsAsync(m_CurrentTeam);
 		if (m_CurrentTeam.Stadium == null)
 		{
 			comboStadiums.Text = string.Empty;
@@ -1231,6 +1231,25 @@ public class TeamForm : Form
 		if (m_CurrentTeam.League == null)
 		{
 			comboTeamLeague.Text = string.Empty;
+		}
+	}
+
+	private async void LoadTeamCrestsAsync(Team team)
+	{
+		try
+		{
+			await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.PreloadAssets(
+				new[] { team.CrestDdsFileName(), team.Crest50DdsFileName(),
+					team.Crest32DdsFileName(), team.Crest16DdsFileName() }));
+			if (IsDisposed || Disposing || m_CurrentTeam != team || tableEditTeam.SelectedTab != pageTeamGeneric) return;
+			viewer2DCrestLarge.CurrentBitmap = team.GetCrest();
+			viewer2DCrest50.CurrentBitmap = team.GetCrest50();
+			viewer2DCrest32.CurrentBitmap = team.GetCrest32();
+			viewer2DCrest16.CurrentBitmap = team.GetCrest16();
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine(ex);
 		}
 	}
 
@@ -6955,7 +6974,7 @@ public class TeamForm : Form
 		this.viewer2DPhoto.CurrentBitmap = null;
 		this.viewer2DPhoto.ExtendedFormat = false;
 		this.viewer2DPhoto.FullSizeButton = false;
-		this.viewer2DPhoto.ImageLayout = System.Windows.Forms.ImageLayout.None;
+		this.viewer2DPhoto.ImageLayout = System.Windows.Forms.ImageLayout.Zoom;
 		this.viewer2DPhoto.ImageSize = new System.Drawing.Size(128, 128);
 		this.viewer2DPhoto.ImageSizeMultiplier = FifaControls.Viewer2D.SizeMultiplier.MiniFace;
 		this.viewer2DPhoto.Location = new System.Drawing.Point(5, 4);

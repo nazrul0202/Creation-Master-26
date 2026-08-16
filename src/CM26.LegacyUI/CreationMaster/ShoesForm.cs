@@ -211,7 +211,6 @@ public class ShoesForm : Form
 				textShoesShopPackage.Text = "Shop Package n. " + m_CurrentShoes.powid;
 			}
 			Show3DShoes();
-			GC.Collect();
 		}
 	}
 

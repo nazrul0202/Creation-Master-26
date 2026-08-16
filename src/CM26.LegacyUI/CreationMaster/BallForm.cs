@@ -153,7 +153,6 @@ public class BallForm : Form
 			multiViewer2DTextures.Bitmaps = m_CurrentBall.GetBallTextures();
 			viewer2DBallPicture.CurrentBitmap = m_CurrentBall.GetBallPicture();
 			Show3DBall();
-			GC.Collect();
 		}
 	}
 

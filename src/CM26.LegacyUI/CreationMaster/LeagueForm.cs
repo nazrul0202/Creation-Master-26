@@ -18,6 +18,8 @@ public class LeagueForm : Form
 
 	private bool m_Locked;
 
+	private int m_AssetLoadGeneration;
+
 	private IContainer components;
 
 	public PickUpControl pickUpControl;
@@ -316,10 +318,13 @@ public class LeagueForm : Form
 			{
 				comboLeagueCountry.SelectedItem = m_CurrentLeague.Country;
 			}
-			InitListViewPlayingTeams(league.PlayingTeams);
-			viewer2DLeagueTinyLogo.CurrentBitmap = league.GetTinyLogo();
-			viewer2DLeagueAnimLogo.CurrentBitmap = league.GetAnimLogo();
-			viewer2DLeague512x128Logo.CurrentBitmap = league.GetLogo512x128();
+			// Draw the FC26 database content immediately. Frostbite asset lookup can
+			// take several seconds on a cold cache and must not block league/section
+			// navigation or leave the form looking empty.
+			InitListViewPlayingTeams(league.PlayingTeams, false);
+			viewer2DLeagueTinyLogo.CurrentBitmap = null;
+			viewer2DLeagueAnimLogo.CurrentBitmap = null;
+			viewer2DLeague512x128Logo.CurrentBitmap = null;
 			labelThisLeague.Text = league.ShortName;
 			buttonSwitchLeagueIds.Enabled = comboSwitchLeagues.SelectedItem != null;
 			int prestige = (int)m_CurrentLeague.Prestige;
@@ -330,7 +335,64 @@ public class LeagueForm : Form
 			SetNumericValue(numericBoardOutcome4, m_CurrentLeague.boardoutcomes[3]);
 			SetNumericValue(numericBoardOutcome5, m_CurrentLeague.boardoutcomes[4]);
 			m_Locked = false;
+			LoadLeagueAssetsAsync(league, ++m_AssetLoadGeneration);
 		}
+	}
+
+	private async void LoadLeagueAssetsAsync(League league, int generation)
+	{
+		try
+		{
+			await System.Threading.Tasks.Task.Run(() => PreloadLeagueAssets(league));
+			if (IsDisposed || Disposing || m_CurrentLeague != league || generation != m_AssetLoadGeneration) return;
+			RefreshTeamLogos();
+			viewer2DLeagueTinyLogo.CurrentBitmap = league.GetTinyLogo();
+			viewer2DLeagueAnimLogo.CurrentBitmap = league.GetAnimLogo();
+			viewer2DLeague512x128Logo.CurrentBitmap = league.GetLogo512x128();
+		}
+		catch (Exception ex)
+		{
+			// Database editing remains usable when one optional Frostbite asset is
+			// absent or malformed. The host bridge records detailed asset failures.
+			System.Diagnostics.Debug.WriteLine(ex);
+		}
+	}
+
+	private void RefreshTeamLogos()
+	{
+		if (!checkShowTeamLogo.Checked) return;
+		listViewPlayingTeams.BeginUpdate();
+		try
+		{
+			imageListTeamLogos.Images.Clear();
+			foreach (ListViewItem item in listViewPlayingTeams.Items)
+			{
+				if (item.Tag is not Team team) continue;
+				Bitmap bitmap = team.GetCrest32();
+				if (bitmap != null) imageListTeamLogos.Images.Add(team.ToString(), bitmap);
+				item.ImageKey = team.ToString();
+			}
+		}
+		finally
+		{
+			listViewPlayingTeams.EndUpdate();
+		}
+	}
+
+	private static void PreloadLeagueAssets(League league)
+	{
+		if (league == null) return;
+		var paths = new System.Collections.Generic.List<string>
+		{
+			league.TinyLogoDdsFileName(),
+			league.AnimLogoDdsFileName(),
+			league.Logo512x128DdsFileName()
+		};
+		for (int i = 0; i < league.PlayingTeams.Count; i++)
+		{
+			paths.Add(((Team)league.PlayingTeams[i]).Crest32DdsFileName());
+		}
+		Fc26HostBridge.PreloadAssets(paths);
 	}
 
 	private static void SetNumericValue(NumericUpDown control, int value)
@@ -338,7 +400,7 @@ public class LeagueForm : Form
 		control.Value = Math.Max(control.Minimum, Math.Min(control.Maximum, value));
 	}
 
-	private void InitListViewPlayingTeams(TeamList playingTeams)
+	private void InitListViewPlayingTeams(TeamList playingTeams, bool loadLogos = true)
 	{
 		listViewPlayingTeams.BeginUpdate();
 		listViewPlayingTeams.Items.Clear();
@@ -347,7 +409,7 @@ public class LeagueForm : Form
 		{
 			Team team = (Team)playingTeams[i];
 			Bitmap bitmap = null;
-			if (checkShowTeamLogo.Checked)
+			if (loadLogos && checkShowTeamLogo.Checked)
 			{
 				bitmap = team.GetCrest32();
 			}

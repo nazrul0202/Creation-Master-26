@@ -142,7 +142,6 @@ public class GlovesForm : Form
 			Bitmap[] gkGlovesTextures = GkGloves.GetGkGlovesTextures(gkgloves.Id);
 			multiViewer2DGkGloves.Bitmaps = gkGlovesTextures;
 			Show3DGkGloves();
-			GC.Collect();
 		}
 	}
 

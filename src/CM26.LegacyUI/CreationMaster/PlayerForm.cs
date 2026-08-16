@@ -1159,7 +1159,7 @@ public class PlayerForm : Form
 
 	private void LoadPlayerInfo()
 	{
-		numericPlayerId.Value = m_CurrentPlayer.Id;
+		SetNumericValue(numericPlayerId, m_CurrentPlayer.Id);
 		if (viewer2DPhoto.ShowButton)
 		{
 			viewer2DPhoto.CurrentBitmap = m_CurrentPlayer.GetPhoto();
@@ -1169,16 +1169,16 @@ public class PlayerForm : Form
 			viewer2DPhoto.CurrentBitmap = null;
 		}
 		InitListViewPlayingTeams(m_CurrentPlayer.m_PlayingForTeams);
-		pictureColorAcc1.BackColor = c_AccPalette[m_CurrentPlayer.accessorycolourcode1];
-		pictureColorAcc2.BackColor = c_AccPalette[m_CurrentPlayer.accessorycolourcode2];
-		pictureColorAcc3.BackColor = c_AccPalette[m_CurrentPlayer.accessorycolourcode3];
-		pictureColorAcc4.BackColor = c_AccPalette[m_CurrentPlayer.accessorycolourcode4];
-		comboPreferredPosition1.SelectedIndex = m_CurrentPlayer.preferredposition1 + 1;
-		comboPreferredPosition2.SelectedIndex = m_CurrentPlayer.preferredposition2 + 1;
-		comboPreferredPosition3.SelectedIndex = m_CurrentPlayer.preferredposition3 + 1;
-		comboPreferredPosition4.SelectedIndex = m_CurrentPlayer.preferredposition4 + 1;
-		numericShoesBrand.Value = m_CurrentPlayer.shoetypecode;
-		numericShoesDesign.Value = m_CurrentPlayer.shoedesigncode;
+		pictureColorAcc1.BackColor = SafePaletteColor(m_CurrentPlayer.accessorycolourcode1);
+		pictureColorAcc2.BackColor = SafePaletteColor(m_CurrentPlayer.accessorycolourcode2);
+		pictureColorAcc3.BackColor = SafePaletteColor(m_CurrentPlayer.accessorycolourcode3);
+		pictureColorAcc4.BackColor = SafePaletteColor(m_CurrentPlayer.accessorycolourcode4);
+		SetSelectedIndex(comboPreferredPosition1, m_CurrentPlayer.preferredposition1 + 1);
+		SetSelectedIndex(comboPreferredPosition2, m_CurrentPlayer.preferredposition2 + 1);
+		SetSelectedIndex(comboPreferredPosition3, m_CurrentPlayer.preferredposition3 + 1);
+		SetSelectedIndex(comboPreferredPosition4, m_CurrentPlayer.preferredposition4 + 1);
+		SetNumericValue(numericShoesBrand, m_CurrentPlayer.shoetypecode);
+		SetNumericValue(numericShoesDesign, m_CurrentPlayer.shoedesigncode);
 		pictureColorShoes1.BackColor = Shoes.GetGenericColor(m_CurrentPlayer.shoecolorcode1);
 		pictureColorShoes2.BackColor = Shoes.GetGenericColor(m_CurrentPlayer.shoecolorcode2);
 		if (m_CurrentPlayer.shoetypecode == 0)
@@ -1195,6 +1195,11 @@ public class PlayerForm : Form
 			numericShoesDesign.Value = 0m;
 		}
 		viewer2DShoes.CurrentBitmap = Shoes.GetShoesColorTexture(m_CurrentPlayer.shoetypecode, m_CurrentPlayer.shoedesigncode);
+	}
+
+	private static Color SafePaletteColor(int index)
+	{
+		return index >= 0 && index < c_AccPalette.Length ? c_AccPalette[index] : Color.Transparent;
 	}
 
 	private void LoadPlayerSkills()
@@ -2191,35 +2196,30 @@ public class PlayerForm : Form
 		groupGenericFaceType.Enabled = checkHasGenericFace.Checked;
 		groupSpecifiHeadControls.Enabled = !checkHasGenericFace.Checked;
 		buttonRgbHair.Visible = !checkHasGenericFace.Checked && checkShowTexures.Checked;
-		numericSkinTone.Value = m_CurrentPlayer.skintonecode;
+		SetNumericValue(numericSkinTone, m_CurrentPlayer.skintonecode);
 		SetSkinLabel(m_CurrentPlayer.skintonecode);
 		GenericHead.EHeadModelSet eHeadModelSet = GenericHead.GetModelSet(m_CurrentPlayer.headtypecode);
-		if (eHeadModelSet == GenericHead.EHeadModelSet.Unknown)
-		{
-			eHeadModelSet = GenericHead.EHeadModelSet.Caucasic;
-			m_CurrentPlayer.headtypecode = GenericHead.GetModelId(eHeadModelSet, 0);
-		}
 		int modelSetIndex = GenericHead.GetModelSetIndex(eHeadModelSet, m_CurrentPlayer.headtypecode);
 		switch (eHeadModelSet)
 		{
 		case GenericHead.EHeadModelSet.Caucasic:
-			comboCaucasicModels.SelectedIndex = modelSetIndex;
+			SetSelectedIndex(comboCaucasicModels, modelSetIndex);
 			radioButtonCaucasic.Checked = true;
 			break;
 		case GenericHead.EHeadModelSet.Latin:
-			comboLatinModels.SelectedIndex = modelSetIndex;
+			SetSelectedIndex(comboLatinModels, modelSetIndex);
 			radioButtonLatin.Checked = true;
 			break;
 		case GenericHead.EHeadModelSet.African:
-			comboAfricanModels.SelectedIndex = modelSetIndex;
+			SetSelectedIndex(comboAfricanModels, modelSetIndex);
 			radioButtonAfrican.Checked = true;
 			break;
 		case GenericHead.EHeadModelSet.Asiatic:
-			comboAsiaticModels.SelectedIndex = modelSetIndex;
+			SetSelectedIndex(comboAsiaticModels, modelSetIndex);
 			radioButtonAsiatic.Checked = true;
 			break;
 		case GenericHead.EHeadModelSet.Female:
-			comboFemaleModels.SelectedIndex = modelSetIndex;
+			SetSelectedIndex(comboFemaleModels, modelSetIndex);
 			radioButtonFemale.Checked = true;
 			break;
 		}
@@ -2228,54 +2228,77 @@ public class PlayerForm : Form
 		switch (hairModelSet)
 		{
 		case GenericHead.EHairModelSet.Shaven:
-			comboShaven.SelectedIndex = hairModelSetIndex;
+			SetSelectedIndex(comboShaven, hairModelSetIndex);
 			radioShaven.Checked = true;
 			break;
 		case GenericHead.EHairModelSet.VeryShort:
-			comboVeryShort.SelectedIndex = hairModelSetIndex;
+			SetSelectedIndex(comboVeryShort, hairModelSetIndex);
 			radioVeryShort.Checked = true;
 			break;
 		case GenericHead.EHairModelSet.Short:
-			comboShort.SelectedIndex = hairModelSetIndex;
+			SetSelectedIndex(comboShort, hairModelSetIndex);
 			radioShort.Checked = true;
 			break;
 		case GenericHead.EHairModelSet.Modern:
-			comboModern.SelectedIndex = hairModelSetIndex;
+			SetSelectedIndex(comboModern, hairModelSetIndex);
 			radioModern.Checked = true;
 			break;
 		case GenericHead.EHairModelSet.Medium:
-			comboMedium.SelectedIndex = hairModelSetIndex;
+			SetSelectedIndex(comboMedium, hairModelSetIndex);
 			radioMedium.Checked = true;
 			break;
 		case GenericHead.EHairModelSet.Long:
-			comboLong.SelectedIndex = hairModelSetIndex;
+			SetSelectedIndex(comboLong, hairModelSetIndex);
 			radioLong.Checked = true;
 			break;
 		case GenericHead.EHairModelSet.Afro:
-			comboAfro.SelectedIndex = hairModelSetIndex;
+			SetSelectedIndex(comboAfro, hairModelSetIndex);
 			radioAfro.Checked = true;
 			break;
 		case GenericHead.EHairModelSet.Headbend:
-			comboHeadband.SelectedIndex = hairModelSetIndex;
+			SetSelectedIndex(comboHeadband, hairModelSetIndex);
 			radioHeadband.Checked = true;
 			break;
 		case GenericHead.EHairModelSet.FemaleHair:
-			comboFemaleHair.SelectedIndex = hairModelSetIndex;
+			SetSelectedIndex(comboFemaleHair, hairModelSetIndex);
 			radioButtonFemaleHair.Checked = true;
 			break;
 		}
-		domainFacialHair.SelectedIndex = m_CurrentPlayer.facialhairtypecode;
-		domainHairColor.SelectedIndex = m_CurrentPlayer.haircolorcode;
-		comboSideburns.SelectedIndex = m_CurrentPlayer.sideburnscode;
-		comboSkintype.SelectedIndex = m_CurrentPlayer.skintypecode;
-		comboEyescolor.SelectedIndex = m_CurrentPlayer.eyecolorcode - 1;
-		comboEyeBow.SelectedIndex = m_CurrentPlayer.eyebrowcode;
-		comboFaceposer.SelectedIndex = m_CurrentPlayer.faceposercode;
-		comboFacialHairColor.SelectedIndex = m_CurrentPlayer.facialhaircolorcode;
+		SetSelectedIndex(domainFacialHair, m_CurrentPlayer.facialhairtypecode);
+		SetSelectedIndex(domainHairColor, m_CurrentPlayer.haircolorcode);
+		SetSelectedIndex(comboSideburns, m_CurrentPlayer.sideburnscode);
+		SetSelectedIndex(comboSkintype, m_CurrentPlayer.skintypecode);
+		SetSelectedIndex(comboEyescolor, m_CurrentPlayer.eyecolorcode - 1);
+		SetSelectedIndex(comboEyeBow, m_CurrentPlayer.eyebrowcode);
+		SetSelectedIndex(comboFaceposer, m_CurrentPlayer.faceposercode);
+		SetSelectedIndex(comboFacialHairColor, m_CurrentPlayer.facialhaircolorcode);
 		m_GenericAppearanceSema = true;
 		viewer2DPlayerGui.CurrentBitmap = m_CurrentPlayer.GetPhoto();
 		GetAndShowTextures();
 		UpdateAndShowHead3D();
+	}
+
+	private static void SetNumericValue(NumericUpDown control, decimal value)
+	{
+		if (value < control.Minimum)
+		{
+			control.Minimum = value;
+		}
+		if (value > control.Maximum)
+		{
+			control.Maximum = value;
+		}
+		control.Value = value;
+	}
+
+	private static void SetSelectedIndex(ComboBox control, int index)
+	{
+		control.SelectedIndex = index >= 0 && index < control.Items.Count ? index : -1;
+	}
+
+	private static void SetSelectedIndex(DomainUpDown control, int index)
+	{
+		control.SelectedIndex = index >= 0 && index < control.Items.Count ? index : -1;
 	}
 
 	private void radioButtonAsiatic_CheckedChanged(object sender, EventArgs e)
@@ -2633,7 +2656,10 @@ public class PlayerForm : Form
 		Rx3File headModel = m_CurrentPlayer.GetHeadModel();
 		if (headModel == null)
 		{
-			viewer3D.ShowEmpty();
+			// FC26 uses Frostbite meshes rather than the FIFA 16 RX3 head model.
+			// Keep the CM16 face panel useful by showing the authoritative FC26
+			// portrait until a Frostbite mesh renderer is available here.
+			viewer3D.ShowImage(m_CurrentPlayer.GetPhoto() ?? faceTexture);
 			return;
 		}
 		Player.s_Model3DHead = null;
@@ -4140,7 +4166,7 @@ public class PlayerForm : Form
 		this.viewer2DPhoto.CurrentBitmap = null;
 		this.viewer2DPhoto.ExtendedFormat = false;
 		this.viewer2DPhoto.FullSizeButton = false;
-		this.viewer2DPhoto.ImageLayout = System.Windows.Forms.ImageLayout.None;
+		this.viewer2DPhoto.ImageLayout = System.Windows.Forms.ImageLayout.Zoom;
 		this.viewer2DPhoto.ImageSize = new System.Drawing.Size(128, 128);
 		this.viewer2DPhoto.ImageSizeMultiplier = FifaControls.Viewer2D.SizeMultiplier.MiniFace;
 		this.viewer2DPhoto.Location = new System.Drawing.Point(6, 16);

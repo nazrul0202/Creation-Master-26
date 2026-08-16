@@ -40,6 +40,12 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 2 && args[0] == "--legacy-assets-list")
+        {
+            Environment.ExitCode = ExportLegacyAssets(args[1]);
+            return;
+        }
+
         if (args.Length >= 2 && args[0] == "--legacy-save")
         {
             try
@@ -476,11 +482,12 @@ internal static class Program
             var normalized = logicalPath.Replace('\\', '/').TrimStart('/');
             var cached = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Creation Master 26", "legacy-assets",
+                "Creation Master 26", "legacy-assets-v2",
                 normalized.Replace('/', Path.DirectorySeparatorChar));
-            if (File.Exists(cached) && new FileInfo(cached).Length > 0)
+            var cachedAsset = FindCachedLegacyAsset(cached);
+            if (cachedAsset is not null)
             {
-                Console.WriteLine(cached);
+                Console.WriteLine(cachedAsset);
                 return 0;
             }
 
@@ -490,7 +497,7 @@ internal static class Program
             var catalogPath = LegacyAssetCatalogFallback.Resolve(SettingsService.AssetRoot, normalized);
             if (!string.IsNullOrWhiteSpace(catalogPath))
             {
-                Console.WriteLine(catalogPath);
+                Console.WriteLine(CacheLegacyAsset(catalogPath, cached));
                 return 0;
             }
 
@@ -503,7 +510,7 @@ internal static class Program
             var output = LegacyFrostbiteAssetResolver.Resolve(assets, normalized);
             if (string.IsNullOrWhiteSpace(output) || !File.Exists(output))
                 throw new FileNotFoundException("FC26 asset was not found.", normalized);
-            Console.WriteLine(output);
+            Console.WriteLine(CacheLegacyAsset(output, cached));
             return 0;
         }
         catch (Exception ex)
@@ -511,6 +518,86 @@ internal static class Program
             Console.Error.WriteLine(ex.Message);
             return 1;
         }
+    }
+
+    private static int ExportLegacyAssets(string requestPath)
+    {
+        try
+        {
+            if (!File.Exists(requestPath))
+                throw new FileNotFoundException("FC26 asset batch request was not found.", requestPath);
+
+            var logicalPaths = File.ReadAllLines(requestPath)
+                .Select(path => path.Trim())
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (logicalPaths.Length == 0) return 0;
+
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot))
+                throw new InvalidOperationException("FC26 installation was not detected.");
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+
+            var count = 0;
+            foreach (var logicalPath in logicalPaths)
+            {
+                var normalized = logicalPath.Replace('\\', '/').TrimStart('/');
+                var cached = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Creation Master 26", "legacy-assets-v2",
+                    normalized.Replace('/', Path.DirectorySeparatorChar));
+                if (FindCachedLegacyAsset(cached) is not null)
+                {
+                    count++;
+                    continue;
+                }
+
+                var source = LegacyAssetCatalogFallback.Resolve(SettingsService.AssetRoot, normalized);
+                if (string.IsNullOrWhiteSpace(source))
+                    source = LegacyFrostbiteAssetResolver.Resolve(assets, normalized);
+                if (string.IsNullOrWhiteSpace(source) || !File.Exists(source)) continue;
+                CacheLegacyAsset(source, cached);
+                count++;
+            }
+            Console.WriteLine(count);
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
+    }
+
+    private static string CacheLegacyAsset(string source, string destination)
+    {
+        if (Path.GetFullPath(source).Equals(Path.GetFullPath(destination), StringComparison.OrdinalIgnoreCase))
+            return source;
+        // Never rename an extracted PNG/JPEG to DDS/BIG.  The legacy reader
+        // selects its decoder from the extension, so doing that produced
+        // corrupted previews and seemingly random assets in other sections.
+        if (!string.Equals(Path.GetExtension(source), Path.GetExtension(destination), StringComparison.OrdinalIgnoreCase))
+            destination = Path.ChangeExtension(destination, Path.GetExtension(source));
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        File.Copy(source, destination, true);
+        return destination;
+    }
+
+    private static string? FindCachedLegacyAsset(string requestedPath)
+    {
+        if (File.Exists(requestedPath) && new FileInfo(requestedPath).Length > 0) return requestedPath;
+        var directory = Path.GetDirectoryName(requestedPath);
+        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory)) return null;
+        var stem = Path.GetFileNameWithoutExtension(requestedPath);
+        foreach (var extension in new[] { ".png", ".jpg", ".jpeg", ".bmp", ".dds" })
+        {
+            var candidate = Path.Combine(directory, stem + extension);
+            if (File.Exists(candidate) && new FileInfo(candidate).Length > 0) return candidate;
+        }
+        return null;
     }
 
     private static void HandleFatal(string context, Exception? ex)
