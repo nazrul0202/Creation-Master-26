@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Diagnostics;
 using System.Windows.Forms;
 
 namespace CreationMaster;
@@ -28,10 +29,26 @@ internal static class Program
 		}
 		Application.EnableVisualStyles();
 		Application.SetCompatibleTextRenderingDefault(defaultValue: false);
+		Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
 		if (args.Length >= 3 && string.Equals(args[0], "--cm26-smoke", StringComparison.OrdinalIgnoreCase))
 		{
+			var errorLog = Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log");
+			if (File.Exists(errorLog)) File.Delete(errorLog);
+			Application.ThreadException += (_, e) =>
+			{
+				File.WriteAllText(errorLog, e.Exception.ToString());
+				Environment.Exit(1);
+			};
+			AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+			{
+				File.WriteAllText(errorLog, (e.ExceptionObject as Exception)?.ToString() ?? "Unknown smoke-test failure.");
+				Environment.Exit(1);
+			};
 			try
 			{
+				var smokeLog = Path.Combine(Path.GetTempPath(), "cm26-legacy-smoke.log");
+				if (File.Exists(smokeLog)) File.Delete(smokeLog);
+				var total = Stopwatch.StartNew();
 				using var main = new MainForm();
 				main.Show();
 				Application.DoEvents();
@@ -39,27 +56,24 @@ internal static class Program
 				foreach (var section in args[2].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
 				{
 					var name = section.Trim();
+					var timer = Stopwatch.StartNew();
 					main.ClickFc26SectionForSmoke(name);
-					// Pump delayed layout/paint messages too. The original regression
-					// passed the immediate parent check and then exposed the MDI client.
-					for (var pass = 0; pass < 4; pass++)
-					{
-						Application.DoEvents();
-						main.Update();
-					}
+					Application.DoEvents();
 					main.AssertFc26SectionVisible(name);
+					main.AuditFc26RecordsForSmoke(name);
+					File.AppendAllText(smokeLog, name + "=" + timer.ElapsedMilliseconds + "ms" + Environment.NewLine);
 				}
+				File.AppendAllText(smokeLog, "total=" + total.ElapsedMilliseconds + "ms" + Environment.NewLine);
 				main.Dispose();
 				Environment.Exit(0);
 			}
 			catch (Exception ex)
 			{
-				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				File.WriteAllText(errorLog, ex.ToString());
 				Environment.Exit(1);
 			}
 		}
 		var diagnostic = args.Length >= 1 && string.Equals(args[0], "--cm26-snapshot", StringComparison.OrdinalIgnoreCase);
-		Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
 		Application.ThreadException += (_, e) => HandleUnhandled(e.Exception, diagnostic);
 		AppDomain.CurrentDomain.UnhandledException += (_, e) => HandleUnhandled(e.ExceptionObject as Exception, diagnostic);
 		try

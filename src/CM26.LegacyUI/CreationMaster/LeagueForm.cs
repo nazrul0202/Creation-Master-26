@@ -339,6 +339,14 @@ public class LeagueForm : Form
 		}
 	}
 
+	public void AuditFc26RecordsForSmoke()
+	{
+		if (FifaEnvironment.Leagues.Count == 0) return;
+		var samples = new[] { 0, FifaEnvironment.Leagues.Count / 2, FifaEnvironment.Leagues.Count - 1 };
+		foreach (var index in samples)
+			ReloadLeague((League)FifaEnvironment.Leagues[index]);
+	}
+
 	private async void LoadLeagueAssetsAsync(League league, int generation)
 	{
 		try

@@ -1193,27 +1193,43 @@ public class TeamForm : Form
 
 	public void LoadTeam(Team team)
 	{
-		if (m_IsLoaded)
+		if (!m_IsLoaded || team == null) return;
+		m_Locked = true;
+		try
 		{
-			m_Locked = true;
-			if (m_CurrentTeam != team || m_CurrentPage != tableEditTeam.SelectedTab)
-			{
-				m_CurrentTeam = team;
-				teamBindingSource.DataSource = m_CurrentTeam;
-				UpdateCurrentPage();
-				m_Locked = false;
-			}
+			if (m_CurrentTeam == team && m_CurrentPage == tableEditTeam.SelectedTab) return;
+			m_CurrentTeam = team;
+			teamBindingSource.DataSource = m_CurrentTeam;
+			UpdateCurrentPage();
 		}
+		finally
+		{
+			// Returning early for an already-selected team used to leave the form
+			// permanently locked, which made later section/record changes appear blank.
+			m_Locked = false;
+		}
+	}
+
+	private static void SetNumericValue(NumericUpDown control, decimal value)
+	{
+		if (value < control.Minimum) control.Minimum = value;
+		if (value > control.Maximum) control.Maximum = value;
+		control.Value = value;
+	}
+
+	private static void SetSelectedIndex(ComboBox control, int index)
+	{
+		control.SelectedIndex = index >= 0 && index < control.Items.Count ? index : -1;
 	}
 
 	public void LoadGenericPage()
 	{
-		numericTeamId.Value = m_CurrentTeam.Id;
+		SetNumericValue(numericTeamId, m_CurrentTeam.Id);
 		comboRivalTeam.SelectedItem = m_CurrentTeam.RivalTeam;
 		checkIsNationalTeam.Checked = m_CurrentTeam.NationalTeam;
-		comboObjective.SelectedIndex = m_CurrentTeam.objective;
-		comboMaxOnjective.SelectedIndex = m_CurrentTeam.highestpossible;
-		comboProbObjective.SelectedIndex = m_CurrentTeam.highestprobable;
+		SetSelectedIndex(comboObjective, m_CurrentTeam.objective);
+		SetSelectedIndex(comboMaxOnjective, m_CurrentTeam.highestpossible);
+		SetSelectedIndex(comboProbObjective, m_CurrentTeam.highestprobable);
 		teamBindingSource.ResetBindings(metadataChanged: false);
 		viewer2DCrestLarge.CurrentBitmap = null;
 		viewer2DCrest50.CurrentBitmap = null;
@@ -1264,7 +1280,7 @@ public class TeamForm : Form
 		viewer2DAdboards_0.CurrentBitmap = m_CurrentTeam.GetAdboard();
 		checkHasSpecificAdboard.Checked = m_CurrentTeam.HasSpecifiAdboard;
 		numericAdboards.Enabled = !m_CurrentTeam.HasSpecifiAdboard;
-		numericAdboards.Value = m_CurrentTeam.adboardid;
+		SetNumericValue(numericAdboards, m_CurrentTeam.adboardid);
 		m_LockUserChanges = false;
 	}
 
@@ -1329,6 +1345,31 @@ public class TeamForm : Form
 			buttonCreateNewFormation.Enabled = false;
 		}
 		InitVisualFormation(m_CurrentTeam.Roster);
+	}
+
+	public void AuditFc26RecordsForSmoke()
+	{
+		if (!m_IsLoaded || FifaEnvironment.Teams == null || FifaEnvironment.Teams.Count == 0) return;
+		Team originalTeam = m_CurrentTeam;
+		TabPage originalPage = tableEditTeam.SelectedTab;
+		var samples = new[] { 0, FifaEnvironment.Teams.Count / 2, FifaEnvironment.Teams.Count - 1 };
+		try
+		{
+			foreach (int index in samples)
+			{
+				Team team = (Team)FifaEnvironment.Teams[index];
+				tableEditTeam.SelectedTab = pageTeamGeneric;
+				ReloadTeam(team);
+				tableEditTeam.SelectedTab = pageTeamRoster;
+				ReloadTeam(team);
+				Application.DoEvents();
+			}
+		}
+		finally
+		{
+			if (originalPage != null) tableEditTeam.SelectedTab = originalPage;
+			if (originalTeam != null) ReloadTeam(originalTeam);
+		}
 	}
 
 	private void buttonCreateNewFormation_Click(object sender, EventArgs e)

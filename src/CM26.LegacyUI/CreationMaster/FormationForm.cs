@@ -492,7 +492,7 @@ public class FormationForm : Form
 			labelFullName.Visible = true;
 			numericFullName.Visible = true;
 			textFullName.Enabled = m_CurrentFormation.formationfullnameid != -1;
-			numericFullName.Value = m_CurrentFormation.formationfullnameid;
+			SetNumericValue(numericFullName, m_CurrentFormation.formationfullnameid);
 		}
 		else
 		{
@@ -501,8 +501,8 @@ public class FormationForm : Form
 			labelFullName.Visible = false;
 			numericFullName.Visible = false;
 		}
-		comboOffensiveRating.SelectedIndex = formation.offensiverating;
-		comboFormationAudio.SelectedIndex = formation.formationaudioid;
+		SetSelectedIndex(comboOffensiveRating, formation.offensiverating);
+		SetSelectedIndex(comboFormationAudio, formation.formationaudioid);
 		labelAssignTeam.Text = ((formation.Team != null) ? formation.Team.ToString() : "Generic");
 		if (FifaEnvironment.Year != 14)
 		{
@@ -512,6 +512,26 @@ public class FormationForm : Form
 			}
 		}
 		m_LockUserChanges = false;
+	}
+
+	public void AuditFc26RecordsForSmoke()
+	{
+		if (FifaEnvironment.Formations.Count == 0) return;
+		var samples = new[] { 0, FifaEnvironment.Formations.Count / 2, FifaEnvironment.Formations.Count - 1 };
+		foreach (var index in samples)
+			ReloadFormation((Formation)FifaEnvironment.Formations[index]);
+	}
+
+	private static void SetNumericValue(NumericUpDown control, decimal value)
+	{
+		if (value < control.Minimum) control.Minimum = value;
+		if (value > control.Maximum) control.Maximum = value;
+		control.Value = value;
+	}
+
+	private static void SetSelectedIndex(ComboBox control, int index)
+	{
+		control.SelectedIndex = index >= 0 && index < control.Items.Count ? index : -1;
 	}
 
 	private void ShowPlayerInstruction(int playerIndex)

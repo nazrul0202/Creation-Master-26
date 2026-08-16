@@ -2903,6 +2903,21 @@ public class MainForm : Form
 		AssertFc26SectionVisible(section, expected);
 	}
 
+	internal void AuditFc26RecordsForSmoke(string section)
+	{
+		switch ((section ?? string.Empty).ToLowerInvariant())
+		{
+			case "league": m_LeagueForm.AuditFc26RecordsForSmoke(); break;
+			case "team": m_TeamForm.AuditFc26RecordsForSmoke(); break;
+			case "kit": m_KitForm.AuditFc26RecordsForSmoke(); break;
+			case "player": m_PlayerForm.AuditFc26RecordsForSmoke(); break;
+			case "stadium": m_StadiumForm.AuditFc26RecordsForSmoke(); break;
+			case "formation": m_FormationForm.AuditFc26RecordsForSmoke(); break;
+		}
+		Application.DoEvents();
+		AssertFc26SectionVisible(section);
+	}
+
 	private void AssertFc26SectionVisible(string section, Form expected)
 	{
 		if (!ReferenceEquals(expected.Parent, panelMain) ||

@@ -1222,6 +1222,25 @@ public class PlayerForm : Form
 		viewer2DShoes.CurrentBitmap = Shoes.GetShoesColorTexture(m_CurrentPlayer.shoetypecode, m_CurrentPlayer.shoedesigncode);
 	}
 
+	public void AuditFc26RecordsForSmoke()
+	{
+		if (FifaEnvironment.Players.Count == 0) return;
+		var samples = new[] { 0, FifaEnvironment.Players.Count / 2, FifaEnvironment.Players.Count - 1 };
+		var originalPage = tabEditPlayer.SelectedTab;
+		foreach (var index in samples)
+		{
+			var player = (Player)FifaEnvironment.Players[index];
+			tabEditPlayer.SelectedTab = pageInfo;
+			ReloadPlayer(player);
+			tabEditPlayer.SelectedTab = pageSkills;
+			LoadPlayer(player);
+			tabEditPlayer.SelectedTab = pageFace;
+			LoadPlayer(player);
+		}
+		tabEditPlayer.SelectedTab = originalPage ?? pageInfo;
+		LoadPlayer(m_CurrentPlayer);
+	}
+
 	private void InitializeFc26Face3dControls()
 	{
 		m_Fc26Face3dPanel = new Panel

@@ -451,8 +451,8 @@ public class KitForm : Form
 			multiViewer2DJerseyNumbers.Bitmaps = NumberFont.GetNumberFont(m_CurrentKit.jerseyNumberFont, m_CurrentKit.jerseyNumberColor);
 			multiViewer2DShortsNumbers.Bitmaps = NumberFont.GetNumberFont(m_CurrentKit.shortsNumberFont, m_CurrentKit.shortsNumberColor);
 			viewer2DMinikit.CurrentBitmap = m_CurrentKit.GetMiniKit();
-			pictureJerseyNumberColor.BackColor = c_ColorPalette[m_CurrentKit.jerseyNumberColor];
-			pictureShortsNumberColor.BackColor = c_ColorPalette[m_CurrentKit.shortsNumberColor];
+			pictureJerseyNumberColor.BackColor = SafePaletteColor(m_CurrentKit.jerseyNumberColor);
+			pictureShortsNumberColor.BackColor = SafePaletteColor(m_CurrentKit.shortsNumberColor);
 			labelCollarImage.ImageIndex = kit.jerseyCollar;
 			LoadPositions();
 			if (FifaEnvironment.Year != 26 || GetCurrentKitTextures() != null)
@@ -462,6 +462,22 @@ public class KitForm : Form
 			}
 			ShowFont();
 			m_UpdatingLock = false;
+		}
+	}
+
+	private static Color SafePaletteColor(int index)
+	{
+		return index >= 0 && index < c_ColorPalette.Length ? c_ColorPalette[index] : Color.Gray;
+	}
+
+	public void AuditFc26RecordsForSmoke()
+	{
+		if (FifaEnvironment.Kits.Count == 0) return;
+		var samples = new[] { 0, FifaEnvironment.Kits.Count / 2, FifaEnvironment.Kits.Count - 1 };
+		foreach (var index in samples)
+		{
+			m_CurrentKit = null;
+			LoadKit((Kit)FifaEnvironment.Kits[index]);
 		}
 	}
 

@@ -632,6 +632,14 @@ public class StadiumForm : Form
 		m_Locked = false;
 	}
 
+	public void AuditFc26RecordsForSmoke()
+	{
+		if (FifaEnvironment.Stadiums.Count == 0) return;
+		var samples = new[] { 0, FifaEnvironment.Stadiums.Count / 2, FifaEnvironment.Stadiums.Count - 1 };
+		foreach (var index in samples)
+			ReloadStadium((Stadium)FifaEnvironment.Stadiums[index]);
+	}
+
 	private static void SetNumericValue(NumericUpDown control, decimal value)
 	{
 		if (value < control.Minimum)
