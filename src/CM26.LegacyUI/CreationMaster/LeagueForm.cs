@@ -419,8 +419,8 @@ public class LeagueForm : Form
 			}
 			ListViewItem listViewItem = new ListViewItem(team.ToString());
 			listViewItem.Tag = team;
+			listViewItem.ImageKey = team.ToString();
 			listViewPlayingTeams.Items.Add(listViewItem);
-			listViewPlayingTeams.Items[i].ImageKey = team.ToString();
 		}
 		if (listViewPlayingTeams.Items.Count > 0)
 		{

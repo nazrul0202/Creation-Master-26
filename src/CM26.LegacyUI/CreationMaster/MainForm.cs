@@ -507,7 +507,7 @@ public class MainForm : Form
 
 	private void ShowFormOnPanel(Form form, Panel panel)
 	{
-		if (panel.Controls.Count == 1 && ReferenceEquals(panel.Controls[0], form))
+		if (ReferenceEquals(form.Parent, panel) && form.Visible)
 			return;
 
 		// Some original CM16 forms synchronously resolve several FC26 Frostbite
@@ -533,10 +533,16 @@ public class MainForm : Form
 			if (!form.Visible)
 				form.Show();
 			form.BringToFront();
-			form.Update();
-			foreach (var control in previous)
+			// Keep editors cached in the main workspace. Removing/re-adding a CM16
+			// form recreates layout and preview state and made every repeat toolbar
+			// switch unnecessarily slow. Auxiliary split panels still own a single
+			// editor, matching the original Alt/Ctrl behaviour.
+			if (!ReferenceEquals(panel, panelMain))
 			{
-				if (!ReferenceEquals(control, form)) panel.Controls.Remove(control);
+				foreach (var control in previous)
+				{
+					if (!ReferenceEquals(control, form)) panel.Controls.Remove(control);
+				}
 			}
 		}
 		finally
@@ -551,7 +557,7 @@ public class MainForm : Form
 		}
 		else
 		{
-			stripLabelBottom.Text = panelBottom.Controls[0].Text;
+			stripLabelBottom.Text = VisiblePanelControlText(panelBottom);
 		}
 		if (panelRight.Controls.Count == 0)
 		{
@@ -559,8 +565,17 @@ public class MainForm : Form
 		}
 		else
 		{
-			stripLabelRight.Text = panelRight.Controls[0].Text;
+			stripLabelRight.Text = VisiblePanelControlText(panelRight);
 		}
+	}
+
+	private static string VisiblePanelControlText(Panel panel)
+	{
+		foreach (Control control in panel.Controls)
+		{
+			if (control.Visible) return control.Text;
+		}
+		return "Empty";
 	}
 
 	private Panel TargetPanelFromCurrentModifiers()
@@ -2898,6 +2913,13 @@ public class MainForm : Form
 		{
 			throw new InvalidOperationException("Section became blank after activation: " + section);
 		}
+		foreach (Control control in panelMain.Controls)
+		{
+			if (!ReferenceEquals(control, expected) && control.Visible)
+				throw new InvalidOperationException("Multiple editor sections remained visible after activation: " + section);
+		}
+		if (panelMain.Controls.GetChildIndex(expected) != 0)
+			throw new InvalidOperationException("Activated editor section was not brought to front: " + section);
 	}
 
 	private void menuOpenLang16_Click(object sender, EventArgs e)
