@@ -43,7 +43,10 @@ public sealed class TexturePreviewService : ITexturePreviewService
 
             if (ext.Equals(".dds", StringComparison.OrdinalIgnoreCase))
             {
-                var head = ReadBytes(filePath, 128);
+                // DDS files with a DX10 pixel-format extension have a 148-byte
+                // header.  Reading only the legacy 128 bytes made every FC26
+                // texture exported with its exact DXGI format look invalid.
+                var head = ReadBytes(filePath, 148);
                 if (head == null || !DdsDecoder.TryReadHeader(head, out var info))
                     return meta with { IsReadable = false, Error = "Not a valid DDS file" };
                 return meta with

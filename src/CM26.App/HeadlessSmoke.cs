@@ -8,6 +8,31 @@ namespace CM26.App;
 /// <summary>Non-UI verification that the app's service stack loads and resolves the real DB.</summary>
 internal static class HeadlessSmoke
 {
+    public static int CodecAudit(string? gameRoot = null)
+    {
+        try
+        {
+            var root = FrostbiteAssetSession.ResolveGameRoot(gameRoot ?? SettingsService.FC26GameFolder)
+                ?? throw new DirectoryNotFoundException("FC26 game root was not detected.");
+            var result = CM26.AssetBridge.BridgeEngine.AuditCodecs(root);
+            Console.WriteLine($"Indexed assets: {result.IndexedAssets:N0}");
+            Console.WriteLine($"Unique payloads: {result.UniquePayloads:N0}; blocks: {result.BlockCount:N0}; errors: {result.ErrorCount:N0}");
+            Console.WriteLine($"Optional unavailable payload references: {result.UnavailablePayloads:N0} in {result.UnavailableCasFiles.Count:N0} CAS file(s)");
+            foreach (var path in result.UnavailableCasFiles) Console.WriteLine("OPTIONAL CAS UNAVAILABLE: " + path);
+            foreach (var method in result.Methods)
+                Console.WriteLine($"method={method.Method} data={method.MethodData} blocks={method.BlockCount:N0} packed={method.PackedBytes:N0} unpacked={method.UnpackedBytes:N0}");
+            foreach (var error in result.Errors) Console.WriteLine("ERROR: " + error);
+            if (result.ErrorCount != 0) throw new InvalidDataException("Codec audit found invalid payloads.");
+            Console.WriteLine("FROSTBITE CODEC AUDIT OK");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("FROSTBITE CODEC AUDIT FAILED: " + ex);
+            return 31;
+        }
+    }
+
     public static int CompdataTest(string workbookPath)
     {
         string? output = null;
@@ -360,6 +385,71 @@ internal static class HeadlessSmoke
         {
             Console.WriteLine("FROSTBITE KIT PREVIEW TEST FAILED: " + ex);
             return 17;
+        }
+    }
+
+    public static int AssetCapabilityAudit(string? gameRoot = null)
+    {
+        try
+        {
+            var root = FrostbiteAssetSession.ResolveGameRoot(gameRoot ?? SettingsService.FC26GameFolder)
+                ?? throw new DirectoryNotFoundException("FC26 game root was not detected.");
+            var result = CM26.AssetBridge.BridgeEngine.AuditAssetCapabilities(root);
+            Console.WriteLine($"Textures: {result.TextureCount:N0}; formats: " +
+                string.Join(", ", result.TextureFormats.Select(item => $"{item.Key}={item.Value:N0}")));
+            Console.WriteLine($"Meshes: {result.MeshCount:N0}; sections: {result.MeshSectionCount:N0}");
+            Console.WriteLine($"Unavailable: {result.UnavailableCount:N0}; parse errors: {result.ErrorCount:N0}");
+            if (result.UnsupportedTextureFormats.Count > 0)
+                Console.WriteLine("Unsupported texture formats: " +
+                    string.Join(", ", result.UnsupportedTextureFormats.Select(item => $"{item.Key}={item.Value:N0}")));
+            if (result.UnsupportedVertexFormats.Count > 0)
+                Console.WriteLine("Unsupported vertex formats: " +
+                    string.Join(", ", result.UnsupportedVertexFormats.Select(item => $"{item.Key}={item.Value:N0}")));
+            foreach (var error in result.Errors) Console.WriteLine("  " + error);
+            var ok = result.TextureCount > 0 && result.MeshCount > 0 && result.ErrorCount == 0 &&
+                     result.UnsupportedTextureFormats.Count == 0 && result.UnsupportedVertexFormats.Count == 0;
+            Console.WriteLine(ok ? "ASSET CAPABILITY AUDIT OK" : "ASSET CAPABILITY AUDIT FAILED");
+            return ok ? 0 : 42;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("ASSET CAPABILITY AUDIT FAILED: " + ex);
+            return 43;
+        }
+    }
+
+    public static int TextureFormatAudit(string? gameRoot = null)
+    {
+        try
+        {
+            var root = FrostbiteAssetSession.ResolveGameRoot(gameRoot ?? SettingsService.FC26GameFolder)
+                ?? throw new DirectoryNotFoundException("FC26 game root was not detected.");
+            var samples = CM26.AssetBridge.BridgeEngine.ExportTextureFormatSamples(root);
+            var textures = new TexturePreviewService();
+            var failures = new List<string>();
+            foreach (var sample in samples)
+            {
+                var metadata = textures.ReadMetadata(sample.DdsPath);
+                using var preview = textures.CreatePreview(sample.DdsPath, 256, 256);
+                var ok = metadata.IsReadable && metadata.Width > 0 && metadata.Height > 0 && preview != null;
+                Console.WriteLine(
+                    $"format={sample.RenderFormat} {(ok ? "OK" : "FAILED")} " +
+                    $"{metadata.Width}x{metadata.Height} {metadata.Format} asset={sample.AssetName}" +
+                    (metadata.Error == null ? string.Empty : $" error={metadata.Error}"));
+                if (!ok) failures.Add($"format {sample.RenderFormat}: {metadata.Error ?? "preview decode returned null"}");
+            }
+
+            if (samples.Count == 0)
+                throw new InvalidDataException("No installed FC26 texture samples were exported.");
+            if (failures.Count > 0)
+                throw new InvalidDataException(string.Join(" | ", failures));
+            Console.WriteLine($"TEXTURE FORMAT AUDIT OK: {samples.Count} installed RenderFormat sample(s)");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("TEXTURE FORMAT AUDIT FAILED: " + ex);
+            return 44;
         }
     }
 
@@ -1325,6 +1415,25 @@ internal static class HeadlessSmoke
             var resolvedCount = players.Count(p => !p.Title.StartsWith("Player ", StringComparison.Ordinal));
             var fallbackCount = players.Count - resolvedCount;
             Console.WriteLine($"Players: {players.Count}; resolved={resolvedCount}; fallback={fallbackCount}");
+            if (fallbackCount > 0)
+            {
+                var playerTable = services.Session.GetTable("players");
+                if (playerTable != null)
+                {
+                    var playerIdColumn = IndexOf(playerTable, "playerid");
+                    var firstNameColumn = IndexOf(playerTable, "firstnameid");
+                    var lastNameColumn = IndexOf(playerTable, "lastnameid");
+                    var commonNameColumn = IndexOf(playerTable, "commonnameid");
+                    foreach (var item in players.Where(p => p.Title.StartsWith("Player ", StringComparison.Ordinal)).Take(100))
+                    {
+                        var record = services.Session.GetRecord("players", item.RecordIndex);
+                        if (record == null) continue;
+                        Console.WriteLine(
+                            $"  FALLBACK player={record.Get(playerIdColumn)} first={record.Get(firstNameColumn)} " +
+                            $"last={record.Get(lastNameColumn)} common={record.Get(commonNameColumn)}");
+                    }
+                }
+            }
 
             if (sourcePresent)
             {

@@ -7,6 +7,7 @@ namespace CM26.AssetBridge;
 /// </summary>
 public static class BridgeEngine
 {
+    private readonly record struct PayloadLocation(uint Offset, uint Size);
     private static readonly object IndexGate = new();
     private static string _indexedRoot = string.Empty;
     private static FrostbiteInventory? _indexedInventory;
@@ -16,6 +17,215 @@ public static class BridgeEngine
     {
         var inventory = EnsureIndexed(gameRoot);
         return inventory;
+    }
+
+    /// <summary>Scans every unique indexed CAS payload and reports its Frostbite block codecs.</summary>
+    public static FrostbiteCodecAuditResult AuditCodecs(string gameRoot)
+    {
+        var inventory = EnsureIndexed(gameRoot);
+        var layout = FrostbiteLayoutReader.Read(Path.Combine(gameRoot, "Patch", "layout.toc"));
+        var groups = new Dictionary<string, List<PayloadLocation>>(StringComparer.OrdinalIgnoreCase);
+        var casPaths = new Dictionary<(bool Patch, uint Catalog, byte Cas), string?>();
+        var unavailableFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var unavailablePayloads = 0;
+        foreach (var asset in FrostbiteAssetIndexStore.EnumerateAll())
+        {
+            var casKey = (asset.Patch, asset.Catalog, asset.Cas);
+            if (!casPaths.TryGetValue(casKey, out var path))
+            {
+                try
+                {
+                    path = FrostbitePayloadReader.ResolveCasPath(gameRoot, layout.Catalogs, asset);
+                }
+                catch (FileNotFoundException ex) when (!string.IsNullOrWhiteSpace(ex.FileName))
+                {
+                    path = null;
+                    unavailableFiles.Add(Path.GetRelativePath(gameRoot, ex.FileName));
+                }
+                casPaths[casKey] = path;
+            }
+            if (path == null) { unavailablePayloads++; continue; }
+            if (!groups.TryGetValue(path, out var locations))
+                groups[path] = locations = [];
+            locations.Add(new PayloadLocation(asset.Offset, asset.Size));
+        }
+
+        var stats = new Dictionary<(byte Method, byte MethodData), (long Blocks, long Packed, long Unpacked)>();
+        var errors = new List<string>();
+        var errorCount = 0;
+        var uniquePayloads = 0;
+        long blockCount = 0;
+        Span<byte> header = stackalloc byte[8];
+        foreach (var (path, locations) in groups)
+        {
+            locations.Sort(static (left, right) => left.Offset != right.Offset
+                ? left.Offset.CompareTo(right.Offset)
+                : left.Size.CompareTo(right.Size));
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite,
+                bufferSize: 128 * 1024, FileOptions.RandomAccess);
+            PayloadLocation? previous = null;
+            foreach (var location in locations)
+            {
+                if (previous == location) continue;
+                previous = location;
+                uniquePayloads++;
+                try
+                {
+                    if (location.Size < 8 || location.Offset > stream.Length ||
+                        location.Size > stream.Length - location.Offset)
+                        throw new InvalidDataException("Payload range lies outside its CAS file.");
+                    var cursor = (long)location.Offset;
+                    var end = cursor + location.Size;
+                    while (cursor < end)
+                    {
+                        if (end - cursor < 8)
+                            throw new InvalidDataException("Truncated Frostbite codec header.");
+                        stream.Position = cursor;
+                        stream.ReadExactly(header);
+                        var unpackedWord = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(header[..4]);
+                        var packedWord = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(header[4..]);
+                        var methodData = (byte)(unpackedWord >> 24);
+                        var unpacked = unpackedWord & 0x00FFFFFF;
+                        var method = (byte)(packedWord >> 24);
+                        var guard = (packedWord >> 20) & 0xF;
+                        var packed = packedWord & 0x000FFFFF;
+                        if (guard != 7 || packed > end - cursor - 8)
+                            throw new InvalidDataException("Invalid Frostbite codec block header.");
+                        var key = (method, methodData);
+                        stats.TryGetValue(key, out var current);
+                        stats[key] = (current.Blocks + 1, current.Packed + packed, current.Unpacked + unpacked);
+                        blockCount++;
+                        cursor += 8 + packed;
+                    }
+                    if (cursor != end)
+                        throw new InvalidDataException("Frostbite payload block boundary mismatch.");
+                }
+                catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
+                {
+                    errorCount++;
+                    if (errors.Count < 50)
+                        errors.Add($"{Path.GetFileName(path)}@0x{location.Offset:X8}+0x{location.Size:X}: {ex.Message}");
+                }
+            }
+        }
+
+        return new FrostbiteCodecAuditResult(
+            inventory.UniqueAssetCount, uniquePayloads, blockCount,
+            unavailablePayloads, unavailableFiles.OrderBy(path => path).ToArray(), errorCount,
+            stats.OrderBy(item => item.Key.Method).ThenBy(item => item.Key.MethodData)
+                .Select(item => new FrostbiteCodecMethodResult(item.Key.Method, item.Key.MethodData,
+                    item.Value.Blocks, item.Value.Packed, item.Value.Unpacked)).ToArray(),
+            errors);
+    }
+
+    /// <summary>Parses every indexed texture header and MeshSet declaration used by FC26.</summary>
+    public static FrostbiteAssetCapabilityAuditResult AuditAssetCapabilities(string gameRoot)
+    {
+        _ = EnsureIndexed(gameRoot);
+        var layout = FrostbiteLayoutReader.Read(Path.Combine(gameRoot, "Patch", "layout.toc"));
+        var textureFormats = new Dictionary<int, int>();
+        var unsupportedTextures = new Dictionary<int, int>();
+        var unsupportedVertices = new Dictionary<string, int>(StringComparer.Ordinal);
+        var errors = new List<string>();
+        var textures = 0;
+        var meshes = 0;
+        var sections = 0;
+        var unavailable = 0;
+        var errorCount = 0;
+
+        foreach (var asset in FrostbiteAssetIndexStore.EnumerateAll())
+        {
+            if (asset.Kind != FrostbiteAssetKind.Res ||
+                (asset.ResType != FrostbiteTextureExporter.TextureResType && asset.ResType != 1236358868))
+                continue;
+            try
+            {
+                var payload = FrostbitePayloadReader.ReadDecoded(gameRoot, layout.Catalogs, asset);
+                if (asset.ResType == FrostbiteTextureExporter.TextureResType)
+                {
+                    textures++;
+                    if (payload.Length < 168) throw new InvalidDataException("Texture header is truncated.");
+                    var format = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(payload.AsSpan(12, 4));
+                    textureFormats[format] = textureFormats.GetValueOrDefault(format) + 1;
+                    if (!FrostbiteTextureExporter.SupportsRenderFormat(format))
+                        unsupportedTextures[format] = unsupportedTextures.GetValueOrDefault(format) + 1;
+                    continue;
+                }
+
+                meshes++;
+                using var stream = new MemoryStream(payload, writable: false);
+                var mesh = new CM26.MeshKit.MeshSet(CM26.MeshKit.DataVersion.FC26, stream,
+                    Convert.FromHexString(asset.ResMeta));
+                foreach (var section in mesh.Lods.SelectMany(lod => lod.Sections))
+                {
+                    sections++;
+                    foreach (var decl in section.GeometryDeclDesc)
+                    foreach (var element in decl.Elements.Take(decl.ElementCount))
+                    {
+                        var supported = element.Usage switch
+                        {
+                            CM26.MeshKit.VertexElementUsage.Pos or CM26.MeshKit.VertexElementUsage.Normal =>
+                                CM26.MeshKit.SectionGeometry.SupportsVector3(element.Format),
+                            CM26.MeshKit.VertexElementUsage.TexCoord0 =>
+                                CM26.MeshKit.SectionGeometry.SupportsVector2(element.Format),
+                            CM26.MeshKit.VertexElementUsage.BoneIndices or CM26.MeshKit.VertexElementUsage.BoneIndices2 =>
+                                CM26.MeshKit.SectionGeometry.SupportsBoneIndices(element.Format),
+                            CM26.MeshKit.VertexElementUsage.BoneWeights or CM26.MeshKit.VertexElementUsage.BoneWeights2 =>
+                                CM26.MeshKit.SectionGeometry.SupportsBoneWeights(element.Format),
+                            _ => true,
+                        };
+                        if (!supported)
+                        {
+                            var key = $"{element.Usage}/{element.Format}";
+                            unsupportedVertices[key] = unsupportedVertices.GetValueOrDefault(key) + 1;
+                        }
+                    }
+                }
+            }
+            catch (FileNotFoundException)
+            {
+                unavailable++;
+            }
+            catch (Exception ex) when (ex is IOException or InvalidDataException or
+                                       ArgumentException or NotSupportedException or OverflowException)
+            {
+                errorCount++;
+                if (errors.Count < 50) errors.Add($"{asset.Name}: {ex.Message}");
+            }
+        }
+
+        return new FrostbiteAssetCapabilityAuditResult(
+            textures, new SortedDictionary<int, int>(textureFormats),
+            new SortedDictionary<int, int>(unsupportedTextures), meshes, sections,
+            new SortedDictionary<string, int>(unsupportedVertices, StringComparer.Ordinal),
+            unavailable, errorCount, errors);
+    }
+
+    /// <summary>
+    /// Exports one real installed FC26 texture for every RenderFormat present in
+    /// the indexed catalog. Used by the release gate to verify DDS export and
+    /// application-side decoding together, rather than only checking headers.
+    /// </summary>
+    public static IReadOnlyList<FrostbiteTextureSampleResult> ExportTextureFormatSamples(string gameRoot)
+    {
+        _ = EnsureIndexed(gameRoot);
+        var layout = FrostbiteLayoutReader.Read(Path.Combine(gameRoot, "Patch", "layout.toc"));
+        var samples = new SortedDictionary<int, FrostbiteTextureSampleResult>();
+        foreach (var asset in FrostbiteAssetIndexStore.EnumerateAll())
+        {
+            if (asset.Kind != FrostbiteAssetKind.Res ||
+                asset.ResType != FrostbiteTextureExporter.TextureResType)
+                continue;
+
+            var payload = FrostbitePayloadReader.ReadDecoded(gameRoot, layout.Catalogs, asset);
+            if (payload.Length < 168)
+                throw new InvalidDataException($"Texture header is truncated: {asset.Name}");
+            var format = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(payload.AsSpan(12, 4));
+            if (samples.ContainsKey(format)) continue;
+            var dds = FrostbiteTextureExporter.ExportDds(gameRoot, layout.Catalogs, asset);
+            samples.Add(format, new FrostbiteTextureSampleResult(format, asset.Name, dds));
+        }
+        return samples.Values.ToArray();
     }
 
     public static IReadOnlyList<BridgeAssetResult> SearchAssets(

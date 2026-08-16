@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using ZstdSharp;
 
 namespace CM26.AssetBridge;
 
@@ -48,7 +49,7 @@ internal static class FrostbitePayloadReader
         return Decompress(compressed, expectedSize, gameRoot);
     }
 
-    private static string ResolveCasPath(
+    internal static string ResolveCasPath(
         string root,
         IReadOnlyDictionary<uint, string> catalogs,
         FrostbiteIndexedAsset asset)
@@ -117,8 +118,8 @@ internal static class FrostbitePayloadReader
                 17 or 18 or 21 or 22 or 24 or 25 =>
                     OodleDecoder.Decode(gameRoot, block, unpackedSize),
                 15 when methodData != 0 => throw new NotSupportedException(
-                    "Dictionary-compressed ZSTD assets are not enabled yet."),
-                15 => throw new NotSupportedException("ZSTD assets are not enabled yet."),
+                    $"Dictionary-compressed ZSTD assets require dictionary {methodData}, which is unavailable."),
+                15 => DecodeZstd(block, unpackedSize),
                 _ => throw new NotSupportedException(
                     $"Unsupported Frostbite codec method {method}."),
             };
@@ -152,6 +153,16 @@ internal static class FrostbitePayloadReader
         }
         if (total != expected || zlib.ReadByte() != -1)
             throw new InvalidDataException("Zlib Frostbite block size mismatch.");
+        return result;
+    }
+
+    private static byte[] DecodeZstd(ReadOnlySpan<byte> block, int expected)
+    {
+        using var decompressor = new Decompressor();
+        var result = decompressor.Unwrap(block, expected).ToArray();
+        if (result.Length != expected)
+            throw new InvalidDataException(
+                $"ZSTD Frostbite block size mismatch: expected {expected}, decoded {result.Length}.");
         return result;
     }
 

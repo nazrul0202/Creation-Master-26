@@ -45,6 +45,39 @@ public sealed record BridgeAssetResult(
     [property: JsonPropertyName("resType")] uint ResType,
     [property: JsonPropertyName("resRid")] ulong ResRid);
 
+public sealed record FrostbiteCodecMethodResult(
+    [property: JsonPropertyName("method")] byte Method,
+    [property: JsonPropertyName("methodData")] byte MethodData,
+    [property: JsonPropertyName("blockCount")] long BlockCount,
+    [property: JsonPropertyName("packedBytes")] long PackedBytes,
+    [property: JsonPropertyName("unpackedBytes")] long UnpackedBytes);
+
+public sealed record FrostbiteCodecAuditResult(
+    [property: JsonPropertyName("indexedAssets")] int IndexedAssets,
+    [property: JsonPropertyName("uniquePayloads")] int UniquePayloads,
+    [property: JsonPropertyName("blockCount")] long BlockCount,
+    [property: JsonPropertyName("unavailablePayloads")] int UnavailablePayloads,
+    [property: JsonPropertyName("unavailableCasFiles")] IReadOnlyList<string> UnavailableCasFiles,
+    [property: JsonPropertyName("errorCount")] int ErrorCount,
+    [property: JsonPropertyName("methods")] IReadOnlyList<FrostbiteCodecMethodResult> Methods,
+    [property: JsonPropertyName("errors")] IReadOnlyList<string> Errors);
+
+public sealed record FrostbiteAssetCapabilityAuditResult(
+    [property: JsonPropertyName("textureCount")] int TextureCount,
+    [property: JsonPropertyName("textureFormats")] IReadOnlyDictionary<int, int> TextureFormats,
+    [property: JsonPropertyName("unsupportedTextureFormats")] IReadOnlyDictionary<int, int> UnsupportedTextureFormats,
+    [property: JsonPropertyName("meshCount")] int MeshCount,
+    [property: JsonPropertyName("meshSectionCount")] int MeshSectionCount,
+    [property: JsonPropertyName("unsupportedVertexFormats")] IReadOnlyDictionary<string, int> UnsupportedVertexFormats,
+    [property: JsonPropertyName("unavailableCount")] int UnavailableCount,
+    [property: JsonPropertyName("errorCount")] int ErrorCount,
+    [property: JsonPropertyName("errors")] IReadOnlyList<string> Errors);
+
+public sealed record FrostbiteTextureSampleResult(
+    [property: JsonPropertyName("renderFormat")] int RenderFormat,
+    [property: JsonPropertyName("assetName")] string AssetName,
+    [property: JsonPropertyName("ddsPath")] string DdsPath);
+
 public sealed record FrostbiteFile(
     [property: JsonPropertyName("path")] string Path,
     [property: JsonPropertyName("length")] long Length,

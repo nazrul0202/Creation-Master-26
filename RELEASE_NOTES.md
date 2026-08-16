@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.117 - FC26 Frostbite format coverage and audit release (2026-08-16)
+
+- Added exhaustive Frostbite payload auditing across every indexed FC26 asset and support for Zstandard-compressed archive blocks.
+- Corrected FC26 RenderFormat-to-DXGI mapping and rebuilt exported textures with valid DDS DX10 headers.
+- Added read-only preview decoding for all 20 texture formats present in the verified FC26 installation, including BC1-BC7, signed/unsigned BC4-BC6, sRGB and uncompressed float/UNORM formats.
+- Hardened native FC26 player-name decoding and added regression coverage for malformed and alternate text records.
+- Added real-install capability, codec and per-format texture gates; the audited installation completed with zero unavailable assets, parse failures or unsupported texture formats.
+- Retained the CM16 section-switching regression gates and verified database extraction/reload, names, rosters, formations, navigation, layout, labels, kit texture preview and mesh export before packaging.
+
 ## Version 1.0.116 - CM16 section switching and FC26 names hotfix (2026-08-16)
 
 - Fixed toolbar sections becoming a blue blank workspace after opening another section; stale Alt/Ctrl state no longer routes ordinary clicks into the collapsed auxiliary panels.

@@ -8,6 +8,26 @@ namespace CM26.MeshKit;
 /// </summary>
 public sealed class SectionGeometry
 {
+	public static bool SupportsVector3(VertexElementFormat format) =>
+		format is VertexElementFormat.Float3 or VertexElementFormat.Float4 or
+			VertexElementFormat.Half3 or VertexElementFormat.Half4;
+
+	public static bool SupportsVector2(VertexElementFormat format) =>
+		format is VertexElementFormat.Float or VertexElementFormat.Float2 or
+			VertexElementFormat.Half or VertexElementFormat.Half2;
+
+	public static bool SupportsBoneIndices(VertexElementFormat format) =>
+		format is VertexElementFormat.Byte4 or VertexElementFormat.Byte4N or
+			VertexElementFormat.UByte4 or VertexElementFormat.UByte4N or
+			VertexElementFormat.UShort2 or VertexElementFormat.UShort2N or
+			VertexElementFormat.UShort4 or VertexElementFormat.UShort4N;
+
+	public static bool SupportsBoneWeights(VertexElementFormat format) =>
+		format is VertexElementFormat.Byte4 or VertexElementFormat.Byte4N or
+			VertexElementFormat.UByte4 or VertexElementFormat.UByte4N or
+			VertexElementFormat.UByteN or VertexElementFormat.Float or
+			VertexElementFormat.Float3 or VertexElementFormat.Float4;
+
 	public List<Vector3> Positions { get; } = new();
 	public List<int[]> Triangles { get; } = new();
 	public int NormalCount { get; }

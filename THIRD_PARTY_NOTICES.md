@@ -26,22 +26,21 @@ code into its own codebase; dependencies are used as compiled libraries or read-
 | **.NET 8 runtime / SDK reference assemblies** | Microsoft | [MIT + .NET Library Licence](https://github.com/dotnet/runtime/blob/main/LICENSE.TXT) | Target framework. The **framework-dependent** build loads the shared .NET 8 Desktop Runtime, which the user installs separately (not bundled). | Framework-dependent publish; runtime not redistributed. |
 | **System.Drawing.Common** | Microsoft / .NET | MIT | Read-only image loading for standard formats (PNG/JPEG/BMP). Windows-only GDI+ wrapper. | NuGet package; MIT. |
 | **System.Text.Encoding.CodePages** | Microsoft / .NET | MIT | CP1252 decoding for locale text. | NuGet package; MIT. |
+| **BCnEncoder.Net** | [Nominom](https://github.com/Nominom/BCnEncoder.NET) | MIT OR Unlicense | Managed read-only decoding of BC1-BC7 DDS texture payloads. | NuGet package; no native dependency. |
+| **ZstdSharp.Port** | [Oleg Stepanischev](https://github.com/oleg-st/ZstdSharp) | MIT | Managed decompression of Zstandard-compressed Frostbite archive blocks. | NuGet package; no native dependency. |
 | **Open XML SDK / DocumentFormat.OpenXml** | .NET Foundation / Microsoft | MIT | Reads and writes Compdata `.xlsx` workbooks. | NuGet package; MIT. |
 | **AssimpNet / assimp** | Assimp project | BSD-3-Clause | Imported FBX scene loading in the separately packaged CM26 3D viewer. | Bundled with the 3D viewer under its licence. |
 | **HelixToolkit.SharpDX / SharpDX** | Helix Toolkit / SharpDX projects | MIT | WPF/Direct3D rendering in the separately packaged CM26 3D viewer. | Bundled with the 3D viewer under their licences. |
 | **Cyotek.Drawing.BitmapFont** | [Cyotek](https://github.com/cyotek/Cyotek.Drawing.BitmapFont) | MIT | Bitmap-font parsing used for on-screen text in the separately packaged CM26 3D viewer. | Bundled with the 3D viewer under its licence. |
 
-## 2. DDS texture decoding — self-contained (no external library)
+## 2. DDS texture decoding
 
-The miniface preview decodes **BC3/DXT5** DDS files using a **small self-contained decoder written
-for this project** (`DdsDecoder.cs`). It implements the public BC1/BC3 block-compression format
-directly in managed C#.
+The texture preview path combines project-owned uncompressed pixel conversion in `DdsDecoder.cs`
+with the managed **BCnEncoder.Net** decoder for BC1 through BC7. Exported FC26 textures use a DDS
+DX10 header with the RenderFormat-to-DXGI mapping verified against the installed game asset index.
 
 - **DirectXTexNet** (https://github.com/deng0/DirectXTexNet, MIT) was **evaluated but not bundled**.
-  Rationale: the only DDS files present in the verified local asset set are BC3/DXT5 (and BC1/DXT1),
-  which the self-contained decoder covers without taking on an external native dependency. If other
-  BC formats appear in future, the texture service reports them as *unsupported* rather than
-  mis-decoding.
+  The application instead uses a managed decoder and ships no DirectXTex native binary.
 - **CSharpImageLibrary** (https://github.com/KFreon/CSharpImageLibrary) was treated as a reference
   only (the project is archived) and is **not** bundled.
 

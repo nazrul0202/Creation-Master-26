@@ -19,13 +19,23 @@ public static class NameTextDecoder
 
     /// <summary>Returns the decoded name, or null when the bytes are not a readable name.</summary>
     public static string? Decode(byte[] bytes)
+        => DecodeCore(bytes, rejectPlaceholderMarker: true);
+
+    /// <summary>
+    /// Decodes bytes produced by the native Huffman table.  At this stage 0xC4 may be part of
+    /// valid UTF-8/CP1252 text and must not be confused with the raw database placeholder fill.
+    /// </summary>
+    public static string? DecodeHuffman(byte[] bytes)
+        => DecodeCore(bytes, rejectPlaceholderMarker: false);
+
+    private static string? DecodeCore(byte[] bytes, bool rejectPlaceholderMarker)
     {
         if (bytes.Length == 0) return null;
         // placeholder fill
         if (bytes.All(b => b == 0x20)) return null;      // spaces
         // FC26's unavailable-name marker can be mixed with a few residual bytes
         // (for example C4 C4 C4 44 C4). It is never a real CP1252 player name.
-        if (bytes.Any(b => b == 0xC4)) return null;
+        if (rejectPlaceholderMarker && bytes.Any(b => b == 0xC4)) return null;
         // A real name is mostly letters/space/punct. Try UTF-8 then CP1252.
         foreach (var enc in new[] { new UTF8Encoding(false, false), Cp1252 })
         {
@@ -66,18 +76,23 @@ public static class NameTextDecoder
 
     private static bool LooksLikeName(string s)
     {
-        int letters = 0, vowels = 0;
+        int letters = 0;
         foreach (var c in s)
         {
             if (char.IsLetter(c))
             {
                 letters++;
-                if ("aeiouAEIOUàáâäèéêëìíîïòóôöùúûü".IndexOf(c) >= 0) vowels++;
             }
-            else if (c == ' ' || c == '-' || c == '\'' || c == '.') { /* allowed */ }
+            else if (char.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                // Combining accents are valid in normalized and decomposed Unicode names.
+            }
+            else if (c == ' ' || c == '-' || c == '\'' || c == '\u2019' || c == '.') { /* allowed */ }
             else return false; // digits/symbols => not a name
         }
-        // must be mostly letters and contain at least one vowel to be a plausible name
-        return letters >= s.Length * 0.6 && vowels >= 1;
+        // Name alphabets are not limited to Latin and some valid Latin names have no traditional
+        // vowel.  Requiring letters plus tightly controlled separators rejects cipher noise while
+        // retaining names in every FC26 locale.
+        return letters >= 1 && letters >= s.Length * 0.6;
     }
 }

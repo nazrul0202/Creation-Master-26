@@ -167,7 +167,7 @@ public static class NativeHuffmanDecoder
                 }
                 if (decoded.Count > 0 && nameId > 0)
                 {
-                    var text = NameTextDecoder.Decode(decoded.ToArray());
+                    var text = NameTextDecoder.DecodeHuffman(decoded.ToArray());
                     if (!string.IsNullOrWhiteSpace(text))
                         map[nameId] = text;
                 }

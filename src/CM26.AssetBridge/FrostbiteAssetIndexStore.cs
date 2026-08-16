@@ -84,6 +84,14 @@ internal static class FrostbiteAssetIndexStore
         return count;
     }
 
+    public static IEnumerable<FrostbiteIndexedAsset> EnumerateAll()
+    {
+        using var reader = OpenReader(out var count, out _, out var tablePosition);
+        reader.BaseStream.Position = checked(tablePosition + (long)count * sizeof(long));
+        for (var i = 0; i < count; i++)
+            yield return ReadAsset(reader);
+    }
+
     public static IReadOnlyList<FrostbiteIndexedAsset> Search(
         string query, FrostbiteAssetKind? kind, int maximum)
     {

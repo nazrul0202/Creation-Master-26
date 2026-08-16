@@ -1,14 +1,16 @@
+using System.Buffers.Binary;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using BCnEncoder.Decoder;
+using BCnEncoder.Shared;
 
 namespace CM26.Application.Services;
 
 /// <summary>
-/// Minimal, self-contained DDS (DirectDraw Surface) decoder supporting the BC formats actually
-/// present in the local FC26 asset set. Only BC3/DXT5 (and BC1/DXT1 for safety) are decoded;
-/// anything else is reported as unsupported rather than mis-decoded. Pure managed code — no
-/// native DirectXTex dependency. Read-only; never writes to the source file.
+/// DDS decoder for the complete set of DirectX texture formats currently present in FC26.
+/// BC1-BC7 decoding is pure managed code; common uncompressed/HDR DXGI formats are converted
+/// locally. Read-only; never writes to the source file.
 /// </summary>
 internal static class DdsDecoder
 {
@@ -29,6 +31,7 @@ internal static class DdsDecoder
         public bool HasAlpha;
         public bool IsSupported;
         public int DataOffset;     // offset of first mip level
+        public uint DxgiFormat;
     }
 
     /// <summary>Parse the 128-byte DDS header. Returns false if not a valid DDS.</summary>
@@ -52,7 +55,15 @@ internal static class DdsDecoder
         {
             if (fourCc == FourCc("DXT5")) { info.Format = "DXT5"; info.HasAlpha = true; info.IsSupported = true; }
             else if (fourCc == FourCc("DXT1")) { info.Format = "DXT1"; info.IsSupported = true; }
-            else if (fourCc == FourCc("DX10")) { info.Format = "DX10"; info.IsSupported = false; }
+            else if (fourCc == FourCc("DX10"))
+            {
+                if (bytes.Length < 148) return false;
+                info.DataOffset = 148;
+                info.DxgiFormat = BitConverter.ToUInt32(bytes, 128);
+                info.Format = DxgiName(info.DxgiFormat);
+                info.IsSupported = IsSupportedDxgi(info.DxgiFormat);
+                info.HasAlpha = info.DxgiFormat is 2 or 10 or 11 or 24 or 28 or 29 or 74 or 75 or 77 or 78 or 98 or 99;
+            }
             else { info.Format = "FOURCC:" + FourCcToString(fourCc); info.IsSupported = false; }
         }
         else if ((pfFlags & DdpfRgb) != 0)
@@ -69,6 +80,23 @@ internal static class DdsDecoder
         }
         return info.Width > 0 && info.Height > 0;
     }
+
+    private static bool IsSupportedDxgi(uint format) =>
+        format is 2 or 10 or 11 or 24 or 28 or 29 or 35 or 56 or 61 or 67
+            or 71 or 72 or 74 or 75 or 77 or 78 or 80 or 83 or 95 or 96 or 98 or 99;
+
+    private static string DxgiName(uint format) => format switch
+    {
+        2 => "R32G32B32A32_FLOAT", 10 => "R16G16B16A16_FLOAT",
+        11 => "R16G16B16A16_UNORM", 24 => "R10G10B10A2_UNORM",
+        28 => "R8G8B8A8_UNORM", 29 => "R8G8B8A8_UNORM_SRGB",
+        35 => "R16G16_UNORM", 56 => "R16_UNORM", 61 => "R8_UNORM",
+        67 => "R9G9B9E5_SHAREDEXP", 71 => "BC1_UNORM", 72 => "BC1_UNORM_SRGB",
+        74 => "BC2_UNORM", 75 => "BC2_UNORM_SRGB", 77 => "BC3_UNORM",
+        78 => "BC3_UNORM_SRGB", 80 => "BC4_UNORM", 83 => "BC5_UNORM",
+        95 => "BC6H_UF16", 96 => "BC6H_SF16", 98 => "BC7_UNORM",
+        99 => "BC7_UNORM_SRGB", _ => $"DXGI_{format}",
+    };
 
     private static string FourCcToString(uint v) =>
         new(new[] { (char)(v & 0xFF), (char)((v >> 8) & 0xFF), (char)((v >> 16) & 0xFF), (char)((v >> 24) & 0xFF) });
@@ -93,7 +121,14 @@ internal static class DdsDecoder
                 case "DXT5": DecodeBc3(bytes, info.DataOffset, w, h, dest, stride, ct); break;
                 case "DXT1": DecodeBc1(bytes, info.DataOffset, w, h, dest, stride, ct); break;
                 case "A8R8G8B8": CopyBgra32(bytes, info.DataOffset, w, h, dest, stride); break;
-                default: bmp.UnlockBits(data); unlocked = true; bmp.Dispose(); return null;
+                default:
+                    if (info.DxgiFormat != 0)
+                        DecodeDxgi(bytes, info, dest, stride, ct);
+                    else
+                    {
+                        bmp.UnlockBits(data); unlocked = true; bmp.Dispose(); return null;
+                    }
+                    break;
             }
             Marshal.Copy(dest, 0, data.Scan0, dest.Length);
         }
@@ -104,6 +139,152 @@ internal static class DdsDecoder
         }
         return bmp;
     }
+
+    private static void DecodeDxgi(byte[] bytes, in DdsInfo info, byte[] dest, int stride, CancellationToken ct)
+    {
+        var payloadLength = bytes.Length - info.DataOffset;
+        if (payloadLength <= 0) throw new InvalidDataException("DDS texture has no pixel payload.");
+        var payload = new byte[payloadLength];
+        Buffer.BlockCopy(bytes, info.DataOffset, payload, 0, payloadLength);
+        var compression = info.DxgiFormat switch
+        {
+            71 or 72 => CompressionFormat.Bc1,
+            74 or 75 => CompressionFormat.Bc2,
+            77 or 78 => CompressionFormat.Bc3,
+            80 => CompressionFormat.Bc4,
+            83 => CompressionFormat.Bc5,
+            95 => CompressionFormat.Bc6U,
+            96 => CompressionFormat.Bc6S,
+            98 or 99 => CompressionFormat.Bc7,
+            _ => CompressionFormat.Unknown,
+        };
+
+        if (compression is CompressionFormat.Bc6U or CompressionFormat.Bc6S)
+        {
+            ct.ThrowIfCancellationRequested();
+            var pixels = new BcDecoder().DecodeRawHdr(payload, info.Width, info.Height, compression);
+            for (var i = 0; i < pixels.Length; i++)
+            {
+                if ((i & 0x3fff) == 0) ct.ThrowIfCancellationRequested();
+                WritePixel(dest, stride, i % info.Width, i / info.Width, new Rgba
+                {
+                    R = FloatToDisplayByte(pixels[i].r),
+                    G = FloatToDisplayByte(pixels[i].g),
+                    B = FloatToDisplayByte(pixels[i].b), A = 255,
+                });
+            }
+            return;
+        }
+
+        if (compression != CompressionFormat.Unknown)
+        {
+            ct.ThrowIfCancellationRequested();
+            var pixels = new BcDecoder().DecodeRaw(payload, info.Width, info.Height, compression);
+            for (var i = 0; i < pixels.Length; i++)
+            {
+                if ((i & 0x3fff) == 0) ct.ThrowIfCancellationRequested();
+                var p = pixels[i];
+                WritePixel(dest, stride, i % info.Width, i / info.Width,
+                    new Rgba { R = p.r, G = p.g, B = p.b, A = p.a });
+            }
+            return;
+        }
+
+        DecodeUncompressedDxgi(payload, info.DxgiFormat, info.Width, info.Height, dest, stride, ct);
+    }
+
+    private static void DecodeUncompressedDxgi(
+        byte[] src, uint format, int width, int height, byte[] dest, int stride, CancellationToken ct)
+    {
+        var bytesPerPixel = format switch
+        {
+            61 => 1, 56 => 2, 24 or 28 or 29 or 35 or 67 => 4,
+            10 or 11 => 8, 2 => 16,
+            _ => throw new NotSupportedException($"DXGI format {format} cannot be previewed."),
+        };
+        if ((long)width * height * bytesPerPixel > src.Length)
+            throw new InvalidDataException("DDS uncompressed payload is truncated.");
+
+        for (var y = 0; y < height; y++)
+        {
+            ct.ThrowIfCancellationRequested();
+            for (var x = 0; x < width; x++)
+            {
+                var offset = (y * width + x) * bytesPerPixel;
+                var color = format switch
+                {
+                    61 => Gray(src[offset]),
+                    56 => Gray(ToByte(BinaryPrimitives.ReadUInt16LittleEndian(src.AsSpan(offset, 2)) / 65535f)),
+                    28 or 29 => new Rgba { R = src[offset], G = src[offset + 1], B = src[offset + 2], A = src[offset + 3] },
+                    24 => DecodeRgb10A2(BinaryPrimitives.ReadUInt32LittleEndian(src.AsSpan(offset, 4))),
+                    35 => new Rgba
+                    {
+                        R = ToByte(BinaryPrimitives.ReadUInt16LittleEndian(src.AsSpan(offset, 2)) / 65535f),
+                        G = ToByte(BinaryPrimitives.ReadUInt16LittleEndian(src.AsSpan(offset + 2, 2)) / 65535f), B = 0, A = 255,
+                    },
+                    67 => DecodeRgb9E5(BinaryPrimitives.ReadUInt32LittleEndian(src.AsSpan(offset, 4))),
+                    10 => DecodeRgba16Float(src, offset),
+                    11 => DecodeRgba16Unorm(src, offset),
+                    2 => DecodeRgba32Float(src, offset),
+                    _ => default,
+                };
+                WritePixel(dest, stride, x, y, color);
+            }
+        }
+    }
+
+    private static Rgba Gray(byte value) => new() { R = value, G = value, B = value, A = 255 };
+
+    private static Rgba DecodeRgb10A2(uint value) => new()
+    {
+        R = ToByte((value & 0x3ff) / 1023f), G = ToByte(((value >> 10) & 0x3ff) / 1023f),
+        B = ToByte(((value >> 20) & 0x3ff) / 1023f), A = ToByte(((value >> 30) & 0x3) / 3f),
+    };
+
+    private static Rgba DecodeRgb9E5(uint value)
+    {
+        var scale = MathF.Pow(2, ((value >> 27) & 0x1f) - 24);
+        return new Rgba
+        {
+            R = FloatToDisplayByte((value & 0x1ff) * scale),
+            G = FloatToDisplayByte(((value >> 9) & 0x1ff) * scale),
+            B = FloatToDisplayByte(((value >> 18) & 0x1ff) * scale), A = 255,
+        };
+    }
+
+    private static Rgba DecodeRgba16Float(byte[] src, int offset) => new()
+    {
+        R = FloatToDisplayByte((float)BitConverter.UInt16BitsToHalf(BinaryPrimitives.ReadUInt16LittleEndian(src.AsSpan(offset, 2)))),
+        G = FloatToDisplayByte((float)BitConverter.UInt16BitsToHalf(BinaryPrimitives.ReadUInt16LittleEndian(src.AsSpan(offset + 2, 2)))),
+        B = FloatToDisplayByte((float)BitConverter.UInt16BitsToHalf(BinaryPrimitives.ReadUInt16LittleEndian(src.AsSpan(offset + 4, 2)))),
+        A = ToByte((float)BitConverter.UInt16BitsToHalf(BinaryPrimitives.ReadUInt16LittleEndian(src.AsSpan(offset + 6, 2)))),
+    };
+
+    private static Rgba DecodeRgba16Unorm(byte[] src, int offset) => new()
+    {
+        R = ToByte(BinaryPrimitives.ReadUInt16LittleEndian(src.AsSpan(offset, 2)) / 65535f),
+        G = ToByte(BinaryPrimitives.ReadUInt16LittleEndian(src.AsSpan(offset + 2, 2)) / 65535f),
+        B = ToByte(BinaryPrimitives.ReadUInt16LittleEndian(src.AsSpan(offset + 4, 2)) / 65535f),
+        A = ToByte(BinaryPrimitives.ReadUInt16LittleEndian(src.AsSpan(offset + 6, 2)) / 65535f),
+    };
+
+    private static Rgba DecodeRgba32Float(byte[] src, int offset) => new()
+    {
+        R = FloatToDisplayByte(BitConverter.ToSingle(src, offset)),
+        G = FloatToDisplayByte(BitConverter.ToSingle(src, offset + 4)),
+        B = FloatToDisplayByte(BitConverter.ToSingle(src, offset + 8)),
+        A = ToByte(BitConverter.ToSingle(src, offset + 12)),
+    };
+
+    private static byte FloatToDisplayByte(float value)
+    {
+        if (!float.IsFinite(value) || value <= 0) return 0;
+        var mapped = value / (1f + value);
+        return ToByte(MathF.Pow(mapped, 1f / 2.2f));
+    }
+
+    private static byte ToByte(float value) =>
+        (byte)Math.Clamp((int)MathF.Round(value * 255f), 0, 255);
 
     private static void CopyBgra32(byte[] src, int srcOffset, int w, int h, byte[] dest, int stride)
     {

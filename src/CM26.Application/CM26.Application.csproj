@@ -12,8 +12,9 @@
 
   <ItemGroup>
     <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
-    <!-- Read-only texture preview (PNG/JPEG via GDI+, DDS via self-contained decoder). Windows-only. -->
+    <!-- Read-only texture preview (PNG/JPEG via GDI+, DDS via managed decoders). Windows-only. -->
     <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+    <PackageReference Include="BCnEncoder.Net" Version="2.3.0" />
   </ItemGroup>
 
   <ItemGroup>

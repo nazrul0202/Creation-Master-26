@@ -1,6 +1,6 @@
 {
-  "version": "1.0.116",
+  "version": "1.0.117",
   "name": "Creation Master 26",
-  "notes": "v1.0.116 - Fix blank section switching and load real FC26 league and decoded player names through the Frostbite bridge.",
+  "notes": "v1.0.117 - Complete Frostbite payload and texture decoding coverage verified against the installed FC26 asset index.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

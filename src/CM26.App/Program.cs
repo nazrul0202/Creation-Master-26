@@ -212,6 +212,24 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--codec-audit")
+        {
+            Environment.ExitCode = HeadlessSmoke.CodecAudit(args.Length >= 2 ? args[1] : null);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--asset-capability-audit")
+        {
+            Environment.ExitCode = HeadlessSmoke.AssetCapabilityAudit(args.Length >= 2 ? args[1] : null);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--texture-format-audit")
+        {
+            Environment.ExitCode = HeadlessSmoke.TextureFormatAudit(args.Length >= 2 ? args[1] : null);
+            return;
+        }
+
         // Render every editor tab to PNG for human visual QA. The optional
         // game root enables installed Frostbite previews during the capture.
         if (args.Length >= 3 && args[0] == "--visual-audit")
