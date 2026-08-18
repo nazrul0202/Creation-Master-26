@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.120 - Studio direct Save (CM16 method) (2026-08-18)
+
+- Wired the CM26.Studio (WPF) Save command to the same direct FC26 Data/Patch transaction engine the WinForms shell uses, so Save now commits edits to the live game instead of only the local session copy.
+- Save follows the CM16 method end to end: staged edits are validated, the database is rebuilt with fresh layout and CRCs, written through the verified Frostbite transaction (signed TOCs, atomic commit, automatic rollback), and the editor reloads from the freshly written archives so the game runs with the edits applied.
+- Guard rails match the WinForms flow: FC26 must be closed, the CmModData backup must be verified and the live baseline must match before any write is attempted.
+- The locale database (`eng_us.db`) is only shipped when locale strings were actually edited, matching the established FMM-safe staging rule.
+- Moved `LegacyAssetModService` into the shared `CM26.Application` layer so both shells stage replacements through one implementation.
+
 ## Version 1.0.119 - FC26 face and kit 3D FBX viewer update (2026-08-16)
 
 - Added accent-insensitive player search so names such as Benjamin Šeško can be found with either accented or plain text.

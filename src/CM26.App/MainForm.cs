@@ -784,7 +784,8 @@ if (choice == DialogResult.No)
             var project = await Task.Run(() => CM26ModPackageService.ExportProject(
                 dialog.FileName,
                 Path.GetFileNameWithoutExtension(dialog.FileName),
-                _services.LegacyMods.GetModPayloads()));
+                _services.LegacyMods.GetModPayloads()
+                    .Select(item => new CM26ModPackageService.Payload(item.LegacyPath, item.SourcePath))));
             _services.Pending.MarkSaved();
             SetStatus($"CM26 project exported: {project.Payloads.Length} payload(s).");
             MessageBox.Show(this,

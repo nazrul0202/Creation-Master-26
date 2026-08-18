@@ -1,6 +1,6 @@
 {
-  "version": "1.0.119",
+  "version": "1.0.120",
   "name": "Creation Master 26",
-  "notes": "v1.0.119 - Added accent-insensitive player search and verified FC26 FBX mesh export/viewing for player faces and team kits.",
+  "notes": "v1.0.120 - Studio Save now commits staged edits through the verified direct FC26 Data/Patch transaction and reloads the live archives, so the game runs with the edits applied.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

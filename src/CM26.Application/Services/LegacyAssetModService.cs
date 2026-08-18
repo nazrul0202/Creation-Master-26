@@ -3,7 +3,7 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 
-namespace CM26.App;
+namespace CM26.Application.Services;
 
 /// <summary>
 /// Keeps pending asset edits in a CM26-owned workspace until Save commits them
@@ -25,10 +25,9 @@ public sealed class LegacyAssetModService
     public event EventHandler? Changed;
 
     /// <summary>Snapshot of payloads for a portable CM26 mod package.</summary>
-    public IReadOnlyList<CM26ModPackageService.Payload> GetModPayloads() =>
+    public IReadOnlyList<Replacement> GetModPayloads() =>
         _replacements.Values
             .OrderBy(item => item.LegacyPath, StringComparer.OrdinalIgnoreCase)
-            .Select(item => new CM26ModPackageService.Payload(item.LegacyPath, item.SourcePath))
             .ToArray();
 
     public void Open(string fingerprint)
@@ -50,7 +49,7 @@ public sealed class LegacyAssetModService
                         _replacements[item.LegacyPath] = item;
             }
         }
-        catch (Exception ex) { Program.Log($"[CM26] Failed to load legacy edit state: {ex.Message}"); /* A corrupt optional edit state starts empty. */ }
+        catch (Exception ex) { Cm26Log.Write($"Failed to load legacy edit state: {ex.Message}"); /* A corrupt optional edit state starts empty. */ }
         Changed?.Invoke(this, EventArgs.Empty);
     }
 

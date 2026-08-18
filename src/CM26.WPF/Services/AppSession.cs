@@ -15,12 +15,17 @@ public sealed class AppSession : IDisposable
     public DatabaseSession Database { get; } = new();
     public FrostbiteAssetSession FrostbiteAssets { get; } = new();
     public PendingChangesService Pending { get; }
-    public SectionDataService Sections { get; }
+    public SectionDataService Sections { get; private set; }
+    public ValidationService Validation { get; }
+    public SaveService Save { get; }
+    public LegacyAssetModService LegacyMods { get; } = new();
 
     public AppSession()
     {
         Pending = new PendingChangesService(Database);
         Sections = new SectionDataService(Database, new NameResolverService(Database), Pending);
+        Validation = new ValidationService(Database);
+        Save = new SaveService(Database);
     }
 
     /// <summary>
@@ -57,6 +62,8 @@ public sealed class AppSession : IDisposable
             SettingsService.FC26GameFolder = workspace.GameRoot;
             progress?.Report("Building editor indexes.");
             Database.Load(workspace.DatabaseFolder);
+            RebuildSections();
+            LegacyMods.Open(FrostbiteAssets.Fingerprint);
             message = "FC26 database loaded for direct editing: " + workspace.GameRoot;
             return true;
         }
@@ -74,6 +81,7 @@ public sealed class AppSession : IDisposable
         {
             var workspace = Fc26WorkspaceService.Open(FrostbiteAssets);
             Database.Load(workspace.DatabaseFolder);
+            RebuildSections();
             message = "Database reloaded from the FC26 archives.";
             return true;
         }
@@ -83,6 +91,13 @@ public sealed class AppSession : IDisposable
             return false;
         }
     }
+
+    /// <summary>
+    /// Name maps and section caches are built eagerly against the loaded
+    /// database, so they must be rebuilt after every (re)load.
+    /// </summary>
+    private void RebuildSections() =>
+        Sections = new SectionDataService(Database, new NameResolverService(Database), Pending);
 
     public void Dispose()
     {
