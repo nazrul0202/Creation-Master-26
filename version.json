@@ -1,6 +1,6 @@
 {
-  "version": "1.0.120",
+  "version": "1.0.121",
   "name": "Creation Master 26",
-  "notes": "v1.0.120 - Studio Save now commits staged edits through the verified direct FC26 Data/Patch transaction and reloads the live archives, so the game runs with the edits applied.",
+  "notes": "v1.0.121 - Fixed the legacy CM16 editor saving a league rename: decode artifacts in player names are no longer staged as phantom edits, so Save completes verification.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

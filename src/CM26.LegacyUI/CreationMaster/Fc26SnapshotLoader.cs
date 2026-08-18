@@ -15,6 +15,10 @@ internal static class Fc26SnapshotLoader
     private static Snapshot? s_snapshot;
     private static readonly Dictionary<object, List<RowOrigin>> s_rowOrigins =
         new Dictionary<object, List<RowOrigin>>(ReferenceComparer.Instance);
+    /// <summary>nameid -> resolved display name recorded at snapshot load. Used to
+    /// detect genuine user edits; decode artifacts must never be staged as edits.</summary>
+    private static readonly Dictionary<int, string> s_loadedPlayerNames =
+        new Dictionary<int, string>();
 
     internal static void Load(string path)
     {
@@ -25,6 +29,7 @@ internal static class Fc26SnapshotLoader
         var tables = snapshot.Tables.ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);
         s_snapshot = snapshot;
         s_rowOrigins.Clear();
+        s_loadedPlayerNames.Clear();
 
         var countries = Build<CountryList, Country>(tables, "nations", "nationid");
         var leagues = Build<LeagueList, League>(tables, "leagues", "leagueid");
@@ -232,6 +237,13 @@ internal static class Fc26SnapshotLoader
         {
             if (nameId <= 0 || !rowsById.TryGetValue(nameId, out var rowIndex)) return;
             var desired = value ?? string.Empty;
+            // Only stage names the user actually changed. Comparing against the
+            // load-time resolution (not the raw snapshot text) avoids staging
+            // decode artifacts (U+FFFD, control chars, LookBook rows) as fake
+            // playername edits, which then fail reload verification.
+            if (s_loadedPlayerNames.TryGetValue(nameId, out var loaded) &&
+                string.Equals(loaded, desired, StringComparison.Ordinal))
+                return;
             if (desiredByRow.TryGetValue(rowIndex, out var existing) &&
                 !string.Equals(existing, desired, StringComparison.Ordinal))
                 throw new InvalidOperationException(
@@ -505,7 +517,11 @@ internal static class Fc26SnapshotLoader
 
             if (string.IsNullOrWhiteSpace(player.firstname) && string.IsNullOrWhiteSpace(player.lastname) &&
                 string.IsNullOrWhiteSpace(player.commonname))
+            {
                 player.commonname = "Player " + player.Id.ToString(CultureInfo.InvariantCulture);
+                if (fields.TryGetValue("m_commonnameid", out var commonId) && commonId.GetValue(player) is int nameId)
+                    s_loadedPlayerNames[nameId] = player.commonname;
+            }
         }
     }
 
@@ -522,7 +538,9 @@ internal static class Fc26SnapshotLoader
     {
         if (!fields.TryGetValue(idField, out var source) || !fields.TryGetValue(textField, out var target)) return;
         var id = (int)(source.GetValue(player) ?? 0);
-        target.SetValue(player, names.TryGetValue(id, out var value) ? value : string.Empty);
+        var value = names.TryGetValue(id, out var resolved) ? resolved : string.Empty;
+        target.SetValue(player, value);
+        if (id > 0) s_loadedPlayerNames[id] = value;
     }
 
     private static void LinkCore(Dictionary<string, TableSnapshot> tables, CountryList countries,

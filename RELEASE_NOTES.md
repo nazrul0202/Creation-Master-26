@@ -1,5 +1,10 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.121 - legacy editor league save hotfix (2026-08-18)
+
+- Fixed saving after editing a league (or any single record) in the CM16-style editor: the save plan incorrectly included up to dozens of untouched `playernames` entries because decoded name artifacts (replacement characters, control characters, internal `LookBook` rows) were compared against raw database text and staged as phantom edits, which then failed reload verification with `FC26 reload verification failed: playername[...]`.
+- Player-name staging now compares against the name resolved at load time, so only names the user actually edited are written; verified headless against a real FC26 snapshot (45 phantom edits before, 0 after, genuine league edits unaffected).
+
 ## Version 1.0.120 - Studio direct Save (CM16 method) (2026-08-18)
 
 - Wired the CM26.Studio (WPF) Save command to the same direct FC26 Data/Patch transaction engine the WinForms shell uses, so Save now commits edits to the live game instead of only the local session copy.
