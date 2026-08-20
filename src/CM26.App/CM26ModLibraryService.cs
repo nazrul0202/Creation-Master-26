@@ -15,8 +15,6 @@ public static class CM26ModLibraryService
 
     private static string ResolveRoot()
     {
-        var legacy = @"D:\CM26 Mod Manager";
-        if (Directory.Exists(legacy)) return legacy;
         return Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Creation Master 26", "ModManager");

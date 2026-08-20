@@ -1,5 +1,15 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.124 - team budget fix and release audit cleanup (2026-08-20)
+
+- Fixed every team showing a 1,000,000 transfer budget in the legacy CM16-style editor: FC26 removed `teams.transferbudget` from the schema entirely (career budgets now live in `career_managerpref`), so the legacy reader fell back to its constructor default. The Team load/save paths now map the legacy budget field onto `teams.clubworth` (the nearest per-team financial column FC26 actually has) for both read and write.
+- The same fix prevents a latent crash/corruption risk on save: the legacy Team save wrote through the missing column index (-1), which throws IndexOutOfRange when the schema lacks `transferbudget`.
+- Added a read-only `--mesh-search <gameRoot> <query>` headless probe that lists indexed FC26 MeshSet names (diagnostics for kit-mesh naming work).
+- Release audit cleanup: removed the legacy hardcoded `D:\CM26 Mod Manager` fallback path so state always lives under `%LocalAppData%\Creation Master 26\ModManager`.
+- Hardened previously silent `catch` blocks (CAS rollback, transaction folder cleanup, studio-crash.log fallback) with `Debug.WriteLine` diagnostics so recovery failures are never invisible.
+- `LaunchWithDataPath` now verifies the overlay folder contains `Data` and `Patch` before launching FC26, preventing a confusing launch failure when the mod data folder has not been built.
+- Synchronised INSTALLATION.md, KNOWN_LIMITATIONS.md and README version references and checksum filenames to 1.0.124.
+
 ## Version 1.0.123 - league logos, transfers, pickers and FBX face export (2026-08-19)
 
 - League logo replacement now works in both shells: Import/Remove/Export buttons stage the same image into every FC26 league-logo family (`league/light` 256x256, `league512x128/light` 512x128, `leaguelogos_tiny/light` 200x64) through the shared `LeagueLogoCatalog`, and preview checks staged replacements before falling back to the installed asset.

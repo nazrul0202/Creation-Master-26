@@ -117,6 +117,9 @@ public static class CM26ModLaunchService
         var name = Path.GetFileName(dataPath.Trim().TrimEnd('/', '\\'));
         if (string.IsNullOrWhiteSpace(name))
             return (false, "A mod data folder name is required (for example FIFAModData or CM26ModData).");
+        var overlay = Path.Combine(root, name);
+        if (!Directory.Exists(Path.Combine(overlay, "Data")) || !Directory.Exists(Path.Combine(overlay, "Patch")))
+            return (false, $"The mod data folder '{name}' does not contain Data and Patch. Build it before launching.");
         return Launch(root, "-dataPath " + name);
     }
 

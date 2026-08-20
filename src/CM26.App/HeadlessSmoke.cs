@@ -552,6 +552,31 @@ internal static class HeadlessSmoke
         }
     }
 
+    /// <summary>Read-only MeshSet name search: prints indexed mesh names matching a query.</summary>
+    public static int MeshSearch(string gameRoot, string query)
+    {
+        try
+        {
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+            var matches = assets.SearchAssets(query, "Res", 500)
+                .Where(m => m.ResType == FrostbiteAssetSession.MeshSetResourceType)
+                .Take(60)
+                .ToList();
+            Console.WriteLine($"MeshSets matching '{query}': {matches.Count} (of 500 scanned)");
+            foreach (var match in matches)
+                Console.WriteLine("  " + match.Name);
+            Console.WriteLine("MESH SEARCH OK");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("MESH SEARCH FAILED: " + ex);
+            return 46;
+        }
+    }
+
     private static int CountOccurrences(string text, string needle)
     {
         var count = 0;

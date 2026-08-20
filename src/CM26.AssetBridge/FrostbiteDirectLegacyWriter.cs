@@ -429,7 +429,12 @@ internal static class FrostbiteDirectLegacyWriter
         finally
         {
             try { if (Directory.Exists(transaction)) Directory.Delete(transaction, recursive: true); }
-            catch { /* A stale transaction folder is safe and can be cleaned later. */ }
+            catch (Exception cleanupEx)
+            {
+                // A stale transaction folder is safe and can be cleaned later,
+                // but record it so it is not invisible in diagnostics.
+                System.Diagnostics.Debug.WriteLine($"[CM26] Transaction cleanup failed: {cleanupEx.Message}");
+            }
         }
     }
 
@@ -701,7 +706,12 @@ internal static class FrostbiteDirectLegacyWriter
                     stream.SetLength(length);
                     stream.Flush(flushToDisk: true);
                 }
-                catch { /* CmModData remains the final recovery source. */ }
+                catch (Exception rollbackEx)
+                {
+                    // CmModData remains the final recovery source, but never lose
+                    // the fact that a rollback step itself failed.
+                    System.Diagnostics.Debug.WriteLine($"[CM26] CAS rollback failed for {cas}: {rollbackEx.Message}");
+                }
             }
             throw;
         }

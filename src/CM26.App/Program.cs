@@ -202,6 +202,13 @@ internal static class Program
             return;
         }
 
+        // FC26 MeshSet name search, read-only: "--mesh-search <gameRoot> <query>"
+        if (args.Length >= 3 && args[0] == "--mesh-search")
+        {
+            Environment.ExitCode = HeadlessSmoke.MeshSearch(args[1], args[2]);
+            return;
+        }
+
         // Player-list performance test: "--perf <dbFolder>"
         if (args.Length >= 2 && args[0] == "--perf")
         {

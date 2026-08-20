@@ -1,13 +1,10 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.117 (MIT License), 2026-08-16.
+Status: Version 1.0.124 (MIT License), 2026-08-20.
 
 ## User interface
 
-The primary interface is the CM16-style fixed-layout shell backed by FC26 data. Section switching,
-navigation and layout are covered by automated real-database regression tests. Exotic DPI settings,
-non-default Windows font scaling or very small window sizes may still differ from the reference
-1920x1080 CM16 layout.
+The v1.0.106 Studio rebuild replaces the legacy fixed-layout sections with a shared dark-card design system. Every section now uses `StudioCard`, `StudioToolbar` and related controls. Layouts were verified at common desktop resolutions, but exotic DPI combinations or very small window sizes may still need refinement. All business logic (staging, save, validation, asset loading, formation editing) was preserved.
 
 ## Direct editing
 
@@ -67,10 +64,10 @@ present in the installed FC26 banks.
 
 ## 3D
 
-The packaged renderer displays exported FBX models and associated textures. CM26 can parse and
-export supported installed Frostbite MeshSet geometry; the verified FC26 asset audit found no
-unsupported mesh section layouts. Some animated/skinned presentation features still depend on
-the separate viewer and game-specific skeleton/material information.
+The packaged renderer displays exported FBX models and associated textures.
+Player face folders are auto-detected by `headclasscode`/`playerid` when an
+export exists. CM26 does not yet convert an installed Frostbite skinned mesh to
+FBX itself, so a face with no extracted FBX cannot be rendered in 3D.
 
 ## Transfermarkt and local scraper
 

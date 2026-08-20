@@ -2337,7 +2337,14 @@ public class Team : IdObject
 	{
 		m_assetid = base.Id;
 		m_teamname = r.StringField[td.GetFieldIndex("teamname")];
-		m_transferbudget = r.GetAndCheckIntField(td.GetFieldIndex("transferbudget"));
+		// FC26 removed teams.transferbudget from the schema. The nearest
+		// equivalent stored per team is clubworth, so map it onto the legacy
+		// field instead of falling back to the 1,000,000 constructor default.
+		int transferBudgetIndex = td.GetFieldIndex("transferbudget");
+		if (transferBudgetIndex >= 0)
+			m_transferbudget = r.GetAndCheckIntField(transferBudgetIndex);
+		else
+			m_transferbudget = r.GetAndCheckIntField(td.GetFieldIndex("clubworth"));
 		m_domesticprestige = r.GetAndCheckIntField(td.GetFieldIndex("domesticprestige"));
 		m_internationalprestige = r.GetAndCheckIntField(td.GetFieldIndex("internationalprestige"));
 		m_rivalteam = r.GetAndCheckIntField(td.GetFieldIndex("rivalteam"));
@@ -2457,8 +2464,18 @@ public class Team : IdObject
 	{
 		m_assetid = base.Id;
 		m_teamname = r.StringField[FI.teams_teamname];
-		m_transferbudget = r.GetAndCheckIntField(FI.teams_transferbudget);
-		m_transferbudget = m_transferbudget / 1000 * 1000;
+		// FC26 removed teams.transferbudget from the schema (career budgets now
+		// live in career_managerpref). Fall back to clubworth so the legacy
+		// editor shows the real per-team value instead of the 1,000,000 default.
+		if (FI.teams_transferbudget >= 0)
+		{
+			m_transferbudget = r.GetAndCheckIntField(FI.teams_transferbudget);
+			m_transferbudget = m_transferbudget / 1000 * 1000;
+		}
+		else if (FI.teams_clubworth >= 0)
+		{
+			m_transferbudget = r.GetAndCheckIntField(FI.teams_clubworth);
+		}
 		m_domesticprestige = r.GetAndCheckIntField(FI.teams_domesticprestige);
 		m_internationalprestige = r.GetAndCheckIntField(FI.teams_internationalprestige);
 		m_rivalteam = r.GetAndCheckIntField(FI.teams_rivalteam);
@@ -2860,7 +2877,12 @@ public class Team : IdObject
 		r.IntField[FI.teams_assetid] = m_assetid;
 		_ = m_assetid;
 		_ = base.Id;
-		r.IntField[FI.teams_transferbudget] = m_transferbudget;
+		// FC26 removed teams.transferbudget; write to clubworth (the nearest
+		// per-team financial field) when the legacy column is not in the schema.
+		if (FI.teams_transferbudget >= 0)
+			r.IntField[FI.teams_transferbudget] = m_transferbudget;
+		else if (FI.teams_clubworth >= 0)
+			r.IntField[FI.teams_clubworth] = m_transferbudget;
 		r.IntField[FI.teams_internationalprestige] = m_internationalprestige;
 		r.IntField[FI.teams_domesticprestige] = m_domesticprestige;
 		r.IntField[FI.teams_busbuildupspeed] = m_busbuildupspeed;

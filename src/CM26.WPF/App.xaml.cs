@@ -28,7 +28,7 @@ public partial class App : System.Windows.Application
                         "Creation Master 26", "studio-crash.log"),
                     $"[{DateTimeOffset.Now:O}] {e.Exception}\n\n");
             }
-            catch { }
+            catch (Exception logEx) { System.Diagnostics.Debug.WriteLine($"[CM26] studio-crash.log write failed: {logEx.Message}"); }
             MessageBox.Show("CM26 Studio crashed:\n\n" + e.Exception, "CM26 Studio",
                 MessageBoxButton.OK, MessageBoxImage.Error);
             e.Handled = true;
@@ -63,7 +63,8 @@ public partial class App : System.Windows.Application
                         try { File.AppendAllText(
                             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                                 "Creation Master 26", "studio-crash.log"),
-                            $"[{DateTimeOffset.Now:O}] SMOKE FAILED {ex}\n\n"); } catch { }
+                            $"[{DateTimeOffset.Now:O}] SMOKE FAILED {ex}\n\n"); }
+                        catch (Exception logEx) { System.Diagnostics.Debug.WriteLine($"[CM26] studio-crash.log write failed (smoke): {logEx.Message}"); }
                         Shutdown(1);
                     }
                 }));

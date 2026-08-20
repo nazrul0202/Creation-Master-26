@@ -1,6 +1,6 @@
 {
-  "version": "1.0.123",
+  "version": "1.0.124",
   "name": "Creation Master 26",
-  "notes": "v1.0.123 - League logo import/export, player club transfers, manager country/club pickers, league country picker, and 3D face FBX export in both shells.",
+  "notes": "v1.0.124 - Release audit cleanup: removed legacy hardcoded mod-library path, hardened silent catch blocks (CAS rollback, transaction cleanup, crash-log fallback) with diagnostics, added overlay folder verification before -dataPath launch, and synchronised documentation versions/checksums.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
