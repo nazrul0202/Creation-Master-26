@@ -1,6 +1,6 @@
 {
-  "version": "1.0.121",
+  "version": "1.0.122",
   "name": "Creation Master 26",
-  "notes": "v1.0.121 - Fixed the legacy CM16 editor saving a league rename: decode artifacts in player names are no longer staged as phantom edits, so Save completes verification.",
+  "notes": "v1.0.122 - Player names (any length), stats, skills, team/league names and kit values now all save and reload-verify through the direct FC26 transaction.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

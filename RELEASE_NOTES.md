@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.122 - full edit coverage for names, stats and skills (2026-08-18)
+
+- Player names can now be renamed to any length: added a CM16-style whole-blob rewriter for the Huffman-compressed `playernames` table (rebuilds the tree and string blob, re-points record offsets, shifts later tables and recomputes the full CRC chain). The native engine only supported in-place slot writes, which failed for almost every realistic rename.
+- Player-name reads now flow through the same rewriter (the engine's compressed-string reader has a known decode defect for this table), so staged names display and reload-verify correctly in both shells.
+- Verified end to end with a live FC26 plan covering player name, overall rating, potential, skill moves, acceleration, sprint speed, birth date, team name, league name and kit fields: all ten changes staged, saved and reload-verified.
+- The rewriter refuses to touch a database whose existing CRC chain does not verify, and rejects characters outside the player-name alphabet instead of writing a corrupt file.
+
 ## Version 1.0.121 - legacy editor league save hotfix (2026-08-18)
 
 - Fixed saving after editing a league (or any single record) in the CM16-style editor: the save plan incorrectly included up to dozens of untouched `playernames` entries because decoded name artifacts (replacement characters, control characters, internal `LookBook` rows) were compared against raw database text and staged as phantom edits, which then failed reload verification with `FC26 reload verification failed: playername[...]`.

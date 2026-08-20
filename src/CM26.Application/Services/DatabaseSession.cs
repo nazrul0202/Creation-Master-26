@@ -12,6 +12,10 @@ public sealed class DatabaseSession : IDisposable
     private EngineSession? _session;
     private List<DbTable>? _tables;
     private readonly Dictionary<string, DbTable> _byName = new(StringComparer.OrdinalIgnoreCase);
+    // Player names live in a Huffman-compressed blob the engine can only rewrite
+    // in place. Name edits are staged here and rebuilt as a whole blob on save.
+    private readonly Dictionary<int, string> _pendingNameTexts = new();
+    private PlayerNamesTableRewriter.TableData? _playerNames;
 
     public bool IsLoaded => _session?.IsLoaded == true;
     public string? DatabasePath => _session?.DatabasePath;
@@ -51,6 +55,8 @@ public sealed class DatabaseSession : IDisposable
         var old = _session;
         _session = session;
         LoadedFolder = folder;
+        _pendingNameTexts.Clear();
+        _playerNames = null;
         BuildSchema();
         old?.Dispose();
         DatabaseChanged?.Invoke(this, EventArgs.Empty);
@@ -99,6 +105,7 @@ public sealed class DatabaseSession : IDisposable
     public void RefreshSchema()
     {
         if (_session == null) return;
+        _playerNames = null; // row indexes may have shifted after a structural edit
         BuildSchema();
         DatabaseChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -119,6 +126,16 @@ public sealed class DatabaseSession : IDisposable
         if (_session == null) return string.Empty;
         var table = GetTable(tableName);
         if (table == null) return string.Empty;
+        if (IsMainPlayerNamesName(table, fieldName))
+        {
+            var names = EnsurePlayerNames();
+            if (names != null && names.RowNameIds.TryGetValue(rowIndex, out var nameId))
+            {
+                if (_pendingNameTexts.TryGetValue(nameId, out var pending)) return pending;
+                return names.NameTexts.GetValueOrDefault(nameId, string.Empty);
+            }
+            return string.Empty;
+        }
         return _session.GetCellText(table.IsLocale, tableName, rowIndex, fieldName) ?? string.Empty;
     }
 
@@ -139,6 +156,16 @@ public sealed class DatabaseSession : IDisposable
         var table = GetTable(tableName);
         if (table == null)
             return Fail($"Table '{tableName}' not found");
+        if (IsMainPlayerNamesName(table, fieldName))
+        {
+            var names = EnsurePlayerNames();
+            if (names == null || names.Error != null)
+                return Fail(names?.Error ?? "The playernames table is unavailable in this database.");
+            if (!names.RowNameIds.TryGetValue(rowIndex, out var nameId))
+                return Fail($"playernames row {rowIndex} was not found.");
+            _pendingNameTexts[nameId] = value;
+            return new EditOutcome { Success = true, Message = "Edit staged" };
+        }
         return _session.StageEdit(table.IsLocale, tableName, rowIndex, fieldName, value);
     }
 
@@ -178,6 +205,33 @@ public sealed class DatabaseSession : IDisposable
     {
         if (_session == null) throw new InvalidOperationException("Database not loaded");
         _session.SaveCopy(locale, outputPath);
+        if (locale || _pendingNameTexts.Count == 0) return;
+        // Player-name edits bypass the engine writer: rebuild the whole compressed
+        // blob so any name length fits, exactly like the CM16 save did.
+        var names = EnsurePlayerNames()
+            ?? throw new InvalidOperationException("The playernames table is unavailable; player name edits cannot be saved.");
+        if (names.Error != null)
+            throw new InvalidOperationException(names.Error);
+        var rewritten = PlayerNamesTableRewriter.Rewrite(
+            File.ReadAllBytes(outputPath), names.TableShortName, _pendingNameTexts);
+        File.WriteAllBytes(outputPath, rewritten);
+        _pendingNameTexts.Clear();
+        _playerNames = null; // the saved copy no longer matches the cached parse
+    }
+
+    private static bool IsMainPlayerNamesName(DbTable table, string fieldName) =>
+        !table.IsLocale &&
+        table.Name.Equals("playernames", StringComparison.OrdinalIgnoreCase) &&
+        fieldName.Equals("name", StringComparison.OrdinalIgnoreCase);
+
+    private PlayerNamesTableRewriter.TableData? EnsurePlayerNames()
+    {
+        if (_playerNames != null) return _playerNames;
+        var dbPath = DatabasePath;
+        var metaPath = MetaPath;
+        if (string.IsNullOrEmpty(dbPath) || string.IsNullOrEmpty(metaPath)) return null;
+        _playerNames = PlayerNamesTableRewriter.Read(dbPath, metaPath);
+        return _playerNames;
     }
 
     /// <summary>Reload-verify a written file via the engine (read-only). Throws on failure.</summary>
