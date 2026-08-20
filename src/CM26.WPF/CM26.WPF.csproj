@@ -31,4 +31,9 @@
     <Resource Include="Assets\**\*.png" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="AssimpNet" Version="4.1.0" />
+    <PackageReference Include="HelixToolkit.Wpf" Version="3.1.2" />
+  </ItemGroup>
+
 </Project>

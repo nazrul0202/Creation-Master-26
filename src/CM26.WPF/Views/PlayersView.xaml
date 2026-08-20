@@ -125,6 +125,9 @@
                                 </StackPanel>
                             </StackPanel>
                         </GroupBox>
+                        <GroupBox Header="3D Face Model" Style="{StaticResource GroupCard}">
+                            <controls:Mesh3DPreviewPanel x:Name="Face3DPreview" Height="360" />
+                        </GroupBox>
                         <GroupBox Header="Face Modelling" Style="{StaticResource GroupCard}">
                             <StackPanel>
                                 <controls:NamedCheckField x:Name="CheckHasGenericFace" />

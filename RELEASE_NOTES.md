@@ -1,9 +1,12 @@
 # Release Notes — Creation Master 26
 
-## Version 1.0.124 - team budget fix and release audit cleanup (2026-08-20)
+## Version 1.0.124 - team budget fix, release audit cleanup and embedded 3D previews (2026-08-20)
 
-- Fixed every team showing a 1,000,000 transfer budget in the legacy CM16-style editor: FC26 removed `teams.transferbudget` from the schema entirely (career budgets now live in `career_managerpref`), so the legacy reader fell back to its constructor default. The Team load/save paths now map the legacy budget field onto `teams.clubworth` (the nearest per-team financial column FC26 actually has) for both read and write.
-- The same fix prevents a latent crash/corruption risk on save: the legacy Team save wrote through the missing column index (-1), which throws IndexOutOfRange when the schema lacks `transferbudget`.
+- **Embedded in-app 3D previews (new).** Kit, player face, stadium, ball and boot records now render their real FC26 Frostbite mesh directly inside the editor section (WPF `Mesh3DPreviewPanel` hosted in both shells). The mesh is exported from the installed game archives to FBX, auto-loaded when the record is selected, and rendered with orbit/zoom controls via HelixToolkit + Assimp. The external `CM26.3DViewer` tool remains available for standalone FBX inspection.
+- **Auto-load on record select.** The player face 3D preview loads automatically when a player is selected in the Face tab (no click needed); the kit 3D preview loads when a kit record is shown.
+- **Kit texture mapping.** Kit 3D previews resolve the colour texture from the FC26 Frostbite kit archive (jersey colour DDS) and apply it to the mesh surface, so the jersey design is visible on the 3D model.
+- **Fixed every team showing a 1,000,000 transfer budget** in the legacy CM16-style editor: FC26 removed `teams.transferbudget` from the schema entirely (career budgets now live in `career_managerpref`), so the legacy reader fell back to its constructor default. The Team load/save paths now map the legacy budget field onto `teams.clubworth` (the nearest per-team financial column FC26 actually has) for both read and write.
+- The same fix **prevents a latent crash/corruption risk on save**: the legacy Team save wrote through the missing column index (-1), which throws IndexOutOfRange when the schema lacks `transferbudget`.
 - Added a read-only `--mesh-search <gameRoot> <query>` headless probe that lists indexed FC26 MeshSet names (diagnostics for kit-mesh naming work).
 - Release audit cleanup: removed the legacy hardcoded `D:\CM26 Mod Manager` fallback path so state always lives under `%LocalAppData%\Creation Master 26\ModManager`.
 - Hardened previously silent `catch` blocks (CAS rollback, transaction folder cleanup, studio-crash.log fallback) with `Debug.WriteLine` diagnostics so recovery failures are never invisible.

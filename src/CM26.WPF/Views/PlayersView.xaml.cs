@@ -431,17 +431,8 @@ public partial class PlayersView : UserControl
     {
         var playerId = CurrentPlayerId();
         if (playerId <= 0) return;
-        var executable = Path.Combine(
-            AppContext.BaseDirectory, "Tools", "CM26.3DViewer",
-            "3D Face Viewer By Rizco98 FET Renderer.exe");
-        if (!File.Exists(executable))
-        {
-            MessageBox.Show(Window.GetWindow(this),
-                "The CM26 3D viewer component is not installed beside this build.",
-                "3D Face Viewer", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
         FaceCaption.Text = "Searching for the player's head mesh…";
+        Face3DPreview.ShowStatus("Exporting head mesh from FC26…");
         var headAssetId = CurrentHeadAssetId();
         var exported = await Task.Run(() =>
         {
@@ -457,24 +448,11 @@ public partial class PlayersView : UserControl
         if (string.IsNullOrWhiteSpace(exported))
         {
             FaceCaption.Text = "No head mesh found for this player.";
+            Face3DPreview.ShowStatus("No head mesh found for this player.");
             return;
         }
-        FaceCaption.Text = "3D head mesh exported · opening viewer…";
-        try
-        {
-            var start = new System.Diagnostics.ProcessStartInfo(executable)
-            {
-                UseShellExecute = true,
-                WorkingDirectory = Path.GetDirectoryName(executable)
-            };
-            start.ArgumentList.Add(exported);
-            System.Diagnostics.Process.Start(start);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(Window.GetWindow(this), ex.Message, "3D Face Viewer",
-                MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        FaceCaption.Text = "3D head mesh exported · rendering in-app…";
+        Face3DPreview.LoadMesh(exported);
     }
 
     private int CurrentHeadAssetId()

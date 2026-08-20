@@ -6,6 +6,8 @@ Status: Version 1.0.124 (MIT License), 2026-08-20.
 
 The v1.0.106 Studio rebuild replaces the legacy fixed-layout sections with a shared dark-card design system. Every section now uses `StudioCard`, `StudioToolbar` and related controls. Layouts were verified at common desktop resolutions, but exotic DPI combinations or very small window sizes may still need refinement. All business logic (staging, save, validation, asset loading, formation editing) was preserved.
 
+v1.0.124 adds embedded in-app 3D previews (HelixToolkit + Assimp FBX import) for kit, player face, stadium, ball and boot records. The external `CM26.3DViewer` remains available as a separate tool for standalone FBX inspection.
+
 ## Direct editing
 
 CM26 writes validated database and staged legacy replacements directly into the

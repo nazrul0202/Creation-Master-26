@@ -1,0 +1,42 @@
+<UserControl x:Class="CM26.Studio.Controls.Mesh3DPreviewPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:hx="http://helix-toolkit.org/wpf"
+             Background="{StaticResource WindowBackBrush}"
+             x:Name="Root">
+
+    <Grid>
+        <hx:HelixViewport3D x:Name="Viewport"
+                            ZoomExtentsWhenLoaded="True"
+                            ShowCoordinateSystem="False"
+                            ShowFrameRate="False"
+                            ShowViewCube="False"
+                            ShowCameraInfo="False"
+                            Background="{StaticResource CardFieldBg}"
+                            CameraRotationMode="Turntable" />
+
+        <!-- Loading overlay -->
+        <Border x:Name="LoadingOverlay"
+                Background="{StaticResource CardBackBrush}"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Visibility="Collapsed">
+            <TextBlock Text="Loading 3D model..."
+                       Style="{StaticResource MutedText}"
+                       FontSize="14"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Center" />
+        </Border>
+
+        <!-- Status label when no model is loaded -->
+        <TextBlock x:Name="StatusText"
+                   Text="No 3D model loaded"
+                   Style="{StaticResource MutedText}"
+                   FontSize="13"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Center"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   Margin="20" />
+    </Grid>
+</UserControl>

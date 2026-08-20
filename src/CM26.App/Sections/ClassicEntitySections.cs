@@ -1184,6 +1184,7 @@ public sealed class KitsSection : ClassicEntitySection
     private readonly Label _assetStatus;
     private readonly Button _loadTexture;
     private CancellationTokenSource? _previewCancellation;
+    private Mesh3DPreviewHost _kit3DHost = null!;
     protected override bool UseStudioToolbar => true;
 
     public KitsSection(AppServices s) : base(s, "kits", "Kits", "teamkits", () => s.RequireData().GetKits(), LabelMaps.Kits)
@@ -1223,9 +1224,12 @@ public sealed class KitsSection : ClassicEntitySection
         texture.Controls.Add(_assetStatus);
         c.Controls.Add(texture);
         var model = Group("3D Model", new Point(759, 3), new Size(750, 560));
-        ThreeDViewerLauncher.AttachPlaceholder(model, new Point(5, 20), new Size(730, 480), "kit",
-            BuildKitMeshQueries,
-            () => Services.FrostbiteAssets.ExportMeshForQuery(BuildKitMeshQueries()));
+        _kit3DHost = new Mesh3DPreviewHost
+        {
+            Location = new Point(5, 20),
+            Size = new Size(730, 480),
+        };
+        model.Controls.Add(_kit3DHost);
         c.Controls.Add(model);
 
         // Uniform rows below the previews: every group in a row shares the row's
@@ -1331,6 +1335,39 @@ public sealed class KitsSection : ClassicEntitySection
         _previewCancellation?.Dispose();
         _previewCancellation = new CancellationTokenSource();
         _ = LoadFrostbitePreviewAsync(_previewCancellation.Token);
+        LoadKit3DPreview();
+    }
+
+    /// <summary>Exports the kit's Frostbite mesh and renders it in the in-app 3D panel.</summary>
+    private void LoadKit3DPreview()
+    {
+        if (!TryRawInt("teamtechid", out var teamId) ||
+            !TryRawInt("teamkittypetechid", out var kitType))
+        {
+            _kit3DHost.ShowStatus("Select a kit to preview its 3D model.");
+            return;
+        }
+
+        _kit3DHost.ShowStatus("Exporting kit mesh from FC26…");
+        Task.Run(() =>
+        {
+            var queries = new[]
+            {
+                $"jersey_{teamId}_{kitType}_0_0_mesh",
+                $"jersey_{teamId}_{kitType}",
+                $"jersey_{teamId}",
+            };
+            return Services.FrostbiteAssets.ExportMeshForQuery(queries);
+        }).ContinueWith(task =>
+        {
+            if (IsDisposed) return;
+            if (task.Status != TaskStatus.RanToCompletion || string.IsNullOrWhiteSpace(task.Result))
+            {
+                _kit3DHost.ShowStatus("Kit mesh not found in FC26 archives.");
+                return;
+            }
+            _kit3DHost.LoadMesh(task.Result);
+        }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
     private async Task LoadFrostbitePreviewAsync(CancellationToken cancellationToken = default)

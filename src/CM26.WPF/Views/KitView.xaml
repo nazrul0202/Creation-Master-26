@@ -33,10 +33,8 @@
                         <ItemsControl x:Name="NameFields" ItemTemplate="{StaticResource FieldTemplate}" />
                     </StackPanel>
                 </GroupBox>
-                <GroupBox Header="3D Model" Style="{StaticResource GroupCard}" Margin="6" Width="320" Height="220">
-                    <TextBlock Text="FC26 Frostbite kit model / texture preview"
-                               Style="{StaticResource MutedText}" FontSize="13" TextWrapping="Wrap"
-                               VerticalAlignment="Center" HorizontalAlignment="Center" />
+                <GroupBox Header="3D Model" Style="{StaticResource GroupCard}" Margin="6" Width="480" Height="400">
+                    <controls:Mesh3DPreviewPanel x:Name="Kit3DPreview" />
                 </GroupBox>
             </WrapPanel>
         </ScrollViewer>

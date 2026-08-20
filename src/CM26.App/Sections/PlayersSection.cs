@@ -21,6 +21,7 @@ public sealed class PlayersSection : SectionBase
     private readonly PictureBox _overviewFace = new();
     private readonly PictureBox _shoePreview = new();
     private readonly PictureBox _facePreview = new();
+    private Mesh3DPreviewHost _face3DHost = null!;
     private readonly Label _facePreviewCaption = new();
     private readonly Label _playerName = new();
     private readonly Label _clubName = new();
@@ -899,11 +900,18 @@ public sealed class PlayersSection : SectionBase
         var canvas = Canvas(page);
         var preview = Box("Face Preview", new Point(3, 3), new Size(1200, 451));
         _facePreview.Location = new Point(8, 20);
-        _facePreview.Size = new Size(1183, 390);
+        _facePreview.Size = new Size(500, 390);
         _facePreview.BackColor = CardLayout.CardFieldBg;
         _facePreview.BorderStyle = BorderStyle.FixedSingle;
         _facePreview.SizeMode = PictureBoxSizeMode.Zoom;
         preview.Controls.Add(_facePreview);
+        // In-app 3D face preview renders the exported head mesh directly.
+        _face3DHost = new Mesh3DPreviewHost
+        {
+            Location = new Point(516, 20),
+            Size = new Size(675, 390),
+        };
+        preview.Controls.Add(_face3DHost);
         var open3d = new Button
         {
             Text = "Open 3D Face Viewer…", Location = new Point(12, 417),
@@ -1089,21 +1097,12 @@ public sealed class PlayersSection : SectionBase
 
     private async Task Open3DFaceViewerAsync()
     {
-        var executable = Path.Combine(
-            AppContext.BaseDirectory, "Tools", "CM26.3DViewer",
-            "3D Face Viewer By Rizco98 FET Renderer.exe");
-        if (!File.Exists(executable))
-        {
-            MessageBox.Show(this,
-                "The CM26 3D viewer component is not installed beside this build.",
-                "3D Face Viewer", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
+        _facePreviewCaption.Text = "Searching for the selected player's head mesh…";
+        _face3DHost.ShowStatus("Exporting head mesh from FC26…");
+        var headAssetId = _currentHeadAssetId;
+        var playerId = _currentPlayerId;
         try
         {
-            _facePreviewCaption.Text = "Searching for the selected player's head mesh…";
-            var headAssetId = _currentHeadAssetId;
-            var playerId = _currentPlayerId;
             var queries = new[]
             {
                 headAssetId > 0 ? $"head_{headAssetId}_0_0_mesh" : string.Empty,
@@ -1111,43 +1110,25 @@ public sealed class PlayersSection : SectionBase
                 playerId > 0 ? $"head_{playerId}_0_0_mesh" : string.Empty,
                 playerId > 0 ? $"head_{playerId}" : string.Empty,
             };
-            var exported = await Task.Run(() => Services.FrostbiteAssets.ExportMeshForQuery(
-                queries));
+            var exported = await Task.Run(() => Services.FrostbiteAssets.ExportMeshForQuery(queries));
             if (IsDisposed || playerId != _currentPlayerId) return;
             if (!string.IsNullOrWhiteSpace(exported))
             {
-                _facePreviewCaption.Text = "3D head mesh exported · opening viewer…";
-                Launch3DViewer(executable, exported);
+                _facePreviewCaption.Text = "3D head mesh exported · rendering in-app…";
+                _face3DHost.LoadMesh(exported);
                 return;
             }
-            _facePreviewCaption.Text = "Searching for the selected player's extracted 3D face…";
-            var detected = await Task.Run(() => FindExtractedFaceFolder(headAssetId, playerId));
-            if (IsDisposed || playerId != _currentPlayerId) return;
-            if (!string.IsNullOrWhiteSpace(detected))
-            {
-                _facePreviewCaption.Text = $"3D face assets found · {detected}";
-                Launch3DViewer(executable, detected);
-                return;
-            }
-            _facePreviewCaption.Text = "No head mesh or extracted face found; select an export folder.";
+            _facePreviewCaption.Text = "No head mesh found for this player.";
+            _face3DHost.ShowStatus("No head mesh found for this player.");
         }
         catch (Exception ex)
         {
             if (IsDisposed) return;
             _facePreviewCaption.Text = "3D face export failed.";
+            _face3DHost.ShowStatus("3D face export failed.");
             MessageBox.Show(this, ex.Message, "3D Face Viewer",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return;
         }
-
-        using var dialog = new FolderBrowserDialog
-        {
-            Description = "Select an exported face folder containing head, hair, mouthbag FBX and textures",
-            UseDescriptionForTitle = true,
-            ShowNewFolderButton = false
-        };
-        if (dialog.ShowDialog(this) != DialogResult.OK) return;
-        Launch3DViewer(executable, dialog.SelectedPath);
     }
 
     private void Launch3DViewer(string executable, string assetPath)
@@ -1727,6 +1708,34 @@ public sealed class PlayersSection : SectionBase
         }
         RefreshOverview();
         RefreshPlayerCallname();
+        LoadFace3DPreview(playerId);
+    }
+
+    /// <summary>Automatically loads the player's head mesh into the in-app 3D preview
+    /// when the Face tab is active. Runs in the background so record switching stays fast.</summary>
+    private void LoadFace3DPreview(int playerId)
+    {
+        if (playerId <= 0) return;
+        var headAssetId = _currentHeadAssetId;
+        var queries = new[]
+        {
+            headAssetId > 0 ? $"head_{headAssetId}_0_0_mesh" : string.Empty,
+            headAssetId > 0 ? $"head_{headAssetId}" : string.Empty,
+            playerId > 0 ? $"head_{playerId}_0_0_mesh" : string.Empty,
+            playerId > 0 ? $"head_{playerId}" : string.Empty,
+        };
+        _face3DHost.ShowStatus("Exporting head mesh…");
+        Task.Run(() => Services.FrostbiteAssets.ExportMeshForQuery(queries))
+            .ContinueWith(task =>
+            {
+                if (IsDisposed || playerId != _currentPlayerId) return;
+                if (task.Status != TaskStatus.RanToCompletion || string.IsNullOrWhiteSpace(task.Result))
+                {
+                    _face3DHost.ShowStatus("No head mesh found for this player.");
+                    return;
+                }
+                _face3DHost.LoadMesh(task.Result);
+            }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
     private void RefreshOverview()

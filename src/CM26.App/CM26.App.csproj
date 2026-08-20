@@ -27,6 +27,12 @@
          CM26.Application/Frostbite services and has no dependency on CM26.App. -->
     <ProjectReference Include="..\CM26.WPF\CM26.WPF.csproj" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
+    <PackageReference Include="HelixToolkit.Wpf" Version="3.1.2" />
+    <PackageReference Include="AssimpNet" Version="4.1.0" />
+    <Reference Include="WindowsFormsIntegration">
+      <HintPath>C:\Program Files\dotnet\shared\Microsoft.WindowsDesktop.App\8.0.29\WindowsFormsIntegration.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
     <Reference Include="CM26.EngineBridge">
       <HintPath>..\..\src-native\CM26.EngineBridge\bin\CM26.EngineBridge.dll</HintPath>
       <Private>true</Private>
@@ -43,23 +49,16 @@
     <ItemGroup>
       <ThreeDViewerFiles Include="..\..\publish_3d_viewer\**\*" />
     </ItemGroup>
-    <Message Condition="'@(ThreeDViewerFiles)' == ''" Importance="high"
-             Text="publish_3d_viewer is empty or missing: ordinary builds omit the optional viewer; release publishing still requires it." />
-    <Copy SourceFiles="@(ThreeDViewerFiles)"
-          DestinationFiles="@(ThreeDViewerFiles->'$(OutDir)Tools\CM26.3DViewer\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
+    <Message Condition="'@(ThreeDViewerFiles)' == ''" Importance="high" Text="publish_3d_viewer is empty or missing: ordinary builds omit the optional viewer; release publishing still requires it." />
+    <Copy SourceFiles="@(ThreeDViewerFiles)" DestinationFiles="@(ThreeDViewerFiles->'$(OutDir)Tools\CM26.3DViewer\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
   <Target Name="CopyThreeDViewerToPublish" AfterTargets="Publish">
     <ItemGroup>
       <ThreeDViewerPublishFiles Include="..\..\publish_3d_viewer\**\*" />
     </ItemGroup>
-    <Error Condition="'@(ThreeDViewerPublishFiles)' == '' And '$(PublishDir)' != ''"
-           Text="publish_3d_viewer is empty or missing. A published release package must contain the 3D viewer; restore publish_3d_viewer before publishing." />
-    <Copy SourceFiles="@(ThreeDViewerPublishFiles)"
-          DestinationFiles="@(ThreeDViewerPublishFiles->'$(PublishDir)Tools\CM26.3DViewer\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true"
-          Condition="'$(PublishDir)' != ''" />
+    <Error Condition="'@(ThreeDViewerPublishFiles)' == '' And '$(PublishDir)' != ''" Text="publish_3d_viewer is empty or missing. A published release package must contain the 3D viewer; restore publish_3d_viewer before publishing." />
+    <Copy SourceFiles="@(ThreeDViewerPublishFiles)" DestinationFiles="@(ThreeDViewerPublishFiles->'$(PublishDir)Tools\CM26.3DViewer\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="'$(PublishDir)' != ''" />
   </Target>
 
   <!-- The CM26 Scraper is an optional separate download and is deliberately NOT
@@ -68,39 +67,29 @@
        locates a user-installed copy at runtime via ExternalToolLocator. -->
 
   <Target Name="CopyCommercialDocs" AfterTargets="Build">
-    <Copy SourceFiles="..\..\LICENSE;..\..\EULA.md;..\..\version.json"
-          DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="..\..\LICENSE;..\..\EULA.md;..\..\version.json" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyCommercialDocsToPublish" AfterTargets="Publish" Condition="'$(PublishDir)' != ''">
-    <Copy SourceFiles="..\..\LICENSE;..\..\EULA.md;..\..\version.json"
-          DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="..\..\LICENSE;..\..\EULA.md;..\..\version.json" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
   </Target>
 
   <!-- Build the original x86 CM16 WinForms shell from source and place it next
        to the x64 Frostbite host. The two processes communicate through the
        FC26 snapshot bridge because the native game engine is x64-only. -->
   <Target Name="BuildLegacyCm16Shell" AfterTargets="Build">
-    <MSBuild Projects="..\CM26.LegacyUI\CM26.LegacyUI.csproj"
-             Targets="Build" Properties="Configuration=$(Configuration)"
-             RemoveProperties="RuntimeIdentifier;SelfContained" />
+    <MSBuild Projects="..\CM26.LegacyUI\CM26.LegacyUI.csproj" Targets="Build" Properties="Configuration=$(Configuration)" RemoveProperties="RuntimeIdentifier;SelfContained" />
     <ItemGroup>
       <LegacyCm16Files Include="..\CM26.LegacyUI\bin\$(Configuration)\net48\**\*" />
     </ItemGroup>
-    <Copy SourceFiles="@(LegacyCm16Files)"
-          DestinationFiles="@(LegacyCm16Files->'$(OutDir)CM26.LegacyUI\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(LegacyCm16Files)" DestinationFiles="@(LegacyCm16Files->'$(OutDir)CM26.LegacyUI\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
   <Target Name="CopyLegacyCm16ShellToPublish" AfterTargets="Publish" Condition="'$(PublishDir)' != ''">
-    <MSBuild Projects="..\CM26.LegacyUI\CM26.LegacyUI.csproj"
-             Targets="Build" Properties="Configuration=$(Configuration)"
-             RemoveProperties="RuntimeIdentifier;SelfContained" />
+    <MSBuild Projects="..\CM26.LegacyUI\CM26.LegacyUI.csproj" Targets="Build" Properties="Configuration=$(Configuration)" RemoveProperties="RuntimeIdentifier;SelfContained" />
     <ItemGroup>
       <LegacyCm16PublishFiles Include="..\CM26.LegacyUI\bin\$(Configuration)\net48\**\*" />
     </ItemGroup>
-    <Copy SourceFiles="@(LegacyCm16PublishFiles)"
-          DestinationFiles="@(LegacyCm16PublishFiles->'$(PublishDir)CM26.LegacyUI\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(LegacyCm16PublishFiles)" DestinationFiles="@(LegacyCm16PublishFiles->'$(PublishDir)CM26.LegacyUI\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
   <ItemGroup>
