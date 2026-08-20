@@ -13,7 +13,7 @@ public partial class LeagueView : UserControl
 {
     private static readonly string[] NameFieldOrder =
     {
-        "leaguename", "leagueshortname", "fullname", "leagueid", "level", "countryid", "prestige",
+        "leaguename", "leagueshortname", "fullname", "leagueid", "level", "prestige",
     };
 
     private readonly ViewModel _vm;
@@ -22,6 +22,7 @@ public partial class LeagueView : UserControl
     private RecordListItem? _current;
     private int _leagueId;
     private int _logoRequest;
+    private bool _loadingCountry;
 
     public Func<string, string, EditOutcome?>? StageEditDelegate { get; }
 
@@ -54,6 +55,7 @@ public partial class LeagueView : UserControl
         var byName = fields.ToDictionary(x => x.FieldName, StringComparer.OrdinalIgnoreCase);
         NameFields.ItemsSource = NameFieldOrder.Where(byName.ContainsKey).Select(x => byName[x]).ToList();
         ObjectiveFields.ItemsSource = fields.Where(f => IsObjective(f.FieldName)).ToList();
+        FillCountryPicker(fields);
         _leagueId = ParseField(fields, "leagueid");
         RefreshLeagueTeams();
         _ = LoadLogoAsync(_leagueId);
@@ -83,26 +85,84 @@ public partial class LeagueView : UserControl
         var request = ++_logoRequest;
         LogoLarge.Source = LogoTiny.Source = LogoSmall.Source = LogoBanner.Source = null;
         LogoCaption.Visibility = Visibility.Visible;
-        if (leagueId <= 0 || !_vm.Session.FrostbiteAssets.IsAvailable) return;
+        if (leagueId <= 0) return;
         var exported = await Task.Run(() =>
-        {
-            foreach (var candidate in new[]
-            {
-                $"data/ui/imgAssets/leaguelogos_sm/light/l{leagueId}.dds",
-                $"data/ui/imgAssets/leaguelogos_sm/dark/l{leagueId}.dds",
-                $"data/ui/imgAssets/leaguelogos_tiny/light/l{leagueId}.dds",
-            })
-            {
-                var path = _vm.Session.FrostbiteAssets.ExportLegacyAsset(candidate);
-                if (!string.IsNullOrWhiteSpace(path)) return path;
-            }
-            return null;
-        });
+            LeagueLogoCatalog.PreviewSource(_vm.Session.FrostbiteAssets, _vm.Session.LegacyMods, leagueId));
         if (request != _logoRequest || string.IsNullOrWhiteSpace(exported)) return;
         var bitmap = await Task.Run(() => CreateBitmapSource(exported));
         if (request != _logoRequest || bitmap == null) return;
         LogoLarge.Source = LogoTiny.Source = LogoSmall.Source = LogoBanner.Source = bitmap;
         LogoCaption.Visibility = Visibility.Collapsed;
+    }
+
+    private void ImportLogo_Click(object sender, RoutedEventArgs e)
+    {
+        if (_leagueId <= 0) return;
+        var editable = LeagueLogoCatalog.EditablePaths(
+            _vm.Session.FrostbiteAssets, _vm.Session.LegacyMods, _leagueId);
+        if (editable.Count == 0)
+        {
+            MessageBox.Show(Window.GetWindow(this),
+                "This league has no installed logo in FC26, so there is nothing to replace.",
+                "Import League Logo", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Import League Logo",
+            Filter = "Image files (*.dds;*.png;*.jpg;*.jpeg;*.bmp)|*.dds;*.png;*.jpg;*.jpeg;*.bmp|All files (*.*)|*.*"
+        };
+        if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
+        try
+        {
+            LeagueLogoCatalog.StageAll(_vm.Session.LegacyMods, editable, _leagueId, dialog.FileName);
+            _ = LoadLogoAsync(_leagueId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(Window.GetWindow(this), ex.Message, "Import League Logo",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void RemoveLogo_Click(object sender, RoutedEventArgs e)
+    {
+        if (_leagueId <= 0) return;
+        try
+        {
+            LeagueLogoCatalog.RemoveAll(_vm.Session.LegacyMods, _leagueId);
+            _ = LoadLogoAsync(_leagueId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(Window.GetWindow(this), ex.Message, "Remove League Logo",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void ExportLogo_Click(object sender, RoutedEventArgs e)
+    {
+        if (_leagueId <= 0) return;
+        var source = LeagueLogoCatalog.PreviewSource(_vm.Session.FrostbiteAssets, _vm.Session.LegacyMods, _leagueId);
+        if (string.IsNullOrWhiteSpace(source) || !File.Exists(source))
+        {
+            MessageBox.Show(Window.GetWindow(this), "No installed or staged league logo is available to export.",
+                "Export League Logo", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Export League Logo",
+            FileName = $"l{_leagueId}.dds",
+            Filter = "DDS texture (*.dds)|*.dds|All files (*.*)|*.*"
+        };
+        if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
+        try { File.Copy(source, dialog.FileName, overwrite: true); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(Window.GetWindow(this), ex.Message, "Export League Logo",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     private static BitmapSource? CreateBitmapSource(string path)
@@ -124,6 +184,57 @@ public partial class LeagueView : UserControl
         var outcome = _vm.Session.Pending.Stage("leagues", _current.RecordIndex, fieldName, value);
         if (outcome.Success) LoadEditor(_current);
         return outcome;
+    }
+
+    private sealed record CountryOption(string Name, int NationId)
+    {
+        public override string ToString() => Name;
+    }
+
+    private void FillCountryPicker(IReadOnlyList<FieldValue> fields)
+    {
+        _loadingCountry = true;
+        try
+        {
+            var field = fields.FirstOrDefault(f => f.FieldName.Equals("countryid", StringComparison.OrdinalIgnoreCase));
+            if (field == null) { CountryPicker.Visibility = Visibility.Collapsed; return; }
+            CountryPicker.Visibility = Visibility.Visible;
+            CountryPicker.IsEnabled = field.IsWritable;
+            if (CountryPicker.Items.Count == 0)
+            {
+                foreach (var nation in _vm.Session.Sections.GetCountries())
+                {
+                    var raw = _vm.Session.Database.GetCell("nations", nation.RecordIndex, "nationid");
+                    if (int.TryParse(raw, out var id) && id > 0 && !string.IsNullOrWhiteSpace(nation.Title))
+                        CountryPicker.Items.Add(new CountryOption(nation.Title, id));
+                }
+            }
+            var selected = 0;
+            if (int.TryParse(field.RawValue, out var countryId))
+            {
+                for (var i = 0; i < CountryPicker.Items.Count; i++)
+                {
+                    if (CountryPicker.Items[i] is CountryOption option && option.NationId == countryId)
+                    {
+                        selected = i;
+                        break;
+                    }
+                }
+            }
+            CountryPicker.SelectedIndex = selected;
+        }
+        finally { _loadingCountry = false; }
+    }
+
+    private void CountryPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loadingCountry || _current == null) return;
+        if (CountryPicker.SelectedItem is not CountryOption option) return;
+        var current = _vm.Session.Database.GetCell("leagues", _current.RecordIndex, "countryid");
+        if (option.NationId.ToString().Equals(current, StringComparison.OrdinalIgnoreCase)) return;
+        var outcome = _vm.Session.Pending.Stage("leagues", _current.RecordIndex, "countryid", option.NationId.ToString());
+        if (outcome.Success) LoadEditor(_current);
+        else MessageBox.Show(outcome.Message, "Edit rejected", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     private void AddTeam_Click(object sender, RoutedEventArgs e)

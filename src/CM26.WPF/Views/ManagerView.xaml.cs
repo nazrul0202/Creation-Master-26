@@ -16,6 +16,7 @@ public partial class ManagerView : UserControl
 {
     private readonly ViewModel _vm;
     private IReadOnlyList<RecordListItem> _all = Array.Empty<RecordListItem>();
+    private bool _loadingPickers;
 
     public Func<string, string, EditOutcome?>? StageEditDelegate { get; }
 
@@ -75,6 +76,85 @@ public partial class ManagerView : UserControl
         HairFields.ItemsSource = fields.Where(f => IsHair(f.FieldName) && !IsNamedModel(f.FieldName));
         TextureFields.ItemsSource = fields.Where(f => IsTexture(f.FieldName));
         FillModels(fields);
+        FillManagerPickers(fields);
+    }
+
+    private sealed record PickerOption(string Display, string Value)
+    {
+        public override string ToString() => Display;
+    }
+
+    private void FillManagerPickers(IReadOnlyList<FieldValue> fields)
+    {
+        _loadingPickers = true;
+        try
+        {
+            FillPicker(NationPicker, "nationality", fields, () =>
+            {
+                var items = new List<PickerOption> { new("Not set", "-1"), new("No nation", "0") };
+                foreach (var nation in _vm.Session.Sections.GetCountries())
+                {
+                    var raw = _vm.Session.Database.GetCell("nations", nation.RecordIndex, "nationid");
+                    if (int.TryParse(raw, out var id) && id > 0 && !string.IsNullOrWhiteSpace(nation.Title))
+                        items.Add(new PickerOption(nation.Title, raw));
+                }
+                return items;
+            });
+            FillPicker(TeamPicker, "teamid", fields, () =>
+            {
+                var items = new List<PickerOption> { new("No team", "0") };
+                foreach (var team in _vm.Session.Sections.GetTeams())
+                {
+                    var raw = _vm.Session.Database.GetCell("teams", team.RecordIndex, "teamid");
+                    if (int.TryParse(raw, out var id) && id > 0 && !string.IsNullOrWhiteSpace(team.Title))
+                        items.Add(new PickerOption(team.Title, raw));
+                }
+                return items;
+            });
+        }
+        finally { _loadingPickers = false; }
+    }
+
+    private void FillPicker(ComboBox picker, string fieldName, IReadOnlyList<FieldValue> fields, Func<List<PickerOption>> build)
+    {
+        var field = fields.FirstOrDefault(f => f.FieldName.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+        if (field == null) { picker.Visibility = Visibility.Collapsed; return; }
+        picker.Visibility = Visibility.Visible;
+        picker.IsEnabled = field.IsWritable;
+        if (picker.Items.Count == 0)
+        {
+            foreach (var option in build()
+                         .DistinctBy(o => o.Value, StringComparer.OrdinalIgnoreCase)
+                         .OrderBy(o => o.Display, StringComparer.OrdinalIgnoreCase))
+                picker.Items.Add(option);
+        }
+        var selected = 0;
+        for (var i = 0; i < picker.Items.Count; i++)
+        {
+            if (picker.Items[i] is PickerOption option && option.Value.Equals(field.RawValue, StringComparison.OrdinalIgnoreCase))
+            {
+                selected = i;
+                break;
+            }
+        }
+        picker.SelectedIndex = selected;
+    }
+
+    private void NationPicker_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+        StagePickerEdit(NationPicker, "nationality");
+
+    private void TeamPicker_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+        StagePickerEdit(TeamPicker, "teamid");
+
+    private void StagePickerEdit(ComboBox picker, string fieldName)
+    {
+        if (_loadingPickers || ManagerList.SelectedItem is not RecordListItem item) return;
+        if (picker.SelectedItem is not PickerOption option) return;
+        var current = _vm.Session.Database.GetCell("manager", item.RecordIndex, fieldName);
+        if (option.Value.Equals(current, StringComparison.OrdinalIgnoreCase)) return;
+        var outcome = _vm.Session.Pending.Stage("manager", item.RecordIndex, fieldName, option.Value);
+        if (outcome.Success) RefreshEditor();
+        else MessageBox.Show(outcome.Message, "Edit rejected", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     private EditOutcome? StageEdit(string fieldName, string value)
@@ -112,7 +192,7 @@ public partial class ManagerView : UserControl
     // ---------- CM16 groupings ----------
 
     private static bool IsIdentity(string n) => n is "managerid" or "firstname" or "surname" or "commonname"
-        or "birthdate" or "nationality" or "gender" or "islicensed" or "starrating" or "teamid"
+        or "birthdate" or "gender" or "islicensed" or "starrating"
         or "managerjointeamdate" or "isrewardable" or "ethnicity";
     private static bool IsBody(string n) => n is "height" or "weight" or "bodytypecode";
     private static bool IsDress(string n) => n.Contains("outfit", StringComparison.OrdinalIgnoreCase)

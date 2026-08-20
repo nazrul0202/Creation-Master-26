@@ -51,6 +51,10 @@
                     <GroupBox Header="Identity Card" Style="{StaticResource GroupCard}" Margin="6" Width="300">
                         <StackPanel>
                             <ItemsControl x:Name="IdentityFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            <TextBlock Text="Country" Style="{StaticResource MutedText}" Margin="0,6,0,2"/>
+                            <ComboBox x:Name="NationPicker" SelectionChanged="NationPicker_SelectionChanged" Margin="0,0,0,4"/>
+                            <TextBlock Text="Playing for" Style="{StaticResource MutedText}" Margin="0,0,0,2"/>
+                            <ComboBox x:Name="TeamPicker" SelectionChanged="TeamPicker_SelectionChanged"/>
                         </StackPanel>
                     </GroupBox>
                     <GroupBox Header="Body" Style="{StaticResource GroupCard}" Margin="6" Width="300">

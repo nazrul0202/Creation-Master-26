@@ -1,6 +1,6 @@
 {
-  "version": "1.0.122",
+  "version": "1.0.123",
   "name": "Creation Master 26",
-  "notes": "v1.0.122 - Player names (any length), stats, skills, team/league names and kit values now all save and reload-verify through the direct FC26 transaction.",
+  "notes": "v1.0.123 - League logo import/export, player club transfers, manager country/club pickers, league country picker, and 3D face FBX export in both shells.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

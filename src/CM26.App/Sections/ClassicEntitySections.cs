@@ -23,7 +23,7 @@ public abstract class ClassicEntitySection : SectionBase
     private readonly Dictionary<string, FieldValue> _values = new(StringComparer.OrdinalIgnoreCase);
     protected readonly List<TextBox> _editors = [];
     protected readonly List<TextBox> _mirrors = [];
-    private readonly FieldEditorGrid _staging = new();
+    protected readonly FieldEditorGrid _staging = new();
     protected StudioToolbar? _toolbar;
 
     /// <summary>Hides the base record chooser when the section builds its own Studio toolbar.</summary>
@@ -305,6 +305,9 @@ public abstract class ClassicEntitySection : SectionBase
 public sealed class ManagersSection : ClassicEntitySection
 {
     private readonly PictureBox _face;
+    private readonly ComboBox _nationCombo;
+    private readonly ComboBox _teamCombo;
+    private bool _syncManagerCombos;
     protected override bool UseStudioToolbar => true;
 
     public ManagersSection(AppServices s) : base(s, "managers", "Managers", "manager", () => s.RequireData().GetManagers(), LabelMaps.Managers)
@@ -319,11 +322,11 @@ public sealed class ManagersSection : ClassicEntitySection
         AddField(identity, "firstname", "First Name", new Point(254, 46), 130);
         AddField(identity, "surname", "Last Name", new Point(254, 72), 130);
         AddField(identity, "commonname", "Common Name", new Point(254, 98), 130);
-        AddField(identity, "nationality", "Country", new Point(254, 124), 130);
+        _nationCombo = AddManagerComboField(identity, "nationality", "Country", new Point(254, 124), 130);
         AddField(identity, "birthdate", "Birthdate", new Point(254, 150), 130);
         // Keep the team relationship below the portrait action buttons. The
         // previous y=190 placed its caption over the Import/Remove/Export row.
-        AddField(identity, "teamid", "Playing for", new Point(560, 176), 130);
+        _teamCombo = AddManagerComboField(identity, "teamid", "Playing for", new Point(560, 176), 130);
         c.Controls.Add(identity);
 
         var body = Group("Body and Look", new Point(4, 231), new Size(750, 150));
@@ -401,8 +404,116 @@ public sealed class ManagersSection : ClassicEntitySection
         ac.Controls.Add(traits);
     }
 
+    /// <summary>A named combo that stages the manager's nationality/teamid by display name.</summary>
+    private ComboBox AddManagerComboField(Control parent, string field, string caption, Point point, int width)
+    {
+        var captionWidth = Math.Clamp(point.X - 14, 40, 190);
+        var captionX = point.X - captionWidth - 6;
+        parent.Controls.Add(new Label
+        {
+            Text = caption,
+            Location = new Point(captionX, point.Y + 3),
+            Size = new Size(captionWidth, 18),
+            Font = LegacyFont,
+            TextAlign = ContentAlignment.MiddleRight,
+            AutoEllipsis = true,
+            BackColor = Color.Transparent,
+            ForeColor = StudioColors.MutedText,
+        });
+        var combo = new ComboBox
+        {
+            Location = point,
+            Size = new Size(width, 21),
+            Tag = field,
+            Font = LegacyFont,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            IntegralHeight = false,
+            DropDownHeight = 300,
+        };
+        Theme.ApplyCombo(combo);
+        combo.SelectedIndexChanged += (_, _) =>
+        {
+            if (_syncManagerCombos || CurrentRecordIndex < 0 || combo.SelectedItem is not ComboItem item) return;
+            var raw = Value(field);
+            if (item.Value == raw || string.IsNullOrWhiteSpace(item.Value)) return;
+            StageField(TableName, CurrentRecordIndex, field, item.Value, _staging);
+        };
+        parent.Controls.Add(combo);
+        return combo;
+    }
+
+    /// <summary>Combo entry whose value is the raw database field value.</summary>
+    private sealed record ComboItem(string Display, string Value)
+    {
+        public override string ToString() => Display;
+    }
+
+    private void PopulateManagerCombos()
+    {
+        _syncManagerCombos = true;
+        try
+        {
+            PopulateManagerCombo(_nationCombo, "nationality", () =>
+            {
+                var items = new List<ComboItem> { new("Not set", "-1"), new("No nation", "0") };
+                try
+                {
+                    foreach (var nation in Services.RequireData().GetCountries())
+                    {
+                        var raw = Services.Session.GetCell("nations", nation.RecordIndex, "nationid");
+                        if (!int.TryParse(raw, out var id) || id <= 0 || string.IsNullOrWhiteSpace(nation.Title)) continue;
+                        items.Add(new ComboItem(nation.Title, raw));
+                    }
+                }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Manager nation options failed: {ex.Message}"); }
+                return items;
+            });
+            PopulateManagerCombo(_teamCombo, "teamid", () =>
+            {
+                var items = new List<ComboItem> { new("No team", "0") };
+                try
+                {
+                    foreach (var team in Services.RequireData().GetTeams())
+                    {
+                        var raw = Services.Session.GetCell("teams", team.RecordIndex, "teamid");
+                        if (!int.TryParse(raw, out var id) || id <= 0 || string.IsNullOrWhiteSpace(team.Title)) continue;
+                        items.Add(new ComboItem(team.Title, raw));
+                    }
+                }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Manager team options failed: {ex.Message}"); }
+                return items;
+            });
+        }
+        finally { _syncManagerCombos = false; }
+    }
+
+    private void PopulateManagerCombo(ComboBox combo, string field, Func<List<ComboItem>> build)
+    {
+        combo.BeginUpdate();
+        try
+        {
+            if (combo.Items.Count == 0)
+                combo.Items.AddRange(build().DistinctBy(i => i.Value, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(i => i.Display, StringComparer.OrdinalIgnoreCase).Cast<object>().ToArray());
+            var raw = Value(field);
+            var index = 0;
+            for (var i = 0; i < combo.Items.Count; i++)
+            {
+                if (combo.Items[i] is ComboItem item && item.Value.Equals(raw, StringComparison.OrdinalIgnoreCase))
+                {
+                    index = i;
+                    break;
+                }
+            }
+            combo.SelectedIndex = index;
+            combo.Enabled = CurrentValues.TryGetValue(field, out var value) && value.IsWritable;
+        }
+        finally { combo.EndUpdate(); }
+    }
+
     protected override void OnRecordShown()
     {
+        PopulateManagerCombos();
         var id = CurrentValues.TryGetValue("managerid", out var value) ? Parse(value.RawValue) : 0;
         var headAssetId = CurrentValues.TryGetValue("headassetid", out var head) ? Parse(head.RawValue) : 0;
         var localPath = Services.Assets.GetManagerFace(headAssetId > 0 ? headAssetId : id);

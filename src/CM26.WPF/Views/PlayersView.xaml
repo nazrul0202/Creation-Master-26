@@ -37,7 +37,11 @@
                             <ItemsControl x:Name="LookFields" ItemTemplate="{StaticResource FieldTemplate}" />
                         </GroupBox>
                         <GroupBox Header="Playing for" Style="{StaticResource GroupCard}" Width="240">
-                            <ItemsControl x:Name="TeamFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            <StackPanel Margin="0,2">
+                                <TextBlock Text="Club" Style="{StaticResource MutedText}" Margin="0,0,0,2"/>
+                                <ComboBox x:Name="ClubPicker" SelectionChanged="ClubPicker_SelectionChanged" Margin="0,0,0,4"/>
+                                <ItemsControl x:Name="TeamFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            </StackPanel>
                         </GroupBox>
                         <GroupBox Header="Shoes" Style="{StaticResource GroupCard}" Width="240">
                             <ItemsControl x:Name="ShoesFields" ItemTemplate="{StaticResource FieldTemplate}" />
@@ -105,6 +109,22 @@
             <TabItem Header="Face">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
+                        <GroupBox Header="Face Preview" Style="{StaticResource GroupCard}">
+                            <StackPanel Orientation="Horizontal">
+                                <Border BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="1" Background="White" Margin="6">
+                                    <Image x:Name="FacePreview" Stretch="Uniform" Width="256" Height="256" Margin="4"/>
+                                </Border>
+                                <StackPanel Margin="6" VerticalAlignment="Center">
+                                    <TextBlock x:Name="FaceCaption" Style="{StaticResource MutedText}" Text="Player face texture" Margin="0,0,0,8"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <Button Content="Import" Width="70" ToolTip="Replace the player face texture" Click="ImportFace_Click"/>
+                                        <Button Content="Remove" Width="70" Margin="6,0,0,0" ToolTip="Remove staged face texture" Click="RemoveFace_Click"/>
+                                        <Button Content="Export" Width="70" Margin="6,0,0,0" ToolTip="Export the installed face texture" Click="ExportFace_Click"/>
+                                    </StackPanel>
+                                    <Button Content="Open 3D Face Viewer…" Width="180" Margin="0,4,0,0" ToolTip="Export the real head mesh and open the CM26 3D viewer" Click="Open3DFace_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
                         <GroupBox Header="Face Modelling" Style="{StaticResource GroupCard}">
                             <StackPanel>
                                 <controls:NamedCheckField x:Name="CheckHasGenericFace" />

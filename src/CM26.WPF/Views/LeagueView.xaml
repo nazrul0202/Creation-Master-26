@@ -60,13 +60,22 @@
                         <Border Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource LogoFrame}" Margin="0,6,0,0">
                             <Image x:Name="LogoBanner" Stretch="Uniform" Margin="6"/>
                         </Border>
+                        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,2">
+                            <Button Content="Import" Width="62" ToolTip="Replace the FC26 league logo" Click="ImportLogo_Click" />
+                            <Button Content="Remove" Width="62" Margin="6,0,0,0" ToolTip="Remove the staged replacement" Click="RemoveLogo_Click" />
+                            <Button Content="Export" Width="62" Margin="6,0,0,0" ToolTip="Export the installed or staged logo" Click="ExportLogo_Click" />
+                        </StackPanel>
                     </Grid>
                 </GroupBox>
 
                 <GroupBox Header="Names and Other Information" Width="531" MinHeight="220" Margin="0,0,6,6">
                     <Grid Margin="7">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="275"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <ItemsControl x:Name="NameFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                        <StackPanel>
+                            <ItemsControl x:Name="NameFields" ItemTemplate="{StaticResource FieldTemplate}" />
+                            <TextBlock Text="Country" Style="{StaticResource MutedText}" Margin="0,6,0,2"/>
+                            <ComboBox x:Name="CountryPicker" SelectionChanged="CountryPicker_SelectionChanged"/>
+                        </StackPanel>
                         <GroupBox Grid.Column="1" Header="Position necessary to achieve objectives" Margin="8,0,0,0">
                             <ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsControl x:Name="ObjectiveFields" Margin="5" ItemTemplate="{StaticResource FieldTemplate}"/></ScrollViewer>
                         </GroupBox>

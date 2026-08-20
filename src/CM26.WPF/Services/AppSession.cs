@@ -15,6 +15,7 @@ public sealed class AppSession : IDisposable
     public DatabaseSession Database { get; } = new();
     public FrostbiteAssetSession FrostbiteAssets { get; } = new();
     public PendingChangesService Pending { get; }
+    public NameResolverService Resolver { get; private set; }
     public SectionDataService Sections { get; private set; }
     public ValidationService Validation { get; }
     public SaveService Save { get; }
@@ -23,7 +24,8 @@ public sealed class AppSession : IDisposable
     public AppSession()
     {
         Pending = new PendingChangesService(Database);
-        Sections = new SectionDataService(Database, new NameResolverService(Database), Pending);
+        Resolver = new NameResolverService(Database);
+        Sections = new SectionDataService(Database, Resolver, Pending);
         Validation = new ValidationService(Database);
         Save = new SaveService(Database);
     }
@@ -96,8 +98,11 @@ public sealed class AppSession : IDisposable
     /// Name maps and section caches are built eagerly against the loaded
     /// database, so they must be rebuilt after every (re)load.
     /// </summary>
-    private void RebuildSections() =>
-        Sections = new SectionDataService(Database, new NameResolverService(Database), Pending);
+    private void RebuildSections()
+    {
+        Resolver = new NameResolverService(Database);
+        Sections = new SectionDataService(Database, Resolver, Pending);
+    }
 
     public void Dispose()
     {

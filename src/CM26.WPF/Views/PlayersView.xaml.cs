@@ -1,5 +1,7 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 using CM26.Application.Models;
 using CM26.Application.Services;
 using CM26.EngineBridge;
@@ -19,6 +21,7 @@ public partial class PlayersView : UserControl
     private IReadOnlyList<RecordListItem> _all = Array.Empty<RecordListItem>();
     private IReadOnlyList<FieldValue> _currentFields = Array.Empty<FieldValue>();
     private RecordListItem? _current;
+    private bool _loadingClub;
 
     /// <summary>Wired to each FieldRow so field edits stage through the pending service.</summary>
     public Func<string, string, EditOutcome?>? StageEditDelegate { get; }
@@ -77,6 +80,8 @@ public partial class PlayersView : UserControl
         var ovr = fields.FirstOrDefault(f => f.FieldName == "overallrating");
         OverallText.Text = ovr?.Value ?? "—";
         OverallSlider.Value = double.TryParse(ovr?.RawValue, out var v) ? v : 0;
+        FillClubPicker();
+        LoadFacePreview();
         EditTabs.SelectedIndex = 0;
     }
 
@@ -181,6 +186,302 @@ public partial class PlayersView : UserControl
     {
         if (_current is not RecordListItem item) return;
         LoadEditor(item);
+    }
+
+    private sealed record ClubOption(string Name, int TeamId)
+    {
+        public override string ToString() => Name;
+    }
+
+    /// <summary>Team options for the transfer picker: Free Agent + every teams row.</summary>
+    private IReadOnlyList<ClubOption> BuildClubOptions()
+    {
+        var options = new List<ClubOption> { new("Free Agent", -1) };
+        try
+        {
+            var teams = _vm.Session.Sections.GetTeams();
+            var table = _vm.Session.Database.GetTable("teams");
+            if (table != null)
+            {
+                foreach (var team in teams)
+                {
+                    if (string.IsNullOrWhiteSpace(team.Title)) continue;
+                    var raw = _vm.Session.Database.GetCell("teams", team.RecordIndex, "teamid");
+                    if (int.TryParse(raw, out var teamId) && teamId > 0)
+                        options.Add(new ClubOption(team.Title, teamId));
+                }
+            }
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Club options load failed: {ex.Message}"); }
+        return options;
+    }
+
+    private void FillClubPicker()
+    {
+        _loadingClub = true;
+        try
+        {
+            if (ClubPicker.Items.Count == 0)
+            {
+                foreach (var option in BuildClubOptions())
+                    ClubPicker.Items.Add(option);
+            }
+            var playerId = CurrentPlayerId();
+            var currentTeam = _vm.Session.Resolver?.PlayerTeamId(playerId);
+            var selected = 0;
+            for (var i = 0; i < ClubPicker.Items.Count; i++)
+            {
+                if (ClubPicker.Items[i] is ClubOption option && currentTeam.HasValue && option.TeamId == currentTeam.Value)
+                {
+                    selected = i;
+                    break;
+                }
+            }
+            ClubPicker.SelectedIndex = selected;
+        }
+        finally { _loadingClub = false; }
+    }
+
+    private void ClubPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loadingClub || _current is not RecordListItem item) return;
+        if (ClubPicker.SelectedItem is not ClubOption option) return;
+        var playerId = CurrentPlayerId();
+        if (playerId <= 0) return;
+
+        var links = _vm.Session.Database.GetTable("teamplayerlinks");
+        if (links == null || links.RowCount == 0) return;
+        try
+        {
+            var linkRow = -1;
+            for (var row = 0; row < links.RowCount; row++)
+            {
+                if (int.TryParse(_vm.Session.Database.GetCell("teamplayerlinks", row, "playerid"), out var pid) && pid == playerId)
+                {
+                    linkRow = row;
+                    break;
+                }
+            }
+            if (linkRow < 0)
+            {
+                var duplicated = _vm.Session.Database.DuplicateRow("teamplayerlinks", links.RowCount - 1);
+                if (!duplicated.Success)
+                {
+                    MessageBox.Show(duplicated.Message, "Transfer Player", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                linkRow = links.RowCount - 1;
+                _vm.Session.Pending.Stage("teamplayerlinks", linkRow, "playerid", playerId.ToString());
+                _vm.Session.Pending.MarkStructuralChange();
+            }
+            var outcome = _vm.Session.Pending.Stage("teamplayerlinks", linkRow, "teamid", option.TeamId.ToString());
+            if (outcome.Success)
+            {
+                _vm.Session.Resolver?.Rebuild();
+                RefreshEditor();
+            }
+            else
+            {
+                MessageBox.Show(outcome.Message, "Transfer Player", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Transfer Player", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private int CurrentPlayerId()
+    {
+        if (_current is not RecordListItem item) return -1;
+        var raw = _vm.Session.Database.GetCell("players", item.RecordIndex, "playerid");
+        return int.TryParse(raw, out var id) ? id : -1;
+    }
+
+    // ---------- Face texture preview + 3D viewer (FC26 assets) ----------
+
+    private int _faceRequest;
+    private string FaceLegacyPath => $"data/ui/imgAssets/heads/p{CurrentPlayerId()}.dds";
+
+    private async void LoadFacePreview()
+    {
+        var request = ++_faceRequest;
+        var playerId = CurrentPlayerId();
+        FacePreview.Source = null;
+        FaceCaption.Text = "Player face texture";
+        if (playerId <= 0) return;
+        var exported = await Task.Run(() =>
+        {
+            try
+            {
+                var staged = _vm.Session.LegacyMods.GetReplacement(FaceLegacyPath);
+                if (!string.IsNullOrWhiteSpace(staged) && File.Exists(staged)) return staged;
+                return _vm.Session.FrostbiteAssets.ExportLegacyAsset(FaceLegacyPath);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CM26] Face export failed: {ex.Message}");
+                return null;
+            }
+        });
+        if (request != _faceRequest || string.IsNullOrWhiteSpace(exported)) return;
+        var bitmap = await Task.Run(() => CreateFaceBitmap(exported));
+        if (request != _faceRequest || bitmap == null) return;
+        FacePreview.Source = bitmap;
+        FaceCaption.Text = "Installed face texture";
+    }
+
+    private static BitmapSource? CreateFaceBitmap(string path)
+    {
+        try
+        {
+            using var preview = new TexturePreviewService().CreatePreview(path, 256, 256);
+            if (preview == null) return null;
+            using var stream = new MemoryStream();
+            preview.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+            stream.Position = 0;
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad; bitmap.StreamSource = stream; bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[CM26] Face preview decode failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    private void ImportFace_Click(object sender, RoutedEventArgs e)
+    {
+        var playerId = CurrentPlayerId();
+        if (playerId <= 0) return;
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Import Player Face",
+            Filter = "Image files (*.dds;*.png;*.jpg;*.jpeg;*.bmp)|*.dds;*.png;*.jpg;*.jpeg;*.bmp|All files (*.*)|*.*"
+        };
+        if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
+        try
+        {
+            _vm.Session.LegacyMods.StageImage(FaceLegacyPath, dialog.FileName, 256, 256);
+            LoadFacePreview();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(Window.GetWindow(this), ex.Message, "Import Face",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void RemoveFace_Click(object sender, RoutedEventArgs e)
+    {
+        var playerId = CurrentPlayerId();
+        if (playerId <= 0) return;
+        try
+        {
+            _vm.Session.LegacyMods.Remove(FaceLegacyPath);
+            LoadFacePreview();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(Window.GetWindow(this), ex.Message, "Remove Face",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void ExportFace_Click(object sender, RoutedEventArgs e)
+    {
+        var playerId = CurrentPlayerId();
+        if (playerId <= 0) return;
+        string? source;
+        try
+        {
+            source = _vm.Session.LegacyMods.GetReplacement(FaceLegacyPath)
+                ?? _vm.Session.FrostbiteAssets.ExportLegacyAsset(FaceLegacyPath);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(Window.GetWindow(this), ex.Message, "Export Face",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(source) || !File.Exists(source))
+        {
+            MessageBox.Show(Window.GetWindow(this), "No installed or staged face texture is available to export.",
+                "Export Face", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Export Player Face",
+            FileName = $"p{playerId}.dds",
+            Filter = "DDS texture (*.dds)|*.dds|All files (*.*)|*.*"
+        };
+        if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
+        try { File.Copy(source, dialog.FileName, overwrite: true); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(Window.GetWindow(this), ex.Message, "Export Face",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private async void Open3DFace_Click(object sender, RoutedEventArgs e)
+    {
+        var playerId = CurrentPlayerId();
+        if (playerId <= 0) return;
+        var executable = Path.Combine(
+            AppContext.BaseDirectory, "Tools", "CM26.3DViewer",
+            "3D Face Viewer By Rizco98 FET Renderer.exe");
+        if (!File.Exists(executable))
+        {
+            MessageBox.Show(Window.GetWindow(this),
+                "The CM26 3D viewer component is not installed beside this build.",
+                "3D Face Viewer", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        FaceCaption.Text = "Searching for the player's head mesh…";
+        var headAssetId = CurrentHeadAssetId();
+        var exported = await Task.Run(() =>
+        {
+            var queries = new[]
+            {
+                headAssetId > 0 ? $"head_{headAssetId}_0_0_mesh" : string.Empty,
+                headAssetId > 0 ? $"head_{headAssetId}" : string.Empty,
+                playerId > 0 ? $"head_{playerId}_0_0_mesh" : string.Empty,
+                playerId > 0 ? $"head_{playerId}" : string.Empty,
+            };
+            return _vm.Session.FrostbiteAssets.ExportMeshForQuery(queries);
+        });
+        if (string.IsNullOrWhiteSpace(exported))
+        {
+            FaceCaption.Text = "No head mesh found for this player.";
+            return;
+        }
+        FaceCaption.Text = "3D head mesh exported · opening viewer…";
+        try
+        {
+            var start = new System.Diagnostics.ProcessStartInfo(executable)
+            {
+                UseShellExecute = true,
+                WorkingDirectory = Path.GetDirectoryName(executable)
+            };
+            start.ArgumentList.Add(exported);
+            System.Diagnostics.Process.Start(start);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(Window.GetWindow(this), ex.Message, "3D Face Viewer",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private int CurrentHeadAssetId()
+    {
+        if (_current is not RecordListItem item) return 0;
+        var raw = _vm.Session.Database.GetCell("players", item.RecordIndex, "headassetid");
+        return int.TryParse(raw, out var id) ? id : 0;
     }
 
     private void OverallSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

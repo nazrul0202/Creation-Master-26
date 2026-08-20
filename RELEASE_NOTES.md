@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.123 - league logos, transfers, pickers and FBX face export (2026-08-19)
+
+- League logo replacement now works in both shells: Import/Remove/Export buttons stage the same image into every FC26 league-logo family (`league/light` 256x256, `league512x128/light` 512x128, `leaguelogos_tiny/light` 200x64) through the shared `LeagueLogoCatalog`, and preview checks staged replacements before falling back to the installed asset.
+- Player transfers: a Club dropdown on the Player section (WinForms + WPF) stages `teamplayerlinks.teamid`, so moving a player between clubs (or to Free Agent) saves through the same direct FC26 transaction as every other edit.
+- Manager pickers: the Manager section now has Country and Playing-for dropdowns (WinForms + WPF) instead of raw ID text boxes, staging `manager.nationality` and `manager.teamid`.
+- WPF League section now has a Country ComboBox picker (matching the WinForms league editor) instead of a raw country-ID text box.
+- 3D face FBX export: added an "Export Face FBX…" button (WinForms) and an "Open 3D Face Viewer…" button plus Import/Remove/Export face-texture buttons (WPF) to the Player Face tab, exporting the real FC26 head mesh to a Blender/Assimp-compatible ASCII FBX file on disk.
+- Pruned 49 stale internal audit/task documents from the repository to keep the public source clean.
+
 ## Version 1.0.122 - full edit coverage for names, stats and skills (2026-08-18)
 
 - Player names can now be renamed to any length: added a CM16-style whole-blob rewriter for the Huffman-compressed `playernames` table (rebuilds the tree and string blob, re-points record offsets, shifts later tables and recomputes the full CRC chain). The native engine only supported in-place slot writes, which failed for almost every realistic rename.

@@ -24,6 +24,7 @@ public sealed class PlayersSection : SectionBase
     private readonly Label _facePreviewCaption = new();
     private readonly Label _playerName = new();
     private readonly Label _clubName = new();
+    private readonly ComboBox _clubPicker = new();
     private readonly Dictionary<string, Label> _skillValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<TextBox>> _summaryValues = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, TrackBar> _skillSliders = new(StringComparer.OrdinalIgnoreCase);
@@ -49,6 +50,7 @@ public sealed class PlayersSection : SectionBase
     private readonly Dictionary<string, Label> _roleLabels = new(StringComparer.OrdinalIgnoreCase);
     private bool _syncSkillSliders;
     private bool _syncReferencePickers;
+    private bool _syncClubPicker;
     private int _currentPlayerId;
     private int _currentHeadAssetId;
     private readonly Dictionary<string, ComboBox> _referencePickers = new(StringComparer.OrdinalIgnoreCase);
@@ -744,14 +746,23 @@ public sealed class PlayersSection : SectionBase
         AddReferenceDropdown(identity, "Country", "nationality", new Point(255, 176), 120, NationOptions());
         canvas.Controls.Add(identity);
 
-        var playingFor = Box("Playing for", new Point(399, 3), new Size(245, 174));
+        var playingFor = Box("Playing for", new Point(399, 3), new Size(245, 200));
         playingFor.Controls.Add(Viewer(new Point(12, 20), new Size(218, 70)));
         _clubName.Location = new Point(12, 94);
-        _clubName.Size = new Size(218, 18);
+        _clubName.Size = new Size(218, 14);
         _clubName.Font = LegacyFont;
         _clubName.TextAlign = ContentAlignment.MiddleCenter;
         playingFor.Controls.Add(_clubName);
-        AddFields(playingFor, new[] { ("Joining Date", "playerjointeamdate"), ("Is Retiring", "isretiring") }, 12, 122, 102, 125, 26);
+        _clubPicker.Location = new Point(12, 111);
+        _clubPicker.Size = new Size(218, 21);
+        _clubPicker.Font = LegacyFont;
+        _clubPicker.DropDownStyle = ComboBoxStyle.DropDownList;
+        _clubPicker.IntegralHeight = false;
+        _clubPicker.DropDownHeight = 300;
+        Theme.ApplyCombo(_clubPicker);
+        _clubPicker.SelectedIndexChanged += (_, _) => StagePlayerTransfer();
+        playingFor.Controls.Add(_clubPicker);
+        AddFields(playingFor, new[] { ("Joining Date", "playerjointeamdate"), ("Is Retiring", "isretiring") }, 12, 140, 102, 125, 26);
         canvas.Controls.Add(playingFor);
 
         var body = Box("Body", new Point(3, 249), new Size(390, 154));
@@ -901,12 +912,20 @@ public sealed class PlayersSection : SectionBase
         Theme.ApplyButton(open3d);
         open3d.Click += async (_, _) => await Open3DFaceViewerAsync();
         preview.Controls.Add(open3d);
+        var export3d = new Button
+        {
+            Text = "Export Face FBX…", Location = new Point(184, 417),
+            Size = new Size(130, 28), Font = LegacyFont
+        };
+        Theme.ApplyButton(export3d);
+        export3d.Click += async (_, _) => await ExportFaceFbxAsync();
+        preview.Controls.Add(export3d);
         // The visible player face is a real legacy UI texture.  Keep its
         // import/export controls beside the 3D viewer rather than hiding asset
         // work in a separate technical screen.
-        LegacyAssetActions.Attach(Services, preview, _facePreview, new Point(184, 417), RefreshFacePreview,
+        LegacyAssetActions.Attach(Services, preview, _facePreview, new Point(322, 417), RefreshFacePreview,
             "Import Face", "Remove Face");
-        _facePreviewCaption.Location = new Point(410, 417);
+        _facePreviewCaption.Location = new Point(548, 417);
         _facePreviewCaption.Size = new Size(320, 28);
         _facePreviewCaption.Font = LegacyFont;
         _facePreviewCaption.TextAlign = ContentAlignment.MiddleCenter;
@@ -1150,6 +1169,67 @@ public sealed class PlayersSection : SectionBase
         }
     }
 
+    /// <summary>
+    /// Exports the current player's real FC26 head mesh to an ASCII FBX file
+    /// chosen by the user. The mesh exporter resolves the MeshSet RES through
+    /// the same query pipeline as the 3D viewer, then writes a Blender/Assimp-
+    /// compatible file to the destination folder.
+    /// </summary>
+    private async Task ExportFaceFbxAsync()
+    {
+        if (_currentPlayerId <= 0) return;
+        var headAssetId = _currentHeadAssetId;
+        var playerId = _currentPlayerId;
+        var queries = new[]
+        {
+            headAssetId > 0 ? $"head_{headAssetId}_0_0_mesh" : string.Empty,
+            headAssetId > 0 ? $"head_{headAssetId}" : string.Empty,
+            playerId > 0 ? $"head_{playerId}_0_0_mesh" : string.Empty,
+            playerId > 0 ? $"head_{playerId}" : string.Empty,
+        };
+        _facePreviewCaption.Text = "Exporting head mesh to FBX…";
+        string? exported;
+        try
+        {
+            exported = await Task.Run(() => Services.FrostbiteAssets.ExportMeshForQuery(queries));
+        }
+        catch (Exception ex)
+        {
+            _facePreviewCaption.Text = "Face FBX export failed.";
+            MessageBox.Show(this, ex.Message, "Export Face FBX",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+        if (IsDisposed || playerId != _currentPlayerId) return;
+        if (string.IsNullOrWhiteSpace(exported) || !File.Exists(exported))
+        {
+            _facePreviewCaption.Text = "No head mesh found for this player.";
+            MessageBox.Show(this,
+                "No head mesh asset was found for this player in the FC26 archives.",
+                "Export Face FBX", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        using var dialog = new SaveFileDialog
+        {
+            Title = "Export Player Face FBX",
+            FileName = $"head_{(headAssetId > 0 ? headAssetId : playerId)}.fbx",
+            Filter = "FBX model (*.fbx)|*.fbx|All files (*.*)|*.*"
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        try
+        {
+            File.Copy(exported, dialog.FileName, overwrite: true);
+            _facePreviewCaption.Text = $"Face FBX exported: {Path.GetFileName(dialog.FileName)}";
+        }
+        catch (Exception ex)
+        {
+            _facePreviewCaption.Text = "Face FBX save failed.";
+            MessageBox.Show(this, ex.Message, "Export Face FBX",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
     private void RefreshFacePreview()
     {
         if (_currentPlayerId <= 0) return;
@@ -1220,6 +1300,109 @@ public sealed class PlayersSection : SectionBase
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Nation options load failed: {ex.Message}"); /* Section can be constructed before a database is attached. */ }
         return options;
+    }
+
+    private IReadOnlyList<ReferenceOption> TeamOptions()
+    {
+        var options = new List<ReferenceOption> { new("Free Agent", "-1") };
+        try
+        {
+            var teams = Services.RequireData().GetTeams();
+            options.AddRange(teams
+                .Where(t => !string.IsNullOrWhiteSpace(t.Title))
+                .Select(t => new ReferenceOption(t.Title,
+                    Services.Session.GetCell("teams", t.RecordIndex, "teamid")))
+                .Where(option => int.TryParse(option.Value, out var teamId) && teamId > 0)
+                .DistinctBy(option => option.Value)
+                .OrderBy(option => option.Display, StringComparer.OrdinalIgnoreCase));
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Team options load failed: {ex.Message}"); }
+        return options;
+    }
+
+    /// <summary>
+    /// Moves the current player to the club chosen in <see cref="_clubPicker"/> by
+    /// rewriting the player's teamplayerlinks row, the same table the FC26
+    /// database uses for club membership. Staged so the save flow owns the write.
+    /// </summary>
+    private void StagePlayerTransfer()
+    {
+        if (_syncClubPicker || CurrentRecordIndex < 0 || _clubPicker.SelectedItem is not ReferenceOption option)
+            return;
+        if (!int.TryParse(option.Value, out var newTeamId)) return;
+        var playerId = _currentPlayerId;
+        if (playerId <= 0) return;
+
+        var links = Services.Session.GetTable("teamplayerlinks");
+        if (links == null || links.RowCount == 0) return;
+
+        try
+        {
+            // Find the player's existing link row (first one wins; the free-agent
+            // tools keep the table free of duplicates).
+            var linkRow = -1;
+            for (var row = 0; row < links.RowCount; row++)
+            {
+                if (Parse(Services.Session.GetCell("teamplayerlinks", row, "playerid")) != playerId) continue;
+                linkRow = row;
+                break;
+            }
+            if (linkRow < 0)
+            {
+                // No link at all: duplicate a template row and stage the ids.
+                var template = links.RowCount - 1;
+                var duplicated = Services.Session.DuplicateRow("teamplayerlinks", template);
+                if (!duplicated.Success)
+                {
+                    MessageBox.Show(this, duplicated.Message, "Transfer Player",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                linkRow = links.RowCount - 1;
+                Services.Pending.Stage("teamplayerlinks", linkRow, "playerid", playerId.ToString());
+                Services.Pending.MarkStructuralChange();
+            }
+            var outcome = Services.Pending.Stage("teamplayerlinks", linkRow, "teamid", newTeamId.ToString());
+            if (!outcome.Success)
+            {
+                MessageBox.Show(this, outcome.Message, "Transfer Player",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            Services.Resolver?.Rebuild();
+            ShowRecord(CurrentRecordIndex);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Transfer Player",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private void RefreshClubPicker()
+    {
+        _syncClubPicker = true;
+        try
+        {
+            _clubPicker.BeginUpdate();
+            if (_clubPicker.Items.Count == 0)
+                _clubPicker.Items.AddRange(TeamOptions().Cast<object>().ToArray());
+            var currentTeam = Services.Resolver?.PlayerTeamId(_currentPlayerId);
+            var index = 0;
+            for (var i = 0; i < _clubPicker.Items.Count; i++)
+            {
+                if (_clubPicker.Items[i] is ReferenceOption option &&
+                    int.TryParse(option.Value, out var teamId) &&
+                    currentTeam.HasValue && teamId == currentTeam.Value)
+                {
+                    index = i;
+                    break;
+                }
+            }
+            _clubPicker.SelectedIndex = index;
+            _clubPicker.EndUpdate();
+        }
+        finally { _syncClubPicker = false; }
     }
 
     private void AddReferenceDropdown(
@@ -1419,6 +1602,7 @@ public sealed class PlayersSection : SectionBase
         _playerName.Text = parts.KnownAs ?? $"Player {playerId}";
         ToolTip.SetToolTip(_playerName, _playerName.Text);
         _clubName.Text = Services.Resolver?.PlayerClubName(playerId) ?? "Club unknown";
+        RefreshClubPicker();
         var image = Services.Assets.GetPlayerMiniface(playerId);
         FrostbitePreviewLoader.LoadLegacyUiAsset(_miniface, Services, image,
             $"data/ui/imgAssets/heads/p{playerId}.dds", (preview, _) =>

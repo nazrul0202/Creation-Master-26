@@ -4,6 +4,7 @@ using CM26.App.Controls;
 using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
+using CM26.Application.Services;
 
 namespace CM26.App.Sections;
 
@@ -167,6 +168,19 @@ public sealed class LeaguesSection : SectionBase
         _leagueLogoPreview.BackColor = Color.Transparent;
         _leagueLogoPreview.BorderStyle = BorderStyle.None;
         card.Controls.Add(_leagueLogoPreview);
+
+        var import = new Button { Text = "Import", Location = new Point(StudioSpacing.Large, 138), Size = new Size(58, 21) };
+        var remove = new Button { Text = "Remove", Location = new Point(StudioSpacing.Large + 62, 138), Size = new Size(58, 21) };
+        var export = new Button { Text = "Export", Location = new Point(StudioSpacing.Large + 124, 138), Size = new Size(58, 21) };
+        Theming.Theme.ApplyButton(import);
+        Theming.Theme.ApplyButton(remove);
+        Theming.Theme.ApplyButton(export);
+        import.Click += (_, _) => ImportLeagueLogo();
+        remove.Click += (_, _) => RemoveLeagueLogo();
+        export.Click += (_, _) => ExportLeagueLogo();
+        card.Controls.Add(import);
+        card.Controls.Add(remove);
+        card.Controls.Add(export);
 
         _leagueNameLabel.Location = new Point(152, StudioSpacing.Large);
         _leagueNameLabel.Size = new Size(500, 38);
@@ -559,15 +573,18 @@ public sealed class LeaguesSection : SectionBase
 
     private void LoadLeagueLogo(int leagueId, string localPath)
     {
+        // A staged replacement always wins over the installed asset.
+        var staged = LeagueLogoCatalog.PreviewSource(Services.FrostbiteAssets, Services.LegacyMods, leagueId)
+            ?? localPath;
         var candidates = new[]
         {
-            $"data/ui/imgAssets/league/dark/l{leagueId}.dds",
             $"data/ui/imgAssets/league/light/l{leagueId}.dds",
-            $"data/ui/imgAssets/league/l{leagueId}.dds",
-            $"data/ui/imgAssets/leaguelogos_sm/dark/l{leagueId}.dds",
-            $"data/ui/imgAssets/leaguelogos_sm/light/l{leagueId}.dds"
+            $"data/ui/imgAssets/league512x128/light/l{leagueId}.dds",
+            $"data/ui/imgAssets/leaguelogos_tiny/light/l{leagueId}.dds",
+            $"data/ui/imgAssets/league/dark/l{leagueId}.dds",
+            $"data/ui/imgAssets/league/l{leagueId}.dds"
         };
-        FrostbitePreviewLoader.LoadLegacyUiAssetCandidates(_leagueLogoPreview, Services, localPath, candidates,
+        FrostbitePreviewLoader.LoadLegacyUiAssetCandidates(_leagueLogoPreview, Services, staged, candidates,
             (image, _) =>
             {
                 if (IsDisposed) { image?.Dispose(); return; }
@@ -575,6 +592,76 @@ public sealed class LeaguesSection : SectionBase
                 _leagueLogoPreview.Image = image;
                 old?.Dispose();
             });
+    }
+
+    private void ImportLeagueLogo()
+    {
+        if (_leagueId <= 0) return;
+        var editable = LeagueLogoCatalog.EditablePaths(
+            Services.FrostbiteAssets, Services.LegacyMods, _leagueId);
+        if (editable.Count == 0)
+        {
+            MessageBox.Show(FindForm(),
+                "This league has no installed logo in FC26, so there is nothing to replace.",
+                "Import League Logo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        using var dialog = new OpenFileDialog
+        {
+            Title = "Import League Logo",
+            Filter = "Image files (*.dds;*.png;*.jpg;*.jpeg;*.bmp)|*.dds;*.png;*.jpg;*.jpeg;*.bmp|All files (*.*)|*.*"
+        };
+        if (dialog.ShowDialog(FindForm()) != DialogResult.OK) return;
+        try
+        {
+            LeagueLogoCatalog.StageAll(Services.LegacyMods, editable, _leagueId, dialog.FileName);
+            LoadLeagueLogo(_leagueId, null);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(FindForm(), ex.Message, "Import League Logo",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void RemoveLeagueLogo()
+    {
+        if (_leagueId <= 0) return;
+        try
+        {
+            if (LeagueLogoCatalog.RemoveAll(Services.LegacyMods, _leagueId))
+                LoadLeagueLogo(_leagueId, null);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(FindForm(), ex.Message, "Remove League Logo",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private void ExportLeagueLogo()
+    {
+        if (_leagueId <= 0) return;
+        var source = LeagueLogoCatalog.PreviewSource(Services.FrostbiteAssets, Services.LegacyMods, _leagueId);
+        if (string.IsNullOrWhiteSpace(source) || !File.Exists(source))
+        {
+            MessageBox.Show(FindForm(), "No installed or staged league logo is available to export.",
+                "Export League Logo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        using var dialog = new SaveFileDialog
+        {
+            Title = "Export League Logo",
+            FileName = $"l{_leagueId}.dds",
+            Filter = "DDS texture (*.dds)|*.dds|All files (*.*)|*.*"
+        };
+        if (dialog.ShowDialog(FindForm()) != DialogResult.OK) return;
+        try { File.Copy(source, dialog.FileName, overwrite: true); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(FindForm(), ex.Message, "Export League Logo",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     private string ResolveCountryName()
