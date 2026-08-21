@@ -86,6 +86,8 @@ public class PlayerForm : Form
 
 	private Button m_Fc26Face3dButton;
 
+	private CreationMaster.Controls.Mesh3DPreviewHost m_Fc26Mesh3DHost;
+
 	private IContainer components;
 
 	public PickUpControl pickUpControl;
@@ -1246,26 +1248,37 @@ public class PlayerForm : Form
 		m_Fc26Face3dPanel = new Panel
 		{
 			Dock = DockStyle.Fill,
-			BackColor = Color.Gray,
+			BackColor = Color.FromArgb(30, 30, 30),
 			Visible = false
 		};
 		m_Fc26Face3dStatus = new Label
 		{
-			Dock = DockStyle.Fill,
+			Dock = DockStyle.Top,
+			Height = 30,
 			TextAlign = ContentAlignment.MiddleCenter,
-			ForeColor = Color.White,
-			BackColor = Color.Gray,
-			Text = "FC26 Frostbite 3D face\r\nExport and open the real FBX head mesh."
+			ForeColor = Color.FromArgb(170, 170, 170),
+			BackColor = Color.FromArgb(30, 30, 30),
+			Text = "FC26 Frostbite 3D face — click below to load the real FBX head mesh."
+		};
+		m_Fc26Mesh3DHost = new CreationMaster.Controls.Mesh3DPreviewHost
+		{
+			Dock = DockStyle.Fill,
 		};
 		m_Fc26Face3dButton = new Button
 		{
 			Dock = DockStyle.Bottom,
 			Height = 38,
-			Text = "Open real FC26 3D face…"
+			Text = "Load FC26 3D face mesh",
+			BackColor = Color.FromArgb(60, 60, 60),
+			ForeColor = Color.White,
+			FlatStyle = FlatStyle.Flat,
 		};
 		m_Fc26Face3dButton.Click += Fc26Face3dButton_Click;
+		m_Fc26Face3dPanel.Controls.Add(m_Fc26Mesh3DHost);
 		m_Fc26Face3dPanel.Controls.Add(m_Fc26Face3dStatus);
 		m_Fc26Face3dPanel.Controls.Add(m_Fc26Face3dButton);
+		// Correct z-order: button at bottom, status at top, 3D host fills the rest.
+		m_Fc26Mesh3DHost.BringToFront();
 		splitContainer2.Panel1.Controls.Add(m_Fc26Face3dPanel);
 		m_Fc26Face3dPanel.BringToFront();
 	}
@@ -1276,19 +1289,19 @@ public class PlayerForm : Form
 		var playerId = m_CurrentPlayer.m_assetid > 0 ? m_CurrentPlayer.m_assetid : m_CurrentPlayer.Id;
 		var headAssetId = m_CurrentPlayer.headtypecode;
 		m_Fc26Face3dButton.Enabled = false;
-		m_Fc26Face3dStatus.Text = "Exporting the selected FC26 Frostbite head mesh…";
+		m_Fc26Mesh3DHost.ShowStatus("Exporting the selected FC26 Frostbite head mesh…");
 		try
 		{
 			var mesh = await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.ExportFaceMesh(playerId, headAssetId));
 			if (IsDisposed) return;
-			m_Fc26Face3dStatus.Text = "FC26 FBX exported. Opening the 3D viewer…";
-			Fc26HostBridge.OpenFaceViewer(mesh);
+			// Load the mesh into the in-app 3D panel.
+			m_Fc26Mesh3DHost.LoadMesh(mesh);
 		}
 		catch (Exception ex)
 		{
 			if (!IsDisposed)
 			{
-				m_Fc26Face3dStatus.Text = "No viewable FC26 head mesh was exported for this player.";
+				m_Fc26Mesh3DHost.ShowStatus("No viewable FC26 head mesh was exported for this player.");
 				MessageBox.Show(this, ex.Message, "FC26 3D Face", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 			}
 		}
@@ -2505,7 +2518,7 @@ public class PlayerForm : Form
 		{
 			m_Fc26Face3dPanel.Visible = true;
 			m_Fc26Face3dPanel.BringToFront();
-			m_Fc26Face3dStatus.Text = "FC26 Frostbite 3D face\r\nExport and open the real FBX head mesh.";
+			m_Fc26Mesh3DHost.ShowStatus("FC26 Frostbite 3D face — click below to load the real FBX head mesh.");
 			return;
 		}
 		m_Fc26Face3dPanel.Visible = false;

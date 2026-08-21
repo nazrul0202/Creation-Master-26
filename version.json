@@ -1,6 +1,6 @@
 {
-  "version": "1.0.124",
+  "version": "1.0.125",
   "name": "Creation Master 26",
-  "notes": "v1.0.124 - Release audit cleanup: removed legacy hardcoded mod-library path, hardened silent catch blocks (CAS rollback, transaction cleanup, crash-log fallback) with diagnostics, added overlay folder verification before -dataPath launch, and synchronised documentation versions/checksums.",
+  "notes": "v1.0.125 - In-app 3D face mesh viewer in CM16 legacy shell: replaced external 3D viewer launch with embedded HelixViewport3D panel (WPF ElementHost) in PlayerForm Face tab for FC26 Frostbite head meshes. Added HelixToolkit.Wpf + AssimpNet to LegacyUI for real-time FBX rendering with orbit/zoom controls.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

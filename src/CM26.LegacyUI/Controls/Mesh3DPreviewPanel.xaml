@@ -1,0 +1,46 @@
+<UserControl x:Class="CreationMaster.Controls.Mesh3DPreviewPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:hx="http://helix-toolkit.org/wpf"
+             Background="#FF1E1E1E"
+             x:Name="Root">
+
+    <Grid>
+        <hx:HelixViewport3D x:Name="Viewport"
+                            ZoomExtentsWhenLoaded="True"
+                            ShowCoordinateSystem="False"
+                            ShowFrameRate="False"
+                            ShowViewCube="False"
+                            ShowCameraInfo="False"
+                            Background="#FF2D2D30"
+                            CameraRotationMode="Turntable">
+            <hx:HelixViewport3D.Camera>
+                <PerspectiveCamera Position="2,1,2" LookDirection="-2,-1,-2" UpDirection="0,1,0" FieldOfView="45" />
+            </hx:HelixViewport3D.Camera>
+        </hx:HelixViewport3D>
+
+        <!-- Loading overlay -->
+        <Border x:Name="LoadingOverlay"
+                Background="#CC1E1E1E"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                Visibility="Collapsed">
+            <TextBlock Text="Loading 3D model..."
+                       Foreground="#FFAAAAAA"
+                       FontSize="14"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Center" />
+        </Border>
+
+        <!-- Status label when no model is loaded -->
+        <TextBlock x:Name="StatusText"
+                   Text="No 3D model loaded"
+                   Foreground="#FF888888"
+                   FontSize="13"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Center"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   Margin="20" />
+    </Grid>
+</UserControl>

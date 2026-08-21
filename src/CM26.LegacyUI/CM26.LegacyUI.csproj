@@ -4,6 +4,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <OutputType>WinExe</OutputType>
     <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
     <TargetFramework>net48</TargetFramework>
     <PlatformTarget>x86</PlatformTarget>
     <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
@@ -17,6 +18,8 @@
 
   <ItemGroup>
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="HelixToolkit.Wpf" Version="3.1.2" />
+    <PackageReference Include="AssimpNet" Version="4.1.0" />
   </ItemGroup>
 
   <!-- ILSpy's legacy WinForms .resx payloads must be serialized by the .NET
