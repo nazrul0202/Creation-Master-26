@@ -463,6 +463,11 @@ internal static class Fc26SnapshotLoader
             if (columnName == "teamtechid" && fields.TryGetValue("teamid", out field!)) return true;
             if (columnName == "teamkittypetechid" && fields.TryGetValue("kittype", out field!)) return true;
         }
+        if (targetType == typeof(Team))
+        {
+            // FC26 removed teams.transferbudget; clubworth is the nearest per-team value.
+            if (columnName == "clubworth" && fields.TryGetValue("transferbudget", out field!)) return true;
+        }
         field = null!;
         return false;
     }
