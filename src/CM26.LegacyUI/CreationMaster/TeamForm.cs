@@ -51,6 +51,12 @@ public class TeamForm : Form
 
 	private bool m_LockUserChanges;
 
+	private bool m_Fc26TeamUiConfigured;
+
+	private ComboBox comboTraitContext;
+
+	private CheckBox[] m_Fc26TraitChecks;
+
 	private QuickEditPlayerPanel[] m_QuickPanels = new QuickEditPlayerPanel[40];
 
 	private DataTable m_WebPlayerTable = new DataTable("WebPlayer");
@@ -1222,8 +1228,136 @@ public class TeamForm : Form
 		control.SelectedIndex = index >= 0 && index < control.Items.Count ? index : -1;
 	}
 
+	private void EnsureFc26TeamUi()
+	{
+		if (m_Fc26TeamUiConfigured || FifaEnvironment.Year != 26) return;
+		m_Fc26TeamUiConfigured = true;
+
+		// FC26 keeps three trait masks. Reuse the familiar CM16 check boxes, add
+		// an explicit opponent context, and remove bindings to the obsolete trait1.
+		m_Fc26TraitChecks = new[]
+		{
+			checkImpatientBoard, checkLoyalBoard, checkSquadRotation, checkConsistentLineup,
+			checkSwitchWingers, checkCenterBacksSplit, checkDefendLead, checkKeepUpPressure,
+			checkMoreAttackingAtHome, checkShortOutBack
+		};
+		foreach (CheckBox check in m_Fc26TraitChecks)
+		{
+			check.DataBindings.Clear();
+			check.Top += 28;
+			check.CheckedChanged += Fc26TraitCheck_CheckedChanged;
+		}
+		groupTeamTraits.Height += 28;
+		var contextLabel = new Label
+		{
+			Text = "Opponent", Location = new Point(14, 20), Size = new Size(60, 21),
+			TextAlign = ContentAlignment.MiddleLeft, BackColor = Color.Transparent
+		};
+		comboTraitContext = new ComboBox
+		{
+			Location = new Point(78, 19), Size = new Size(176, 21),
+			DropDownStyle = ComboBoxStyle.DropDownList
+		};
+		comboTraitContext.Items.AddRange(new object[] { "Weaker team", "Equal team", "Stronger team" });
+		comboTraitContext.SelectedIndexChanged += delegate { LoadFc26TraitChecks(); };
+		groupTeamTraits.Controls.Add(contextLabel);
+		groupTeamTraits.Controls.Add(comboTraitContext);
+		comboTraitContext.SelectedIndex = 1;
+
+		// Replace the removed CM16 custom-tactic fields with the real FC26 values.
+		comboBUSPositioning.DataBindings.Clear();
+		comboBUSPositioning.Items.Clear();
+		comboBUSPositioning.Items.AddRange(new object[] { "Short Passing", "Balanced", "Counter" });
+		labelBuspositioning.Text = "Build Up Style";
+		labelBuspositioning.Location = new Point(6, 25);
+		comboBUSPositioning.Location = new Point(100, 21);
+		comboBUSPositioning.Size = new Size(125, 21);
+		numericBusbuildupspeed.Visible = false;
+		numericBuspassing.Visible = false;
+		numericUpDown2.Visible = false;
+		labelBusbuildupspeed.Visible = false;
+		labelBuspassing.Visible = false;
+		label20.Visible = false;
+
+		comboDEFLine.DataBindings.Clear();
+		comboDEFLine.Items.Clear();
+		comboDEFLine.Items.AddRange(new object[] { "Deep", "Balanced", "High", "Aggressive" });
+		labelDefdefendeline.Text = "Approach";
+		comboDEFLine.Location = new Point(100, 19);
+		comboDEFLine.Size = new Size(124, 21);
+		numericDefmentality.DataBindings.Clear();
+		numericDefmentality.Minimum = 1;
+		numericDefmentality.Maximum = 100;
+		numericDefmentality.Location = new Point(160, 47);
+		numericDefmentality.ValueChanged += Fc26DefensiveDepth_ValueChanged;
+		labelDefmentality.Text = "Line Height (1-100)";
+		numericDefaggression.Visible = false;
+		numericDefteamwidth.Visible = false;
+		labelDefaggression.Visible = false;
+		labelDefteamwidth.Visible = false;
+		groupBox6.Visible = false;
+	}
+
+	private void LoadFc26TraitChecks()
+	{
+		if (FifaEnvironment.Year != 26 || m_CurrentTeam == null || comboTraitContext == null ||
+			m_Fc26TraitChecks == null || comboTraitContext.SelectedIndex < 0) return;
+		bool oldLock = m_LockUserChanges;
+		m_LockUserChanges = true;
+		try
+		{
+			int mask = m_CurrentTeam.GetFc26TraitMask(comboTraitContext.SelectedIndex);
+			for (int bit = 0; bit < m_Fc26TraitChecks.Length; bit++)
+				m_Fc26TraitChecks[bit].Checked = (mask & (1 << bit)) != 0;
+		}
+		finally { m_LockUserChanges = oldLock; }
+	}
+
+	private void Fc26TraitCheck_CheckedChanged(object sender, EventArgs e)
+	{
+		if (m_LockUserChanges || m_CurrentTeam == null || comboTraitContext == null ||
+			m_Fc26TraitChecks == null || comboTraitContext.SelectedIndex < 0) return;
+		int knownMask = 0;
+		for (int bit = 0; bit < m_Fc26TraitChecks.Length; bit++)
+			if (m_Fc26TraitChecks[bit].Checked) knownMask |= 1 << bit;
+		m_CurrentTeam.SetFc26KnownTraitMask(comboTraitContext.SelectedIndex, knownMask);
+	}
+
+	private static int Fc26DefensivePresetIndex(int depth)
+	{
+		if (depth <= 30) return 0;
+		if (depth <= 60) return 1;
+		if (depth < 90) return 2;
+		return 3;
+	}
+
+	private void LoadFc26Tactics()
+	{
+		if (FifaEnvironment.Year != 26 || m_CurrentTeam == null) return;
+		bool oldLock = m_LockUserChanges;
+		m_LockUserChanges = true;
+		try
+		{
+			SetSelectedIndex(comboBUSPositioning, m_CurrentTeam.buildupplay - 1);
+			SetNumericValue(numericDefmentality, m_CurrentTeam.defensivedepth);
+			SetSelectedIndex(comboDEFLine, Fc26DefensivePresetIndex(m_CurrentTeam.defensivedepth));
+		}
+		finally { m_LockUserChanges = oldLock; }
+	}
+
+	private void Fc26DefensiveDepth_ValueChanged(object sender, EventArgs e)
+	{
+		if (m_LockUserChanges || FifaEnvironment.Year != 26 || m_CurrentTeam == null) return;
+		m_CurrentTeam.defensivedepth = (int)numericDefmentality.Value;
+		bool oldLock = m_LockUserChanges;
+		m_LockUserChanges = true;
+		SetSelectedIndex(comboDEFLine, Fc26DefensivePresetIndex(m_CurrentTeam.defensivedepth));
+		m_LockUserChanges = oldLock;
+	}
+
 	public void LoadGenericPage()
 	{
+		EnsureFc26TeamUi();
 		SetNumericValue(numericTeamId, m_CurrentTeam.Id);
 		comboRivalTeam.SelectedItem = m_CurrentTeam.RivalTeam;
 		checkIsNationalTeam.Checked = m_CurrentTeam.NationalTeam;
@@ -1231,6 +1365,7 @@ public class TeamForm : Form
 		SetSelectedIndex(comboMaxOnjective, m_CurrentTeam.highestpossible);
 		SetSelectedIndex(comboProbObjective, m_CurrentTeam.highestprobable);
 		teamBindingSource.ResetBindings(metadataChanged: false);
+		LoadFc26TraitChecks();
 		viewer2DCrestLarge.CurrentBitmap = null;
 		viewer2DCrest50.CurrentBitmap = null;
 		viewer2DCrest32.CurrentBitmap = null;
@@ -1331,6 +1466,7 @@ public class TeamForm : Form
 
 	public void LoadRosterPage()
 	{
+		EnsureFc26TeamUi();
 		InitListViewTeamPlayers(m_CurrentTeam.Roster);
 		m_CurrentFormation = m_CurrentTeam.Formation;
 		if (m_CurrentFormation == null && FifaEnvironment.Year == 26 && FifaEnvironment.Formations != null)
@@ -1354,6 +1490,7 @@ public class TeamForm : Form
 			buttonCreateNewFormation.Enabled = false;
 		}
 		InitVisualFormation(m_CurrentTeam.Roster);
+		LoadFc26Tactics();
 	}
 
 	public void AuditFc26RecordsForSmoke()
@@ -1372,6 +1509,31 @@ public class TeamForm : Form
 				tableEditTeam.SelectedTab = pageTeamRoster;
 				ReloadTeam(team);
 				Application.DoEvents();
+			}
+			if (FifaEnvironment.Year == 26)
+			{
+				Team heidenheim = FifaEnvironment.Teams.SearchId(111235) as Team;
+				if (heidenheim != null)
+				{
+					tableEditTeam.SelectedTab = pageTeamRoster;
+					ReloadTeam(heidenheim);
+					Application.DoEvents();
+					if (heidenheim.Formation == null || labelTeamFormationName.Text.IndexOf("5-4-1", StringComparison.Ordinal) < 0)
+						throw new InvalidOperationException("FC26 team formation was not linked from formations.teamid.");
+					if (comboBUSPositioning.SelectedIndex != heidenheim.buildupplay - 1 ||
+						(int)numericDefmentality.Value != heidenheim.defensivedepth)
+						throw new InvalidOperationException("FC26 build-up style or defensive line height was not rendered.");
+					tableEditTeam.SelectedTab = pageTeamGeneric;
+					ReloadTeam(heidenheim);
+					comboTraitContext.SelectedIndex = 1;
+					LoadFc26TraitChecks();
+					int expectedKnown = heidenheim.GetFc26TraitMask(1) & 1023;
+					int renderedKnown = 0;
+					for (int bit = 0; bit < m_Fc26TraitChecks.Length; bit++)
+						if (m_Fc26TraitChecks[bit].Checked) renderedKnown |= 1 << bit;
+					if (renderedKnown != expectedKnown)
+						throw new InvalidOperationException("FC26 opponent-context team traits were not rendered.");
+				}
 			}
 		}
 		finally
@@ -3301,12 +3463,21 @@ public class TeamForm : Form
 
 	private void comboDEFLine_SelectedIndexChanged(object sender, EventArgs e)
 	{
-		_ = m_LockUserChanges;
+		if (m_LockUserChanges || FifaEnvironment.Year != 26 || m_CurrentTeam == null ||
+			comboDEFLine.SelectedIndex < 0) return;
+		int[] presets = { 30, 50, 65, 90 };
+		m_CurrentTeam.defensivedepth = presets[comboDEFLine.SelectedIndex];
+		bool oldLock = m_LockUserChanges;
+		m_LockUserChanges = true;
+		SetNumericValue(numericDefmentality, m_CurrentTeam.defensivedepth);
+		m_LockUserChanges = oldLock;
 	}
 
 	private void comboBUSPositioning_SelectedIndexChanged(object sender, EventArgs e)
 	{
-		_ = m_LockUserChanges;
+		if (m_LockUserChanges || FifaEnvironment.Year != 26 || m_CurrentTeam == null ||
+			comboBUSPositioning.SelectedIndex < 0) return;
+		m_CurrentTeam.buildupplay = comboBUSPositioning.SelectedIndex + 1;
 	}
 
 	private void comboCCPositioning_SelectedIndexChanged(object sender, EventArgs e)

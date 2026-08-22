@@ -14,6 +14,7 @@ public static class LegacySnapshotService
         "nations", "leagues", "leagueteamlinks", "teams", "teamplayerlinks",
         "teamnationlinks", "teamstadiumlinks", "players", "playernames",
         "editedplayernames", "stadiums", "teamkits", "kits", "formations",
+        "default_mentalities", "defaultteamdata",
         "manager", "referee", "leaguerefereelinks", "teamballs", "shoecolors",
         "playerboots", "fieldpositionboundingboxes", "competition", "competitioninfo",
         "compobj", "audionation", "career_managerpref"

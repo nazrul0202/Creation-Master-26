@@ -1,6 +1,6 @@
 {
-  "version": "1.0.130",
+  "version": "1.0.131",
   "name": "Creation Master 26",
-  "notes": "v1.0.130 - FC26 team tactics and trait editing, database-backed formation recovery, and optional F3D FBX viewing.",
+  "notes": "v1.0.131 - FC26 formations, tactics and opponent-context traits now work in the CM16-style legacy shell.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

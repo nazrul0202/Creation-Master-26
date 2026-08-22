@@ -146,6 +146,20 @@ public class Team : IdObject
 
 	private int m_trait1;
 
+	// FC26 stores team traits per opponent context and replaces the old custom-
+	// tactics columns with one build-up value plus an exact defensive line height.
+	// The field names intentionally mirror the database columns: the x86 snapshot
+	// bridge maps them by reflection and writes only values the user changes.
+	private int m_trait1vweak;
+
+	private int m_trait1vequal;
+
+	private int m_trait1vstrong;
+
+	private int m_buildupplay = 2;
+
+	private int m_defensivedepth = 50;
+
 	private int m_utcoffset;
 
 	private int m_ethnicity;
@@ -894,6 +908,68 @@ public class Team : IdObject
 		{
 			m_trait1 = value;
 		}
+	}
+
+	public int buildupplay
+	{
+		get { return m_buildupplay; }
+		set { m_buildupplay = Math.Max(0, Math.Min(3, value)); }
+	}
+
+	public int defensivedepth
+	{
+		get { return m_defensivedepth; }
+		set { m_defensivedepth = Math.Max(1, Math.Min(100, value)); }
+	}
+
+	public int GetFc26TraitMask(int context)
+	{
+		switch (context)
+		{
+		case 0: return m_trait1vweak;
+		case 1: return m_trait1vequal;
+		case 2: return m_trait1vstrong;
+		default: throw new ArgumentOutOfRangeException("context");
+		}
+	}
+
+	public void SetFc26KnownTraitMask(int context, int knownBits)
+	{
+		knownBits &= 1023;
+		int existing = GetFc26TraitMask(context);
+		int updated = (existing & ~1023) | knownBits;
+		switch (context)
+		{
+		case 0: m_trait1vweak = updated; break;
+		case 1: m_trait1vequal = updated; break;
+		case 2: m_trait1vstrong = updated; break;
+		}
+		if (context == 1) ApplyKnownTraitMask(updated);
+	}
+
+	/// <summary>Called after the FC26 reflection bridge has populated raw fields.</summary>
+	public void SyncFc26SnapshotFields()
+	{
+		m_trait1 = m_trait1vequal;
+		ApplyKnownTraitMask(m_trait1vequal);
+		// Value 0 exists on eleven FC26 records as an unset/sentinel. Preserve it
+		// until the user explicitly chooses one of the three real styles.
+		m_buildupplay = Math.Max(0, Math.Min(3, m_buildupplay));
+		m_defensivedepth = Math.Max(1, Math.Min(100, m_defensivedepth));
+	}
+
+	private void ApplyKnownTraitMask(int value)
+	{
+		m_ImpatientBoard = (value & 1) != 0;
+		m_LoyalBoard = (value & 2) != 0;
+		m_SquadRotation = (value & 4) != 0;
+		m_ConsistentLineup = (value & 8) != 0;
+		m_SwitchWingers = (value & 16) != 0;
+		m_CenterBacksSplit = (value & 32) != 0;
+		m_DefendLead = (value & 64) != 0;
+		m_KeepUpPressure = (value & 128) != 0;
+		m_MoreAttackingAtHome = (value & 256) != 0;
+		m_ShortOutBack = (value & 512) != 0;
 	}
 
 	public int utcoffset
@@ -2414,17 +2490,11 @@ public class Team : IdObject
 		m_bodytypeid = r.GetAndCheckIntField(td.GetFieldIndex("bodytypeid"));
 		m_ethnicity = r.GetAndCheckIntField(td.GetFieldIndex("ethnicity"));
 		m_personalityid = r.GetAndCheckIntField(td.GetFieldIndex("personalityid"));
-		m_trait1 = r.GetAndCheckIntField(td.GetFieldIndex("trait1vequal"));
-		m_ImpatientBoard = (((m_trait1 & 1) != 0) ? true : false);
-		m_LoyalBoard = (((m_trait1 & 2) != 0) ? true : false);
-		m_SquadRotation = (((m_trait1 & 4) != 0) ? true : false);
-		m_ConsistentLineup = (((m_trait1 & 8) != 0) ? true : false);
-		m_SwitchWingers = (((m_trait1 & 0x10) != 0) ? true : false);
-		m_CenterBacksSplit = (((m_trait1 & 0x20) != 0) ? true : false);
-		m_DefendLead = (((m_trait1 & 0x40) != 0) ? true : false);
-		m_KeepUpPressure = (((m_trait1 & 0x80) != 0) ? true : false);
-		m_MoreAttackingAtHome = (((m_trait1 & 0x100) != 0) ? true : false);
-		m_ShortOutBack = (((m_trait1 & 0x200) != 0) ? true : false);
+		m_trait1vweak = r.GetAndCheckIntField(td.GetFieldIndex("trait1vweak"));
+		m_trait1vequal = r.GetAndCheckIntField(td.GetFieldIndex("trait1vequal"));
+		m_trait1vstrong = r.GetAndCheckIntField(td.GetFieldIndex("trait1vstrong"));
+		m_trait1 = m_trait1vequal;
+		ApplyKnownTraitMask(m_trait1vequal);
 		m_numtransfersin = r.GetAndCheckIntField(td.GetFieldIndex("numtransfersin"));
 		m_genericint2 = r.GetAndCheckIntField(td.GetFieldIndex("genericint1"));
 		m_genericint1 = r.GetAndCheckIntField(td.GetFieldIndex("genericint2"));
@@ -2474,6 +2544,10 @@ public class Team : IdObject
 		{
 			m_transferbudget = r.GetAndCheckIntField(FI.teams_clubworth);
 		}
+		if (FI.teams_buildupplay >= 0)
+			m_buildupplay = r.GetAndCheckIntField(FI.teams_buildupplay);
+		if (FI.teams_defensivedepth >= 0)
+			m_defensivedepth = r.GetAndCheckIntField(FI.teams_defensivedepth);
 		m_domesticprestige = r.GetAndCheckIntField(FI.teams_domesticprestige);
 		m_internationalprestige = r.GetAndCheckIntField(FI.teams_internationalprestige);
 		m_rivalteam = r.GetAndCheckIntField(FI.teams_rivalteam);
@@ -2557,18 +2631,12 @@ public class Team : IdObject
 		// FC26 replaced the single legacy trait1 column with three opponent-
 		// context masks. The legacy checkbox panel represents the equal-team
 		// context; preserve that behaviour instead of showing every trait false.
-		int traitIndex = FI.teams_trait1 >= 0 ? FI.teams_trait1 : FI.teams_trait1vequal;
-		m_trait1 = traitIndex >= 0 ? r.GetAndCheckIntField(traitIndex) : 0;
-		m_ImpatientBoard = (((m_trait1 & 1) != 0) ? true : false);
-		m_LoyalBoard = (((m_trait1 & 2) != 0) ? true : false);
-		m_SquadRotation = (((m_trait1 & 4) != 0) ? true : false);
-		m_ConsistentLineup = (((m_trait1 & 8) != 0) ? true : false);
-		m_SwitchWingers = (((m_trait1 & 0x10) != 0) ? true : false);
-		m_CenterBacksSplit = (((m_trait1 & 0x20) != 0) ? true : false);
-		m_DefendLead = (((m_trait1 & 0x40) != 0) ? true : false);
-		m_KeepUpPressure = (((m_trait1 & 0x80) != 0) ? true : false);
-		m_MoreAttackingAtHome = (((m_trait1 & 0x100) != 0) ? true : false);
-		m_ShortOutBack = (((m_trait1 & 0x200) != 0) ? true : false);
+		m_trait1vweak = FI.teams_trait1vweak >= 0 ? r.GetAndCheckIntField(FI.teams_trait1vweak) : 0;
+		m_trait1vequal = FI.teams_trait1vequal >= 0 ? r.GetAndCheckIntField(FI.teams_trait1vequal) :
+			(FI.teams_trait1 >= 0 ? r.GetAndCheckIntField(FI.teams_trait1) : 0);
+		m_trait1vstrong = FI.teams_trait1vstrong >= 0 ? r.GetAndCheckIntField(FI.teams_trait1vstrong) : 0;
+		m_trait1 = m_trait1vequal;
+		ApplyKnownTraitMask(m_trait1vequal);
 		m_numtransfersin = r.GetAndCheckIntField(FI.teams_numtransfersin);
 		m_genericint2 = r.GetAndCheckIntField(FI.teams_genericint1);
 		m_genericint1 = r.GetAndCheckIntField(FI.teams_genericint2);
@@ -2885,6 +2953,10 @@ public class Team : IdObject
 			r.IntField[FI.teams_transferbudget] = m_transferbudget;
 		else if (FI.teams_clubworth >= 0)
 			r.IntField[FI.teams_clubworth] = m_transferbudget;
+		if (FI.teams_buildupplay >= 0)
+			r.IntField[FI.teams_buildupplay] = m_buildupplay;
+		if (FI.teams_defensivedepth >= 0)
+			r.IntField[FI.teams_defensivedepth] = m_defensivedepth;
 		r.IntField[FI.teams_internationalprestige] = m_internationalprestige;
 		r.IntField[FI.teams_domesticprestige] = m_domesticprestige;
 		r.IntField[FI.teams_busbuildupspeed] = m_busbuildupspeed;
@@ -2960,9 +3032,13 @@ public class Team : IdObject
 		{
 			// The upper FC26 bits are not decoded by the CM16 panel. Never erase
 			// them when the user changes one of the ten known low-order flags.
-			int existing = r.GetAndCheckIntField(FI.teams_trait1vequal);
-			m_trait1 = (existing & ~1023) | knownTraitBits;
+			m_trait1 = (m_trait1vequal & ~1023) | knownTraitBits;
+			m_trait1vequal = m_trait1;
 			r.IntField[FI.teams_trait1vequal] = m_trait1;
+			if (FI.teams_trait1vweak >= 0)
+				r.IntField[FI.teams_trait1vweak] = m_trait1vweak;
+			if (FI.teams_trait1vstrong >= 0)
+				r.IntField[FI.teams_trait1vstrong] = m_trait1vstrong;
 		}
 	}
 

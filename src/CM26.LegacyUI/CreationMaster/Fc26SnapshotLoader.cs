@@ -185,6 +185,7 @@ internal static class Fc26SnapshotLoader
                 }
             }
         }
+        AppendFc26TacticMirrorChanges(snapshot, changes);
         AppendPlayerNameChanges(snapshot, changes);
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         File.WriteAllText(path, JsonSerializer.Serialize(new ChangePlan
@@ -195,6 +196,89 @@ internal static class Fc26SnapshotLoader
             Changes = changes
         }));
         return changes.Count;
+    }
+
+    private static void AppendFc26TacticMirrorChanges(Snapshot snapshot, List<Change> changes)
+    {
+        if (FifaEnvironment.Teams == null) return;
+        var teamsTable = snapshot.Tables.FirstOrDefault(value =>
+            value.Name.Equals("teams", StringComparison.OrdinalIgnoreCase));
+        if (teamsTable == null) return;
+
+        var teamsId = Column(teamsTable, "teamid");
+        var teamsBuild = Column(teamsTable, "buildupplay");
+        var teamsDepth = Column(teamsTable, "defensivedepth");
+        var originalRows = teamsTable.Rows
+            .Select((row, index) => new { Row = row, Index = index })
+            .Where(value => teamsId >= 0)
+            .GroupBy(value => ParseIntAt(value.Row, teamsId))
+            .ToDictionary(group => group.Key, group => group.First().Row);
+
+        var mentalities = snapshot.Tables.FirstOrDefault(value =>
+            value.Name.Equals("default_mentalities", StringComparison.OrdinalIgnoreCase));
+        var defaultTeamData = snapshot.Tables.FirstOrDefault(value =>
+            value.Name.Equals("defaultteamdata", StringComparison.OrdinalIgnoreCase));
+
+        foreach (Team team in FifaEnvironment.Teams)
+        {
+            if (!originalRows.TryGetValue(team.Id, out var original)) continue;
+            var buildChanged = teamsBuild >= 0 && ParseIntAt(original, teamsBuild) != team.buildupplay;
+            var depthChanged = teamsDepth >= 0 && ParseIntAt(original, teamsDepth) != team.defensivedepth;
+            if (!buildChanged && !depthChanged) continue;
+
+            if (mentalities != null)
+            {
+                var teamId = Column(mentalities, "teamid");
+                var build = Column(mentalities, "buildupplay");
+                var depth = Column(mentalities, "defensivedepth");
+                var activeRow = -1;
+                for (var row = 0; row < mentalities.Rows.Count; row++)
+                {
+                    var values = mentalities.Rows[row];
+                    if (ParseIntAt(values, teamId) != team.Id) continue;
+                    var buildValue = ParseIntAt(values, build);
+                    var depthValue = ParseIntAt(values, depth);
+                    if (buildValue >= 1 && buildValue <= 3 && depthValue >= 2 && depthValue <= 100)
+                    {
+                        activeRow = row;
+                        break;
+                    }
+                    if (activeRow < 0 && (buildValue > 0 || depthValue > 1)) activeRow = row;
+                }
+                if (activeRow >= 0)
+                {
+                    if (buildChanged) AddMirrorChange(mentalities, activeRow, build, team.buildupplay, changes);
+                    if (depthChanged) AddMirrorChange(mentalities, activeRow, depth, team.defensivedepth, changes);
+                }
+            }
+
+            if (depthChanged && defaultTeamData != null)
+            {
+                var teamId = Column(defaultTeamData, "teamid");
+                var depth = Column(defaultTeamData, "defensivedepth");
+                for (var row = 0; row < defaultTeamData.Rows.Count; row++)
+                {
+                    if (ParseIntAt(defaultTeamData.Rows[row], teamId) != team.Id) continue;
+                    AddMirrorChange(defaultTeamData, row, depth, team.defensivedepth, changes);
+                    break;
+                }
+            }
+        }
+    }
+
+    private static void AddMirrorChange(TableSnapshot table, int rowIndex, int columnIndex,
+        int value, List<Change> changes)
+    {
+        if (columnIndex < 0 || rowIndex < 0 || rowIndex >= table.Rows.Count) return;
+        var text = value.ToString(CultureInfo.InvariantCulture);
+        if (string.Equals(table.Rows[rowIndex][columnIndex], text, StringComparison.Ordinal)) return;
+        changes.Add(new Change
+        {
+            TableName = table.Name,
+            RowIndex = rowIndex,
+            FieldName = table.Columns[columnIndex],
+            Value = text
+        });
     }
 
     private static void AppendPlayerNameChanges(Snapshot snapshot, List<Change> changes)
@@ -450,6 +534,7 @@ internal static class Fc26SnapshotLoader
             country.LanguageName = country.DatabaseName;
             country.LanguageShortName = country.DatabaseName;
         }
+        if (target is Team team) team.SyncFc26SnapshotFields();
     }
 
     private static bool TryResolveField(Type targetType, Dictionary<string, FieldInfo> fields,

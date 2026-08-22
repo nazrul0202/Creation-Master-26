@@ -121,8 +121,9 @@ function Invoke-PackageSelfTest {
         $process = Start-Process -FilePath $exe -ArgumentList '--release-selftest' `
             -WorkingDirectory $PackageDir -WindowStyle Hidden -Wait -PassThru `
             -RedirectStandardOutput $stdout -RedirectStandardError $stderr
-        $output = ((Get-Content $stdout -Raw -ErrorAction SilentlyContinue) +
-                   (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)).Trim()
+        $standardOutput = [string](Get-Content $stdout -Raw -ErrorAction SilentlyContinue)
+        $standardError = [string](Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
+        $output = [string]::Concat($standardOutput, $standardError).Trim()
         if ($process.ExitCode -ne 0) {
             $errors.Add("$Label release self-test failed (exit $($process.ExitCode)): $output")
         }
@@ -147,8 +148,9 @@ function Invoke-PackageShellSmoke {
         $process = Start-Process -FilePath $exe -ArgumentList '--ui-shell-smoke' `
             -WorkingDirectory $PackageDir -WindowStyle Hidden -Wait -PassThru `
             -RedirectStandardOutput $stdout -RedirectStandardError $stderr
-        $output = ((Get-Content $stdout -Raw -ErrorAction SilentlyContinue) +
-                   (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)).Trim()
+        $standardOutput = [string](Get-Content $stdout -Raw -ErrorAction SilentlyContinue)
+        $standardError = [string](Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
+        $output = [string]::Concat($standardOutput, $standardError).Trim()
         if ($process.ExitCode -ne 0 -or $output -notmatch 'SHELL SMOKE OK') {
             $errors.Add("$Label Studio shell smoke failed (exit $($process.ExitCode)): $output")
         }

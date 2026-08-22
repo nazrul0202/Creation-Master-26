@@ -12,6 +12,35 @@ internal static class Program
 	{
 		Fc26HostBridge.Configure(args);
 		FifaLibrary.FifaEnvironment.Fc26AssetExporter = Fc26HostBridge.ExportAsset;
+		if (args.Length >= 3 && string.Equals(args[0], "--cm26-tactics-plan-test", StringComparison.OrdinalIgnoreCase))
+		{
+			try
+			{
+				Fc26SnapshotLoader.Load(args[1]);
+				var team = FifaLibrary.FifaEnvironment.Teams.SearchId(111235) as FifaLibrary.Team
+					?? throw new InvalidDataException("FC26 tactics test team 111235 is missing.");
+				team.buildupplay = team.buildupplay == 3 ? 2 : 3;
+				team.defensivedepth = team.defensivedepth == 90 ? 65 : 90;
+				team.SetFc26KnownTraitMask(1, (team.GetFc26TraitMask(1) ^ 1) & 1023);
+				Fc26SnapshotLoader.WriteChanges(args[2]);
+				var plan = File.ReadAllText(args[2]);
+				foreach (var required in new[]
+				{
+					"\"TableName\":\"teams\"", "\"FieldName\":\"buildupplay\"",
+					"\"FieldName\":\"defensivedepth\"", "\"FieldName\":\"trait1vequal\"",
+					"\"TableName\":\"default_mentalities\"", "\"TableName\":\"defaultteamdata\""
+				})
+					if (plan.IndexOf(required, StringComparison.Ordinal) < 0)
+						throw new InvalidDataException("FC26 tactics plan is missing " + required + ".");
+				Environment.ExitCode = 0;
+			}
+			catch (Exception ex)
+			{
+				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				Environment.ExitCode = 1;
+			}
+			return;
+		}
 		if (args.Length >= 3 && string.Equals(args[0], "--cm26-plan", StringComparison.OrdinalIgnoreCase))
 		{
 			try

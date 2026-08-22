@@ -276,6 +276,14 @@ public class Formation : IdObject
 		{
 			return false;
 		}
+		if (FifaEnvironment.Year == 26)
+		{
+			// FC26's teamformationteamstylelinks is empty. formations.teamid is
+			// authoritative, so link it directly and do not remove the formation
+			// merely because the obsolete Team.formationid helper is zero.
+			m_Team.LinkFormation(this);
+			return true;
+		}
 		return m_Team.formationid == base.Id;
 	}
 

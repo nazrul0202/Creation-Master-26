@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.131 - CM16-shell FC26 team data hotfix (2026-08-22)
+
+- Fixed the CM16-style Team Roster screen still showing **Formation not available** even though FC26's `formations.teamid` contained the team formation. FC26 formation ownership is now authoritative and is no longer discarded by the obsolete FIFA formation link.
+- Replaced the legacy tactic controls in that shell with FC26 controls: Build Up Style (`Short Passing`, `Balanced`, `Counter`), Defensive Approach (`Deep`, `Balanced`, `High`, `Aggressive`) and exact 1–100 Line Height.
+- Added opponent-context selection to Team Traits so `trait1vweak`, `trait1vequal` and `trait1vstrong` can be viewed and edited independently while preserving unknown high-order FC26 bits.
+- Included `default_mentalities` and `defaultteamdata` in the legacy snapshot and mirrors tactic edits into their active FC26 records on save.
+- Added headless regression checks against an installed FC26 snapshot for Heidenheim's 5-4-1 formation, rendered tactics and trait masks, plus an exact six-field cross-table write plan.
+
 ## Version 1.0.130 - FC26 tactics, traits and F3D viewer integration (2026-08-22)
 
 - Added an FC26 Tactics & Traits team card backed by the installed database: formation, build-up style, defensive approach, editable line height and opponent-context trait masks are now visible together.

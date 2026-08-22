@@ -111,7 +111,7 @@ published, plus a matching asset bridge for each:
 
 ```bat
 :: version folder suffix = version.json with dots replaced by underscores
-:: e.g. 1.0.130 -> v1_0_130
+:: e.g. 1.0.131 -> v1_0_131
 
 :: Full Portable (self-contained, carries .NET 8)
 dotnet publish src\CM26.App\CM26.App.csproj -c Release -r win-x64 --self-contained true ^

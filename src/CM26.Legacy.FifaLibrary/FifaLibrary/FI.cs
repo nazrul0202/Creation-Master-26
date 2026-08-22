@@ -1318,6 +1318,8 @@ public class FI
 
 	public static int teams_balltype = -1;
 
+	public static int teams_buildupplay = -1;
+
 	public static int teams_bodytypeid = -1;
 
 	public static int teams_busbuildupspeed = -1;
@@ -1345,6 +1347,8 @@ public class FI
 	public static int teams_crowdskintonecode = -1;
 
 	public static int teams_defaggression = -1;
+
+	public static int teams_defensivedepth = -1;
 
 	public static int teams_defdefenderline = -1;
 
@@ -5948,6 +5952,7 @@ public class FI
 			teams_assetid = table2.TableDescriptor.GetFieldIndex("assetid");
 			teams_attackrating = table2.TableDescriptor.GetFieldIndex("attackrating");
 			teams_balltype = table2.TableDescriptor.GetFieldIndex("balltype");
+			teams_buildupplay = table2.TableDescriptor.GetFieldIndex("buildupplay");
 			teams_bodytypeid = table2.TableDescriptor.GetFieldIndex("bodytypeid");
 			teams_busbuildupspeed = table2.TableDescriptor.GetFieldIndex("busbuildupspeed");
 			teams_busdribbling = table2.TableDescriptor.GetFieldIndex("busdribbling");
@@ -5962,6 +5967,7 @@ public class FI
 			teams_clubworth = table2.TableDescriptor.GetFieldIndex("clubworth");
 			teams_crowdskintonecode = table2.TableDescriptor.GetFieldIndex("crowdskintonecode");
 			teams_defaggression = table2.TableDescriptor.GetFieldIndex("defaggression");
+			teams_defensivedepth = table2.TableDescriptor.GetFieldIndex("defensivedepth");
 			teams_defdefenderline = table2.TableDescriptor.GetFieldIndex("defdefenderline");
 			teams_defenserating = table2.TableDescriptor.GetFieldIndex("defenserating");
 			teams_defmentality = table2.TableDescriptor.GetFieldIndex("defmentality");
