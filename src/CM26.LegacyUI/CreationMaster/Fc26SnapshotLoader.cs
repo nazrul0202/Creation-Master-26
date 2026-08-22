@@ -43,6 +43,7 @@ internal static class Fc26SnapshotLoader
         FifaEnvironment.BeginFc26Bridge(roles);
         var formations = Build<FormationList, Formation>(tables, "formations", "formationid");
         ApplyFormationRoles(formations, tables, roles);
+        ApplyFormationNames(formations);
         var referees = Build<RefereeList, Referee>(tables, "referee", "refereeid");
         var balls = Build<BallList, Ball>(tables, "teamballs", "ballid");
         var shoes = Build<ShoesList, Shoes>(tables, "playerboots", "shoetype");
@@ -72,6 +73,18 @@ internal static class Fc26SnapshotLoader
             if (string.IsNullOrWhiteSpace(databaseName)) continue;
             league.ShortName = databaseName;
             league.LongName = databaseName;
+        }
+    }
+
+    private static void ApplyFormationNames(FormationList formations)
+    {
+        // FC26's formationname is deliberately shared by several variants.
+        // Preserve the 29 database-native choices by resolving their generic
+        // relative ID instead of collapsing them to the short name.
+        foreach (Formation formation in formations)
+        {
+            var layoutId = formation.teamid == -1 ? formation.Id : formation.relativeformationid;
+            formation.formationfullname = Fc26FormationNames.Get(layoutId, formation.formationname);
         }
     }
 

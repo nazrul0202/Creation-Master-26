@@ -67,6 +67,10 @@ public sealed class TeamsSection : SectionBase
     private readonly Panel _teamDefBar = new();
     private Label _teamFoundationLabel = new();
     private Label _teamWorthLabel = new();
+    private Label _teamFanbaseLabel = new();
+    private Label _teamYouthLabel = new();
+    private Label _teamFinanceLabel = new();
+    private Label _teamHonoursLabel = new();
     private Label _teamStadiumLabel = new();
     private Label _teamRivalLabel = new();
     private readonly PictureBox _teamKitHome = new();
@@ -759,6 +763,31 @@ public sealed class TeamsSection : SectionBase
         _teamWorthLabel.Location = new Point(StudioSpacing.Medium, 56);
         _teamWorthLabel.Size = new Size(228, 20);
         card.Controls.Add(_teamWorthLabel);
+
+        _teamFanbaseLabel = MakeLabel("Fanbase: —", StudioFonts.DataLabel, StudioColors.PrimaryText, false);
+        _teamFanbaseLabel.Location = new Point(StudioSpacing.Medium, 84);
+        _teamFanbaseLabel.Size = new Size(228, 20);
+        card.Controls.Add(_teamFanbaseLabel);
+
+        _teamYouthLabel = MakeLabel("Youth facilities: —", StudioFonts.DataLabel, StudioColors.PrimaryText, false);
+        _teamYouthLabel.Location = new Point(StudioSpacing.Medium, 110);
+        _teamYouthLabel.Size = new Size(228, 20);
+        card.Controls.Add(_teamYouthLabel);
+
+        _teamFinanceLabel = MakeLabel("Financial stability: —", StudioFonts.DataLabel, StudioColors.PrimaryText, false);
+        _teamFinanceLabel.Location = new Point(StudioSpacing.Medium, 136);
+        _teamFinanceLabel.Size = new Size(228, 20);
+        card.Controls.Add(_teamFinanceLabel);
+
+        _teamHonoursLabel = MakeLabel("Honours: —", StudioFonts.DataLabel, StudioColors.MutedText, false);
+        _teamHonoursLabel.Location = new Point(StudioSpacing.Medium, 164);
+        _teamHonoursLabel.Size = new Size(228, 46);
+        card.Controls.Add(_teamHonoursLabel);
+
+        var careerNote = MakeLabel("Budget & objectives: Career save only", StudioFonts.DataLabel, StudioColors.MutedText, false);
+        careerNote.Location = new Point(StudioSpacing.Medium, 218);
+        careerNote.Size = new Size(228, 20);
+        card.Controls.Add(careerNote);
 
         return card;
     }
@@ -1497,7 +1526,7 @@ public sealed class TeamsSection : SectionBase
         public FormationSlot Visual { get; } = new();
     }
 
-    private sealed record FormationChoice(int RecordIndex, int FormationId, string Name, bool IsGeneric)
+    private sealed record FormationChoice(int RecordIndex, int FormationId, int LayoutId, string Name, bool IsGeneric)
     {
         public override string ToString() => Name;
     }
@@ -1718,6 +1747,7 @@ public sealed class TeamsSection : SectionBase
             var teamColumn = Col(formations, "teamid");
             var nameColumn = Col(formations, "formationname");
             var idColumn = Col(formations, "formationid");
+            var relativeColumn = Col(formations, "relativeformationid");
             if (teamColumn < 0 || nameColumn < 0 || idColumn < 0)
             {
                 _formationView.Items.Clear();
@@ -1731,9 +1761,10 @@ public sealed class TeamsSection : SectionBase
                 if (record == null || !int.TryParse(record.Get(teamColumn), out var owner)) continue;
                 var name = record.Get(nameColumn);
                 var formationId = Parse(record.Get(idColumn));
-                if (owner <= 0 && !string.IsNullOrWhiteSpace(name))
+                if (owner == -1 && !string.IsNullOrWhiteSpace(name))
                 {
-                    genericChoices.Add(new FormationChoice(row, formationId, name, IsGeneric: true));
+                    genericChoices.Add(new FormationChoice(row, formationId, formationId,
+                        Fc26FormationCatalog.DisplayName(formationId, name), IsGeneric: true));
                 }
                 else if (owner == teamId)
                 {
@@ -1741,20 +1772,23 @@ public sealed class TeamsSection : SectionBase
                     // databases. Keep the first stable link instead of letting
                     // the last row silently replace it during enumeration.
                     if (_activeTeamFormationRow < 0) _activeTeamFormationRow = row;
-                    teamChoices.Add(new FormationChoice(row, formationId, string.IsNullOrWhiteSpace(name) ? $"Team formation #{row + 1}" : name, IsGeneric: false));
+                    var layoutId = relativeColumn >= 0 ? Parse(record.Get(relativeColumn)) : formationId;
+                    teamChoices.Add(new FormationChoice(row, formationId, layoutId,
+                        Fc26FormationCatalog.DisplayName(layoutId,
+                            string.IsNullOrWhiteSpace(name) ? $"Team formation #{row + 1}" : name), IsGeneric: false));
                 }
             }
         }
         var choices = genericChoices
-            .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.First())
-            .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(c => c.FormationId)
+            .Select(group => group.First())
+            .OrderBy(c => Fc26FormationCatalog.SortOrder(c.FormationId))
             .ToList();
         if (choices.Count == 0) choices = teamChoices;
         var selected = _activeTeamFormationRow >= 0 ? teamChoices.FirstOrDefault() : null;
         if (selected != null)
         {
-            var matchingGeneric = choices.FirstOrDefault(c => c.Name.Equals(selected.Name, StringComparison.OrdinalIgnoreCase));
+            var matchingGeneric = choices.FirstOrDefault(c => c.FormationId == selected.LayoutId);
             if (matchingGeneric != null) selected = matchingGeneric;
             else if (!choices.Contains(selected)) choices.Insert(0, selected);
         }
@@ -2283,7 +2317,11 @@ public sealed class TeamsSection : SectionBase
         _teamManagerNation.Text = "";
         _teamRivalLabel.Text = "—";
         _teamFoundationLabel.Text = $"Founded: {record.Get(Col(table, "foundationyear")) ?? "—"}";
-        _teamWorthLabel.Text = $"Worth: {record.Get(Col(table, "clubworth")) ?? "—"}";
+        _teamWorthLabel.Text = $"Club worth: {Fc26ClubProfile.FormatClubWorth(record.Get(Col(table, "clubworth")))}";
+        _teamFanbaseLabel.Text = $"Fanbase devotion: {Fc26ClubProfile.RatingLabel(record.Get(Col(table, "popularity")))}";
+        _teamYouthLabel.Text = $"Youth facilities: {Fc26ClubProfile.RatingLabel(record.Get(Col(table, "youthdevelopment")))}";
+        _teamFinanceLabel.Text = $"Financial stability: {Fc26ClubProfile.RatingLabel(record.Get(Col(table, "profitability")))}";
+        _teamHonoursLabel.Text = $"Honours: League {record.Get(Col(table, "leaguetitles")) ?? "—"}  •  Cups {record.Get(Col(table, "domesticcups")) ?? "—"}\nChampions League {record.Get(Col(table, "uefa_cl_wins")) ?? "—"}";
         RefreshTacticsCard(crestTeamId);
 
         ReplacePreviewImage(_teamKitHome, null);

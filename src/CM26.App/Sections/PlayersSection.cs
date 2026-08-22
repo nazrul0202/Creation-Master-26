@@ -500,7 +500,7 @@ public sealed class PlayersSection : SectionBase
         var card = new StudioCard
         {
             Width = 260,
-            Height = 180,
+            Height = 230,
             Margin = new Padding(0, 0, 0, StudioSpacing.Medium),
             AccentColor = StudioColors.Purple,
             AutoSize = false,
@@ -560,7 +560,7 @@ public sealed class PlayersSection : SectionBase
             BackColor = Color.Transparent,
         };
 
-        for (var i = 1; i <= 4; i++)
+        for (var i = 1; i <= 5; i++)
         {
             var label = new Label
             {
@@ -575,6 +575,17 @@ public sealed class PlayersSection : SectionBase
             flow.Controls.Add(label);
         }
 
+        flow.Controls.Add(new Label
+        {
+            Text = "Energy, sharpness, morale and live role focus belong to a Career save; they are not stored in the squads database.",
+            ForeColor = StudioColors.MutedText,
+            Font = StudioFonts.DataLabel,
+            AutoSize = false,
+            Size = new Size(225, 54),
+            Margin = new Padding(0, StudioSpacing.Tiny, 0, 0),
+            BackColor = Color.Transparent,
+        });
+
         card.Controls.Add(flow);
         card.Controls.Add(title);
         return card;
@@ -585,7 +596,8 @@ public sealed class PlayersSection : SectionBase
         1 => "Primary",
         2 => "Secondary",
         3 => "Third",
-        _ => "Fourth",
+        4 => "Fourth",
+        _ => "Fifth",
     };
 
     private StudioCard BuildFaceCard()
@@ -1837,7 +1849,7 @@ public sealed class PlayersSection : SectionBase
             ("GK Positioning", "gkpositioning"), ("GK Reflexes", "gkreflexes"),
         });
 
-        for (var i = 1; i <= 4; i++)
+        for (var i = 1; i <= 5; i++)
         {
             var key = $"role{i}";
             var text = GetOverviewText(key);

@@ -1,5 +1,16 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.132 - FC26 database deep scan: club profile, formations and player data (2026-08-22)
+
+- Deep-scanned the installed FC26 database and documented the boundary between static squads data and runtime Career-save data. Club Worth, fanbase devotion, youth facilities, financial stability, founding year and honours are backed by real `teams` columns; transfer budget, generated board objectives, energy, sharpness and morale are not fabricated.
+- Added static club-profile presentation to Team Overview, including FC26 rating bands, correctly scaled Club Worth and league/cup/Champions League honours.
+- Stopped zero objective placeholders from appearing as the misleading **Win League Title** in the CM16-style shell. The controls now identify Career-generated data and remain disabled when no real objective is stored.
+- Added an authoritative 29-entry FC26 formation catalog. Formation selection now keys variants by `formationid`/`relativeformationid`, preserving Narrow, Wide, Flat, Holding, Defend and Attack layouts instead of collapsing them by their shared short name.
+- Applied the same formation names to the legacy shell and retained every database-native layout, including `4-2-1-3`.
+- Expanded Player Overview to display all five familiar-role slots and explains which live player values exist only in a Career save. Static attributes, PlayStyles and familiar-role IDs continue to come from `players`.
+- Extended the read-only `--table-probe` diagnostic with optional field/value filtering and row limits for reproducible FC26 schema audits.
+- Added regression tests for all 29 unique formations, variant resolution, club-profile rating bands and Club Worth scaling. The suite now passes 123 tests.
+
 ## Version 1.0.131 - CM16-shell FC26 team data hotfix (2026-08-22)
 
 - Fixed the CM16-style Team Roster screen still showing **Formation not available** even though FC26's `formations.teamid` contained the team formation. FC26 formation ownership is now authoritative and is no longer discarded by the obsolete FIFA formation link.

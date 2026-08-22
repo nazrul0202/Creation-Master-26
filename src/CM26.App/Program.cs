@@ -299,7 +299,11 @@ internal static class Program
         // Read-only schema/value diagnostic for an FC26 table.
         if (args.Length >= 3 && args[0] == "--table-probe")
         {
-            Environment.ExitCode = HeadlessSmoke.TableProbe(args[1], args[2]);
+            Environment.ExitCode = HeadlessSmoke.TableProbe(
+                args[1], args[2],
+                args.Length >= 5 ? args[3] : null,
+                args.Length >= 5 ? args[4] : null,
+                args.Length >= 6 && int.TryParse(args[5], out var probeLimit) ? probeLimit : 20);
             return;
         }
 

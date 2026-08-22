@@ -626,7 +626,12 @@ internal static class HeadlessSmoke
 
     /// <summary>Read-only schema probe used to verify that a CM16-style panel is
     /// bound to the actual FC26 columns before any UI behaviour is implemented.</summary>
-    public static int TableProbe(string folder, string tableName)
+    public static int TableProbe(
+        string folder,
+        string tableName,
+        string? filterColumn = null,
+        string? filterValue = null,
+        int limit = 20)
     {
         var reportPath = Path.Combine(AppContext.BaseDirectory, "table-probe.txt");
         try
@@ -634,12 +639,27 @@ internal static class HeadlessSmoke
             using var services = new AppServices();
             services.LoadDatabase(folder);
             var table = services.Session.GetTable(tableName) ?? throw new InvalidOperationException($"Table not found: {tableName}");
-            var lines = new List<string> { $"{table.Name}: rows={table.RowCount}, columns={table.Columns.Count}", string.Join(" | ", table.Columns.Select(c => c.Name)) };
-            for (var row = 0; row < Math.Min(table.RowCount, 3); row++)
+            if (!string.IsNullOrWhiteSpace(filterColumn) && table.FindColumn(filterColumn) is null)
+                throw new InvalidOperationException($"Column not found in {tableName}: {filterColumn}");
+
+            limit = Math.Clamp(limit, 1, 5000);
+            var lines = new List<string>
             {
+                $"{table.Name}: rows={table.RowCount}, columns={table.Columns.Count}",
+                string.Join(" | ", table.Columns.Select(c => c.Name))
+            };
+            var matches = 0;
+            for (var row = 0; row < table.RowCount && matches < limit; row++)
+            {
+                if (!string.IsNullOrWhiteSpace(filterColumn) &&
+                    !string.Equals(services.Session.GetCell(table.Name, row, filterColumn), filterValue,
+                        StringComparison.OrdinalIgnoreCase))
+                    continue;
                 var record = services.Session.GetRecord(table.Name, row)!;
                 lines.Add($"row {row}: " + string.Join(" | ", record.Values));
+                matches++;
             }
+            lines.Insert(1, $"filter={filterColumn ?? "(none)"}:{filterValue ?? "(none)"}, matches shown={matches}, limit={limit}");
             File.WriteAllLines(reportPath, lines);
             Console.WriteLine(string.Join(Environment.NewLine, lines));
             return 0;

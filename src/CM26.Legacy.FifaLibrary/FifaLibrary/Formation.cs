@@ -220,11 +220,13 @@ public class Formation : IdObject
 
 	public override string ToString()
 	{
+		string displayName = FifaEnvironment.Year == 26 && !string.IsNullOrEmpty(m_formationfullname)
+			? m_formationfullname : m_formationname;
 		if (m_teamid > 0 && m_Team != null)
 		{
-			return m_Team.DatabaseName + " " + m_formationname;
+			return m_Team.DatabaseName + " " + displayName;
 		}
-		return m_formationname;
+		return displayName;
 	}
 
 	public string DatabaseString()

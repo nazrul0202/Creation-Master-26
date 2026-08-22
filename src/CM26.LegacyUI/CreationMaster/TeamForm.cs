@@ -1296,6 +1296,20 @@ public class TeamForm : Form
 		labelDefaggression.Visible = false;
 		labelDefteamwidth.Visible = false;
 		groupBox6.Visible = false;
+
+		// These values are generated inside a Career save. The squads database
+		// contains zero placeholders, which the CM16 enum previously rendered as
+		// the misleading "Win League Title" objective.
+		if (comboObjective.Items.Count > 0) comboObjective.Items[0] = "Career generated (not in squads DB)";
+		if (comboMaxOnjective.Items.Count > 0) comboMaxOnjective.Items[0] = "Career generated (not in squads DB)";
+		if (comboProbObjective.Items.Count > 0) comboProbObjective.Items[0] = "Career generated (not in squads DB)";
+		var careerDataNote = new Label
+		{
+			Text = "Transfer budget and board objectives are Career-save data.\r\nThe squads database stores Club Worth and static club profile values only.",
+			Location = new Point(groupTeamTraits.Left, groupTeamTraits.Bottom + 8),
+			Size = new Size(360, 38), ForeColor = Color.DimGray, BackColor = Color.Transparent
+		};
+		pageTeamGeneric.Controls.Add(careerDataNote);
 	}
 
 	private void LoadFc26TraitChecks()
@@ -1364,6 +1378,13 @@ public class TeamForm : Form
 		SetSelectedIndex(comboObjective, m_CurrentTeam.objective);
 		SetSelectedIndex(comboMaxOnjective, m_CurrentTeam.highestpossible);
 		SetSelectedIndex(comboProbObjective, m_CurrentTeam.highestprobable);
+		if (FifaEnvironment.Year == 26)
+		{
+			bool hasStoredObjective = m_CurrentTeam.objective != 0 || m_CurrentTeam.highestpossible != 0 || m_CurrentTeam.highestprobable != 0;
+			comboObjective.Enabled = hasStoredObjective;
+			comboMaxOnjective.Enabled = hasStoredObjective;
+			comboProbObjective.Enabled = hasStoredObjective;
+		}
 		teamBindingSource.ResetBindings(metadataChanged: false);
 		LoadFc26TraitChecks();
 		viewer2DCrestLarge.CurrentBitmap = null;
@@ -1512,6 +1533,10 @@ public class TeamForm : Form
 			}
 			if (FifaEnvironment.Year == 26)
 			{
+				var formationNames = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+				foreach (object item in comboGenericFormations.Items) formationNames.Add(item.ToString());
+				if (comboGenericFormations.Items.Count != 29 || formationNames.Count != 29)
+					throw new InvalidOperationException("FC26's 29 generic formation variants were not preserved.");
 				Team heidenheim = FifaEnvironment.Teams.SearchId(111235) as Team;
 				if (heidenheim != null)
 				{
@@ -1533,6 +1558,8 @@ public class TeamForm : Form
 						if (m_Fc26TraitChecks[bit].Checked) renderedKnown |= 1 << bit;
 					if (renderedKnown != expectedKnown)
 						throw new InvalidOperationException("FC26 opponent-context team traits were not rendered.");
+					if (heidenheim.objective == 0 && comboObjective.Enabled)
+						throw new InvalidOperationException("FC26 Career-generated objective placeholder is incorrectly editable.");
 				}
 			}
 		}
