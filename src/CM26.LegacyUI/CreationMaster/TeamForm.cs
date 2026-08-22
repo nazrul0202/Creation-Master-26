@@ -1,8 +1,12 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Text;
+using System.Linq;
 using System.Windows.Forms;
 using FifaControls;
 using FifaLibrary;
@@ -56,6 +60,16 @@ public class TeamForm : Form
 	private ComboBox comboTraitContext;
 
 	private CheckBox[] m_Fc26TraitChecks;
+
+	private Label[] m_Fc26RosterLabels;
+
+	private readonly Dictionary<int, Image> m_Fc26MiniFaceCache = new Dictionary<int, Image>();
+
+	private Image m_Fc26PitchBackground;
+
+	private int m_Fc26MiniFaceTeamId = -1;
+
+	private int m_Fc26MiniFaceLoadGeneration;
 
 	private QuickEditPlayerPanel[] m_QuickPanels = new QuickEditPlayerPanel[40];
 
@@ -1310,6 +1324,222 @@ public class TeamForm : Form
 			Size = new Size(360, 38), ForeColor = Color.DimGray, BackColor = Color.Transparent
 		};
 		pageTeamGeneric.Controls.Add(careerDataNote);
+
+		ConfigureFc26RosterFormationUi();
+	}
+
+	private void ConfigureFc26RosterFormationUi()
+	{
+		m_Fc26RosterLabels = new[]
+		{
+			labelPos0, labelPos1, labelPos2, labelPos3, labelPos4, labelPos5, labelPos6,
+			labelPos7, labelPos8, labelPos9, labelPos10, labelPos11, labelPos12, labelPos13,
+			labelPos14, labelPos15, labelPos16, labelPos17, labelPos18, labelPos19, labelPos20,
+			labelPos21, labelPos22, labelPos23, labelPos24, labelPos25, labelPos26, labelPos27,
+			labelPos32A, labelPos32B, labelPos32C, labelPos32D, labelPos32E, labelPos32F, labelPos32G,
+			labelPos33A, labelPos33B, labelPos33C, labelPos33D, labelPos33E, labelPos33F, labelPos33G,
+			labelPos33H, labelPos33I, labelPos33J, labelPos33K, labelPos33L, labelPos33M, labelPos33N,
+			labelPos33O, labelPos33P, labelPos33Q, labelPos33R, labelPos33S, labelPos33T, labelPos33U
+		};
+
+		foreach (Label label in m_Fc26RosterLabels)
+		{
+			label.BackColor = Color.Transparent;
+			label.ForeColor = Color.White;
+			label.TextAlign = ContentAlignment.MiddleCenter;
+			label.Paint += Fc26RosterLabel_Paint;
+		}
+
+		m_Fc26PitchBackground = CreateFc26PitchBackground(panel1.ClientSize);
+		panel1.BackColor = Color.FromArgb(16, 22, 28);
+		panel1.BackgroundImage = m_Fc26PitchBackground;
+		panel1.BackgroundImageLayout = ImageLayout.Stretch;
+
+		// FC26 has 29 database-native layouts. Make them directly editable on the
+		// roster page; the blue formation name remains the advanced position editor.
+		comboGenericFormations.Visible = true;
+		comboGenericFormations.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboGenericFormations.Location = new Point(10, 50);
+		comboGenericFormations.Size = new Size(212, 21);
+		buttonCreateNewFormation.Location = new Point(194, 18);
+		var chooseFormation = new Label
+		{
+			Text = "Choose FC26 layout", Location = new Point(10, 33), Size = new Size(150, 15),
+			ForeColor = Color.DimGray, BackColor = Color.Transparent
+		};
+		var editFormation = new Label
+		{
+			Text = "Double-click the name for advanced position editing.",
+			Location = new Point(10, 76), Size = new Size(212, 31),
+			ForeColor = Color.DimGray, BackColor = Color.Transparent
+		};
+		groupFormation.Controls.Add(chooseFormation);
+		groupFormation.Controls.Add(editFormation);
+	}
+
+	private static Image CreateFc26PitchBackground(Size size)
+	{
+		var bitmap = new Bitmap(Math.Max(1, size.Width), Math.Max(1, size.Height));
+		using (Graphics graphics = Graphics.FromImage(bitmap))
+		using (var background = new LinearGradientBrush(new Rectangle(Point.Empty, bitmap.Size),
+			Color.FromArgb(18, 27, 34), Color.FromArgb(31, 34, 43), LinearGradientMode.Vertical))
+		using (var pitchPen = new Pen(Color.FromArgb(105, 188, 199, 201), 1.2f))
+		using (var sectionBrush = new SolidBrush(Color.FromArgb(190, 22, 27, 35)))
+		using (var headingBrush = new SolidBrush(Color.FromArgb(190, 224, 229, 232)))
+		using (var headingFont = new Font("Segoe UI", 7.5f, FontStyle.Bold))
+		{
+			graphics.SmoothingMode = SmoothingMode.AntiAlias;
+			graphics.FillRectangle(background, 0, 0, bitmap.Width, bitmap.Height);
+			var pitch = new Rectangle(7, 6, bitmap.Width - 15, 296);
+			graphics.DrawRectangle(pitchPen, pitch);
+			graphics.DrawLine(pitchPen, pitch.Left, pitch.Top + pitch.Height / 2,
+				pitch.Right, pitch.Top + pitch.Height / 2);
+			graphics.DrawEllipse(pitchPen, pitch.Left + pitch.Width / 2 - 54,
+				pitch.Top + pitch.Height / 2 - 31, 108, 62);
+			graphics.DrawEllipse(pitchPen, pitch.Left + pitch.Width / 2 - 2,
+				pitch.Top + pitch.Height / 2 - 2, 4, 4);
+			graphics.DrawRectangle(pitchPen, pitch.Left + pitch.Width / 2 - 83, pitch.Top, 166, 50);
+			graphics.DrawRectangle(pitchPen, pitch.Left + pitch.Width / 2 - 36, pitch.Top, 72, 20);
+			graphics.DrawRectangle(pitchPen, pitch.Left + pitch.Width / 2 - 83, pitch.Bottom - 50, 166, 50);
+			graphics.DrawRectangle(pitchPen, pitch.Left + pitch.Width / 2 - 36, pitch.Bottom - 20, 72, 20);
+
+			graphics.FillRectangle(sectionBrush, 0, 306, bitmap.Width, 44);
+			graphics.FillRectangle(sectionBrush, 0, 353, bitmap.Width, bitmap.Height - 353);
+			graphics.DrawString("SUBSTITUTES", headingFont, headingBrush, 8, 307);
+			graphics.DrawString("RESERVES", headingFont, headingBrush, 8, 354);
+		}
+		return bitmap;
+	}
+
+	private void Fc26RosterLabel_Paint(object sender, PaintEventArgs e)
+	{
+		var label = sender as Label;
+		if (label == null || FifaEnvironment.Year != 26) return;
+		var teamPlayer = label.Tag as TeamPlayer;
+		var player = teamPlayer == null ? null : teamPlayer.Player;
+		e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+		e.Graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+
+		var bounds = new Rectangle(0, 0, Math.Max(1, label.Width - 1), Math.Max(1, label.Height - 1));
+		using (GraphicsPath card = CreateRoundedRectangle(bounds, 5))
+		using (var fill = new SolidBrush(teamPlayer == m_CurrentTeamPlayer
+			? Color.FromArgb(244, 48, 55, 67) : Color.FromArgb(226, 23, 28, 36)))
+		using (var border = new Pen(teamPlayer == m_CurrentTeamPlayer
+			? Color.FromArgb(0, 226, 230) : Color.FromArgb(78, 112, 124, 132)))
+		{
+			e.Graphics.FillPath(fill, card);
+			e.Graphics.DrawPath(border, card);
+		}
+
+		if (player == null)
+		{
+			using (var placeholder = new SolidBrush(Color.FromArgb(105, 205, 211, 216)))
+			using (var font = new Font("Segoe UI", 6.5f, FontStyle.Regular))
+			using (var format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+			{
+				string role = "Open slot";
+				if (teamPlayer != null)
+				{
+					role = teamPlayer.position == 28
+						? "Substitute"
+						: teamPlayer.position == 29
+							? "Reserve"
+							: ((ERole)teamPlayer.position).ToString().Replace('_', ' ');
+				}
+				e.Graphics.DrawString(role, font, placeholder, bounds, format);
+			}
+			return;
+		}
+
+		int faceSize = label.Width >= 85 ? 31 : 23;
+		var faceBounds = new Rectangle(3, Math.Max(2, (label.Height - faceSize) / 2), faceSize, faceSize);
+		if (m_Fc26MiniFaceCache.TryGetValue(player.Id, out Image face))
+		{
+			GraphicsState state = e.Graphics.Save();
+			using (var clip = new GraphicsPath())
+			{
+				clip.AddEllipse(faceBounds);
+				e.Graphics.SetClip(clip);
+				e.Graphics.DrawImage(face, faceBounds);
+			}
+			e.Graphics.Restore(state);
+		}
+		else
+		{
+			using (var fallback = new SolidBrush(Color.FromArgb(72, 88, 100)))
+				e.Graphics.FillEllipse(fallback, faceBounds);
+		}
+
+		int textLeft = faceBounds.Right + 3;
+		int textWidth = Math.Max(12, label.Width - textLeft - 3);
+		Color ratingColor = player.overallrating >= 80 ? Color.FromArgb(22, 220, 112)
+			: player.overallrating >= 70 ? Color.FromArgb(248, 204, 65) : Color.White;
+		using (var ratingBrush = new SolidBrush(ratingColor))
+		using (var nameBrush = new SolidBrush(Color.White))
+		using (var ratingFont = new Font("Segoe UI", label.Width >= 85 ? 8.5f : 7.5f, FontStyle.Bold))
+		using (var nameFont = new Font("Segoe UI", label.Width >= 85 ? 7.1f : 6.5f, FontStyle.Bold))
+		using (var format = new StringFormat { Alignment = StringAlignment.Far,
+			Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap })
+		{
+			e.Graphics.DrawString(player.overallrating.ToString(), ratingFont, ratingBrush,
+				new RectangleF(textLeft, 2, textWidth, 14), format);
+			e.Graphics.DrawString(player.Name, nameFont, nameBrush,
+				new RectangleF(textLeft, 18, textWidth, label.Height - 19), format);
+		}
+		using (var fitness = new Pen(Color.FromArgb(18, 232, 118), 2.3f))
+			e.Graphics.DrawLine(fitness, textLeft, label.Height - 3, label.Width - 4, label.Height - 3);
+	}
+
+	private static GraphicsPath CreateRoundedRectangle(Rectangle bounds, int radius)
+	{
+		var path = new GraphicsPath();
+		int diameter = Math.Max(2, radius * 2);
+		path.AddArc(bounds.Left, bounds.Top, diameter, diameter, 180, 90);
+		path.AddArc(bounds.Right - diameter, bounds.Top, diameter, diameter, 270, 90);
+		path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
+		path.AddArc(bounds.Left, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+		path.CloseFigure();
+		return path;
+	}
+
+	private async void LoadFc26RosterMiniFacesAsync(Team team)
+	{
+		if (FifaEnvironment.Year != 26 || team == null || team.Roster == null) return;
+		if (m_Fc26MiniFaceTeamId == team.Id && m_Fc26MiniFaceCache.Count > 0)
+		{
+			InvalidateFc26RosterLabels();
+			return;
+		}
+
+		int generation = ++m_Fc26MiniFaceLoadGeneration;
+		m_Fc26MiniFaceTeamId = team.Id;
+		foreach (Image image in m_Fc26MiniFaceCache.Values) image.Dispose();
+		m_Fc26MiniFaceCache.Clear();
+		var players = team.Roster.Cast<TeamPlayer>()
+			.Where(value => value.Player != null).Select(value => value.Player).Distinct().ToArray();
+		try
+		{
+			await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.PreloadAssets(
+				players.Select(value => value.SpecificPhotoDdsFileName())));
+			if (IsDisposed || Disposing || generation != m_Fc26MiniFaceLoadGeneration || m_CurrentTeam != team) return;
+			foreach (Player player in players)
+			{
+				try
+				{
+					Bitmap photo = player.GetPhoto();
+					if (photo != null) m_Fc26MiniFaceCache[player.Id] = new Bitmap(photo);
+				}
+				catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+			}
+			InvalidateFc26RosterLabels();
+		}
+		catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+	}
+
+	private void InvalidateFc26RosterLabels()
+	{
+		if (m_Fc26RosterLabels == null) return;
+		foreach (Label label in m_Fc26RosterLabels) label.Invalidate();
 	}
 
 	private void LoadFc26TraitChecks()
@@ -1511,7 +1741,34 @@ public class TeamForm : Form
 			buttonCreateNewFormation.Enabled = false;
 		}
 		InitVisualFormation(m_CurrentTeam.Roster);
+		SelectFc26FormationPreset();
+		LoadFc26RosterMiniFacesAsync(m_CurrentTeam);
 		LoadFc26Tactics();
+	}
+
+	private void SelectFc26FormationPreset()
+	{
+		if (FifaEnvironment.Year != 26 || m_CurrentFormation == null || comboGenericFormations.Items.Count == 0) return;
+		bool oldLock = m_LockUserChanges;
+		m_LockUserChanges = true;
+		try
+		{
+			int layoutId = m_CurrentFormation.relativeformationid;
+			int selected = -1;
+			for (int index = 0; index < comboGenericFormations.Items.Count; index++)
+			{
+				var preset = comboGenericFormations.Items[index] as Formation;
+				if (preset != null && (preset.Id == layoutId ||
+					(layoutId <= 0 && string.Equals(preset.formationfullname,
+						m_CurrentFormation.formationfullname, StringComparison.OrdinalIgnoreCase))))
+				{
+					selected = index;
+					break;
+				}
+			}
+			comboGenericFormations.SelectedIndex = selected;
+		}
+		finally { m_LockUserChanges = oldLock; }
 	}
 
 	public void AuditFc26RecordsForSmoke()
@@ -2112,6 +2369,7 @@ public class TeamForm : Form
 			EnableRosterButtons();
 		}
 		m_ChangeNumberFlag = true;
+		InvalidateFc26RosterLabels();
 	}
 
 	private void buttonTransferPlayer_Click(object sender, EventArgs e)
@@ -2871,6 +3129,7 @@ public class TeamForm : Form
 			}
 		}
 		InitSpecialPlayers(m_CurrentTeam);
+		InvalidateFc26RosterLabels();
 	}
 
 	private void InitSpecialPlayers(Team team)
@@ -3039,6 +3298,8 @@ public class TeamForm : Form
 		TeamPlayer tag = obj;
 		m_DraggedLabel.Tag = teamPlayer;
 		label.Tag = tag;
+		m_DraggedLabel.Invalidate();
+		label.Invalidate();
 	}
 
 	private void labelPos_DragEnter(object sender, DragEventArgs e)
@@ -3118,6 +3379,21 @@ public class TeamForm : Form
 		if (!m_LockUserChanges && comboGenericFormations.SelectedIndex >= 0)
 		{
 			Formation formation = (Formation)comboGenericFormations.SelectedItem;
+			if (FifaEnvironment.Year == 26 && formation != null && m_CurrentFormation != null &&
+				!m_CurrentFormation.IsGeneric())
+			{
+				// Keep the team's existing formations row/ID, but copy the complete
+				// database-native layout so the change remains a team-specific edit.
+				m_CurrentFormation.ReInitialize(formation);
+				m_CurrentFormation.relativeformationid = formation.Id;
+				m_CurrentFormation.Team = m_CurrentTeam;
+				m_CurrentTeam.LinkFormation(m_CurrentFormation);
+				m_CurrentTeam.formationid = m_CurrentFormation.Id;
+				m_CurrentTeam.AssignTitolarToRoles(m_CurrentFormation);
+				InitVisualFormation(m_CurrentTeam.Roster);
+				labelTeamFormationName.Text = m_CurrentFormation.ToString();
+				return;
+			}
 			if (formation != null && formation != m_CurrentTeam.Formation)
 			{
 				m_CurrentTeam.Formation = formation;
@@ -4070,9 +4346,12 @@ public class TeamForm : Form
 
 	protected override void Dispose(bool disposing)
 	{
-		if (disposing && components != null)
+		if (disposing)
 		{
-			components.Dispose();
+			foreach (Image image in m_Fc26MiniFaceCache.Values) image.Dispose();
+			m_Fc26MiniFaceCache.Clear();
+			if (m_Fc26PitchBackground != null) m_Fc26PitchBackground.Dispose();
+			if (components != null) components.Dispose();
 		}
 		base.Dispose(disposing);
 	}

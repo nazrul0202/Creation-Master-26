@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.133 - in-game formation design and persistent layout editing (2026-08-22)
+
+- Rebuilt the FC26 roster formation view with an in-game-inspired dark pitch and compact player cards showing each starter, substitute and reserve miniface, name and overall rating.
+- Added rating colours, selected-player highlighting and status bars while preserving the existing player selection and drag/drop squad workflow.
+- Exposed the complete 29-layout FC26 formation selector directly on the Roster page; the formation-name link remains available for advanced role and position editing.
+- Formation selection now copies the chosen database-native layout into the team's own formation record instead of replacing it with a generic shared object.
+- Added explicit FC26 save-plan support for all 11 formation roles, offsets and player instructions so formation edits persist through database save and reload.
+- Kept the formation background code-native and responsive; no EA UI texture is redistributed.
+
 ## Version 1.0.132 - FC26 database deep scan: club profile, formations and player data (2026-08-22)
 
 - Deep-scanned the installed FC26 database and documented the boundary between static squads data and runtime Career-save data. Club Worth, fanbase devotion, youth facilities, financial stability, founding year and honours are backed by real `teams` columns; transfer budget, generated board objectives, energy, sharpness and morale are not fabricated.

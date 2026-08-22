@@ -199,6 +199,7 @@ internal static class Fc26SnapshotLoader
             }
         }
         AppendFc26TacticMirrorChanges(snapshot, changes);
+        AppendFormationRoleChanges(snapshot, changes);
         AppendPlayerNameChanges(snapshot, changes);
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         File.WriteAllText(path, JsonSerializer.Serialize(new ChangePlan
@@ -291,6 +292,73 @@ internal static class Fc26SnapshotLoader
             RowIndex = rowIndex,
             FieldName = table.Columns[columnIndex],
             Value = text
+        });
+    }
+
+    private static void AppendFormationRoleChanges(Snapshot snapshot, List<Change> changes)
+    {
+        if (FifaEnvironment.Formations == null) return;
+        var table = snapshot.Tables.FirstOrDefault(value =>
+            value.Name.Equals("formations", StringComparison.OrdinalIgnoreCase));
+        if (table == null) return;
+
+        var idColumn = Column(table, "formationid");
+        if (idColumn < 0) return;
+
+        var rowsById = table.Rows
+            .Select((row, index) => new { Id = ParseIntAt(row, idColumn), Index = index })
+            .GroupBy(value => value.Id)
+            .ToDictionary(group => group.Key, group => group.First().Index);
+
+        foreach (Formation formation in FifaEnvironment.Formations)
+        {
+            var origin = Origins(formation).FirstOrDefault(value =>
+                value.TableName.Equals(table.Name, StringComparison.OrdinalIgnoreCase));
+            var rowIndex = origin?.RowIndex ??
+                (rowsById.TryGetValue(formation.Id, out var mappedRow) ? mappedRow : -1);
+            if (rowIndex < 0 || rowIndex >= table.Rows.Count || formation.PlayingRoles == null) continue;
+
+            for (var index = 0; index < Math.Min(11, formation.PlayingRoles.Length); index++)
+            {
+                var role = formation.PlayingRoles[index];
+                if (role == null) continue;
+                AddFormationRoleChange(table, rowIndex, "position" + index,
+                    role.Role?.Id ?? role.Id, typeof(int), changes);
+                AddFormationRoleChange(table, rowIndex, "offset" + index + "x",
+                    role.OffsetX / 100f, typeof(float), changes);
+                AddFormationRoleChange(table, rowIndex, "offset" + index + "y",
+                    role.OffsetY / 100f, typeof(float), changes);
+                AddFormationRoleChange(table, rowIndex, "playerinstruction" + index + "_1",
+                    role.PlayerInstruction_1, typeof(int), changes);
+                AddFormationRoleChange(table, rowIndex, "playerinstruction" + index + "_2",
+                    role.PlayerInstruction_2, typeof(int), changes);
+            }
+        }
+    }
+
+    private static void AddFormationRoleChange(TableSnapshot table, int rowIndex,
+        string fieldName, object value, Type type, List<Change> changes)
+    {
+        var columnIndex = Column(table, fieldName);
+        if (columnIndex < 0 || rowIndex < 0 || rowIndex >= table.Rows.Count) return;
+        var current = ToDatabaseText(value, type);
+        if (DatabaseEquals(table.Rows[rowIndex][columnIndex], current, type)) return;
+
+        var existing = changes.FirstOrDefault(change =>
+            change.RowIndex == rowIndex &&
+            change.TableName.Equals(table.Name, StringComparison.OrdinalIgnoreCase) &&
+            change.FieldName.Equals(table.Columns[columnIndex], StringComparison.OrdinalIgnoreCase));
+        if (existing != null)
+        {
+            existing.Value = current;
+            return;
+        }
+        changes.Add(new Change
+        {
+            TableName = table.Name,
+            RowIndex = rowIndex,
+            FieldName = table.Columns[columnIndex],
+            Value = current
         });
     }
 
