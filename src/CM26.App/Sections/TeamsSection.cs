@@ -1929,14 +1929,25 @@ public sealed class TeamsSection : SectionBase
             _heroCard.WorthText = $"Worth: {record.Get(Col(table, "clubworth")) ?? "—"}";
 
             // Load transfer budget with FC26 fallback (transferbudget → clubworth)
+            // FC26 removed teams.transferbudget; each team has a unique value in the DB
+            long teamBudget = 0;
             var budgetCol = Col(table, "transferbudget");
-            var budgetValue = budgetCol >= 0 ? record.Get(budgetCol) : null;
-            if (string.IsNullOrEmpty(budgetValue))
+            if (budgetCol >= 0)
             {
-                budgetCol = Col(table, "clubworth");
-                budgetValue = budgetCol >= 0 ? record.Get(budgetCol) : null;
+                var raw = record.Get(budgetCol);
+                if (long.TryParse(raw, out var parsed)) teamBudget = parsed;
             }
-            _heroCard.TransferBudget = long.TryParse(budgetValue, out var budget) ? budget : 0;
+            else
+            {
+                // FC26 fallback: use clubworth (each team has a unique clubworth in DB)
+                var worthCol = Col(table, "clubworth");
+                if (worthCol >= 0)
+                {
+                    var raw = record.Get(worthCol);
+                    if (long.TryParse(raw, out var parsed)) teamBudget = parsed;
+                }
+            }
+            _heroCard.TransferBudget = teamBudget;
 
             var oldCrest = _heroCard.Crest;
             _heroCard.Crest = null;

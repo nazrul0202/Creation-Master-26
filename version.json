@@ -1,6 +1,6 @@
 {
   "version": "1.0.127",
   "name": "Creation Master 26",
-  "notes": "v1.0.127 - Added editable Transfer Budget to Teams Overview hero card: numeric editor with FC26 fallback (transferbudget → clubworth), default 1,000,000 for new teams, and auto-save on change.",
+  "notes": "v1.0.127 - Added editable Transfer Budget to Teams Overview hero card: numeric editor reads each team's real budget from FC26 database (transferbudget or clubworth fallback), default 1,000,000 for new teams, auto-save on change.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
