@@ -67,6 +67,14 @@ public class TeamForm : Form
 
 	private Image m_Fc26PitchBackground;
 
+	private bool m_Fc26RosterLayoutBusy;
+
+	private const int Fc26PitchHeight = 430;
+
+	private const int Fc26SubstitutesTop = 438;
+
+	private const int Fc26ReservesTop = 507;
+
 	private int m_Fc26MiniFaceTeamId = -1;
 
 	private int m_Fc26MiniFaceLoadGeneration;
@@ -1350,10 +1358,9 @@ public class TeamForm : Form
 			label.Paint += Fc26RosterLabel_Paint;
 		}
 
-		m_Fc26PitchBackground = CreateFc26PitchBackground(panel1.ClientSize);
 		panel1.BackColor = Color.FromArgb(16, 22, 28);
-		panel1.BackgroundImage = m_Fc26PitchBackground;
 		panel1.BackgroundImageLayout = ImageLayout.Stretch;
+		pageTeamRoster.Resize += Fc26RosterPage_Resize;
 
 		// FC26 has 29 database-native layouts. Make them directly editable on the
 		// roster page; the blue formation name remains the advanced position editor.
@@ -1375,6 +1382,121 @@ public class TeamForm : Form
 		};
 		groupFormation.Controls.Add(chooseFormation);
 		groupFormation.Controls.Add(editFormation);
+		LayoutFc26RosterFormationUi();
+	}
+
+	private void Fc26RosterPage_Resize(object sender, EventArgs e)
+	{
+		LayoutFc26RosterFormationUi();
+	}
+
+	private void LayoutFc26RosterFormationUi()
+	{
+		if (FifaEnvironment.Year != 26 || m_Fc26RosterLabels == null || m_Fc26RosterLayoutBusy)
+		{
+			return;
+		}
+
+		m_Fc26RosterLayoutBusy = true;
+		try
+		{
+			const int left = 732;
+			const int setPieceWidth = 85;
+			int availableWidth = pageTeamRoster.ClientSize.Width - left - setPieceWidth - 24;
+			int panelWidth = Math.Max(477, Math.Min(980, availableWidth));
+			panel1.Bounds = new Rectangle(left, 3, panelWidth, 680);
+			pageTeamRoster.AutoScrollMinSize = new Size(left + panelWidth + setPieceWidth + 24, 835);
+
+			int setPieceLeft = panel1.Right + 8;
+			foreach (Label label in new[]
+			{
+				labelCaptainTetx, labelCaptain, labelLeftCornertext, labelLeftCorner,
+				labelRightCornerText, labelRightCorner, labelPenaltyText, labelPenalty,
+				labelLomgKickText, labelLongKick, labelLeftFreeKickText, labelLeftFreeKick,
+				labelRightFreeKickText, labelRightFreeKick, labelFreeKickText, labelFreeKick
+			})
+			{
+				label.Left = setPieceLeft;
+				label.Width = setPieceWidth;
+			}
+
+			int tacticsTop = panel1.Bottom + 8;
+			groupFormation.Location = new Point(left, tacticsTop);
+			groupBox4.Location = new Point(groupFormation.Right + 6, tacticsTop);
+			groupBox5.Location = new Point(groupBox4.Right + 6, tacticsTop);
+
+			LayoutFc26StartingCards();
+			LayoutFc26CardGrid(m_Fc26RosterLabels.Skip(28).Take(7).ToArray(), Fc26SubstitutesTop + 15, 7, 48);
+			LayoutFc26CardGrid(m_Fc26RosterLabels.Skip(35).Take(21).ToArray(), Fc26ReservesTop + 15, 7, 48);
+			RefreshFc26PitchBackground();
+		}
+		finally
+		{
+			m_Fc26RosterLayoutBusy = false;
+		}
+	}
+
+	private void LayoutFc26StartingCards()
+	{
+		if (m_CurrentFormation == null)
+		{
+			return;
+		}
+
+		int cardWidth = Math.Max(104, Math.Min(132, panel1.ClientSize.Width / 7));
+		const int cardHeight = 48;
+		const int marginX = 10;
+		const int marginY = 10;
+		int usableWidth = Math.Max(1, panel1.ClientSize.Width - cardWidth - marginX * 2);
+		int usableHeight = Math.Max(1, Fc26PitchHeight - cardHeight - marginY * 2);
+
+		foreach (PlayingRole playingRole in m_CurrentFormation.PlayingRoles)
+		{
+			if (playingRole?.Role == null)
+			{
+				continue;
+			}
+
+			int roleId = (int)playingRole.Role.RoleId;
+			if (roleId < 0 || roleId >= 28)
+			{
+				continue;
+			}
+
+			Label label = m_Fc26RosterLabels[roleId];
+			float normalizedX = Math.Max(0f, Math.Min(1f, playingRole.OffsetX / 100f));
+			float normalizedY = Math.Max(0f, Math.Min(1f, playingRole.OffsetY / 100f));
+			int x = marginX + (int)Math.Round(normalizedX * usableWidth);
+			int y = marginY + (int)Math.Round((1f - normalizedY) * usableHeight);
+			label.Bounds = new Rectangle(x, y, cardWidth, cardHeight);
+			label.BringToFront();
+		}
+	}
+
+	private void LayoutFc26CardGrid(Label[] labels, int top, int columns, int cardHeight)
+	{
+		const int margin = 8;
+		const int gap = 5;
+		int cardWidth = Math.Max(55, (panel1.ClientSize.Width - margin * 2 - gap * (columns - 1)) / columns);
+		for (int i = 0; i < labels.Length; i++)
+		{
+			int row = i / columns;
+			int column = i % columns;
+			labels[i].Bounds = new Rectangle(
+				margin + column * (cardWidth + gap),
+				top + row * (cardHeight + gap),
+				cardWidth,
+				cardHeight);
+			labels[i].BringToFront();
+		}
+	}
+
+	private void RefreshFc26PitchBackground()
+	{
+		panel1.BackgroundImage = null;
+		m_Fc26PitchBackground?.Dispose();
+		m_Fc26PitchBackground = CreateFc26PitchBackground(panel1.ClientSize);
+		panel1.BackgroundImage = m_Fc26PitchBackground;
 	}
 
 	private static Image CreateFc26PitchBackground(Size size)
@@ -1390,7 +1512,7 @@ public class TeamForm : Form
 		{
 			graphics.SmoothingMode = SmoothingMode.AntiAlias;
 			graphics.FillRectangle(background, 0, 0, bitmap.Width, bitmap.Height);
-			var pitch = new Rectangle(7, 6, bitmap.Width - 15, 296);
+			var pitch = new Rectangle(7, 6, bitmap.Width - 15, Fc26PitchHeight - 12);
 			graphics.DrawRectangle(pitchPen, pitch);
 			graphics.DrawLine(pitchPen, pitch.Left, pitch.Top + pitch.Height / 2,
 				pitch.Right, pitch.Top + pitch.Height / 2);
@@ -1403,10 +1525,12 @@ public class TeamForm : Form
 			graphics.DrawRectangle(pitchPen, pitch.Left + pitch.Width / 2 - 83, pitch.Bottom - 50, 166, 50);
 			graphics.DrawRectangle(pitchPen, pitch.Left + pitch.Width / 2 - 36, pitch.Bottom - 20, 72, 20);
 
-			graphics.FillRectangle(sectionBrush, 0, 306, bitmap.Width, 44);
-			graphics.FillRectangle(sectionBrush, 0, 353, bitmap.Width, bitmap.Height - 353);
-			graphics.DrawString("SUBSTITUTES", headingFont, headingBrush, 8, 307);
-			graphics.DrawString("RESERVES", headingFont, headingBrush, 8, 354);
+			graphics.FillRectangle(sectionBrush, 0, Fc26SubstitutesTop, bitmap.Width,
+				Fc26ReservesTop - Fc26SubstitutesTop - 3);
+			graphics.FillRectangle(sectionBrush, 0, Fc26ReservesTop, bitmap.Width,
+				bitmap.Height - Fc26ReservesTop);
+			graphics.DrawString("SUBSTITUTES", headingFont, headingBrush, 8, Fc26SubstitutesTop + 1);
+			graphics.DrawString("RESERVES", headingFont, headingBrush, 8, Fc26ReservesTop + 1);
 		}
 		return bitmap;
 	}
@@ -1802,6 +1926,14 @@ public class TeamForm : Form
 					Application.DoEvents();
 					if (heidenheim.Formation == null || labelTeamFormationName.Text.IndexOf("5-4-1", StringComparison.Ordinal) < 0)
 						throw new InvalidOperationException("FC26 team formation was not linked from formations.teamid.");
+					var linkedRoleIds = new System.Collections.Generic.HashSet<int>();
+					foreach (PlayingRole playingRole in heidenheim.Formation.PlayingRoles)
+						if (playingRole?.Role != null) linkedRoleIds.Add((int)playingRole.Role.RoleId);
+					int startingPlayers = 0;
+					foreach (TeamPlayer teamPlayer in heidenheim.Roster)
+						if (teamPlayer.position >= 0 && teamPlayer.position < 28) startingPlayers++;
+					if (linkedRoleIds.Count != 11 || startingPlayers != 11)
+						throw new InvalidOperationException("FC26 Starting XI roles collapsed or were moved into reserves.");
 					if (comboBUSPositioning.SelectedIndex != heidenheim.buildupplay - 1 ||
 						(int)numericDefmentality.Value != heidenheim.defensivedepth)
 						throw new InvalidOperationException("FC26 build-up style or defensive line height was not rendered.");
@@ -3129,6 +3261,7 @@ public class TeamForm : Form
 			}
 		}
 		InitSpecialPlayers(m_CurrentTeam);
+		LayoutFc26RosterFormationUi();
 		InvalidateFc26RosterLabels();
 	}
 

@@ -106,6 +106,7 @@ public class PlayingRole : IdObject
 		set
 		{
 			m_Role = value;
+			m_RoleId = m_Role.Id;
 			base.Id = m_Role.Id;
 		}
 	}
@@ -178,6 +179,7 @@ public class PlayingRole : IdObject
 	{
 		Point center = role.GetCenter();
 		m_Role = role;
+		m_RoleId = role.Id;
 		m_OffsetX = center.X;
 		m_OffsetY = center.Y;
 		m_PlayerInstruction_1 = c_DefaultInstrucion[(int)role.RoleId];

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.133",
+  "version": "1.0.134",
   "name": "Creation Master 26",
-  "notes": "v1.0.133 - in-game-style formation cards with minifaces, names, overall ratings and editable FC26 layouts.",
+  "notes": "v1.0.134 - fixed collapsed Starting XI roles and enlarged the responsive FC26 formation board.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

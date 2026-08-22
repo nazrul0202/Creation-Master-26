@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.134 - Starting XI role-link and formation-board hotfix (2026-08-22)
+
+- Fixed a legacy role-link defect that converted every FC26 formation position back to goalkeeper, leaving only the goalkeeper card on the pitch and moving the other ten starters into reserves.
+- Preserved each role ID when creating or replacing a `PlayingRole`, so the database-native Starting XI survives linking, rendering and formation changes.
+- Enlarged the FC26 roster formation board into the available right-side space and made its width responsive to the window.
+- Increased pitch height and arranged starter cards from the formation's real X/Y offsets; substitutes and reserves now use readable seven-column grids.
+- Moved set-piece assignments and tactic controls with the responsive board so minifaces, names and overall ratings remain legible without covering adjacent controls.
+- Extended the installed-database smoke test to require exactly 11 unique linked roles and 11 Starting XI players, preventing this regression from returning.
+
 ## Version 1.0.133 - in-game formation design and persistent layout editing (2026-08-22)
 
 - Rebuilt the FC26 roster formation view with an in-game-inspired dark pitch and compact player cards showing each starter, substitute and reserve miniface, name and overall rating.
