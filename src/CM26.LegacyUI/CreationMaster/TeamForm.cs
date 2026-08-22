@@ -1333,6 +1333,15 @@ public class TeamForm : Form
 	{
 		InitListViewTeamPlayers(m_CurrentTeam.Roster);
 		m_CurrentFormation = m_CurrentTeam.Formation;
+		if (m_CurrentFormation == null && FifaEnvironment.Year == 26 && FifaEnvironment.Formations != null)
+		{
+			// FC26's teamformationteamstylelinks table is empty. The authoritative
+			// relationship is formations.teamid, so recover it directly when the
+			// legacy link pass did not attach the formation object.
+			m_CurrentFormation = FifaEnvironment.Formations.SearchByTeamId(m_CurrentTeam.Id);
+			if (m_CurrentFormation != null)
+				m_CurrentTeam.LinkFormation(m_CurrentFormation);
+		}
 		m_BackupSpecificFormation = null;
 		if (m_CurrentFormation == null)
 		{

@@ -2554,7 +2554,11 @@ public class Team : IdObject
 		m_bodytypeid = r.GetAndCheckIntField(FI.teams_bodytypeid);
 		m_ethnicity = r.GetAndCheckIntField(FI.teams_ethnicity);
 		m_personalityid = r.GetAndCheckIntField(FI.teams_personalityid);
-		m_trait1 = r.GetAndCheckIntField(FI.teams_trait1);
+		// FC26 replaced the single legacy trait1 column with three opponent-
+		// context masks. The legacy checkbox panel represents the equal-team
+		// context; preserve that behaviour instead of showing every trait false.
+		int traitIndex = FI.teams_trait1 >= 0 ? FI.teams_trait1 : FI.teams_trait1vequal;
+		m_trait1 = traitIndex >= 0 ? r.GetAndCheckIntField(traitIndex) : 0;
 		m_ImpatientBoard = (((m_trait1 & 1) != 0) ? true : false);
 		m_LoyalBoard = (((m_trait1 & 2) != 0) ? true : false);
 		m_SquadRotation = (((m_trait1 & 4) != 0) ? true : false);
@@ -2936,18 +2940,30 @@ public class Team : IdObject
 		r.IntField[FI.teams_bodytypeid] = m_bodytypeid;
 		r.IntField[FI.teams_ethnicity] = m_ethnicity;
 		r.IntField[FI.teams_personalityid] = m_personalityid;
-		m_trait1 = 0;
-		m_trait1 |= (m_ImpatientBoard ? 1 : 0);
-		m_trait1 |= (m_LoyalBoard ? 2 : 0);
-		m_trait1 |= (m_SquadRotation ? 4 : 0);
-		m_trait1 |= (m_ConsistentLineup ? 8 : 0);
-		m_trait1 |= (m_SwitchWingers ? 16 : 0);
-		m_trait1 |= (m_CenterBacksSplit ? 32 : 0);
-		m_trait1 |= (m_DefendLead ? 64 : 0);
-		m_trait1 |= (m_KeepUpPressure ? 128 : 0);
-		m_trait1 |= (m_MoreAttackingAtHome ? 256 : 0);
-		m_trait1 |= (m_ShortOutBack ? 512 : 0);
-		r.IntField[FI.teams_trait1] = m_trait1;
+		int knownTraitBits = 0;
+		knownTraitBits |= (m_ImpatientBoard ? 1 : 0);
+		knownTraitBits |= (m_LoyalBoard ? 2 : 0);
+		knownTraitBits |= (m_SquadRotation ? 4 : 0);
+		knownTraitBits |= (m_ConsistentLineup ? 8 : 0);
+		knownTraitBits |= (m_SwitchWingers ? 16 : 0);
+		knownTraitBits |= (m_CenterBacksSplit ? 32 : 0);
+		knownTraitBits |= (m_DefendLead ? 64 : 0);
+		knownTraitBits |= (m_KeepUpPressure ? 128 : 0);
+		knownTraitBits |= (m_MoreAttackingAtHome ? 256 : 0);
+		knownTraitBits |= (m_ShortOutBack ? 512 : 0);
+		if (FI.teams_trait1 >= 0)
+		{
+			m_trait1 = knownTraitBits;
+			r.IntField[FI.teams_trait1] = m_trait1;
+		}
+		else if (FI.teams_trait1vequal >= 0)
+		{
+			// The upper FC26 bits are not decoded by the CM16 panel. Never erase
+			// them when the user changes one of the ten known low-order flags.
+			int existing = r.GetAndCheckIntField(FI.teams_trait1vequal);
+			m_trait1 = (existing & ~1023) | knownTraitBits;
+			r.IntField[FI.teams_trait1vequal] = m_trait1;
+		}
 	}
 
 	public void SaveTeamStadiumLinks(Record r)

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.129",
+  "version": "1.0.130",
   "name": "Creation Master 26",
-  "notes": "v1.0.129 - Release hardening: FC26 club worth is labelled honestly, versioned documentation is enforced, packaged self-tests run before ZIP creation, and unused native runtimes are removed.",
+  "notes": "v1.0.130 - FC26 team tactics and trait editing, database-backed formation recovery, and optional F3D FBX viewing.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

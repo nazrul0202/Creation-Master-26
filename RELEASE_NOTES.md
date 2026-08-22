@@ -1,5 +1,16 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.130 - FC26 tactics, traits and F3D viewer integration (2026-08-22)
+
+- Added an FC26 Tactics & Traits team card backed by the installed database: formation, build-up style, defensive approach, editable line height and opponent-context trait masks are now visible together.
+- Mapped the verified FC26 build-up values (`Short Passing`, `Balanced`, `Counter`) and defensive presets (`Deep`, `Balanced`, `High`, `Aggressive`) while retaining exact 1–100 line-height editing.
+- Mirrors build-up and line-height edits into the active `default_mentalities` row; defensive depth is also mirrored into `defaultteamdata`, keeping the related FC26 records consistent.
+- Recovered team formations directly through `formations.teamid` when FC26's `teamformationteamstylelinks` table is empty, fixing the legacy roster screen's “Formation not available” state.
+- Added editors for `trait1vweak`, `trait1vequal` and `trait1vstrong`. The ten verified low-order flags are named, while all unknown higher FC26 bits are preserved on every edit.
+- Fixed the legacy Team Traits panel to read and update the equal-opponent FC26 trait mask without destroying newer high-order trait flags.
+- Added optional F3D desktop integration for exported FC26 FBX head meshes. CM26 discovers `f3d.exe` from `CM26_F3D_PATH`, `Tools\F3D`, standard install locations or `PATH`; the bundled CM26 viewer remains the fallback.
+- Added regression coverage for FC26 tactic mappings, active-mentality selection, high-bit trait preservation and F3D discovery precedence.
+
 ## Version 1.0.129 - release integrity and honest club finances (2026-08-22)
 
 - Corrected the v1.0.128 financial-field presentation: FC26's `teams.clubworth` is now labelled **Club Worth**, not Transfer Budget. A genuine `transferbudget` column is still detected and labelled Transfer Budget when a compatible schema provides it. Career transfer budgets remain separate career-save data and are not fabricated from club valuation.

@@ -33,15 +33,15 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.129.txt` is included with the v1.0.129 release assets.
+Checksums: `SHA256SUMS_v1.0.130.txt` is included with the v1.0.130 release assets.
 
 ---
 
 ## ✨ Features
 
 ### Core editors (23 modules)
-- **Players** — Full FC-style player card: OVR/POT tiles, PAC/SHO/PAS/DRI/DEF/PHY rating bars, playstyles, roles, contract, face preview + **3D FBX viewer**
-- **Teams** — FC Tools Hub-style club profile: crest, overall tile, ATT/MID/DEF bars, kits, squad roster with drag-drop lineups, formation board, stadium & manager cards
+- **Players** — Full FC-style player card: OVR/POT tiles, PAC/SHO/PAS/DRI/DEF/PHY rating bars, playstyles, roles, contract, face preview + **3D FBX viewer** with optional F3D launch
+- **Teams** — FC Tools Hub-style club profile: crest, overall tile, ATT/MID/DEF bars, kits, squad roster with drag-drop lineups, formation board, FC26 build-up style, defensive line/height and three-context team traits
 - **Leagues** — Profile header with logo/OVR bars, clubs grid, settings flags, country assignment
 - **Countries** — Nation profile, flags, national-team linking, regional audio mappings
 - **Managers · Stadiums · Kits · Competitions · Formations · Balls · Boots · Gloves · Referees · Transfers** — full FC26 schema coverage
@@ -81,7 +81,7 @@ Run `CM26_by_Rizco98.exe --release-selftest` for the offline release checks.
 | Frostbite parser | C++ — layout descriptors, locale decoders, chunk writer |
 | Mesh processing | CM26.MeshKit (FBX export) |
 | Asset bridge | CM26.AssetBridge (separate process) |
-| 3D viewer | Bundled CM26.3DViewer (WebGL) |
+| 3D viewer | Bundled CM26.3DViewer (WebGL) + optional F3D desktop integration |
 
 ---
 

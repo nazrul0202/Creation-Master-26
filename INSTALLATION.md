@@ -1,12 +1,16 @@
-# Installation — Creation Master 26 1.0.129
+# Installation — Creation Master 26 1.0.130
 
 Use the Full Portable package on Windows 10/11 x64, or install Microsoft .NET 8
 Desktop Runtime x64 for the Lite package.
 
 CM26 is distributed unsigned, so Windows SmartScreen may show an "unknown
 publisher" warning on first run. Choose **More info > Run anyway** if you trust
-the download. Verify your download against `SHA256SUMS_v1.0.129.txt` if
+the download. Verify your download against `SHA256SUMS_v1.0.130.txt` if
 you obtained it from anywhere other than the official releases page.
+
+The built-in CM26 3D viewer remains included. For optional F3D FBX viewing,
+install F3D normally, place `f3d.exe` in `Tools\F3D`, or set `CM26_F3D_PATH`
+to the full executable path. CM26 also searches the system `PATH`.
 
 On first run, an **End User License Agreement** is shown. You must accept it to
 continue. The full terms are in the `LICENSE` and `EULA.md` files inside the

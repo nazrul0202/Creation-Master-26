@@ -11,6 +11,7 @@ namespace CM26.App.Sections;
 internal static class ThreeDViewerLauncher
 {
     private const string ViewerName = "3D Face Viewer By Rizco98 FET Renderer.exe";
+    private const string F3dDownloadUrl = "https://f3d.app/download/";
 
     public static void Attach(
         Control parent, Point location, string assetKind,
@@ -66,12 +67,50 @@ internal static class ThreeDViewerLauncher
         Control owner, string? assetKind, IReadOnlyList<string>? tokens = null,
         Func<string?>? meshExporter = null)
     {
-        var executable = Path.Combine(
+        var packagedViewer = Path.Combine(
             AppContext.BaseDirectory, "Tools", "CM26.3DViewer", ViewerName);
+        var executable = F3dViewerLocator.FindInstalled(AppContext.BaseDirectory)
+            ?? (File.Exists(packagedViewer) ? packagedViewer : null);
+        if (string.IsNullOrWhiteSpace(executable))
+        {
+            MessageBox.Show(owner.FindForm(),
+                "No external FBX viewer was found. Install F3D, place f3d.exe in Tools\\F3D, " +
+                "or restore the packaged CM26 viewer in Tools\\CM26.3DViewer.",
+                "CM26 3D Viewer", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        await OpenWithExecutableAsync(owner, executable, assetKind, tokens, meshExporter);
+    }
+
+    /// <summary>Exports the selected mesh and opens it specifically in F3D.</summary>
+    public static async Task OpenInF3dAsync(
+        Control owner, string? assetKind, IReadOnlyList<string>? tokens = null,
+        Func<string?>? meshExporter = null)
+    {
+        var executable = F3dViewerLocator.FindInstalled(AppContext.BaseDirectory);
+        if (string.IsNullOrWhiteSpace(executable))
+        {
+            var answer = MessageBox.Show(owner.FindForm(),
+                "F3D is not installed or bundled. Install it, place f3d.exe in Tools\\F3D, " +
+                "or set CM26_F3D_PATH.\n\nOpen the official F3D installation page?",
+                "F3D Viewer", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            if (answer == DialogResult.Yes)
+                Process.Start(new ProcessStartInfo(F3dDownloadUrl) { UseShellExecute = true });
+            return;
+        }
+
+        await OpenWithExecutableAsync(owner, executable, assetKind, tokens, meshExporter);
+    }
+
+    private static async Task OpenWithExecutableAsync(
+        Control owner, string executable, string? assetKind,
+        IReadOnlyList<string>? tokens, Func<string?>? meshExporter)
+    {
         if (!File.Exists(executable))
         {
             MessageBox.Show(owner.FindForm(),
-                "The packaged CM26 3D viewer is unavailable in Tools\\CM26.3DViewer.",
+                "The selected external 3D viewer is unavailable.",
                 "CM26 3D Viewer", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }

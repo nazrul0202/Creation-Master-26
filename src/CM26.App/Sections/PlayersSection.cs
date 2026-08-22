@@ -928,13 +928,22 @@ public sealed class PlayersSection : SectionBase
         Theme.ApplyButton(export3d);
         export3d.Click += async (_, _) => await ExportFaceFbxAsync();
         preview.Controls.Add(export3d);
+        var f3d = new Button
+        {
+            Text = "Open in F3D…", Location = new Point(322, 417),
+            Size = new Size(124, 28), Font = LegacyFont
+        };
+        Theme.ApplyButton(f3d);
+        f3d.Click += async (_, _) => await OpenFaceInF3dAsync();
+        ToolTip.SetToolTip(f3d, "Export this FC26 head mesh and open it in the optional F3D desktop viewer.");
+        preview.Controls.Add(f3d);
         // The visible player face is a real legacy UI texture.  Keep its
         // import/export controls beside the 3D viewer rather than hiding asset
         // work in a separate technical screen.
-        LegacyAssetActions.Attach(Services, preview, _facePreview, new Point(322, 417), RefreshFacePreview,
+        LegacyAssetActions.Attach(Services, preview, _facePreview, new Point(454, 417), RefreshFacePreview,
             "Import Face", "Remove Face");
-        _facePreviewCaption.Location = new Point(548, 417);
-        _facePreviewCaption.Size = new Size(320, 28);
+        _facePreviewCaption.Location = new Point(680, 417);
+        _facePreviewCaption.Size = new Size(510, 28);
         _facePreviewCaption.Font = LegacyFont;
         _facePreviewCaption.TextAlign = ContentAlignment.MiddleCenter;
         _facePreviewCaption.Text = "Face preview";
@@ -1129,6 +1138,24 @@ public sealed class PlayersSection : SectionBase
             MessageBox.Show(this, ex.Message, "3D Face Viewer",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+    }
+
+    private async Task OpenFaceInF3dAsync()
+    {
+        var headAssetId = _currentHeadAssetId;
+        var playerId = _currentPlayerId;
+        var queries = new[]
+        {
+            headAssetId > 0 ? $"head_{headAssetId}_0_0_mesh" : string.Empty,
+            headAssetId > 0 ? $"head_{headAssetId}" : string.Empty,
+            playerId > 0 ? $"head_{playerId}_0_0_mesh" : string.Empty,
+            playerId > 0 ? $"head_{playerId}" : string.Empty,
+        };
+        await ThreeDViewerLauncher.OpenInF3dAsync(
+            this,
+            "player face",
+            queries,
+            () => Services.FrostbiteAssets.ExportMeshForQuery(queries));
     }
 
     private void Launch3DViewer(string executable, string assetPath)

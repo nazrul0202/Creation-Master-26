@@ -86,8 +86,15 @@ public sealed class TeamsSection : SectionBase
     private StudioCard? _managerCard;
     private StudioCard? _rivalCard;
     private StudioCard? _metadataCard;
+    private StudioCard? _tacticsCard;
     private StudioCard? _kitsCard;
     private StudioCard? _actionsCard;
+    private readonly Label _teamFormationLabel = new();
+    private readonly ComboBox _buildUpStylePicker = new() { DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly ComboBox _defensiveLinePicker = new() { DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly NumericUpDown _defensiveDepthEditor = new() { Minimum = 1, Maximum = 100 };
+    private readonly Label _teamTraitsSummary = new();
+    private bool _syncTacticsCard;
 
     // Studio roster
     private readonly List<RosterPlayerRow> _rosterRows = [];
@@ -664,10 +671,12 @@ public sealed class TeamsSection : SectionBase
         _managerCard = BuildManagerCard();
         _rivalCard = BuildRivalCard();
         _metadataCard = BuildMetadataCard();
+        _tacticsCard = BuildTacticsCard();
         quickRow.Controls.Add(_stadiumCard);
         quickRow.Controls.Add(_managerCard);
         quickRow.Controls.Add(_rivalCard);
         quickRow.Controls.Add(_metadataCard);
+        quickRow.Controls.Add(_tacticsCard);
         layout.Controls.Add(quickRow, 0, 1);
 
         _kitsCard = BuildKitsCard();
@@ -752,6 +761,328 @@ public sealed class TeamsSection : SectionBase
         card.Controls.Add(_teamWorthLabel);
 
         return card;
+    }
+
+    private StudioCard BuildTacticsCard()
+    {
+        var card = StudioGroup("FC26 Tactics & Traits", StudioColors.Green);
+        card.Width = 340;
+        card.Height = 260;
+
+        AddTacticsLabel(card, "Formation", 30);
+        _teamFormationLabel.Location = new Point(122, 30);
+        _teamFormationLabel.Size = new Size(200, 20);
+        _teamFormationLabel.Font = StudioFonts.DataValue;
+        _teamFormationLabel.ForeColor = StudioColors.PrimaryText;
+        _teamFormationLabel.BackColor = Color.Transparent;
+        card.Controls.Add(_teamFormationLabel);
+
+        AddTacticsLabel(card, "Build-up style", 58);
+        _buildUpStylePicker.Location = new Point(122, 55);
+        _buildUpStylePicker.Size = new Size(200, 23);
+        _buildUpStylePicker.Font = LegacyFont;
+        _buildUpStylePicker.Items.AddRange(TeamTacticsMaps.BuildUpStyles.Cast<object>().ToArray());
+        Theme.ApplyCombo(_buildUpStylePicker);
+        _buildUpStylePicker.SelectedIndexChanged += (_, _) => StageBuildUpStyle();
+        card.Controls.Add(_buildUpStylePicker);
+
+        AddTacticsLabel(card, "Defensive line", 86);
+        _defensiveLinePicker.Location = new Point(122, 83);
+        _defensiveLinePicker.Size = new Size(200, 23);
+        _defensiveLinePicker.Font = LegacyFont;
+        _defensiveLinePicker.Items.AddRange(TeamTacticsMaps.DefensivePresets.Cast<object>().ToArray());
+        Theme.ApplyCombo(_defensiveLinePicker);
+        _defensiveLinePicker.SelectedIndexChanged += (_, _) => StageDefensivePreset();
+        card.Controls.Add(_defensiveLinePicker);
+
+        AddTacticsLabel(card, "Line height", 114);
+        _defensiveDepthEditor.Location = new Point(122, 111);
+        _defensiveDepthEditor.Size = new Size(80, 23);
+        _defensiveDepthEditor.Font = LegacyFont;
+        _defensiveDepthEditor.TextAlign = HorizontalAlignment.Center;
+        _defensiveDepthEditor.Leave += (_, _) => StageDefensiveDepth((int)_defensiveDepthEditor.Value);
+        card.Controls.Add(_defensiveDepthEditor);
+
+        _teamTraitsSummary.Location = new Point(16, 142);
+        _teamTraitsSummary.Size = new Size(306, 58);
+        _teamTraitsSummary.Font = StudioFonts.Metadata;
+        _teamTraitsSummary.ForeColor = StudioColors.MutedText;
+        _teamTraitsSummary.BackColor = Color.Transparent;
+        _teamTraitsSummary.AutoEllipsis = true;
+        card.Controls.Add(_teamTraitsSummary);
+
+        var editTraits = StudioButton("Edit known team traits…", 180);
+        editTraits.Location = new Point(16, 210);
+        editTraits.Click += (_, _) => OpenTeamTraitsEditor();
+        card.Controls.Add(editTraits);
+
+        ToolTip.SetToolTip(_defensiveDepthEditor,
+            "FC26 line height: Deep ≤30, Balanced 31–60, High 61–89, Aggressive ≥90.");
+        ToolTip.SetToolTip(_teamTraitsSummary,
+            "FC26 stores three 23-bit masks. CM26 decodes the ten known legacy-compatible bits and preserves all higher bits.");
+        return card;
+    }
+
+    private static void AddTacticsLabel(Control parent, string text, int y) => parent.Controls.Add(new Label
+    {
+        Text = text,
+        Location = new Point(16, y),
+        Size = new Size(100, 20),
+        TextAlign = ContentAlignment.MiddleRight,
+        Font = StudioFonts.DataLabel,
+        ForeColor = StudioColors.MutedText,
+        BackColor = Color.Transparent,
+    });
+
+    private void RefreshTacticsCard(int teamId)
+    {
+        if (_tacticsCard == null || CurrentRecordIndex < 0) return;
+        var buildUp = Parse(Services.Session.GetCell(TableName, CurrentRecordIndex, "buildupplay"));
+        var depth = Math.Clamp(Parse(Services.Session.GetCell(TableName, CurrentRecordIndex, "defensivedepth")), 1, 100);
+
+        _syncTacticsCard = true;
+        try
+        {
+            _buildUpStylePicker.SelectedItem = _buildUpStylePicker.Items
+                .Cast<TeamTacticsMaps.Option>()
+                .FirstOrDefault(option => option.Value == buildUp);
+
+            var presetValues = TeamTacticsMaps.DefensivePresets.Select(option => option.Value).ToHashSet();
+            for (var index = _defensiveLinePicker.Items.Count - 1; index >= 0; index--)
+            {
+                if (_defensiveLinePicker.Items[index] is TeamTacticsMaps.Option option && !presetValues.Contains(option.Value))
+                    _defensiveLinePicker.Items.RemoveAt(index);
+            }
+            var line = _defensiveLinePicker.Items.Cast<TeamTacticsMaps.Option>()
+                .FirstOrDefault(option => option.Value == depth);
+            if (line == null)
+            {
+                line = new TeamTacticsMaps.Option(depth, TeamTacticsMaps.DefensiveApproach(depth));
+                _defensiveLinePicker.Items.Add(line);
+            }
+            _defensiveLinePicker.SelectedItem = line;
+            _defensiveDepthEditor.Value = depth;
+            _teamFormationLabel.Text = ResolveTeamFormationName(teamId);
+            RefreshTraitSummary();
+        }
+        finally { _syncTacticsCard = false; }
+    }
+
+    private string ResolveTeamFormationName(int teamId)
+    {
+        var formations = Services.Session.GetTable("formations");
+        if (formations == null) return "Not available";
+        var teamColumn = Col(formations, "teamid");
+        var nameColumn = Col(formations, "formationname");
+        if (teamColumn < 0 || nameColumn < 0) return "Not available";
+        for (var row = 0; row < formations.RowCount; row++)
+        {
+            var record = Services.Session.GetRecord("formations", row);
+            if (record != null && Parse(record.Get(teamColumn)) == teamId)
+                return string.IsNullOrWhiteSpace(record.Get(nameColumn)) ? "Unnamed formation" : record.Get(nameColumn);
+        }
+        return "Not linked";
+    }
+
+    private void StageBuildUpStyle()
+    {
+        if (_syncTacticsCard || _buildUpStylePicker.SelectedItem is not TeamTacticsMaps.Option option) return;
+        if (StageTeamTactic("buildupplay", option.Value)) RefreshTacticsCard(CurrentTeamId());
+    }
+
+    private void StageDefensivePreset()
+    {
+        if (_syncTacticsCard || _defensiveLinePicker.SelectedItem is not TeamTacticsMaps.Option option) return;
+        StageDefensiveDepth(option.Value);
+    }
+
+    private void StageDefensiveDepth(int depth)
+    {
+        if (_syncTacticsCard) return;
+        depth = Math.Clamp(depth, 1, 100);
+        if (StageTeamTactic("defensivedepth", depth)) RefreshTacticsCard(CurrentTeamId());
+    }
+
+    private bool StageTeamTactic(string field, int value)
+    {
+        if (CurrentRecordIndex < 0) return false;
+        var teamId = CurrentTeamId();
+        if (teamId <= 0) return false;
+        var raw = value.ToString(CultureInfo.InvariantCulture);
+        if (!StageField(TableName, CurrentRecordIndex, field, raw, _stagingGrid)) return false;
+
+        var mentalityRow = FindActiveDefaultMentalityRow(teamId);
+        if (mentalityRow >= 0)
+            StageWritableMirror("default_mentalities", mentalityRow, field, raw);
+
+        if (field.Equals("defensivedepth", StringComparison.OrdinalIgnoreCase))
+        {
+            var defaultTeamRow = FindTeamRow("defaultteamdata", teamId);
+            if (defaultTeamRow >= 0)
+                StageWritableMirror("defaultteamdata", defaultTeamRow, field, raw);
+        }
+        return true;
+    }
+
+    private void StageWritableMirror(string tableName, int row, string field, string value)
+    {
+        var table = Services.Session.GetTable(tableName);
+        if (table?.FindColumn(field)?.IsWritable == true)
+            StageField(tableName, row, field, value, _stagingGrid);
+    }
+
+    private int FindActiveDefaultMentalityRow(int teamId)
+    {
+        var table = Services.Session.GetTable("default_mentalities");
+        if (table == null) return -1;
+        var teamColumn = Col(table, "teamid");
+        var buildColumn = Col(table, "buildupplay");
+        var depthColumn = Col(table, "defensivedepth");
+        if (teamColumn < 0 || buildColumn < 0 || depthColumn < 0) return -1;
+
+        var candidates = new List<TeamTacticsMaps.MentalityCandidate>();
+        for (var row = 0; row < table.RowCount; row++)
+        {
+            var record = Services.Session.GetRecord("default_mentalities", row);
+            if (record == null || Parse(record.Get(teamColumn)) != teamId) continue;
+            candidates.Add(new(row, Parse(record.Get(buildColumn)), Parse(record.Get(depthColumn))));
+        }
+        return TeamTacticsMaps.FindActiveMentalityRow(candidates);
+    }
+
+    private int FindTeamRow(string tableName, int teamId)
+    {
+        var table = Services.Session.GetTable(tableName);
+        var teamColumn = table == null ? -1 : Col(table, "teamid");
+        if (table == null || teamColumn < 0) return -1;
+        for (var row = 0; row < table.RowCount; row++)
+        {
+            var record = Services.Session.GetRecord(tableName, row);
+            if (record != null && Parse(record.Get(teamColumn)) == teamId) return row;
+        }
+        return -1;
+    }
+
+    private int CurrentTeamId() => CurrentRecordIndex < 0
+        ? 0
+        : Parse(Services.Session.GetCell(TableName, CurrentRecordIndex, "teamid"));
+
+    private void RefreshTraitSummary()
+    {
+        var weak = TraitValue("trait1vweak");
+        var equal = TraitValue("trait1vequal");
+        var strong = TraitValue("trait1vstrong");
+        var equalNames = TeamTacticsMaps.DecodeKnownTraits(equal);
+        _teamTraitsSummary.Text =
+            $"Known flags  W:{TeamTacticsMaps.DecodeKnownTraits(weak).Count}  E:{equalNames.Count}  S:{TeamTacticsMaps.DecodeKnownTraits(strong).Count}\n" +
+            $"Equal: {(equalNames.Count == 0 ? "none" : string.Join(", ", equalNames))}";
+        ToolTip.SetToolTip(_teamTraitsSummary,
+            $"Weak 0x{weak:X6}: {TraitNames(weak)}\nEqual 0x{equal:X6}: {TraitNames(equal)}\nStrong 0x{strong:X6}: {TraitNames(strong)}");
+    }
+
+    private int TraitValue(string field) => CurrentRecordIndex < 0
+        ? 0
+        : Parse(Services.Session.GetCell(TableName, CurrentRecordIndex, field));
+
+    private static string TraitNames(int value)
+    {
+        var names = TeamTacticsMaps.DecodeKnownTraits(value);
+        return names.Count == 0 ? "no known low-bit flags" : string.Join(", ", names);
+    }
+
+    private sealed record TraitContextChoice(string Label, string Field)
+    {
+        public override string ToString() => Label;
+    }
+
+    private void OpenTeamTraitsEditor()
+    {
+        if (CurrentRecordIndex < 0) return;
+        var contexts = new[]
+        {
+            new TraitContextChoice("Versus weaker team", "trait1vweak"),
+            new TraitContextChoice("Versus equal team", "trait1vequal"),
+            new TraitContextChoice("Versus stronger team", "trait1vstrong"),
+        };
+        var original = contexts.ToDictionary(context => context.Field, context => TraitValue(context.Field));
+        var edited = original.ToDictionary(pair => pair.Key, pair => pair.Value);
+
+        using var dialog = new Form
+        {
+            Text = "FC26 Team Traits", StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false,
+            ClientSize = new Size(520, 430), Font = LegacyFont, BackColor = Theme.Background,
+        };
+        dialog.Controls.Add(new Label
+        {
+            Text = "Opponent context", Location = new Point(16, 18), Size = new Size(120, 22),
+            ForeColor = Theme.Text, BackColor = Color.Transparent,
+        });
+        var contextPicker = new ComboBox
+        {
+            Location = new Point(140, 15), Size = new Size(350, 23),
+            DropDownStyle = ComboBoxStyle.DropDownList, Font = LegacyFont,
+        };
+        contextPicker.Items.AddRange(contexts.Cast<object>().ToArray());
+        dialog.Controls.Add(contextPicker);
+        var flags = new CheckedListBox
+        {
+            Location = new Point(16, 52), Size = new Size(474, 260),
+            CheckOnClick = true, Font = LegacyFont,
+        };
+        flags.Items.AddRange(TeamTacticsMaps.KnownTraitNames.Cast<object>().ToArray());
+        dialog.Controls.Add(flags);
+        var note = new Label
+        {
+            Text = "Only the ten verified legacy-compatible bits are named here. " +
+                   "All higher FC26 bits remain unchanged when these boxes are edited.",
+            Location = new Point(16, 322), Size = new Size(474, 48),
+            ForeColor = Theme.Muted, BackColor = Color.Transparent,
+        };
+        dialog.Controls.Add(note);
+        var save = new Button { Text = "Stage Traits", DialogResult = DialogResult.OK, Location = new Point(300, 384), Size = new Size(100, 28) };
+        var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(410, 384), Size = new Size(80, 28) };
+        dialog.Controls.Add(save);
+        dialog.Controls.Add(cancel);
+        dialog.AcceptButton = save;
+        dialog.CancelButton = cancel;
+
+        var current = 0;
+        var synchronizing = true;
+        void StoreCurrent()
+        {
+            var value = edited[contexts[current].Field];
+            for (var bit = 0; bit < TeamTacticsMaps.KnownTraitNames.Count; bit++)
+                value = TeamTacticsMaps.SetKnownTrait(value, bit, flags.GetItemChecked(bit));
+            edited[contexts[current].Field] = value;
+        }
+        void LoadCurrent()
+        {
+            var value = edited[contexts[current].Field];
+            for (var bit = 0; bit < TeamTacticsMaps.KnownTraitNames.Count; bit++)
+                flags.SetItemChecked(bit, (value & (1 << bit)) != 0);
+        }
+        contextPicker.SelectedIndexChanged += (_, _) =>
+        {
+            if (synchronizing || contextPicker.SelectedIndex < 0) return;
+            StoreCurrent();
+            current = contextPicker.SelectedIndex;
+            LoadCurrent();
+        };
+        contextPicker.SelectedIndex = 0;
+        LoadCurrent();
+        synchronizing = false;
+        Theme.ApplyControlTree(dialog);
+
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        StoreCurrent();
+        foreach (var context in contexts)
+        {
+            if (edited[context.Field] == original[context.Field]) continue;
+            StageField(TableName, CurrentRecordIndex, context.Field,
+                edited[context.Field].ToString(CultureInfo.InvariantCulture), _stagingGrid);
+        }
+        RefreshTraitSummary();
     }
 
     private StudioCard BuildKitsCard()
@@ -1325,6 +1656,7 @@ public sealed class TeamsSection : SectionBase
         ArrangeLineupInTacticalLanes();
         if (_formationStatus != null)
             _formationStatus.Text = status ?? choice.Name;
+        _teamFormationLabel.Text = choice.Name;
         RenderLineup();
     }
 
@@ -1952,6 +2284,7 @@ public sealed class TeamsSection : SectionBase
         _teamRivalLabel.Text = "—";
         _teamFoundationLabel.Text = $"Founded: {record.Get(Col(table, "foundationyear")) ?? "—"}";
         _teamWorthLabel.Text = $"Worth: {record.Get(Col(table, "clubworth")) ?? "—"}";
+        RefreshTacticsCard(crestTeamId);
 
         ReplacePreviewImage(_teamKitHome, null);
         ReplacePreviewImage(_teamKitAway, null);
