@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.135 - clearer owner-drawn formation cards (2026-08-22)
+
+- Removed the inherited CM16 label text underneath each FC26 player card, fixing the duplicate player name shown for a single squad member.
+- Made player cards fully opaque and increased miniface, overall-rating and player-name sizes for clearer reading.
+- Increased pitch and roster-section spacing so Starting XI, substitutes and reserves remain distinct at the supported window sizes.
+- Reworked the formation surface around the supplied black FC26 pitch reference, including a dark gradient, perspective touchlines, centre markings and perspective penalty boxes.
+- Added a real-database smoke assertion that fails if any owner-drawn FC26 formation card retains legacy label text.
+
 ## Version 1.0.134 - Starting XI role-link and formation-board hotfix (2026-08-22)
 
 - Fixed a legacy role-link defect that converted every FC26 formation position back to goalkeeper, leaving only the goalkeeper card on the pitch and moving the other ten starters into reserves.

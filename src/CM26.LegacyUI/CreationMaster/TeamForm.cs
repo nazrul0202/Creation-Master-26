@@ -69,11 +69,11 @@ public class TeamForm : Form
 
 	private bool m_Fc26RosterLayoutBusy;
 
-	private const int Fc26PitchHeight = 430;
+	private const int Fc26PitchHeight = 456;
 
-	private const int Fc26SubstitutesTop = 438;
+	private const int Fc26SubstitutesTop = 464;
 
-	private const int Fc26ReservesTop = 507;
+	private const int Fc26ReservesTop = 539;
 
 	private int m_Fc26MiniFaceTeamId = -1;
 
@@ -1404,8 +1404,8 @@ public class TeamForm : Form
 			const int setPieceWidth = 85;
 			int availableWidth = pageTeamRoster.ClientSize.Width - left - setPieceWidth - 24;
 			int panelWidth = Math.Max(477, Math.Min(980, availableWidth));
-			panel1.Bounds = new Rectangle(left, 3, panelWidth, 680);
-			pageTeamRoster.AutoScrollMinSize = new Size(left + panelWidth + setPieceWidth + 24, 835);
+			panel1.Bounds = new Rectangle(left, 3, panelWidth, 718);
+			pageTeamRoster.AutoScrollMinSize = new Size(left + panelWidth + setPieceWidth + 24, 875);
 
 			int setPieceLeft = panel1.Right + 8;
 			foreach (Label label in new[]
@@ -1426,8 +1426,8 @@ public class TeamForm : Form
 			groupBox5.Location = new Point(groupBox4.Right + 6, tacticsTop);
 
 			LayoutFc26StartingCards();
-			LayoutFc26CardGrid(m_Fc26RosterLabels.Skip(28).Take(7).ToArray(), Fc26SubstitutesTop + 15, 7, 48);
-			LayoutFc26CardGrid(m_Fc26RosterLabels.Skip(35).Take(21).ToArray(), Fc26ReservesTop + 15, 7, 48);
+			LayoutFc26CardGrid(m_Fc26RosterLabels.Skip(28).Take(7).ToArray(), Fc26SubstitutesTop + 17, 7, 52);
+			LayoutFc26CardGrid(m_Fc26RosterLabels.Skip(35).Take(21).ToArray(), Fc26ReservesTop + 17, 7, 52);
 			RefreshFc26PitchBackground();
 		}
 		finally
@@ -1444,7 +1444,7 @@ public class TeamForm : Form
 		}
 
 		int cardWidth = Math.Max(104, Math.Min(132, panel1.ClientSize.Width / 7));
-		const int cardHeight = 48;
+		const int cardHeight = 56;
 		const int marginX = 10;
 		const int marginY = 10;
 		int usableWidth = Math.Max(1, panel1.ClientSize.Width - cardWidth - marginX * 2);
@@ -1504,26 +1504,48 @@ public class TeamForm : Form
 		var bitmap = new Bitmap(Math.Max(1, size.Width), Math.Max(1, size.Height));
 		using (Graphics graphics = Graphics.FromImage(bitmap))
 		using (var background = new LinearGradientBrush(new Rectangle(Point.Empty, bitmap.Size),
-			Color.FromArgb(18, 27, 34), Color.FromArgb(31, 34, 43), LinearGradientMode.Vertical))
-		using (var pitchPen = new Pen(Color.FromArgb(105, 188, 199, 201), 1.2f))
+			Color.FromArgb(7, 8, 9), Color.FromArgb(27, 27, 28), LinearGradientMode.Vertical))
+		using (var pitchPen = new Pen(Color.FromArgb(116, 151, 154, 156), 1.2f))
 		using (var sectionBrush = new SolidBrush(Color.FromArgb(190, 22, 27, 35)))
-		using (var headingBrush = new SolidBrush(Color.FromArgb(190, 224, 229, 232)))
-		using (var headingFont = new Font("Segoe UI", 7.5f, FontStyle.Bold))
+		using (var headingBrush = new SolidBrush(Color.FromArgb(235, 240, 243, 245)))
+		using (var headingFont = new Font("Segoe UI", 8f, FontStyle.Bold))
 		{
 			graphics.SmoothingMode = SmoothingMode.AntiAlias;
 			graphics.FillRectangle(background, 0, 0, bitmap.Width, bitmap.Height);
-			var pitch = new Rectangle(7, 6, bitmap.Width - 15, Fc26PitchHeight - 12);
-			graphics.DrawRectangle(pitchPen, pitch);
-			graphics.DrawLine(pitchPen, pitch.Left, pitch.Top + pitch.Height / 2,
-				pitch.Right, pitch.Top + pitch.Height / 2);
-			graphics.DrawEllipse(pitchPen, pitch.Left + pitch.Width / 2 - 54,
-				pitch.Top + pitch.Height / 2 - 31, 108, 62);
-			graphics.DrawEllipse(pitchPen, pitch.Left + pitch.Width / 2 - 2,
-				pitch.Top + pitch.Height / 2 - 2, 4, 4);
-			graphics.DrawRectangle(pitchPen, pitch.Left + pitch.Width / 2 - 83, pitch.Top, 166, 50);
-			graphics.DrawRectangle(pitchPen, pitch.Left + pitch.Width / 2 - 36, pitch.Top, 72, 20);
-			graphics.DrawRectangle(pitchPen, pitch.Left + pitch.Width / 2 - 83, pitch.Bottom - 50, 166, 50);
-			graphics.DrawRectangle(pitchPen, pitch.Left + pitch.Width / 2 - 36, pitch.Bottom - 20, 72, 20);
+			int pitchBottom = Fc26PitchHeight - 7;
+			var topLeft = new Point((int)(bitmap.Width * 0.14f), 6);
+			var topRight = new Point((int)(bitmap.Width * 0.86f), 6);
+			var bottomRight = new Point(bitmap.Width - 7, pitchBottom);
+			var bottomLeft = new Point(7, pitchBottom);
+			graphics.DrawPolygon(pitchPen, new[] { topLeft, topRight, bottomRight, bottomLeft });
+
+			int halfY = pitchBottom / 2;
+			int halfLeft = (topLeft.X + bottomLeft.X) / 2;
+			int halfRight = (topRight.X + bottomRight.X) / 2;
+			graphics.DrawLine(pitchPen, halfLeft, halfY, halfRight, halfY);
+			graphics.DrawEllipse(pitchPen, bitmap.Width / 2 - 70, halfY - 32, 140, 64);
+			graphics.DrawEllipse(pitchPen, bitmap.Width / 2 - 2, halfY - 2, 4, 4);
+
+			graphics.DrawPolygon(pitchPen, new[]
+			{
+				new Point((int)(bitmap.Width * 0.31f), 6), new Point((int)(bitmap.Width * 0.69f), 6),
+				new Point((int)(bitmap.Width * 0.64f), 66), new Point((int)(bitmap.Width * 0.36f), 66)
+			});
+			graphics.DrawPolygon(pitchPen, new[]
+			{
+				new Point((int)(bitmap.Width * 0.43f), 6), new Point((int)(bitmap.Width * 0.57f), 6),
+				new Point((int)(bitmap.Width * 0.55f), 31), new Point((int)(bitmap.Width * 0.45f), 31)
+			});
+			graphics.DrawPolygon(pitchPen, new[]
+			{
+				new Point((int)(bitmap.Width * 0.21f), pitchBottom), new Point((int)(bitmap.Width * 0.79f), pitchBottom),
+				new Point((int)(bitmap.Width * 0.70f), pitchBottom - 82), new Point((int)(bitmap.Width * 0.30f), pitchBottom - 82)
+			});
+			graphics.DrawPolygon(pitchPen, new[]
+			{
+				new Point((int)(bitmap.Width * 0.42f), pitchBottom), new Point((int)(bitmap.Width * 0.58f), pitchBottom),
+				new Point((int)(bitmap.Width * 0.56f), pitchBottom - 34), new Point((int)(bitmap.Width * 0.44f), pitchBottom - 34)
+			});
 
 			graphics.FillRectangle(sectionBrush, 0, Fc26SubstitutesTop, bitmap.Width,
 				Fc26ReservesTop - Fc26SubstitutesTop - 3);
@@ -1547,9 +1569,9 @@ public class TeamForm : Form
 		var bounds = new Rectangle(0, 0, Math.Max(1, label.Width - 1), Math.Max(1, label.Height - 1));
 		using (GraphicsPath card = CreateRoundedRectangle(bounds, 5))
 		using (var fill = new SolidBrush(teamPlayer == m_CurrentTeamPlayer
-			? Color.FromArgb(244, 48, 55, 67) : Color.FromArgb(226, 23, 28, 36)))
+			? Color.FromArgb(255, 45, 55, 68) : Color.FromArgb(255, 20, 24, 30)))
 		using (var border = new Pen(teamPlayer == m_CurrentTeamPlayer
-			? Color.FromArgb(0, 226, 230) : Color.FromArgb(78, 112, 124, 132)))
+			? Color.FromArgb(0, 226, 230) : Color.FromArgb(125, 112, 124, 132)))
 		{
 			e.Graphics.FillPath(fill, card);
 			e.Graphics.DrawPath(border, card);
@@ -1575,7 +1597,7 @@ public class TeamForm : Form
 			return;
 		}
 
-		int faceSize = label.Width >= 85 ? 31 : 23;
+		int faceSize = label.Width >= 85 ? 35 : 27;
 		var faceBounds = new Rectangle(3, Math.Max(2, (label.Height - faceSize) / 2), faceSize, faceSize);
 		if (m_Fc26MiniFaceCache.TryGetValue(player.Id, out Image face))
 		{
@@ -1600,15 +1622,15 @@ public class TeamForm : Form
 			: player.overallrating >= 70 ? Color.FromArgb(248, 204, 65) : Color.White;
 		using (var ratingBrush = new SolidBrush(ratingColor))
 		using (var nameBrush = new SolidBrush(Color.White))
-		using (var ratingFont = new Font("Segoe UI", label.Width >= 85 ? 8.5f : 7.5f, FontStyle.Bold))
-		using (var nameFont = new Font("Segoe UI", label.Width >= 85 ? 7.1f : 6.5f, FontStyle.Bold))
+		using (var ratingFont = new Font("Segoe UI", label.Width >= 85 ? 9.5f : 8f, FontStyle.Bold))
+		using (var nameFont = new Font("Segoe UI", label.Width >= 85 ? 8.2f : 7f, FontStyle.Bold))
 		using (var format = new StringFormat { Alignment = StringAlignment.Far,
 			Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap })
 		{
 			e.Graphics.DrawString(player.overallrating.ToString(), ratingFont, ratingBrush,
-				new RectangleF(textLeft, 2, textWidth, 14), format);
+				new RectangleF(textLeft, 2, textWidth, 16), format);
 			e.Graphics.DrawString(player.Name, nameFont, nameBrush,
-				new RectangleF(textLeft, 18, textWidth, label.Height - 19), format);
+				new RectangleF(textLeft, 20, textWidth, label.Height - 22), format);
 		}
 		using (var fitness = new Pen(Color.FromArgb(18, 232, 118), 2.3f))
 			e.Graphics.DrawLine(fitness, textLeft, label.Height - 3, label.Width - 4, label.Height - 3);
@@ -1663,7 +1685,13 @@ public class TeamForm : Form
 	private void InvalidateFc26RosterLabels()
 	{
 		if (m_Fc26RosterLabels == null) return;
-		foreach (Label label in m_Fc26RosterLabels) label.Invalidate();
+		foreach (Label label in m_Fc26RosterLabels)
+		{
+			// FC26 cards are fully owner-drawn from Label.Tag. Clearing the inherited
+			// CM16 text prevents the same player name appearing underneath the card.
+			label.Text = string.Empty;
+			label.Invalidate();
+		}
 	}
 
 	private void LoadFc26TraitChecks()
@@ -1934,6 +1962,8 @@ public class TeamForm : Form
 						if (teamPlayer.position >= 0 && teamPlayer.position < 28) startingPlayers++;
 					if (linkedRoleIds.Count != 11 || startingPlayers != 11)
 						throw new InvalidOperationException("FC26 Starting XI roles collapsed or were moved into reserves.");
+					if (m_Fc26RosterLabels.Any(label => !string.IsNullOrEmpty(label.Text)))
+						throw new InvalidOperationException("FC26 owner-drawn formation cards still contain duplicate legacy text.");
 					if (comboBUSPositioning.SelectedIndex != heidenheim.buildupplay - 1 ||
 						(int)numericDefmentality.Value != heidenheim.defensivedepth)
 						throw new InvalidOperationException("FC26 build-up style or defensive line height was not rendered.");
