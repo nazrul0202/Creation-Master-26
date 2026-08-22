@@ -65,6 +65,8 @@ public class TeamForm : Form
 
 	private readonly Dictionary<int, Image> m_Fc26MiniFaceCache = new Dictionary<int, Image>();
 
+	private const int Fc26MiniFaceCacheLimit = 256;
+
 	private Image m_Fc26PitchBackground;
 
 	private bool m_Fc26RosterLayoutBusy;
@@ -75,7 +77,7 @@ public class TeamForm : Form
 
 	private const int Fc26ReservesTop = 539;
 
-	private int m_Fc26MiniFaceTeamId = -1;
+	private int m_Fc26MiniFaceLoadingTeamId = -1;
 
 	private int m_Fc26MiniFaceLoadGeneration;
 
@@ -1447,7 +1449,6 @@ public class TeamForm : Form
 		const int cardHeight = 56;
 		const int marginX = 10;
 		const int marginY = 10;
-		int usableWidth = Math.Max(1, panel1.ClientSize.Width - cardWidth - marginX * 2);
 		int usableHeight = Math.Max(1, Fc26PitchHeight - cardHeight - marginY * 2);
 
 		foreach (PlayingRole playingRole in m_CurrentFormation.PlayingRoles)
@@ -1466,8 +1467,31 @@ public class TeamForm : Form
 			Label label = m_Fc26RosterLabels[roleId];
 			float normalizedX = Math.Max(0f, Math.Min(1f, playingRole.OffsetX / 100f));
 			float normalizedY = Math.Max(0f, Math.Min(1f, playingRole.OffsetY / 100f));
-			int x = marginX + (int)Math.Round(normalizedX * usableWidth);
-			int y = marginY + (int)Math.Round((1f - normalizedY) * usableHeight);
+
+			// FC26 stores the goalkeeper only a few percentage points below its
+			// centre-backs. That is accurate for the data, but a 56 px card then
+			// overlaps the defensive line. Keep the database coordinates intact
+			// while reserving a readable visual lane for the goalkeeper and back line.
+			float screenY = 1f - normalizedY;
+			if (roleId == (int)ERole.Goalkeeper)
+			{
+				screenY = 1f;
+			}
+			else if (roleId >= (int)ERole.Sweeper && roleId <= (int)ERole.Left_Wing_Back)
+			{
+				screenY = Math.Min(screenY, 0.72f);
+			}
+
+			int y = marginY + (int)Math.Round(screenY * usableHeight);
+			float cardCentreY = Math.Max(0f, Math.Min(1f,
+				(y + cardHeight * 0.5f) / Math.Max(1f, Fc26PitchHeight)));
+			float pitchLeft = 0.14f + (0.005f - 0.14f) * cardCentreY;
+			float pitchRight = 0.86f + (0.995f - 0.86f) * cardCentreY;
+			int left = marginX + (int)Math.Round(panel1.ClientSize.Width * pitchLeft);
+			int right = panel1.ClientSize.Width - marginX -
+				(int)Math.Round(panel1.ClientSize.Width * (1f - pitchRight));
+			int usableRowWidth = Math.Max(1, right - left - cardWidth);
+			int x = left + (int)Math.Round(normalizedX * usableRowWidth);
 			label.Bounds = new Rectangle(x, y, cardWidth, cardHeight);
 			label.BringToFront();
 		}
@@ -1493,6 +1517,13 @@ public class TeamForm : Form
 
 	private void RefreshFc26PitchBackground()
 	{
+		if (m_Fc26PitchBackground != null && m_Fc26PitchBackground.Size == panel1.ClientSize)
+		{
+			if (!ReferenceEquals(panel1.BackgroundImage, m_Fc26PitchBackground))
+				panel1.BackgroundImage = m_Fc26PitchBackground;
+			return;
+		}
+
 		panel1.BackgroundImage = null;
 		m_Fc26PitchBackground?.Dispose();
 		m_Fc26PitchBackground = CreateFc26PitchBackground(panel1.ClientSize);
@@ -1512,39 +1543,49 @@ public class TeamForm : Form
 		{
 			graphics.SmoothingMode = SmoothingMode.AntiAlias;
 			graphics.FillRectangle(background, 0, 0, bitmap.Width, bitmap.Height);
-			int pitchBottom = Fc26PitchHeight - 7;
-			var topLeft = new Point((int)(bitmap.Width * 0.14f), 6);
-			var topRight = new Point((int)(bitmap.Width * 0.86f), 6);
-			var bottomRight = new Point(bitmap.Width - 7, pitchBottom);
-			var bottomLeft = new Point(7, pitchBottom);
+			int pitchTop = 1;
+			int pitchBottom = Fc26PitchHeight - 2;
+			var topLeft = new Point((int)(bitmap.Width * 0.14f), pitchTop);
+			var topRight = new Point((int)(bitmap.Width * 0.86f), pitchTop);
+			var bottomRight = new Point(bitmap.Width - 2, pitchBottom);
+			var bottomLeft = new Point(1, pitchBottom);
 			graphics.DrawPolygon(pitchPen, new[] { topLeft, topRight, bottomRight, bottomLeft });
 
-			int halfY = pitchBottom / 2;
-			int halfLeft = (topLeft.X + bottomLeft.X) / 2;
-			int halfRight = (topRight.X + bottomRight.X) / 2;
+			// Mirror the supplied FC26 base without redistributing its source texture.
+			int halfY = (int)Math.Round(Fc26PitchHeight * 0.418f);
+			float halfProgress = (halfY - pitchTop) / (float)Math.Max(1, pitchBottom - pitchTop);
+			int halfLeft = (int)Math.Round(topLeft.X + (bottomLeft.X - topLeft.X) * halfProgress);
+			int halfRight = (int)Math.Round(topRight.X + (bottomRight.X - topRight.X) * halfProgress);
 			graphics.DrawLine(pitchPen, halfLeft, halfY, halfRight, halfY);
-			graphics.DrawEllipse(pitchPen, bitmap.Width / 2 - 70, halfY - 32, 140, 64);
+			int centreWidth = (int)Math.Round(bitmap.Width * 0.282f);
+			int centreHeight = (int)Math.Round(Fc26PitchHeight * 0.176f);
+			graphics.DrawEllipse(pitchPen, bitmap.Width / 2 - centreWidth / 2,
+				halfY - centreHeight / 2, centreWidth, centreHeight);
 			graphics.DrawEllipse(pitchPen, bitmap.Width / 2 - 2, halfY - 2, 4, 4);
 
 			graphics.DrawPolygon(pitchPen, new[]
 			{
-				new Point((int)(bitmap.Width * 0.31f), 6), new Point((int)(bitmap.Width * 0.69f), 6),
-				new Point((int)(bitmap.Width * 0.64f), 66), new Point((int)(bitmap.Width * 0.36f), 66)
+				new Point((int)(bitmap.Width * 0.27f), pitchTop), new Point((int)(bitmap.Width * 0.73f), pitchTop),
+				new Point((int)(bitmap.Width * 0.80f), (int)(Fc26PitchHeight * 0.135f)),
+				new Point((int)(bitmap.Width * 0.20f), (int)(Fc26PitchHeight * 0.135f))
 			});
 			graphics.DrawPolygon(pitchPen, new[]
 			{
-				new Point((int)(bitmap.Width * 0.43f), 6), new Point((int)(bitmap.Width * 0.57f), 6),
-				new Point((int)(bitmap.Width * 0.55f), 31), new Point((int)(bitmap.Width * 0.45f), 31)
+				new Point((int)(bitmap.Width * 0.39f), pitchTop), new Point((int)(bitmap.Width * 0.61f), pitchTop),
+				new Point((int)(bitmap.Width * 0.65f), (int)(Fc26PitchHeight * 0.064f)),
+				new Point((int)(bitmap.Width * 0.35f), (int)(Fc26PitchHeight * 0.064f))
 			});
 			graphics.DrawPolygon(pitchPen, new[]
 			{
-				new Point((int)(bitmap.Width * 0.21f), pitchBottom), new Point((int)(bitmap.Width * 0.79f), pitchBottom),
-				new Point((int)(bitmap.Width * 0.70f), pitchBottom - 82), new Point((int)(bitmap.Width * 0.30f), pitchBottom - 82)
+				new Point((int)(bitmap.Width * 0.194f), pitchBottom), new Point((int)(bitmap.Width * 0.806f), pitchBottom),
+				new Point((int)(bitmap.Width * 0.776f), (int)(Fc26PitchHeight * 0.77f)),
+				new Point((int)(bitmap.Width * 0.212f), (int)(Fc26PitchHeight * 0.77f))
 			});
 			graphics.DrawPolygon(pitchPen, new[]
 			{
-				new Point((int)(bitmap.Width * 0.42f), pitchBottom), new Point((int)(bitmap.Width * 0.58f), pitchBottom),
-				new Point((int)(bitmap.Width * 0.56f), pitchBottom - 34), new Point((int)(bitmap.Width * 0.44f), pitchBottom - 34)
+				new Point((int)(bitmap.Width * 0.35f), pitchBottom), new Point((int)(bitmap.Width * 0.65f), pitchBottom),
+				new Point((int)(bitmap.Width * 0.632f), (int)(Fc26PitchHeight * 0.89f)),
+				new Point((int)(bitmap.Width * 0.357f), (int)(Fc26PitchHeight * 0.89f))
 			});
 
 			graphics.FillRectangle(sectionBrush, 0, Fc26SubstitutesTop, bitmap.Width,
@@ -1651,35 +1692,97 @@ public class TeamForm : Form
 	private async void LoadFc26RosterMiniFacesAsync(Team team)
 	{
 		if (FifaEnvironment.Year != 26 || team == null || team.Roster == null) return;
-		if (m_Fc26MiniFaceTeamId == team.Id && m_Fc26MiniFaceCache.Count > 0)
+		var rosterEntries = team.Roster.Cast<TeamPlayer>()
+			.Where(value => value.Player != null).ToArray();
+		var players = rosterEntries.Select(value => value.Player).Distinct().ToArray();
+		var missingPlayers = players.Where(player => !m_Fc26MiniFaceCache.ContainsKey(player.Id)).ToArray();
+		InvalidateFc26RosterLabels();
+		if (missingPlayers.Length == 0 || m_Fc26MiniFaceLoadingTeamId == team.Id)
 		{
-			InvalidateFc26RosterLabels();
 			return;
 		}
 
 		int generation = ++m_Fc26MiniFaceLoadGeneration;
-		m_Fc26MiniFaceTeamId = team.Id;
-		foreach (Image image in m_Fc26MiniFaceCache.Values) image.Dispose();
-		m_Fc26MiniFaceCache.Clear();
-		var players = team.Roster.Cast<TeamPlayer>()
-			.Where(value => value.Player != null).Select(value => value.Player).Distinct().ToArray();
+		m_Fc26MiniFaceLoadingTeamId = team.Id;
+		Dictionary<int, Image> loadedImages = null;
 		try
 		{
-			await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.PreloadAssets(
-				players.Select(value => value.SpecificPhotoDdsFileName())));
-			if (IsDisposed || Disposing || generation != m_Fc26MiniFaceLoadGeneration || m_CurrentTeam != team) return;
-			foreach (Player player in players)
+			var missingIds = new HashSet<int>(missingPlayers.Select(player => player.Id));
+			Player[] startingPlayers = rosterEntries
+				.Where(value => value.position >= 0 && value.position < 28 && missingIds.Contains(value.Player.Id))
+				.Select(value => value.Player).Distinct().ToArray();
+			var startingIds = new HashSet<int>(startingPlayers.Select(player => player.Id));
+			Player[] remainingPlayers = missingPlayers.Where(player => !startingIds.Contains(player.Id)).ToArray();
+
+			// Decode the visible XI first so the pitch becomes useful immediately. The
+			// substitutes and reserves continue afterwards, still away from the UI thread.
+			foreach (Player[] batch in new[] { startingPlayers, remainingPlayers })
 			{
-				try
+				if (batch.Length == 0) continue;
+				loadedImages = await System.Threading.Tasks.Task.Run(() => DecodeFc26MiniFaces(batch));
+
+				if (IsDisposed || Disposing || generation != m_Fc26MiniFaceLoadGeneration || m_CurrentTeam != team)
 				{
-					Bitmap photo = player.GetPhoto();
-					if (photo != null) m_Fc26MiniFaceCache[player.Id] = new Bitmap(photo);
+					DisposeFc26Images(loadedImages.Values);
+					loadedImages = null;
+					return;
 				}
-				catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+
+				foreach (KeyValuePair<int, Image> pair in loadedImages)
+				{
+					if (m_Fc26MiniFaceCache.TryGetValue(pair.Key, out Image previous)) previous.Dispose();
+					m_Fc26MiniFaceCache[pair.Key] = pair.Value;
+				}
+				loadedImages = null;
+				InvalidateFc26RosterLabels();
 			}
-			InvalidateFc26RosterLabels();
+			TrimFc26MiniFaceCache(players.Select(player => player.Id));
 		}
-		catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+		catch (Exception ex)
+		{
+			if (loadedImages != null) DisposeFc26Images(loadedImages.Values);
+			System.Diagnostics.Debug.WriteLine(ex);
+		}
+		finally
+		{
+			if (generation == m_Fc26MiniFaceLoadGeneration) m_Fc26MiniFaceLoadingTeamId = -1;
+		}
+	}
+
+	private static Dictionary<int, Image> DecodeFc26MiniFaces(IEnumerable<Player> players)
+	{
+		Player[] batch = players.ToArray();
+		Fc26HostBridge.PreloadAssets(batch.Select(value => value.SpecificPhotoDdsFileName()));
+		var decoded = new Dictionary<int, Image>();
+		foreach (Player player in batch)
+		{
+			try
+			{
+				using (Bitmap photo = player.GetPhoto())
+				{
+					if (photo != null) decoded[player.Id] = new Bitmap(photo);
+				}
+			}
+			catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+		}
+		return decoded;
+	}
+
+	private void TrimFc26MiniFaceCache(IEnumerable<int> currentPlayerIds)
+	{
+		if (m_Fc26MiniFaceCache.Count <= Fc26MiniFaceCacheLimit) return;
+		var current = new HashSet<int>(currentPlayerIds);
+		foreach (int playerId in m_Fc26MiniFaceCache.Keys.Where(id => !current.Contains(id)).ToArray())
+		{
+			m_Fc26MiniFaceCache[playerId].Dispose();
+			m_Fc26MiniFaceCache.Remove(playerId);
+			if (m_Fc26MiniFaceCache.Count <= Fc26MiniFaceCacheLimit) break;
+		}
+	}
+
+	private static void DisposeFc26Images(IEnumerable<Image> images)
+	{
+		foreach (Image image in images) image?.Dispose();
 	}
 
 	private void InvalidateFc26RosterLabels()

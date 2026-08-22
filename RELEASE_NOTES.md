@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.136 - responsive formation loading and corrected pitch spacing (2026-08-22)
+
+- Moved both Frostbite asset extraction and miniface decoding off the WinForms UI thread so switching teams no longer freezes the formation screen.
+- Loads the visible Starting XI first, then fills substitutes and reserves progressively; an in-memory cross-team cache makes revisiting players immediate.
+- Reserved separate visual lanes for goalkeepers and defenders, fixing the CB/GK overlap without changing the formation coordinates stored in the FC26 database.
+- Projects horizontal player positions through the perspective touchlines instead of treating the pitch as a flat rectangle.
+- Rebuilt the pitch geometry from the supplied FC26 reference: perspective touchlines and boxes, the higher halfway line, and proportionally matched centre circle are now code-native and responsive.
+- Reuses the rendered pitch background while its size is unchanged, removing unnecessary bitmap recreation during normal roster refreshes.
+
 ## Version 1.0.135 - clearer owner-drawn formation cards (2026-08-22)
 
 - Removed the inherited CM16 label text underneath each FC26 player card, fixing the duplicate player name shown for a single squad member.

@@ -1,6 +1,6 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.135 (MIT License), 2026-08-22.
+Status: Version 1.0.136 (MIT License), 2026-08-22.
 
 ## User interface
 
@@ -11,6 +11,11 @@ v1.0.124 adds embedded in-app 3D previews (HelixToolkit + Assimp FBX import) for
 v1.0.132 can launch exported FBX meshes in an optional F3D installation. F3D
 is not redistributed by CM26; when it is absent, the bundled CM26 viewer remains
 the default external-viewer fallback.
+
+v1.0.136 keeps FC26 minifaces in a bounded in-memory cache and loads the visible
+Starting XI before the bench. A first visit can still take longer when Frostbite
+assets must be extracted from the installed game, but the UI remains responsive
+and subsequent visits to cached players are immediate.
 
 ## Direct editing
 

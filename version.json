@@ -1,6 +1,6 @@
 {
-  "version": "1.0.135",
+  "version": "1.0.136",
   "name": "Creation Master 26",
-  "notes": "v1.0.135 - removed duplicate player names and sharpened the FC26 formation presentation.",
+  "notes": "v1.0.136 - faster progressive miniface loading, corrected FC26 pitch geometry and separated goalkeeper spacing.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
