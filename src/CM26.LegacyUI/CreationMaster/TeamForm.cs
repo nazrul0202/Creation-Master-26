@@ -1327,11 +1327,13 @@ public class TeamForm : Form
 		if (comboObjective.Items.Count > 0) comboObjective.Items[0] = "Career generated (not in squads DB)";
 		if (comboMaxOnjective.Items.Count > 0) comboMaxOnjective.Items[0] = "Career generated (not in squads DB)";
 		if (comboProbObjective.Items.Count > 0) comboProbObjective.Items[0] = "Career generated (not in squads DB)";
+		labelInitialBudget.Text = "Club Worth (not budget)";
 		var careerDataNote = new Label
 		{
-			Text = "Transfer budget and board objectives are Career-save data.\r\nThe squads database stores Club Worth and static club profile values only.",
+			Text = "FC26 has no per-team Transfer Budget field in the squads database.\r\nBudget/objectives are generated in Career; Club Worth remains editable here.",
 			Location = new Point(groupTeamTraits.Left, groupTeamTraits.Bottom + 8),
-			Size = new Size(360, 38), ForeColor = Color.DimGray, BackColor = Color.Transparent
+			Size = new Size(430, 38), ForeColor = Color.DarkSlateBlue, BackColor = Color.Transparent,
+			Font = new Font(Font, FontStyle.Bold)
 		};
 		pageTeamGeneric.Controls.Add(careerDataNote);
 
@@ -1450,6 +1452,8 @@ public class TeamForm : Form
 		const int marginX = 10;
 		const int marginY = 10;
 		int usableHeight = Math.Max(1, Fc26PitchHeight - cardHeight - marginY * 2);
+		var placements = new List<Fc26FormationCardPlacement>();
+		var usedRoleIds = new HashSet<int>();
 
 		foreach (PlayingRole playingRole in m_CurrentFormation.PlayingRoles)
 		{
@@ -1459,7 +1463,7 @@ public class TeamForm : Form
 			}
 
 			int roleId = (int)playingRole.Role.RoleId;
-			if (roleId < 0 || roleId >= 28)
+			if (roleId < 0 || roleId >= 28 || !usedRoleIds.Add(roleId))
 			{
 				continue;
 			}
@@ -1492,9 +1496,110 @@ public class TeamForm : Form
 				(int)Math.Round(panel1.ClientSize.Width * (1f - pitchRight));
 			int usableRowWidth = Math.Max(1, right - left - cardWidth);
 			int x = left + (int)Math.Round(normalizedX * usableRowWidth);
-			label.Bounds = new Rectangle(x, y, cardWidth, cardHeight);
-			label.BringToFront();
+			placements.Add(new Fc26FormationCardPlacement(label, x, y, left, right - cardWidth));
 		}
+
+		// Database-native FC26 coordinates are centre points, not card rectangles.
+		// Two forwards or a five-player defensive line can therefore overlap even
+		// when their points are valid. Resolve only the visual X positions, keeping
+		// the stored formation coordinates and vertical lanes unchanged.
+		foreach (List<Fc26FormationCardPlacement> row in BuildFc26FormationRows(placements, cardHeight - 8))
+		{
+			ResolveFc26FormationRow(row, cardWidth, 7);
+		}
+
+		foreach (Fc26FormationCardPlacement placement in placements)
+		{
+			placement.Label.Bounds = new Rectangle(placement.X, placement.Y, cardWidth, cardHeight);
+			placement.Label.BringToFront();
+		}
+	}
+
+	private static List<List<Fc26FormationCardPlacement>> BuildFc26FormationRows(
+		IEnumerable<Fc26FormationCardPlacement> placements, int verticalTolerance)
+	{
+		var rows = new List<List<Fc26FormationCardPlacement>>();
+		foreach (Fc26FormationCardPlacement placement in placements.OrderBy(item => item.Y))
+		{
+			List<Fc26FormationCardPlacement> row = rows.FirstOrDefault(candidate =>
+				candidate.Any(item => Math.Abs(item.Y - placement.Y) <= verticalTolerance));
+			if (row == null)
+			{
+				row = new List<Fc26FormationCardPlacement>();
+				rows.Add(row);
+			}
+			row.Add(placement);
+		}
+		return rows;
+	}
+
+	private static void ResolveFc26FormationRow(
+		List<Fc26FormationCardPlacement> row, int cardWidth, int gap)
+	{
+		if (row.Count < 2)
+		{
+			return;
+		}
+
+		row.Sort((left, right) => left.X.CompareTo(right.X));
+		int minimumX = row.Max(item => item.MinimumX);
+		int maximumX = row.Min(item => item.MaximumX);
+		int step = cardWidth + gap;
+		if (maximumX - minimumX < step * (row.Count - 1))
+		{
+			minimumX = row.Min(item => item.MinimumX);
+			maximumX = row.Max(item => item.MaximumX);
+		}
+
+		for (int i = 0; i < row.Count; i++)
+		{
+			row[i].X = Math.Max(minimumX, Math.Min(maximumX, row[i].X));
+			if (i > 0)
+			{
+				row[i].X = Math.Max(row[i].X, row[i - 1].X + step);
+			}
+		}
+
+		int overflow = row[row.Count - 1].X - maximumX;
+		if (overflow > 0)
+		{
+			foreach (Fc26FormationCardPlacement item in row)
+			{
+				item.X -= overflow;
+			}
+		}
+
+		for (int i = row.Count - 2; i >= 0; i--)
+		{
+			row[i].X = Math.Min(row[i].X, row[i + 1].X - step);
+		}
+
+		int underflow = minimumX - row[0].X;
+		if (underflow > 0)
+		{
+			foreach (Fc26FormationCardPlacement item in row)
+			{
+				item.X += underflow;
+			}
+		}
+	}
+
+	private sealed class Fc26FormationCardPlacement
+	{
+		internal Fc26FormationCardPlacement(Label label, int x, int y, int minimumX, int maximumX)
+		{
+			Label = label;
+			X = x;
+			Y = y;
+			MinimumX = minimumX;
+			MaximumX = maximumX;
+		}
+
+		internal Label Label { get; }
+		internal int X { get; set; }
+		internal int Y { get; }
+		internal int MinimumX { get; }
+		internal int MaximumX { get; }
 	}
 
 	private void LayoutFc26CardGrid(Label[] labels, int top, int columns, int cardHeight)
@@ -3084,6 +3189,19 @@ public class TeamForm : Form
 		labelPos33S.Tag = new TeamPlayer(ERole.Tribune);
 		labelPos33T.Tag = new TeamPlayer(ERole.Tribune);
 		labelPos33U.Tag = new TeamPlayer(ERole.Tribune);
+		Label[] substituteLabels =
+		{
+			labelPos32A, labelPos32B, labelPos32C, labelPos32D,
+			labelPos32E, labelPos32F, labelPos32G
+		};
+		Label[] reserveLabels =
+		{
+			labelPos33A, labelPos33B, labelPos33C, labelPos33D, labelPos33E,
+			labelPos33F, labelPos33G, labelPos33H, labelPos33I, labelPos33J,
+			labelPos33K, labelPos33L, labelPos33M, labelPos33N, labelPos33O,
+			labelPos33P, labelPos33Q, labelPos33R, labelPos33S, labelPos33T,
+			labelPos33U
+		};
 		int num = 0;
 		int num2 = 0;
 		for (int i = 0; i < roster.Count; i++)
@@ -3232,170 +3350,36 @@ public class TeamForm : Form
 				labelPos27.Tag = teamPlayer;
 				break;
 			case 28:
-				switch (num)
+				if (num < substituteLabels.Length)
 				{
-				case 0:
-					labelPos32A.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos32A.Visible = true;
-					labelPos32A.Tag = teamPlayer;
-					break;
-				case 1:
-					labelPos32B.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos32B.Visible = true;
-					labelPos32B.Tag = teamPlayer;
-					break;
-				case 2:
-					labelPos32C.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos32C.Visible = true;
-					labelPos32C.Tag = teamPlayer;
-					break;
-				case 3:
-					labelPos32D.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos32D.Visible = true;
-					labelPos32D.Tag = teamPlayer;
-					break;
-				case 4:
-					labelPos32E.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos32E.Visible = true;
-					labelPos32E.Tag = teamPlayer;
-					break;
-				case 5:
-					labelPos32F.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos32F.Visible = true;
-					labelPos32F.Tag = teamPlayer;
-					break;
-				case 6:
-					labelPos32G.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos32G.Visible = true;
-					labelPos32G.Tag = teamPlayer;
-					break;
-				case 7:
-					teamPlayer.position = 29;
-					num--;
-					i--;
-					break;
+					SetRosterPlayerLabel(substituteLabels[num++], teamPlayer);
 				}
-				num++;
+				else if (num2 < reserveLabels.Length)
+				{
+					// FC26 squads can contain more substitutes than the legacy
+					// seven-slot UI. Display the overflow as reserves without
+					// mutating the player's database position just by viewing it.
+					SetRosterPlayerLabel(reserveLabels[num2++], teamPlayer);
+				}
 				break;
 			case 29:
-				switch (num2)
+				if (num2 < reserveLabels.Length)
 				{
-				case 0:
-					labelPos33A.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33A.Visible = true;
-					labelPos33A.Tag = teamPlayer;
-					break;
-				case 1:
-					labelPos33B.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33B.Visible = true;
-					labelPos33B.Tag = teamPlayer;
-					break;
-				case 2:
-					labelPos33C.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33C.Visible = true;
-					labelPos33C.Tag = teamPlayer;
-					break;
-				case 3:
-					labelPos33D.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33D.Visible = true;
-					labelPos33D.Tag = teamPlayer;
-					break;
-				case 4:
-					labelPos33E.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33E.Visible = true;
-					labelPos33E.Tag = teamPlayer;
-					break;
-				case 5:
-					labelPos33F.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33F.Visible = true;
-					labelPos33F.Tag = teamPlayer;
-					break;
-				case 6:
-					labelPos33G.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33G.Visible = true;
-					labelPos33G.Tag = teamPlayer;
-					break;
-				case 7:
-					labelPos33H.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33H.Visible = true;
-					labelPos33H.Tag = teamPlayer;
-					break;
-				case 8:
-					labelPos33I.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33I.Visible = true;
-					labelPos33I.Tag = teamPlayer;
-					break;
-				case 9:
-					labelPos33J.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33J.Visible = true;
-					labelPos33J.Tag = teamPlayer;
-					break;
-				case 10:
-					labelPos33K.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33K.Visible = true;
-					labelPos33K.Tag = teamPlayer;
-					break;
-				case 11:
-					labelPos33L.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33L.Visible = true;
-					labelPos33L.Tag = teamPlayer;
-					break;
-				case 12:
-					labelPos33M.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33M.Visible = true;
-					labelPos33M.Tag = teamPlayer;
-					break;
-				case 13:
-					labelPos33N.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33N.Visible = true;
-					labelPos33N.Tag = teamPlayer;
-					break;
-				case 14:
-					labelPos33O.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33O.Visible = true;
-					labelPos33O.Tag = teamPlayer;
-					break;
-				case 15:
-					labelPos33P.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33P.Visible = true;
-					labelPos33P.Tag = teamPlayer;
-					break;
-				case 16:
-					labelPos33Q.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33Q.Visible = true;
-					labelPos33Q.Tag = teamPlayer;
-					break;
-				case 17:
-					labelPos33R.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33R.Visible = true;
-					labelPos33R.Tag = teamPlayer;
-					break;
-				case 18:
-					labelPos33S.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33S.Visible = true;
-					labelPos33S.Tag = teamPlayer;
-					break;
-				case 19:
-					labelPos33T.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33T.Visible = true;
-					labelPos33T.Tag = teamPlayer;
-					break;
-				case 20:
-					labelPos33U.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
-					labelPos33U.Visible = true;
-					labelPos33U.Tag = teamPlayer;
-					break;
-				default:
-					FifaEnvironment.UserMessages.ShowMessage(5021);
-					break;
+					SetRosterPlayerLabel(reserveLabels[num2++], teamPlayer);
 				}
-				num2++;
 				break;
 			}
 		}
 		InitSpecialPlayers(m_CurrentTeam);
 		LayoutFc26RosterFormationUi();
 		InvalidateFc26RosterLabels();
+	}
+
+	private static void SetRosterPlayerLabel(Label label, TeamPlayer teamPlayer)
+	{
+		label.Text = teamPlayer.jerseynumber + "\n" + teamPlayer.Player.Name;
+		label.Visible = true;
+		label.Tag = teamPlayer;
 	}
 
 	private void InitSpecialPlayers(Team team)

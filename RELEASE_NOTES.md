@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.137 - stable formation switching and FC26 budget clarification (2026-08-22)
+
+- Added collision-safe visual reflow for close database-native position points, fixing overlapping two-forward and four/five-player lines both before and after changing formation.
+- Prevented duplicate role IDs from rendering a second Starting XI card while retaining the original database coordinates for advanced editing and save.
+- Stopped the Roster page from silently changing an eighth substitute into a reserve merely by opening or refreshing the tab; overflow players are now displayed without mutating roster data.
+- Kept the responsive pitch code-native and aligned to the supplied FC26 perspective reference without redistributing the source game asset.
+- Renamed the editable financial control to **Club Worth (not budget)** and added an on-screen explanation: FC26 removed the old per-team `teams.transferbudget` field used by CM16, while the real transfer budget is generated inside a Career save.
+
 ## Version 1.0.136 - responsive formation loading and corrected pitch spacing (2026-08-22)
 
 - Moved both Frostbite asset extraction and miniface decoding off the WinForms UI thread so switching teams no longer freezes the formation screen.

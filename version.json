@@ -1,6 +1,6 @@
 {
-  "version": "1.0.136",
+  "version": "1.0.137",
   "name": "Creation Master 26",
-  "notes": "v1.0.136 - faster progressive miniface loading, corrected FC26 pitch geometry and separated goalkeeper spacing.",
+  "notes": "v1.0.137 - collision-safe formation cards, stable roster state and explicit FC26 Career-budget boundary.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
