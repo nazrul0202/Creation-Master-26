@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.138 - real FC26 Career transfer-budget editor (2026-08-22)
+
+- Added a dedicated Career-save budget panel to the Team page; **Club Worth** remains the separate static squads value it actually represents.
+- Reads and writes the real `career_managerpref.transferbudget` and `startofseasontransferbudget` values used by FC26 Career Mode.
+- Resolves the active Career club through `career_users.clubteamid` and warns when it differs from the team currently selected in the squads editor.
+- Opens and saves the Career container asynchronously so parsing does not freeze the WinForms interface.
+- Creates a timestamped `.bak` copy beside the Career save before every write and restores the editor's in-memory values if the container writer rejects a save.
+
 ## Version 1.0.137 - stable formation switching and FC26 budget clarification (2026-08-22)
 
 - Added collision-safe visual reflow for close database-native position points, fixing overlapping two-forward and four/five-player lines both before and after changing formation.

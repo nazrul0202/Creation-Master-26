@@ -1,6 +1,6 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.137 (MIT License), 2026-08-22.
+Status: Version 1.0.138 (MIT License), 2026-08-22.
 
 ## User interface
 
@@ -49,11 +49,13 @@ Some FC26 display names use EA locale/runtime encodings that are not fully
 recoverable from the supplied files. CM26 uses resolved names when available
 and an honest ID fallback otherwise.
 
-FC26's `teams` table exposes `clubworth`, not a universal career transfer
-budget. CM26 therefore labels and edits this value as **Club Worth**. A real
-`transferbudget` column is used only when the opened schema actually contains
-one. Career-specific budgets stored in career-save data are not currently
-edited by this control.
+FC26's static `teams` table exposes `clubworth`, not the live Career transfer
+budget. CM26 therefore keeps that squads value labelled **Club Worth**. Since
+v1.0.138 the Team page also provides a separate Career-save editor for the real
+`career_managerpref.transferbudget` and `startofseasontransferbudget` values.
+It resolves the active club through `career_users.clubteamid`, performs the load
+and save away from the UI thread, and creates a timestamped backup beside the
+Career save before writing it.
 
 ## Structural edits
 

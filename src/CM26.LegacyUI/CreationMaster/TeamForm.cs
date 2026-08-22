@@ -57,6 +57,22 @@ public class TeamForm : Form
 
 	private bool m_Fc26TeamUiConfigured;
 
+	private CareerBudgetEditor m_Fc26CareerBudgetEditor;
+
+	private GroupBox groupFc26CareerBudget;
+
+	private Label labelFc26CareerBudgetStatus;
+
+	private NumericUpDown numericFc26CareerTransferBudget;
+
+	private NumericUpDown numericFc26CareerStartBudget;
+
+	private Button buttonFc26OpenCareer;
+
+	private Button buttonFc26SaveCareerBudget;
+
+	private bool m_Fc26CareerBudgetBusy;
+
 	private ComboBox comboTraitContext;
 
 	private CheckBox[] m_Fc26TraitChecks;
@@ -1327,17 +1343,192 @@ public class TeamForm : Form
 		if (comboObjective.Items.Count > 0) comboObjective.Items[0] = "Career generated (not in squads DB)";
 		if (comboMaxOnjective.Items.Count > 0) comboMaxOnjective.Items[0] = "Career generated (not in squads DB)";
 		if (comboProbObjective.Items.Count > 0) comboProbObjective.Items[0] = "Career generated (not in squads DB)";
-		labelInitialBudget.Text = "Club Worth (not budget)";
-		var careerDataNote = new Label
-		{
-			Text = "FC26 has no per-team Transfer Budget field in the squads database.\r\nBudget/objectives are generated in Career; Club Worth remains editable here.",
-			Location = new Point(groupTeamTraits.Left, groupTeamTraits.Bottom + 8),
-			Size = new Size(430, 38), ForeColor = Color.DarkSlateBlue, BackColor = Color.Transparent,
-			Font = new Font(Font, FontStyle.Bold)
-		};
-		pageTeamGeneric.Controls.Add(careerDataNote);
+		labelInitialBudget.Text = "Club Worth";
+		ConfigureFc26CareerBudgetUi();
 
 		ConfigureFc26RosterFormationUi();
+	}
+
+	private void ConfigureFc26CareerBudgetUi()
+	{
+		groupFc26CareerBudget = new GroupBox
+		{
+			Name = "groupFc26CareerBudget",
+			Text = "FC26 Career Transfer Budget",
+			Size = new Size(540, 183),
+			TabStop = false
+		};
+
+		labelFc26CareerBudgetStatus = new Label
+		{
+			Location = new Point(14, 20),
+			Size = new Size(506, 34),
+			ForeColor = Color.DarkSlateBlue,
+			BackColor = Color.Transparent
+		};
+		var currentBudgetLabel = new Label
+		{
+			Text = "Current Transfer Budget",
+			Location = new Point(14, 60),
+			Size = new Size(165, 21),
+			TextAlign = ContentAlignment.MiddleLeft
+		};
+		numericFc26CareerTransferBudget = CreateFc26BudgetControl(new Point(184, 58));
+		var startBudgetLabel = new Label
+		{
+			Text = "Start-of-season Budget",
+			Location = new Point(14, 91),
+			Size = new Size(165, 21),
+			TextAlign = ContentAlignment.MiddleLeft
+		};
+		numericFc26CareerStartBudget = CreateFc26BudgetControl(new Point(184, 89));
+		buttonFc26OpenCareer = new Button
+		{
+			Text = "Open Career Save...",
+			Location = new Point(354, 57),
+			Size = new Size(166, 27)
+		};
+		buttonFc26SaveCareerBudget = new Button
+		{
+			Text = "Save Budget + Backup",
+			Location = new Point(354, 88),
+			Size = new Size(166, 27)
+		};
+		var hint = new Label
+		{
+			Text = "Budget is stored in the Career save, separate from this team's Club Worth. A timestamped .bak file is created before every save.",
+			Location = new Point(14, 124),
+			Size = new Size(506, 43),
+			ForeColor = Color.DimGray,
+			BackColor = Color.Transparent
+		};
+
+		buttonFc26OpenCareer.Click += OpenFc26CareerBudget_Click;
+		buttonFc26SaveCareerBudget.Click += SaveFc26CareerBudget_Click;
+		groupFc26CareerBudget.Controls.Add(labelFc26CareerBudgetStatus);
+		groupFc26CareerBudget.Controls.Add(currentBudgetLabel);
+		groupFc26CareerBudget.Controls.Add(numericFc26CareerTransferBudget);
+		groupFc26CareerBudget.Controls.Add(startBudgetLabel);
+		groupFc26CareerBudget.Controls.Add(numericFc26CareerStartBudget);
+		groupFc26CareerBudget.Controls.Add(buttonFc26OpenCareer);
+		groupFc26CareerBudget.Controls.Add(buttonFc26SaveCareerBudget);
+		groupFc26CareerBudget.Controls.Add(hint);
+		flowPanelTeamGeneric.Controls.Add(groupFc26CareerBudget);
+		RefreshFc26CareerBudgetUi();
+	}
+
+	private static NumericUpDown CreateFc26BudgetControl(Point location)
+	{
+		return new NumericUpDown
+		{
+			Location = location,
+			Size = new Size(151, 20),
+			Minimum = 0m,
+			Maximum = 2147483520m,
+			ThousandsSeparator = true,
+			TextAlign = HorizontalAlignment.Right
+		};
+	}
+
+	private async void OpenFc26CareerBudget_Click(object sender, EventArgs e)
+	{
+		using var dialog = new OpenFileDialog
+		{
+			Title = "Open an EA SPORTS FC 26 Career save",
+			Filter = "FC26 Career saves (Career*;*.sav)|Career*;*.sav|All files (*.*)|*.*",
+			CheckFileExists = true,
+			Multiselect = false
+		};
+		string settingsFolder = System.IO.Path.Combine(
+			System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments),
+			"EA SPORTS FC 26", "settings");
+		if (System.IO.Directory.Exists(settingsFolder)) dialog.InitialDirectory = settingsFolder;
+		if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+		SetFc26CareerBudgetBusy(true, "Loading Career save...");
+		try
+		{
+			string fileName = dialog.FileName;
+			string schemaFile = FifaEnvironment.FifaXmlFileName;
+			m_Fc26CareerBudgetEditor = await System.Threading.Tasks.Task.Run(
+				() => CareerBudgetEditor.Open(fileName, schemaFile));
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show(this, "The Career budget could not be loaded.\r\n\r\n" + ex.Message,
+				"FC26 Career Budget", MessageBoxButtons.OK, MessageBoxIcon.Error);
+		}
+		finally
+		{
+			SetFc26CareerBudgetBusy(false, null);
+			RefreshFc26CareerBudgetUi();
+		}
+	}
+
+	private async void SaveFc26CareerBudget_Click(object sender, EventArgs e)
+	{
+		if (m_Fc26CareerBudgetEditor == null) return;
+		int transferBudget = Decimal.ToInt32(numericFc26CareerTransferBudget.Value);
+		int startBudget = Decimal.ToInt32(numericFc26CareerStartBudget.Value);
+		SetFc26CareerBudgetBusy(true, "Saving Career budget and backup...");
+		try
+		{
+			string backupFile = await System.Threading.Tasks.Task.Run(
+				() => m_Fc26CareerBudgetEditor.Save(transferBudget, startBudget));
+			MessageBox.Show(this,
+				"Transfer budget saved to the Career file.\r\n\r\nBackup: " + backupFile,
+				"FC26 Career Budget", MessageBoxButtons.OK, MessageBoxIcon.Information);
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show(this, "The Career budget could not be saved.\r\n\r\n" + ex.Message,
+				"FC26 Career Budget", MessageBoxButtons.OK, MessageBoxIcon.Error);
+		}
+		finally
+		{
+			SetFc26CareerBudgetBusy(false, null);
+			RefreshFc26CareerBudgetUi();
+		}
+	}
+
+	private void SetFc26CareerBudgetBusy(bool busy, string status)
+	{
+		m_Fc26CareerBudgetBusy = busy;
+		UseWaitCursor = busy;
+		if (buttonFc26OpenCareer != null) buttonFc26OpenCareer.Enabled = !busy;
+		if (buttonFc26SaveCareerBudget != null) buttonFc26SaveCareerBudget.Enabled = !busy && m_Fc26CareerBudgetEditor != null;
+		if (numericFc26CareerTransferBudget != null) numericFc26CareerTransferBudget.Enabled = !busy && m_Fc26CareerBudgetEditor != null;
+		if (numericFc26CareerStartBudget != null) numericFc26CareerStartBudget.Enabled = !busy && m_Fc26CareerBudgetEditor != null;
+		if (busy && labelFc26CareerBudgetStatus != null) labelFc26CareerBudgetStatus.Text = status;
+	}
+
+	private void RefreshFc26CareerBudgetUi()
+	{
+		if (groupFc26CareerBudget == null) return;
+		bool loaded = m_Fc26CareerBudgetEditor != null;
+		buttonFc26OpenCareer.Enabled = !m_Fc26CareerBudgetBusy;
+		buttonFc26SaveCareerBudget.Enabled = loaded && !m_Fc26CareerBudgetBusy;
+		numericFc26CareerTransferBudget.Enabled = loaded && !m_Fc26CareerBudgetBusy;
+		numericFc26CareerStartBudget.Enabled = loaded && !m_Fc26CareerBudgetBusy;
+		if (!loaded)
+		{
+			labelFc26CareerBudgetStatus.Text = "No Career save loaded. Open a save to edit its real ingame budget.";
+			return;
+		}
+
+		Team careerTeam = FifaEnvironment.Teams.SearchId(m_Fc26CareerBudgetEditor.ClubTeamId) as Team;
+		string teamName = careerTeam?.DatabaseName ?? "Unknown team";
+		string saveName = string.IsNullOrWhiteSpace(m_Fc26CareerBudgetEditor.InGameName)
+			? System.IO.Path.GetFileName(m_Fc26CareerBudgetEditor.FileName)
+			: m_Fc26CareerBudgetEditor.InGameName;
+		labelFc26CareerBudgetStatus.Text = "Loaded: " + saveName + "  |  Active club: " + teamName
+			+ " (Team ID " + m_Fc26CareerBudgetEditor.ClubTeamId + ")";
+		if (m_CurrentTeam != null && m_CurrentTeam.Id != m_Fc26CareerBudgetEditor.ClubTeamId)
+		{
+			labelFc26CareerBudgetStatus.Text += "\r\nSelected squads team differs from the Career club.";
+		}
+		SetNumericValue(numericFc26CareerTransferBudget, m_Fc26CareerBudgetEditor.TransferBudget);
+		SetNumericValue(numericFc26CareerStartBudget, m_Fc26CareerBudgetEditor.StartOfSeasonTransferBudget);
 	}
 
 	private void ConfigureFc26RosterFormationUi()
@@ -1977,6 +2168,7 @@ public class TeamForm : Form
 		}
 		teamBindingSource.ResetBindings(metadataChanged: false);
 		LoadFc26TraitChecks();
+		RefreshFc26CareerBudgetUi();
 		viewer2DCrestLarge.CurrentBitmap = null;
 		viewer2DCrest50.CurrentBitmap = null;
 		viewer2DCrest32.CurrentBitmap = null;

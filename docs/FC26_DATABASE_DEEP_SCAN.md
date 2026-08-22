@@ -1,4 +1,4 @@
-# FC26 database deep scan — v1.0.132
+# FC26 database deep scan — updated for v1.0.138
 
 Source inspected: the installed FC26 direct-session squads database dated 2026-08-22. Values can change with a later Title Update or squad file.
 
@@ -9,6 +9,12 @@ Verified static `teams` fields include `clubworth` (stored in thousands), `popul
 Manchester City (`teamid=10`) in the inspected database has Club Worth `4564360` (about 4.56B after scaling), popularity `9` (Very High), youth development `3` (Low), profitability `8` (High), founded `1880`, 10 league titles, 7 domestic cups and 1 Champions League. A screenshot from another squad/Title Update can therefore legitimately show a different Club Worth.
 
 `factory_teams` is not a per-team budget source: it contains one World XI template row. The base squads database has no populated per-team Career budget rows. `career_managerpref` is a zeroed template and `career_managerhistory`/`career_managerinfo` are empty before a Career save exists.
+
+The live Career save does populate `career_managerpref.transferbudget` and
+`startofseasontransferbudget`. The active manager's club is identified by
+`career_users.clubteamid`. Creation Master 26 v1.0.138 edits those two Career
+values directly from the Team page while keeping static `teams.clubworth`
+separate, and creates a timestamped copy of the complete save before writing.
 
 `leagueteamlinks.objective`, `highestpossible` and `highestprobable` are zero placeholders in the inspected static database. Career mode generates the visible board objectives; interpreting zero as the old CM16 enum value “Win League Title” is incorrect.
 
