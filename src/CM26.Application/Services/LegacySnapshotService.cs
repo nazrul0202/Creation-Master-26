@@ -16,7 +16,7 @@ public static class LegacySnapshotService
         "editedplayernames", "stadiums", "teamkits", "kits", "formations",
         "manager", "referee", "leaguerefereelinks", "teamballs", "shoecolors",
         "playerboots", "fieldpositionboundingboxes", "competition", "competitioninfo",
-        "compobj", "audionation"
+        "compobj", "audionation", "career_managerpref"
     };
 
     public static void Write(DatabaseSession session, string outputPath, string? gameRoot = null)

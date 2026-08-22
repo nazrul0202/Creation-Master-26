@@ -1,6 +1,6 @@
 {
-  "version": "1.0.126",
+  "version": "1.0.127",
   "name": "Creation Master 26",
-  "notes": "v1.0.126 - Fixed in-app 3D face mesh viewer: replaced HelixToolkit ModelImporter (no FBX support) with direct AssimpNet import for FC26 Frostbite head meshes. Fixed team budget to read FC26 clubworth column instead of hardcoded default.",
+  "notes": "v1.0.127 - Added editable Transfer Budget to Teams Overview hero card: numeric editor with FC26 fallback (transferbudget → clubworth), default 1,000,000 for new teams, and auto-save on change.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

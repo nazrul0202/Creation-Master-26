@@ -145,6 +145,16 @@ public sealed class TeamsSection : SectionBase
         catch { _toolbar.RecordCountText = string.Empty; }
     }
 
+    private void HeroCard_BudgetChanged(object? sender, long budget)
+    {
+        if (CurrentRecordIndex < 0) return;
+        // FC26 removed teams.transferbudget; fall back to clubworth like CM16
+        var fieldName = Services.Session.GetTable(TableName)?.FindColumn("transferbudget") != null
+            ? "transferbudget"
+            : "clubworth";
+        StageField(TableName, CurrentRecordIndex, fieldName, budget.ToString(), _stagingGrid);
+    }
+
     private void StepRecord(int delta)
     {
         var records = GetRecords();
@@ -240,6 +250,7 @@ public sealed class TeamsSection : SectionBase
                 ["domesticprestige"] = "0",
                 ["internationalprestige"] = "0",
                 ["clubworth"] = "0",
+                ["transferbudget"] = "1000000",
             });
 
             // If a league was selected, create the league-team link
@@ -639,6 +650,7 @@ public sealed class TeamsSection : SectionBase
         };
 
         _heroCard = new TeamHeroCard { Dock = DockStyle.Fill };
+        _heroCard.BudgetChanged += HeroCard_BudgetChanged;
         layout.Controls.Add(_heroCard, 0, 0);
 
         var quickRow = new FlowLayoutPanel
@@ -1915,6 +1927,16 @@ public sealed class TeamsSection : SectionBase
             _heroCard.Defence = int.TryParse(record.Get(Col(table, "defenserating")), out var def) ? def : 0;
             _heroCard.FoundedText = $"Founded: {record.Get(Col(table, "foundationyear")) ?? "—"}";
             _heroCard.WorthText = $"Worth: {record.Get(Col(table, "clubworth")) ?? "—"}";
+
+            // Load transfer budget with FC26 fallback (transferbudget → clubworth)
+            var budgetCol = Col(table, "transferbudget");
+            var budgetValue = budgetCol >= 0 ? record.Get(budgetCol) : null;
+            if (string.IsNullOrEmpty(budgetValue))
+            {
+                budgetCol = Col(table, "clubworth");
+                budgetValue = budgetCol >= 0 ? record.Get(budgetCol) : null;
+            }
+            _heroCard.TransferBudget = long.TryParse(budgetValue, out var budget) ? budget : 0;
 
             var oldCrest = _heroCard.Crest;
             _heroCard.Crest = null;

@@ -21,6 +21,9 @@ public sealed class TeamHeroCard : StudioCard
     private readonly Label _defValue;
     private readonly Label _founded;
     private readonly Label _worth;
+    private readonly Label _budgetLabel;
+    private readonly NumericUpDown _budgetEditor;
+    private bool _suppressBudgetEvent;
 
     public TeamHeroCard()
     {
@@ -129,6 +132,36 @@ public sealed class TeamHeroCard : StudioCard
             BackColor = Color.Transparent,
         };
 
+        _budgetLabel = new Label
+        {
+            Text = "Budget:",
+            Location = new Point(450, 126),
+            AutoSize = true,
+            Font = StudioFonts.DataLabel,
+            ForeColor = StudioColors.MutedText,
+            BackColor = Color.Transparent,
+        };
+
+        _budgetEditor = new NumericUpDown
+        {
+            Location = new Point(500, 124),
+            Size = new Size(120, 20),
+            Font = StudioFonts.DataValue,
+            ForeColor = StudioColors.PrimaryText,
+            BackColor = StudioColors.InputBackground,
+            BorderStyle = BorderStyle.FixedSingle,
+            Minimum = 0,
+            Maximum = 999999999,
+            Increment = 1000000,
+            ThousandsSeparator = true,
+        };
+        _budgetEditor.ValueChanged += (_, _) =>
+        {
+            if (!_suppressBudgetEvent) BudgetChanged?.Invoke(this, (long)_budgetEditor.Value);
+        };
+
+        Controls.Add(_budgetEditor);
+        Controls.Add(_budgetLabel);
         Controls.Add(_worth);
         Controls.Add(_founded);
         Controls.Add(barsTable);
@@ -200,6 +233,19 @@ public sealed class TeamHeroCard : StudioCard
         set => _worth.Text = value;
     }
 
+    public long TransferBudget
+    {
+        get => (long)_budgetEditor.Value;
+        set
+        {
+            _suppressBudgetEvent = true;
+            try { _budgetEditor.Value = Math.Clamp(value, 0, 999999999); }
+            finally { _suppressBudgetEvent = false; }
+        }
+    }
+
+    public event EventHandler<long>? BudgetChanged;
+
     private int _attack;
     private int _midfield;
     private int _defence;
@@ -265,5 +311,7 @@ public sealed class TeamHeroCard : StudioCard
         _ovrLabel.Location = new Point(Width - 110, 56);
         _founded.Location = new Point(Math.Max(450, Width - 360), 82);
         _worth.Location = new Point(Math.Max(450, Width - 360), 104);
+        _budgetLabel.Location = new Point(Math.Max(450, Width - 360), 126);
+        _budgetEditor.Location = new Point(Math.Max(500, Width - 310), 124);
     }
 }
