@@ -571,7 +571,7 @@ public sealed class LeaguesSection : SectionBase
         UpdateToolbarCount();
     }
 
-    private void LoadLeagueLogo(int leagueId, string localPath)
+    private void LoadLeagueLogo(int leagueId, string? localPath)
     {
         // A staged replacement always wins over the installed asset.
         var staged = LeagueLogoCatalog.PreviewSource(Services.FrostbiteAssets, Services.LegacyMods, leagueId)

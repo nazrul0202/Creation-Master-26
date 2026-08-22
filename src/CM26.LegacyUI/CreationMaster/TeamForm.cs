@@ -4858,7 +4858,9 @@ public class TeamForm : Form
 		this.labelInitialBudget.Name = "labelInitialBudget";
 		this.labelInitialBudget.Size = new System.Drawing.Size(41, 13);
 		this.labelInitialBudget.TabIndex = 95;
-		this.labelInitialBudget.Text = "Budget";
+		// FC26 stores club valuation here; career transfer budgets live outside
+		// the teams table and must not be represented by this control.
+		this.labelInitialBudget.Text = "Club Worth";
 		this.labelInitialBudget.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
 		this.labelInternationalPrestige.AutoSize = true;
 		this.labelInternationalPrestige.BackColor = System.Drawing.Color.Transparent;

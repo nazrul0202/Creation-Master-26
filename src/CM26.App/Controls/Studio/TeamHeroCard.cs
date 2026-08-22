@@ -244,6 +244,18 @@ public sealed class TeamHeroCard : StudioCard
         }
     }
 
+    public string FinancialFieldLabel
+    {
+        get => _budgetLabel.Text.TrimEnd(':');
+        set => _budgetLabel.Text = string.IsNullOrWhiteSpace(value) ? "Financial value:" : value.TrimEnd(':') + ":";
+    }
+
+    public bool FinancialEditorEnabled
+    {
+        get => _budgetEditor.Enabled;
+        set => _budgetEditor.Enabled = value;
+    }
+
     public event EventHandler<long>? BudgetChanged;
 
     private int _attack;

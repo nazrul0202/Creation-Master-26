@@ -11,7 +11,9 @@ public partial class App : System.Windows.Application
     public App()
     {
         var args = Environment.GetCommandLineArgs();
-        var isUiAutomation = args.Length >= 2 && args[1] is "--ui-smoke" or "--ui-audit";
+        var isUiAutomation = args.Length >= 2 && args[1] is "--ui-smoke" or "--ui-shell-smoke" or "--ui-audit";
+        if (isUiAutomation)
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
         UiAutomationException = null;
         DispatcherUnhandledException += (_, e) =>
         {
@@ -35,7 +37,7 @@ public partial class App : System.Windows.Application
         };
         Startup += (_, e) =>
         {
-            if (args.Length >= 2 && args[1] is "--ui-smoke" or "--ui-audit")
+            if (args.Length >= 2 && args[1] is "--ui-smoke" or "--ui-shell-smoke" or "--ui-audit")
             {
                 Dispatcher.BeginInvoke(new System.Action(async () =>
                 {
@@ -49,6 +51,10 @@ public partial class App : System.Windows.Application
                                     "Creation Master 26", "ui-audit");
                             await VisualAudit.RunAsync(output);
                         }
+                        else if (args[1] == "--ui-shell-smoke")
+                        {
+                            await Smoke.RunShellAsync();
+                        }
                         else
                         {
                             await Smoke.RunAsync();
@@ -60,6 +66,8 @@ public partial class App : System.Windows.Application
                     }
                     catch (Exception ex)
                     {
+                        Console.Error.WriteLine("UI SMOKE FAILED: " + ex);
+                        Console.Error.Flush();
                         try { File.AppendAllText(
                             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                                 "Creation Master 26", "studio-crash.log"),

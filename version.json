@@ -1,6 +1,6 @@
 {
-  "version": "1.0.128",
+  "version": "1.0.129",
   "name": "Creation Master 26",
-  "notes": "v1.0.128 - Transfer Budget fix: each team now reads its real budget value from FC26 database (transferbudget or clubworth fallback). Budget editor in Teams Overview shows actual per-team values, not defaults.",
+  "notes": "v1.0.129 - Release hardening: FC26 club worth is labelled honestly, versioned documentation is enforced, packaged self-tests run before ZIP creation, and unused native runtimes are removed.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

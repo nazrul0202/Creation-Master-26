@@ -23,17 +23,17 @@
 
 ## 🚀 Quick start
 
-1. Download the [latest release](https://github.com/nazrul0202/Creation-Master-26/releases) — **Full Portable** (~76 MB, self-contained) or **Lite** (~11 MB, needs .NET 8)
+1. Download the [latest release](https://github.com/nazrul0202/Creation-Master-26/releases) — **Full Portable** (self-contained) or **Lite** (needs .NET 8)
 2. Run `CM26_by_Rizco98.exe`
 3. **File > Open Game** → select your FC26 installation folder
 4. Edit any section, press **Validate**, then **Save** to commit
 
 | Package | Size | Description |
 |---------|------|-------------|
-| **Full Portable** | ~76 MB | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
-| **Lite** | ~11 MB | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
+| **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
+| **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.98.txt` is included with the v1.0.98 release assets.
+Checksums: `SHA256SUMS_v1.0.129.txt` is included with the v1.0.129 release assets.
 
 ---
 

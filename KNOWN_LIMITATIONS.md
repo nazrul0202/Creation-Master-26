@@ -1,6 +1,6 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.124 (MIT License), 2026-08-20.
+Status: Version 1.0.129 (MIT License), 2026-08-22.
 
 ## User interface
 
@@ -37,6 +37,12 @@ remain locked.
 Some FC26 display names use EA locale/runtime encodings that are not fully
 recoverable from the supplied files. CM26 uses resolved names when available
 and an honest ID fallback otherwise.
+
+FC26's `teams` table exposes `clubworth`, not a universal career transfer
+budget. CM26 therefore labels and edits this value as **Club Worth**. A real
+`transferbudget` column is used only when the opened schema actually contains
+one. Career-specific budgets stored in career-save data are not currently
+edited by this control.
 
 ## Structural edits
 

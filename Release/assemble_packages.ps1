@@ -9,11 +9,25 @@
 #   * no PDB debug symbols
 #   * no EA-derived game content is redistributed (see EULA.md)
 #   * SHA256SUMS is generated and the zips are produced by this script
+param(
+    [string]$ReleaseDirectory
+)
+
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $root  = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $sys32 = Join-Path $env:SystemRoot 'System32'
+$releaseRoot = if ([string]::IsNullOrWhiteSpace($ReleaseDirectory)) {
+    Join-Path $root 'Release'
+} else {
+    [System.IO.Path]::GetFullPath($ReleaseDirectory)
+}
+New-Item -ItemType Directory -Path $releaseRoot -Force | Out-Null
+
+# Fail before touching any package when source metadata or shipped documentation
+# still names an older release.
+& (Join-Path $PSScriptRoot 'validate_release_metadata.ps1') -Root $root
 
 # --- Single source of truth for the release version -------------------------
 $versionFile = Join-Path $root 'version.json'
@@ -96,6 +110,55 @@ function Assert-NoGameContent {
     else { Write-Host '    EA content check: clean' }
 }
 
+function Invoke-PackageSelfTest {
+    param([string]$PackageDir, [string]$Label)
+
+    $exe = Join-Path $PackageDir 'CM26_by_Rizco98.exe'
+    if (-not (Test-Path $exe)) { return }
+    $stdout = [System.IO.Path]::GetTempFileName()
+    $stderr = [System.IO.Path]::GetTempFileName()
+    try {
+        $process = Start-Process -FilePath $exe -ArgumentList '--release-selftest' `
+            -WorkingDirectory $PackageDir -WindowStyle Hidden -Wait -PassThru `
+            -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+        $output = ((Get-Content $stdout -Raw -ErrorAction SilentlyContinue) +
+                   (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)).Trim()
+        if ($process.ExitCode -ne 0) {
+            $errors.Add("$Label release self-test failed (exit $($process.ExitCode)): $output")
+        }
+        elseif ($output -notmatch 'RELEASE SELF-TEST OK') {
+            $errors.Add("$Label release self-test produced no success marker: $output")
+        }
+        else { Write-Host "    release self-test: passed" }
+    }
+    finally {
+        Remove-Item -LiteralPath $stdout, $stderr -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Invoke-PackageShellSmoke {
+    param([string]$PackageDir, [string]$Label)
+
+    $exe = Join-Path $PackageDir 'CM26_by_Rizco98.exe'
+    if (-not (Test-Path $exe)) { return }
+    $stdout = [System.IO.Path]::GetTempFileName()
+    $stderr = [System.IO.Path]::GetTempFileName()
+    try {
+        $process = Start-Process -FilePath $exe -ArgumentList '--ui-shell-smoke' `
+            -WorkingDirectory $PackageDir -WindowStyle Hidden -Wait -PassThru `
+            -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+        $output = ((Get-Content $stdout -Raw -ErrorAction SilentlyContinue) +
+                   (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)).Trim()
+        if ($process.ExitCode -ne 0 -or $output -notmatch 'SHELL SMOKE OK') {
+            $errors.Add("$Label Studio shell smoke failed (exit $($process.ExitCode)): $output")
+        }
+        else { Write-Host "    Studio shell smoke: passed" }
+    }
+    finally {
+        Remove-Item -LiteralPath $stdout, $stderr -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Assemble-Package {
     param(
         [string]$PublishDir,   # source publish output
@@ -163,6 +226,13 @@ function Assemble-Package {
             Copy-Item $_.FullName $dest -Force
         }
 
+    # CM26.LegacyUI is x86 Windows-only. NuGet restores Assimp natives for every
+    # platform, but Linux, macOS and win-x64 cannot be loaded by that process.
+    foreach ($runtime in @('linux-x64', 'osx-x64', 'win-x64')) {
+        $unusedRuntime = Join-Path $PackageDir "CM26.LegacyUI\runtimes\$runtime"
+        if (Test-Path $unusedRuntime) { Remove-Item $unusedRuntime -Recurse -Force }
+    }
+
     # The asset bridge is loaded in-process and is already present in the app
     # publish through the project reference. Copy only the bridge assembly from
     # its dedicated publish. Never merge that publish wholesale: its non-WPF
@@ -197,7 +267,8 @@ function Assemble-Package {
     $mb = ($files | Measure-Object Length -Sum).Sum / 1MB
     Write-Host ("    files={0}  size={1:N1} MB" -f $files.Count, $mb)
 
-    $must = @('CM26_by_Rizco98.exe','CM26_by_Rizco98.dll','CM26.Application.dll',
+    $must = @('CM26_by_Rizco98.exe','CM26_by_Rizco98.dll',
+              'CM26.Studio.exe','CM26.Studio.dll','CM26.Application.dll',
               'CM26.EngineBridge.dll','CM26.AssetBridge.dll',
               'CM26.MeshKit.dll',
               'Ijwhost.dll','msvcp140.dll','vcruntime140.dll','vcruntime140_1.dll',
@@ -216,21 +287,31 @@ function Assemble-Package {
         $errors.Add("$Label contains PDB debug symbols.")
     }
 
-    # The shipped exe must report the version we are releasing.
-    $exe = Join-Path $PackageDir 'CM26_by_Rizco98.exe'
-    if (Test-Path $exe) {
-        $fileVersion = (Get-Item $exe).VersionInfo.FileVersion
-        if ($fileVersion -and $fileVersion -notmatch [regex]::Escape($version)) {
-            $errors.Add("$Label exe FileVersion '$fileVersion' does not match release version '$version'.")
+    foreach ($runtime in @('linux-x64', 'osx-x64', 'win-x64')) {
+        if (Test-Path (Join-Path $PackageDir "CM26.LegacyUI\runtimes\$runtime")) {
+            $errors.Add("$Label contains unused CM26.LegacyUI runtime '$runtime'.")
         }
-        else { Write-Host "    exe version: $fileVersion" }
+    }
+
+    # Both public entry points must report the version being released.
+    foreach ($exeName in @('CM26_by_Rizco98.exe', 'CM26.Studio.exe')) {
+        $exe = Join-Path $PackageDir $exeName
+        if (Test-Path $exe) {
+            $fileVersion = (Get-Item $exe).VersionInfo.FileVersion
+            if ($fileVersion -and $fileVersion -notmatch [regex]::Escape($version)) {
+                $errors.Add("$Label $exeName FileVersion '$fileVersion' does not match release version '$version'.")
+            }
+            else { Write-Host "    $exeName version: $fileVersion" }
+        }
     }
 
     Assert-NoGameContent -PackageDir $PackageDir -Label $Label
+    Invoke-PackageSelfTest -PackageDir $PackageDir -Label $Label
+    Invoke-PackageShellSmoke -PackageDir $PackageDir -Label $Label
 }
 
-$fullDir = Join-Path $root "Release\Creation_Master_26_v$version`_Full_Portable"
-$liteDir = Join-Path $root "Release\Creation_Master_26_v$version`_Lite"
+$fullDir = Join-Path $releaseRoot "Creation_Master_26_v$version`_Full_Portable"
+$liteDir = Join-Path $releaseRoot "Creation_Master_26_v$version`_Lite"
 
 Assemble-Package (Join-Path $root "publish_sc_v$publishVersion") $fullDir `
     (Join-Path $root "publish_assetbridge_sc_v$publishVersion") 'Full Portable'
@@ -258,7 +339,7 @@ foreach ($pkg in @($fullDir, $liteDir)) {
     Write-Host ("    {0}  {1:N1} MB" -f (Split-Path $zip -Leaf), ((Get-Item $zip).Length / 1MB))
 }
 
-$sumsFile = Join-Path $root "Release\SHA256SUMS_v$version.txt"
+$sumsFile = Join-Path $releaseRoot "SHA256SUMS_v$version.txt"
 Set-Content -Path $sumsFile -Value $sums -Encoding ASCII
 Write-Host "    checksums: $(Split-Path $sumsFile -Leaf)"
 

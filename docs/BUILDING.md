@@ -57,6 +57,16 @@ Verifies portable tool detection (no developer paths), that the build output
 redistributes no EA game content, and that the version strings agree. This is the
 gate CI runs; it must exit `0`.
 
+### Studio shell smoke — no game installation needed
+
+```bat
+src\CM26.App\bin\Release\net8.0-windows\CM26_by_Rizco98.exe --ui-shell-smoke
+```
+
+Constructs the WPF shell and renders every visible section. This catches missing
+XAML resources and section-construction regressions without indexing FC26. The
+full `--ui-smoke` mode remains an installed-game integration test.
+
 ### Native engine smoke test
 
 ```bat
@@ -101,19 +111,19 @@ published, plus a matching asset bridge for each:
 
 ```bat
 :: version folder suffix = version.json with dots replaced by underscores
-:: e.g. 1.0.25 -> v1_0_25
+:: e.g. 1.0.129 -> v1_0_129
 
 :: Full Portable (self-contained, carries .NET 8)
 dotnet publish src\CM26.App\CM26.App.csproj -c Release -r win-x64 --self-contained true ^
-  -o publish_sc_v1_0_25
+  -o publish_sc_v1_0_129
 dotnet publish src\CM26.AssetBridge\CM26.AssetBridge.csproj -c Release -r win-x64 --self-contained true ^
-  -o publish_assetbridge_sc_v1_0_25
+  -o publish_assetbridge_sc_v1_0_129
 
 :: Lite (framework-dependent, needs .NET 8 Desktop Runtime x64)
 dotnet publish src\CM26.App\CM26.App.csproj -c Release -r win-x64 --self-contained false ^
-  -o publish_lite_v1_0_25
+  -o publish_lite_v1_0_129
 dotnet publish src\CM26.AssetBridge\CM26.AssetBridge.csproj -c Release -r win-x64 --self-contained false ^
-  -o publish_assetbridge_lite_v1_0_25
+  -o publish_assetbridge_lite_v1_0_129
 ```
 
 Then assemble, verify, zip and checksum:
@@ -122,13 +132,22 @@ Then assemble, verify, zip and checksum:
 powershell -ExecutionPolicy Bypass -File Release\assemble_packages.ps1
 ```
 
+To keep generated files in a designated external release folder, pass an
+absolute output path:
+
+```powershell
+pwsh -File Release\assemble_packages.ps1 -ReleaseDirectory 'D:\CM 26 Final\Release'
+```
+
 The script reads the version from `version.json` only, and **fails** (rather than
 warning) if any of these is true:
 
 * `Directory.Build.props` disagrees with `version.json`
+* release notes, installation instructions, limitations or checksum references name another version
 * a publish folder is missing, or is older than the newest source file (stale)
 * a required payload file is missing, or the bundled 3D viewer is absent
 * the shipped `.exe` file version does not match the release version
+* either packaged Full/Lite `--release-selftest` or `--ui-shell-smoke` does not pass
 * any PDB debug symbol reached the package
 * **any EA-derived game content reached the package** — see below
 

@@ -2337,9 +2337,8 @@ public class Team : IdObject
 	{
 		m_assetid = base.Id;
 		m_teamname = r.StringField[td.GetFieldIndex("teamname")];
-		// FC26 removed teams.transferbudget from the schema. The nearest
-		// equivalent stored per team is clubworth, so map it onto the legacy
-		// field instead of falling back to the 1,000,000 constructor default.
+		// The legacy model calls this property transferbudget. FC26 does not:
+		// clubworth is a club valuation, and the FC26 UI labels it accordingly.
 		int transferBudgetIndex = td.GetFieldIndex("transferbudget");
 		if (transferBudgetIndex >= 0)
 			m_transferbudget = r.GetAndCheckIntField(transferBudgetIndex);
@@ -2464,9 +2463,8 @@ public class Team : IdObject
 	{
 		m_assetid = base.Id;
 		m_teamname = r.StringField[FI.teams_teamname];
-		// FC26 removed teams.transferbudget from the schema (career budgets now
-		// live in career_managerpref). Fall back to clubworth so the legacy
-		// editor shows the real per-team value instead of the 1,000,000 default.
+		// Keep the legacy property populated from FC26 clubworth for compatibility.
+		// The editor labels this value Club Worth; it is not a career budget.
 		if (FI.teams_transferbudget >= 0)
 		{
 			m_transferbudget = r.GetAndCheckIntField(FI.teams_transferbudget);
@@ -2877,8 +2875,8 @@ public class Team : IdObject
 		r.IntField[FI.teams_assetid] = m_assetid;
 		_ = m_assetid;
 		_ = base.Id;
-		// FC26 removed teams.transferbudget; write to clubworth (the nearest
-		// per-team financial field) when the legacy column is not in the schema.
+		// Preserve legacy-schema support, but write FC26's club valuation only to
+		// clubworth. The UI does not mislabel this value as a career budget.
 		if (FI.teams_transferbudget >= 0)
 			r.IntField[FI.teams_transferbudget] = m_transferbudget;
 		else if (FI.teams_clubworth >= 0)

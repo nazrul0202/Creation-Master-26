@@ -412,7 +412,7 @@ internal static class Program
 
         // Automated Studio smoke has no interactive desktop for the EULA dialog;
         // normal launches retain the acknowledgement requirement unchanged.
-        var isStudioSmoke = args.Length >= 1 && args[0] == "--ui-smoke";
+        var isStudioSmoke = args.Length >= 1 && args[0] is "--ui-smoke" or "--ui-shell-smoke";
         if (!SettingsService.EulaAccepted && !isStudioSmoke)
         {
             var accepted = CM26.App.Controls.EulaDialog.Show(null);
@@ -440,7 +440,10 @@ internal static class Program
             // through CM26.Application; the former dark WinForms workspace stays
             // available as an internal compatibility surface, not a second UI.
             var legacyExe = Path.Combine(AppContext.BaseDirectory, "CM26.LegacyUI", "CM26.LegacyUI.exe");
-            if (File.Exists(legacyExe))
+            // UI automation targets the WPF Studio directly. Routing these flags
+            // into the normal legacy shell ignores the requested smoke mode and
+            // leaves release automation waiting for a user to close the window.
+            if (File.Exists(legacyExe) && !isStudioSmoke)
             {
                 using var legacy = Process.Start(new ProcessStartInfo
                 {
@@ -455,7 +458,7 @@ internal static class Program
             {
                 var studio = new CM26.Studio.App();
                 studio.InitializeForHost();
-                studio.Run();
+                Environment.ExitCode = studio.Run();
             }
         }
         catch (Exception ex)

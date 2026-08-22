@@ -12,12 +12,12 @@
                             ShowFrameRate="False"
                             ShowViewCube="False"
                             ShowCameraInfo="False"
-                            Background="{StaticResource CardFieldBg}"
+                            Background="{StaticResource FieldBackBrush}"
                             CameraRotationMode="Turntable" />
 
         <!-- Loading overlay -->
         <Border x:Name="LoadingOverlay"
-                Background="{StaticResource CardBackBrush}"
+                Background="{StaticResource GroupBackBrush}"
                 VerticalAlignment="Stretch"
                 HorizontalAlignment="Stretch"
                 Visibility="Collapsed">

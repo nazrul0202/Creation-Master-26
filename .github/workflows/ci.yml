@@ -26,3 +26,12 @@ jobs:
         run: dotnet build CM26.slnx -c Release --no-restore -warnaserror -p:ContinuousIntegrationBuild=true
       - name: Test
         run: dotnet test tests/CM26.Tests/CM26.Tests.csproj -c Release --no-build --no-restore
+      - name: Studio shell smoke
+        shell: pwsh
+        run: |
+          $exe = 'src\CM26.App\bin\Release\net8.0-windows\CM26_by_Rizco98.exe'
+          $process = Start-Process -FilePath $exe -ArgumentList '--ui-shell-smoke' -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Studio shell smoke failed (exit $($process.ExitCode))." }
+      - name: Validate release metadata
+        shell: pwsh
+        run: ./Release/validate_release_metadata.ps1

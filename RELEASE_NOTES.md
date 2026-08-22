@@ -1,5 +1,39 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.129 - release integrity and honest club finances (2026-08-22)
+
+- Corrected the v1.0.128 financial-field presentation: FC26's `teams.clubworth` is now labelled **Club Worth**, not Transfer Budget. A genuine `transferbudget` column is still detected and labelled Transfer Budget when a compatible schema provides it. Career transfer budgets remain separate career-save data and are not fabricated from club valuation.
+- Added regression tests for financial-field selection, including transfer-budget preference, FC26 club-worth fallback and schemas with no supported financial field.
+- Added a release-metadata validator covering `version.json`, `Directory.Build.props`, release notes, installation instructions, limitations and checksum filenames; CI and package assembly now fail when any document names an older version.
+- Package assembly now runs the shipped `--release-selftest` from both Full Portable and Lite payloads before creating ZIPs, and validates the versions of both public executables.
+- Removed unused Linux, macOS and win-x64 Assimp native payloads from the x86 legacy-shell folder. The required Windows x86 runtime remains included.
+- Fixed packaged UI automation being routed into the normal legacy shell and waiting indefinitely. Smoke flags now always target WPF Studio, while ordinary user launches continue to open the CM16-style legacy shell.
+- Fixed the embedded mesh preview referring to missing `CardFieldBg`/`CardBackBrush` resources; the Players section and other 3D-preview hosts now use defined classic-theme brushes.
+- Propagated WPF shutdown failures through the host process exit code so CI and packaging cannot report a failed Studio smoke as exit 0.
+- Added a fast `--ui-shell-smoke` release gate that renders every Studio section without scanning a game installation. The full `--ui-smoke` integration path still tests installed FC26 loading/reload, now reports phases and elapsed loading time, and writes failures to stderr as well as the crash log.
+- Synchronized release documentation through v1.0.129 and added an explicit output-directory option so generated packages can be kept in the single approved `Release` location.
+
+## Version 1.0.128 - per-team financial value release (2026-08-22)
+
+- Packaged the per-team financial-field loading introduced in v1.0.127 in Full Portable and Lite builds.
+- This release described the FC26 `clubworth` fallback as Transfer Budget. Version 1.0.129 corrects that terminology because club valuation is not career transfer budget.
+
+## Version 1.0.127 - editable per-team financial field (2026-08-22)
+
+- Added an editable numeric financial field to the Teams Overview hero card.
+- Loaded the value from `teams.transferbudget` when present, otherwise from FC26 `teams.clubworth`, instead of showing one constructor default for every team.
+- Staged edits immediately through the normal pending-change pipeline.
+
+## Version 1.0.126 - embedded face viewer and legacy financial mapping (2026-08-22)
+
+- Replaced the unsupported HelixToolkit FBX import path with direct AssimpNet import so installed FC26 head meshes render in the embedded 3D viewer.
+- Populated the legacy team's financial property from `clubworth` when FC26 has no `transferbudget` column, avoiding the hardcoded 1,000,000 display.
+
+## Version 1.0.125 - embedded CM16-shell face viewer (2026-08-22)
+
+- Embedded the HelixViewport3D face-mesh panel in the CM16 legacy Player Face tab.
+- Added AssimpNet-backed FBX loading with orbit and zoom controls while retaining the external viewer for standalone inspection.
+
 ## Version 1.0.124 - team budget fix, release audit cleanup and embedded 3D previews (2026-08-20)
 
 - **Embedded in-app 3D previews (new).** Kit, player face, stadium, ball and boot records now render their real FC26 Frostbite mesh directly inside the editor section (WPF `Mesh3DPreviewPanel` hosted in both shells). The mesh is exported from the installed game archives to FBX, auto-loaded when the record is selected, and rendered with orbit/zoom controls via HelixToolkit + Assimp. The external `CM26.3DViewer` tool remains available for standalone FBX inspection.

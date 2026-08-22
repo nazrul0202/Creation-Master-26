@@ -57,9 +57,13 @@ _structural_writer_backup_*/
 LocaleDiagnosticsOutput/
 _temp/
 _temp_legacy/
+.tmp-*/
+.audit-v*/
 .freebuff/
 startup.ini
 skills-lock.json
+face-response-test.txt
+HANDOVER.md
 .agents/
 screenshots/
 docs/AUDIT_5STAR_README.md

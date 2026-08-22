@@ -148,11 +148,9 @@ public sealed class TeamsSection : SectionBase
     private void HeroCard_BudgetChanged(object? sender, long budget)
     {
         if (CurrentRecordIndex < 0) return;
-        // FC26 removed teams.transferbudget; fall back to clubworth like CM16
-        var fieldName = Services.Session.GetTable(TableName)?.FindColumn("transferbudget") != null
-            ? "transferbudget"
-            : "clubworth";
-        StageField(TableName, CurrentRecordIndex, fieldName, budget.ToString(), _stagingGrid);
+        var financial = TeamFinancialFieldResolver.Resolve(Services.Session.GetTable(TableName));
+        if (financial is null) return;
+        StageField(TableName, CurrentRecordIndex, financial.FieldName, budget.ToString(), _stagingGrid);
     }
 
     private void StepRecord(int delta)
@@ -1926,28 +1924,20 @@ public sealed class TeamsSection : SectionBase
             _heroCard.Midfield = int.TryParse(record.Get(Col(table, "midfieldrating")), out var mid) ? mid : 0;
             _heroCard.Defence = int.TryParse(record.Get(Col(table, "defenserating")), out var def) ? def : 0;
             _heroCard.FoundedText = $"Founded: {record.Get(Col(table, "foundationyear")) ?? "—"}";
-            _heroCard.WorthText = $"Worth: {record.Get(Col(table, "clubworth")) ?? "—"}";
-
-            // Load transfer budget with FC26 fallback (transferbudget → clubworth)
-            // FC26 removed teams.transferbudget; each team has a unique value in the DB
-            long teamBudget = 0;
-            var budgetCol = Col(table, "transferbudget");
-            if (budgetCol >= 0)
+            var financial = TeamFinancialFieldResolver.Resolve(table);
+            _heroCard.FinancialFieldLabel = financial?.DisplayName ?? "Financial value";
+            _heroCard.FinancialEditorEnabled = financial is not null;
+            _heroCard.WorthText = financial?.IsTransferBudget == true
+                ? $"Club worth: {record.Get(Col(table, "clubworth")) ?? "—"}"
+                : "Career budget: not stored in teams DB";
+            var financialValue = 0L;
+            if (financial is not null)
             {
-                var raw = record.Get(budgetCol);
-                if (long.TryParse(raw, out var parsed)) teamBudget = parsed;
+                var financialColumn = Col(table, financial.FieldName);
+                if (financialColumn >= 0 && long.TryParse(record.Get(financialColumn), out var parsed))
+                    financialValue = parsed;
             }
-            else
-            {
-                // FC26 fallback: use clubworth (each team has a unique clubworth in DB)
-                var worthCol = Col(table, "clubworth");
-                if (worthCol >= 0)
-                {
-                    var raw = record.Get(worthCol);
-                    if (long.TryParse(raw, out var parsed)) teamBudget = parsed;
-                }
-            }
-            _heroCard.TransferBudget = teamBudget;
+            _heroCard.TransferBudget = financialValue;
 
             var oldCrest = _heroCard.Crest;
             _heroCard.Crest = null;
