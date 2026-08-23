@@ -1,4 +1,4 @@
-# FC26 database deep scan — updated for v1.0.140
+# FC26 database deep scan — updated for v1.0.141
 
 Source inspected: the installed FC26 direct-session squads database dated 2026-08-22. Values can change with a later Title Update or squad file.
 
@@ -12,7 +12,7 @@ Manchester City (`teamid=10`) in the inspected database has Club Worth `4564360`
 
 The live Career save does populate `career_managerpref.transferbudget` and
 `startofseasontransferbudget`. The active manager's club is identified by
-`career_users.clubteamid`. Creation Master 26 v1.0.140 edits those two Career
+`career_users.clubteamid`. Creation Master 26 v1.0.141 edits those two Career
 values directly from the Team page while keeping static `teams.clubworth`
 separate, and creates a timestamped copy of the complete save before writing.
 

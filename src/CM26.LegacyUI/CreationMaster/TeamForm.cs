@@ -2021,31 +2021,34 @@ public class TeamForm : Form
 			return;
 		}
 
-		int faceSize = label.Width >= 85 ? Math.Min(40, label.Height - 8) : Math.Min(31, label.Height - 8);
-		var faceBounds = new Rectangle((label.Width - faceSize) / 2, 4, faceSize, faceSize);
-		if (m_Fc26MiniFaceCache.TryGetValue(player.Id, out Image face))
-		{
-			GraphicsState state = e.Graphics.Save();
-			using (var clip = new GraphicsPath())
-			{
-				clip.AddEllipse(faceBounds);
-				e.Graphics.SetClip(clip);
-				e.Graphics.DrawImage(face, faceBounds);
-			}
-			e.Graphics.Restore(state);
-		}
-		else
-		{
-			using (var fallback = new SolidBrush(Color.FromArgb(218, 226, 233)))
-				e.Graphics.FillEllipse(fallback, faceBounds);
-		}
-
 		int pillHeight = label.Width >= 85 ? 17 : 15;
 		int positionWidth = label.Width >= 85 ? 31 : 25;
 		int ratingWidth = label.Width >= 85 ? 31 : 25;
 		var positionBounds = new Rectangle(3, 3, positionWidth, pillHeight);
 		var ratingBounds = new Rectangle(label.Width - ratingWidth - 3, 3, ratingWidth, pillHeight);
 		var nameBounds = new Rectangle(4, label.Height - pillHeight - 3, label.Width - 8, pillHeight);
+
+		// Keep the complete FC26 cut-out visible. The previous circular clip removed
+		// hair and shoulders, while its lower edge was hidden behind the name pill.
+		int faceAreaHeight = Math.Max(12, nameBounds.Top - 3);
+		int faceAreaWidth = Math.Min(label.Width >= 85 ? 48 : 36, label.Width - 8);
+		var faceBounds = new Rectangle((label.Width - faceAreaWidth) / 2, 2,
+			faceAreaWidth, faceAreaHeight);
+		if (m_Fc26MiniFaceCache.TryGetValue(player.Id, out Image face))
+		{
+			DrawImageContained(e.Graphics, face, faceBounds);
+		}
+		else
+		{
+			int fallbackSize = Math.Min(faceBounds.Width, faceBounds.Height);
+			var fallbackBounds = new Rectangle(
+				faceBounds.Left + (faceBounds.Width - fallbackSize) / 2,
+				faceBounds.Top + (faceBounds.Height - fallbackSize) / 2,
+				fallbackSize, fallbackSize);
+			using (var fallback = new SolidBrush(Color.FromArgb(218, 226, 233)))
+				e.Graphics.FillEllipse(fallback, fallbackBounds);
+		}
+
 		using (GraphicsPath positionPill = CreateRoundedRectangle(positionBounds, pillHeight / 2))
 		using (GraphicsPath ratingPill = CreateRoundedRectangle(ratingBounds, pillHeight / 2))
 		using (GraphicsPath namePill = CreateRoundedRectangle(nameBounds, pillHeight / 2))
@@ -2069,6 +2072,29 @@ public class TeamForm : Form
 			e.Graphics.DrawString(player.overallrating.ToString(), smallFont, textBrush, ratingBounds, centre);
 			e.Graphics.DrawString(player.Name, nameFont, textBrush, nameBounds, centre);
 		}
+	}
+
+	private static void DrawImageContained(Graphics graphics, Image image, Rectangle bounds)
+	{
+		if (graphics == null || image == null || image.Width <= 0 || image.Height <= 0 ||
+			bounds.Width <= 0 || bounds.Height <= 0) return;
+
+		float scale = Math.Min(bounds.Width / (float)image.Width, bounds.Height / (float)image.Height);
+		int width = Math.Max(1, (int)Math.Round(image.Width * scale));
+		int height = Math.Max(1, (int)Math.Round(image.Height * scale));
+		var destination = new Rectangle(
+			bounds.Left + (bounds.Width - width) / 2,
+			bounds.Bottom - height,
+			width,
+			height);
+
+		InterpolationMode previousInterpolation = graphics.InterpolationMode;
+		PixelOffsetMode previousPixelOffset = graphics.PixelOffsetMode;
+		graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+		graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+		graphics.DrawImage(image, destination, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel);
+		graphics.InterpolationMode = previousInterpolation;
+		graphics.PixelOffsetMode = previousPixelOffset;
 	}
 
 	private static GraphicsPath CreateRoundedRectangle(Rectangle bounds, int radius)

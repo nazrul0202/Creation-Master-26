@@ -1,5 +1,11 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.141 - complete formation minifaces (2026-08-23)
+
+- Removed the circular crop that cut off player hair and shoulders on the FC26 formation board.
+- Preserved each miniface's original aspect ratio and scales the complete image into the available card area.
+- Kept the full miniface clear of the position, overall-rating and player-name pills for starters, substitutes and reserves.
+
 ## Version 1.0.140 - light formation cards and reliable roster editing (2026-08-23)
 
 - Restyled the FC26 formation board to match Creation Master's light application theme, with clear perspective pitch markings and separate substitute/reserve sections.

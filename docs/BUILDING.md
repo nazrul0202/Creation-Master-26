@@ -111,19 +111,19 @@ published, plus a matching asset bridge for each:
 
 ```bat
 :: version folder suffix = version.json with dots replaced by underscores
-:: e.g. 1.0.140 -> v1_0_140
+:: e.g. 1.0.141 -> v1_0_141
 
 :: Full Portable (self-contained, carries .NET 8)
 dotnet publish src\CM26.App\CM26.App.csproj -c Release -r win-x64 --self-contained true ^
-  -o publish_sc_v1_0_140
+  -o publish_sc_v1_0_141
 dotnet publish src\CM26.AssetBridge\CM26.AssetBridge.csproj -c Release -r win-x64 --self-contained true ^
-  -o publish_assetbridge_sc_v1_0_140
+  -o publish_assetbridge_sc_v1_0_141
 
 :: Lite (framework-dependent, needs .NET 8 Desktop Runtime x64)
 dotnet publish src\CM26.App\CM26.App.csproj -c Release -r win-x64 --self-contained false ^
-  -o publish_lite_v1_0_140
+  -o publish_lite_v1_0_141
 dotnet publish src\CM26.AssetBridge\CM26.AssetBridge.csproj -c Release -r win-x64 --self-contained false ^
-  -o publish_assetbridge_lite_v1_0_140
+  -o publish_assetbridge_lite_v1_0_141
 ```
 
 Then assemble, verify, zip and checksum:
