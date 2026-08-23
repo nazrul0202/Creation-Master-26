@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace FifaLibrary;
 
@@ -27,6 +29,47 @@ public sealed class CareerBudgetEditor
 		m_CareerFile = careerFile;
 		m_ManagerPreference = managerPreference;
 		ClubTeamId = clubTeamId;
+	}
+
+	/// <summary>
+	/// Returns likely FC26 Career saves in newest-first order. EA Career saves do
+	/// not consistently use a file extension, so detection is based on the
+	/// official settings folder and the Career filename prefix. CM26 backup files
+	/// are deliberately excluded.
+	/// </summary>
+	public static IReadOnlyList<string> FindCareerSaveCandidates()
+	{
+		var settingsFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+		if (!string.IsNullOrWhiteSpace(documents))
+		{
+			settingsFolders.Add(Path.Combine(documents, "EA SPORTS FC 26", "settings"));
+			settingsFolders.Add(Path.Combine(documents, "Electronic Arts", "EA SPORTS FC 26", "settings"));
+		}
+
+		var candidates = new List<FileInfo>();
+		foreach (string folder in settingsFolders)
+		{
+			if (!Directory.Exists(folder)) continue;
+			try
+			{
+				candidates.AddRange(new DirectoryInfo(folder).EnumerateFiles("Career*", SearchOption.TopDirectoryOnly)
+					.Where(file => file.Length > 0
+						&& file.Name.IndexOf(".cm26_", StringComparison.OrdinalIgnoreCase) < 0
+						&& !file.Name.EndsWith(".bak", StringComparison.OrdinalIgnoreCase)));
+			}
+			catch (UnauthorizedAccessException)
+			{
+				// A redirected/locked Documents folder must not prevent manual loading.
+			}
+		}
+
+		return candidates
+			.GroupBy(file => file.FullName, StringComparer.OrdinalIgnoreCase)
+			.Select(group => group.First())
+			.OrderByDescending(file => file.LastWriteTimeUtc)
+			.Select(file => file.FullName)
+			.ToArray();
 	}
 
 	public static CareerBudgetEditor Open(string fileName, string xmlFileName)

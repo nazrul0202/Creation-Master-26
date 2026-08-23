@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
@@ -19,6 +20,7 @@ namespace CreationMaster.Controls;
 public partial class Mesh3DPreviewPanel : System.Windows.Controls.UserControl
 {
     private ModelVisual3D _modelVisual;
+    private int _loadGeneration;
 
     public Mesh3DPreviewPanel()
     {
@@ -34,22 +36,26 @@ public partial class Mesh3DPreviewPanel : System.Windows.Controls.UserControl
     /// </summary>
     public void LoadMesh(string fbxPath, string texturePath = null)
     {
+        var generation = Interlocked.Increment(ref _loadGeneration);
         if (!File.Exists(fbxPath))
         {
             ShowStatus("Model file not found: " + Path.GetFileName(fbxPath));
             return;
         }
 
+        ClearModel();
         LoadingOverlay.Visibility = Visibility.Visible;
         StatusText.Visibility = Visibility.Collapsed;
 
         Task.Run(() => LoadMeshBackground(fbxPath, texturePath))
-            .ContinueWith(OnMeshLoaded, TaskScheduler.FromCurrentSynchronizationContext());
+            .ContinueWith(task => OnMeshLoaded(task, generation),
+                TaskScheduler.FromCurrentSynchronizationContext());
     }
 
     /// <summary>Unload the current model and show a status message.</summary>
     public void ShowStatus(string message)
     {
+        Interlocked.Increment(ref _loadGeneration);
         LoadingOverlay.Visibility = Visibility.Collapsed;
         StatusText.Text = message;
         StatusText.Visibility = Visibility.Visible;
@@ -95,7 +101,7 @@ public partial class Mesh3DPreviewPanel : System.Windows.Controls.UserControl
         else
         {
             // Use a neutral grey so the mesh is visible on the dark background.
-            material = new DiffuseMaterial(new SolidColorBrush(Color.FromRgb(180, 180, 180)));
+            material = CreateSolidMaterial(Color.FromRgb(180, 180, 180));
         }
         ApplyMaterialToModel(model, material);
 
@@ -110,11 +116,22 @@ public partial class Mesh3DPreviewPanel : System.Windows.Controls.UserControl
         var group = new Transform3DGroup { Children = { translate, scaleTransform } };
         model.Transform = group;
 
+        // The model is created on a worker thread. Freezing it makes the WPF
+        // Freezable graph safe to hand to the UI thread and avoids intermittent
+        // "different thread owns it" failures on larger FC26 meshes.
+        if (model.CanFreeze)
+            model.Freeze();
+
         return model;
     }
 
-    private void OnMeshLoaded(Task<Model3DGroup> task)
+    private void OnMeshLoaded(Task<Model3DGroup> task, int generation)
     {
+        // A player/team may have changed while Assimp was importing the FBX.
+        // Never let that stale result replace the latest requested preview.
+        if (generation != Volatile.Read(ref _loadGeneration))
+            return;
+
         LoadingOverlay.Visibility = Visibility.Collapsed;
 
         if (task.Status != TaskStatus.RanToCompletion)
@@ -125,6 +142,7 @@ public partial class Mesh3DPreviewPanel : System.Windows.Controls.UserControl
         }
 
         var model = task.Result;
+        ClearModel();
         _modelVisual = new ModelVisual3D { Content = model };
         Viewport.Children.Add(_modelVisual);
         Viewport.ZoomExtents();
@@ -262,7 +280,18 @@ public partial class Mesh3DPreviewPanel : System.Windows.Controls.UserControl
         bitmap.Freeze();
 
         var brush = new ImageBrush(bitmap);
+        brush.Freeze();
         var material = new DiffuseMaterial(brush);
+        material.Freeze();
+        return material;
+    }
+
+    private static WpfMaterial CreateSolidMaterial(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        var material = new DiffuseMaterial(brush);
+        material.Freeze();
         return material;
     }
 

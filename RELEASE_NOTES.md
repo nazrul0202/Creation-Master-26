@@ -1,5 +1,15 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.139 - reliable FC26 teamsheets, formations, Career budgets and 3D previews (2026-08-23)
+
+- Loads and saves the complete active/default FC26 teamsheet: all 52 squad slots, the unique Starting XI, captain, set pieces, formation and supported tactics now round-trip together.
+- Formation switching preserves the current unique Starting XI, assigns players deterministically by positional compatibility and no longer creates duplicate or stale player cards.
+- Protects untouched database-native floating-point formation coordinates from accidental integer quantisation; only positions explicitly changed in the editor are included in the save plan.
+- Rebuilt the FC26 roster board with a code-native dark perspective pitch matched to the supplied reference, corrected goalkeeper/centre-back spacing and stages miniface loading so the visible XI appears before the bench and reserves.
+- Improved the Career budget workflow with standard FC26 save discovery, active-club verification and direct editing of the real `transferbudget` and `startofseasontransferbudget` fields while keeping Club Worth separate.
+- Hardened team-kit and player-face 3D previews with stale-request cancellation, bounded caches, deterministic lighting, retry/status feedback and cleanup of superseded models and textures.
+- Extended real-database and save/reload verification across 281 FC26 tables, 837 formation rows, 20,268 players and 21,622 valid team-player links, alongside the full section/navigation and responsive-layout smoke gates.
+
 ## Version 1.0.138 - real FC26 Career transfer-budget editor (2026-08-22)
 
 - Added a dedicated Career-save budget panel to the Team page; **Club Worth** remains the separate static squads value it actually represents.

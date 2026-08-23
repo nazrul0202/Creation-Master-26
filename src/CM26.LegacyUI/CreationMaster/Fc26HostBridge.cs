@@ -8,7 +8,10 @@ namespace CreationMaster;
 
 internal static class Fc26HostBridge
 {
+    private const int AssetCommandTimeoutMs = 120000;
+    private const int DatabaseCommandTimeoutMs = 300000;
     private static string? s_HostPath;
+    private static bool? s_DotnetHostAvailable;
     private static readonly object s_AssetGate = new();
     private static readonly System.Collections.Generic.Dictionary<string, string?> s_AssetCache =
         new(StringComparer.OrdinalIgnoreCase);
@@ -46,14 +49,11 @@ internal static class Fc26HostBridge
             RedirectStandardError = true,
             WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
         };
-        using var process = Process.Start(start) ?? throw new InvalidOperationException("Unable to start the FC26 loader.");
-        var standardOutput = process.StandardOutput.ReadToEnd();
-        var standardError = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException(string.IsNullOrWhiteSpace(standardError)
-                ? (string.IsNullOrWhiteSpace(standardOutput) ? "FC26 loader failed." : standardOutput)
-                : standardError);
+        var result = RunProcess(start, DatabaseCommandTimeoutMs, "FC26 database loader");
+        if (result.ExitCode != 0)
+            throw new InvalidOperationException(string.IsNullOrWhiteSpace(result.StandardError)
+                ? (string.IsNullOrWhiteSpace(result.StandardOutput) ? "FC26 loader failed." : result.StandardOutput)
+                : result.StandardError);
         if (!File.Exists(snapshotPath))
             throw new FileNotFoundException("FC26 loader did not create the database snapshot.", snapshotPath);
 
@@ -90,18 +90,17 @@ internal static class Fc26HostBridge
             };
             try
             {
-                using var process = Process.Start(start);
-                if (process == null) return null;
-                var output = process.StandardOutput.ReadToEnd().Trim();
-                process.StandardError.ReadToEnd();
-                process.WaitForExit();
-                var resolved = process.ExitCode == 0 && File.Exists(output) ? output : null;
-                s_AssetCache[logicalPath] = resolved;
+                var result = RunProcess(start, AssetCommandTimeoutMs, "FC26 asset exporter");
+                var output = result.StandardOutput.Trim();
+                var resolved = result.ExitCode == 0 && File.Exists(output) ? output : null;
+                if (result.ExitCode == 0)
+                    s_AssetCache[logicalPath] = resolved ?? string.Empty;
                 return resolved;
             }
             catch
             {
-                s_AssetCache[logicalPath] = null;
+                // A timeout or temporary host error is not a confirmed missing asset.
+                // Do not poison the cache so the user can retry later.
                 return null;
             }
         }
@@ -136,13 +135,11 @@ internal static class Fc26HostBridge
                     RedirectStandardError = true,
                     WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
                 };
-                using var process = Process.Start(start);
-                if (process == null) return null;
-                var output = process.StandardOutput.ReadToEnd().Trim();
-                process.StandardError.ReadToEnd();
-                process.WaitForExit();
-                var resolved = process.ExitCode == 0 && File.Exists(output) ? output : null;
-                s_AssetCache[cacheKey] = resolved ?? string.Empty;
+                var result = RunProcess(start, AssetCommandTimeoutMs, "FC26 kit texture exporter");
+                var output = result.StandardOutput.Trim();
+                var resolved = result.ExitCode == 0 && File.Exists(output) ? output : null;
+                if (result.ExitCode == 0)
+                    s_AssetCache[cacheKey] = resolved ?? string.Empty;
                 return resolved;
             }
             catch
@@ -176,39 +173,41 @@ internal static class Fc26HostBridge
             RedirectStandardError = true,
             WorkingDirectory = hostDirectory
         };
-        using var process = Process.Start(start) ?? throw new InvalidOperationException("Unable to start the FC26 mesh exporter.");
-        process.StandardOutput.ReadToEnd();
-        var error = process.StandardError.ReadToEnd().Trim();
-        process.WaitForExit();
-        var output = File.Exists(responsePath) ? File.ReadAllText(responsePath).Trim() : string.Empty;
-        try { if (File.Exists(responsePath)) File.Delete(responsePath); } catch { }
-        if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(output) || !File.Exists(output))
-            throw new InvalidOperationException(string.IsNullOrWhiteSpace(error)
-                ? "The selected player has no indexed FC26 Frostbite head mesh."
-                : error);
-        return output;
+        try
+        {
+            var result = RunProcess(start, AssetCommandTimeoutMs, "FC26 face mesh exporter");
+            var output = File.Exists(responsePath) ? File.ReadAllText(responsePath).Trim() : string.Empty;
+            if (result.ExitCode != 0 || string.IsNullOrWhiteSpace(output) || !File.Exists(output))
+                throw new InvalidOperationException(string.IsNullOrWhiteSpace(result.StandardError)
+                    ? "The selected player has no indexed FC26 Frostbite head mesh."
+                    : result.StandardError.Trim());
+            return output;
+        }
+        finally
+        {
+            try { if (File.Exists(responsePath)) File.Delete(responsePath); } catch { }
+        }
     }
 
     private static bool DotnetHostIsAvailable()
     {
+        if (s_DotnetHostAvailable.HasValue) return s_DotnetHostAvailable.Value;
         try
         {
-            using var process = Process.Start(new ProcessStartInfo("dotnet", "--info")
+            var result = RunProcess(new ProcessStartInfo("dotnet", "--info")
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
-            });
-            if (process == null) return false;
-            process.StandardOutput.ReadToEnd();
-            process.StandardError.ReadToEnd();
-            return process.WaitForExit(5000) && process.ExitCode == 0;
+            }, 5000, ".NET host check");
+            s_DotnetHostAvailable = result.ExitCode == 0;
         }
         catch
         {
-            return false;
+            s_DotnetHostAvailable = false;
         }
+        return s_DotnetHostAvailable.Value;
     }
 
     internal static void OpenFaceViewer(string meshPath)
@@ -340,12 +339,43 @@ internal static class Fc26HostBridge
             RedirectStandardError = true,
             WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
         };
-        using var process = Process.Start(start) ?? throw new InvalidOperationException("Unable to start the FC26 save engine.");
-        var output = process.StandardOutput.ReadToEnd().Trim();
-        var error = process.StandardError.ReadToEnd().Trim();
-        process.WaitForExit();
-        if (process.ExitCode != 0)
+        var result = RunProcess(start, DatabaseCommandTimeoutMs, "FC26 save engine");
+        var output = result.StandardOutput.Trim();
+        var error = result.StandardError.Trim();
+        if (result.ExitCode != 0)
             throw new InvalidOperationException(string.IsNullOrWhiteSpace(error) ? output : error);
         return string.IsNullOrWhiteSpace(output) ? $"Saved {changeCount} FC26 change(s)." : output;
+    }
+
+    private static ProcessResult RunProcess(ProcessStartInfo start, int timeoutMilliseconds, string operation)
+    {
+        using var process = Process.Start(start) ??
+            throw new InvalidOperationException("Unable to start the " + operation + ".");
+        var outputTask = process.StandardOutput.ReadToEndAsync();
+        var errorTask = process.StandardError.ReadToEndAsync();
+        if (!process.WaitForExit(timeoutMilliseconds))
+        {
+            try { process.Kill(); } catch { }
+            try { System.Threading.Tasks.Task.WaitAll(new System.Threading.Tasks.Task[] { outputTask, errorTask }, 5000); } catch { }
+            throw new TimeoutException(operation + " did not finish within " + (timeoutMilliseconds / 1000) + " seconds.");
+        }
+        try { System.Threading.Tasks.Task.WaitAll(new System.Threading.Tasks.Task[] { outputTask, errorTask }, 5000); } catch { }
+        return new ProcessResult(process.ExitCode,
+            outputTask.Status == System.Threading.Tasks.TaskStatus.RanToCompletion ? outputTask.Result : string.Empty,
+            errorTask.Status == System.Threading.Tasks.TaskStatus.RanToCompletion ? errorTask.Result : string.Empty);
+    }
+
+    private sealed class ProcessResult
+    {
+        internal ProcessResult(int exitCode, string standardOutput, string standardError)
+        {
+            ExitCode = exitCode;
+            StandardOutput = standardOutput ?? string.Empty;
+            StandardError = standardError ?? string.Empty;
+        }
+
+        internal int ExitCode { get; }
+        internal string StandardOutput { get; }
+        internal string StandardError { get; }
     }
 }

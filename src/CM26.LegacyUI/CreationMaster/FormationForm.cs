@@ -878,7 +878,14 @@ public class FormationForm : Form
 		}
 		if (m_CurrentFormation.Team != null)
 		{
-			m_CurrentFormation.Team.AssignTitolarToRoles(m_CurrentFormation);
+			if (FifaEnvironment.Year == 26)
+			{
+				m_CurrentFormation.Team.AssignCurrentTitolarToRoles(m_CurrentFormation);
+			}
+			else
+			{
+				m_CurrentFormation.Team.AssignTitolarToRoles(m_CurrentFormation);
+			}
 		}
 		ReloadFormation(m_CurrentFormation);
 	}

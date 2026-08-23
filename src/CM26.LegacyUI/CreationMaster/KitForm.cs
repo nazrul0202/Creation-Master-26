@@ -37,7 +37,13 @@ public class KitForm : Form
 
 	private readonly Dictionary<string, Bitmap[]> m_Fc26TextureCache = new Dictionary<string, Bitmap[]>(StringComparer.OrdinalIgnoreCase);
 
+	private readonly Queue<string> m_Fc26TextureCacheOrder = new Queue<string>();
+
+	private const int Fc26TextureCacheLimit = 16;
+
 	private int m_Fc26TextureRequest;
+
+	private Label m_Fc26Kit3dStatus;
 
 	private static Color[] c_ColorPalette = new Color[20]
 	{
@@ -256,6 +262,20 @@ public class KitForm : Form
 		viewer3DKit.ViewZ = 190f;
 		viewer3DKit.ZbufferRenderState = null;
 		group3D.Controls.Add(viewer3DKit);
+		m_Fc26Kit3dStatus = new Label
+		{
+			AutoEllipsis = true,
+			BackColor = Color.FromArgb(32, 32, 32),
+			Dock = DockStyle.Bottom,
+			ForeColor = Color.White,
+			Height = 26,
+			Name = "labelFc26Kit3dStatus",
+			Padding = new Padding(6, 4, 6, 0),
+			Text = "3D kit preview",
+			Visible = false
+		};
+		group3D.Controls.Add(m_Fc26Kit3dStatus);
+		m_Fc26Kit3dStatus.BringToFront();
 		viewer3DMinikit = new Viewer3D();
 		viewer3DMinikit.AmbientColor = Color.White;
 		viewer3DMinikit.BackColor = Color.Gray;
@@ -499,28 +519,74 @@ public class KitForm : Form
 		if (kit == null) return;
 		int request = ++m_Fc26TextureRequest;
 		string key = Fc26KitTextureKey(kit);
+		viewer3DKit.ShowEmpty();
+		viewer3DMinikit.ShowEmpty();
+		SetFc26Kit3dStatus("Loading real FC26 kit texture...", Color.Gold);
 		Bitmap[] cached;
 		if (!m_Fc26TextureCache.TryGetValue(key, out cached))
 		{
-			string path = await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.ExportKitTexture(kit.teamid, kit.kittype));
-			if (string.IsNullOrWhiteSpace(path) || !File.Exists(path) || IsDisposed) return;
+			string path;
+			try
+			{
+				path = await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.ExportKitTexture(kit.teamid, kit.kittype));
+			}
+			catch (Exception ex)
+			{
+				if (request == m_Fc26TextureRequest && m_CurrentKit == kit && !IsDisposed)
+					SetFc26Kit3dStatus("FC26 kit export failed: " + ex.Message, Color.OrangeRed);
+				return;
+			}
+			if (request != m_Fc26TextureRequest || m_CurrentKit != kit || IsDisposed) return;
+			if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+			{
+				SetFc26Kit3dStatus("No indexed FC26 texture is available for this kit.", Color.OrangeRed);
+				return;
+			}
 			try
 			{
 				using (Image source = Image.FromFile(path))
 				{
-					cached = new[] { new Bitmap(source), new Bitmap(source), new Bitmap(source), new Bitmap(source) };
+					Bitmap texture = new Bitmap(source);
+					cached = new[] { texture, texture, texture, texture };
 				}
-				m_Fc26TextureCache[key] = cached;
+				CacheFc26KitTextures(key, cached);
 			}
-			catch
+			catch (Exception ex)
 			{
+				SetFc26Kit3dStatus("FC26 kit texture could not be decoded: " + ex.Message, Color.OrangeRed);
 				return;
 			}
 		}
 		if (request != m_Fc26TextureRequest || m_CurrentKit != kit || IsDisposed) return;
 		if (multiViewer2DKit.buttonShow.Checked) multiViewer2DKit.Bitmaps = cached;
+		SetFc26Kit3dStatus("Real FC26 texture loaded — team " + kit.teamid + ", kit " + kit.kittype + ".", Color.LightGreen);
 		Show3DKit();
 		Show3DMinikit();
+	}
+
+	private void SetFc26Kit3dStatus(string text, Color color)
+	{
+		if (m_Fc26Kit3dStatus == null) return;
+		m_Fc26Kit3dStatus.Visible = FifaEnvironment.Year == 26;
+		m_Fc26Kit3dStatus.ForeColor = color;
+		m_Fc26Kit3dStatus.Text = text;
+	}
+
+	private void CacheFc26KitTextures(string key, Bitmap[] textures)
+	{
+		if (m_Fc26TextureCache.ContainsKey(key)) return;
+		while (m_Fc26TextureCacheOrder.Count >= Fc26TextureCacheLimit)
+		{
+			string expiredKey = m_Fc26TextureCacheOrder.Dequeue();
+			Bitmap[] expired;
+			if (!m_Fc26TextureCache.TryGetValue(expiredKey, out expired)) continue;
+			m_Fc26TextureCache.Remove(expiredKey);
+			var disposed = new HashSet<Bitmap>();
+			foreach (Bitmap bitmap in expired)
+				if (bitmap != null && disposed.Add(bitmap)) bitmap.Dispose();
+		}
+		m_Fc26TextureCache[key] = textures;
+		m_Fc26TextureCacheOrder.Enqueue(key);
 	}
 
 	public void LoadPositions()

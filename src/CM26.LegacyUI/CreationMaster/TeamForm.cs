@@ -6,6 +6,7 @@ using System.Data;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using FifaControls;
@@ -69,9 +70,13 @@ public class TeamForm : Form
 
 	private Button buttonFc26OpenCareer;
 
+	private Button buttonFc26LoadLatestCareer;
+
 	private Button buttonFc26SaveCareerBudget;
 
 	private bool m_Fc26CareerBudgetBusy;
+
+	private bool m_Fc26CareerAutoLoadAttempted;
 
 	private ComboBox comboTraitContext;
 
@@ -1343,7 +1348,7 @@ public class TeamForm : Form
 		if (comboObjective.Items.Count > 0) comboObjective.Items[0] = "Career generated (not in squads DB)";
 		if (comboMaxOnjective.Items.Count > 0) comboMaxOnjective.Items[0] = "Career generated (not in squads DB)";
 		if (comboProbObjective.Items.Count > 0) comboProbObjective.Items[0] = "Career generated (not in squads DB)";
-		labelInitialBudget.Text = "Club Worth";
+		labelInitialBudget.Text = "Club Worth (not budget)";
 		ConfigureFc26CareerBudgetUi();
 
 		ConfigureFc26RosterFormationUi();
@@ -1355,7 +1360,7 @@ public class TeamForm : Form
 		{
 			Name = "groupFc26CareerBudget",
 			Text = "FC26 Career Transfer Budget",
-			Size = new Size(540, 183),
+			Size = new Size(540, 213),
 			TabStop = false
 		};
 
@@ -1388,22 +1393,29 @@ public class TeamForm : Form
 			Location = new Point(354, 57),
 			Size = new Size(166, 27)
 		};
+		buttonFc26LoadLatestCareer = new Button
+		{
+			Text = "Load Latest Career",
+			Location = new Point(354, 88),
+			Size = new Size(166, 27)
+		};
 		buttonFc26SaveCareerBudget = new Button
 		{
 			Text = "Save Budget + Backup",
-			Location = new Point(354, 88),
+			Location = new Point(354, 119),
 			Size = new Size(166, 27)
 		};
 		var hint = new Label
 		{
 			Text = "Budget is stored in the Career save, separate from this team's Club Worth. A timestamped .bak file is created before every save.",
-			Location = new Point(14, 124),
+			Location = new Point(14, 154),
 			Size = new Size(506, 43),
 			ForeColor = Color.DimGray,
 			BackColor = Color.Transparent
 		};
 
 		buttonFc26OpenCareer.Click += OpenFc26CareerBudget_Click;
+		buttonFc26LoadLatestCareer.Click += LoadLatestFc26CareerBudget_Click;
 		buttonFc26SaveCareerBudget.Click += SaveFc26CareerBudget_Click;
 		groupFc26CareerBudget.Controls.Add(labelFc26CareerBudgetStatus);
 		groupFc26CareerBudget.Controls.Add(currentBudgetLabel);
@@ -1411,10 +1423,12 @@ public class TeamForm : Form
 		groupFc26CareerBudget.Controls.Add(startBudgetLabel);
 		groupFc26CareerBudget.Controls.Add(numericFc26CareerStartBudget);
 		groupFc26CareerBudget.Controls.Add(buttonFc26OpenCareer);
+		groupFc26CareerBudget.Controls.Add(buttonFc26LoadLatestCareer);
 		groupFc26CareerBudget.Controls.Add(buttonFc26SaveCareerBudget);
 		groupFc26CareerBudget.Controls.Add(hint);
 		flowPanelTeamGeneric.Controls.Add(groupFc26CareerBudget);
 		RefreshFc26CareerBudgetUi();
+		BeginInvoke(new Action(AutoLoadLatestFc26CareerBudget));
 	}
 
 	private static NumericUpDown CreateFc26BudgetControl(Point location)
@@ -1445,18 +1459,50 @@ public class TeamForm : Form
 		if (System.IO.Directory.Exists(settingsFolder)) dialog.InitialDirectory = settingsFolder;
 		if (dialog.ShowDialog(this) != DialogResult.OK) return;
 
+		await LoadFc26CareerBudgetAsync(dialog.FileName, showErrors: true);
+	}
+
+	private async void LoadLatestFc26CareerBudget_Click(object sender, EventArgs e)
+	{
+		await LoadLatestFc26CareerBudgetAsync(showErrors: true);
+	}
+
+	private async void AutoLoadLatestFc26CareerBudget()
+	{
+		if (m_Fc26CareerAutoLoadAttempted || IsDisposed) return;
+		m_Fc26CareerAutoLoadAttempted = true;
+		await LoadLatestFc26CareerBudgetAsync(showErrors: false);
+	}
+
+	private async System.Threading.Tasks.Task LoadLatestFc26CareerBudgetAsync(bool showErrors)
+	{
+		var candidates = CareerBudgetEditor.FindCareerSaveCandidates();
+		if (candidates.Count == 0)
+		{
+			if (showErrors)
+				MessageBox.Show(this, "No FC26 Career save was found in the EA SPORTS FC 26 settings folder.",
+					"FC26 Career Budget", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			RefreshFc26CareerBudgetUi();
+			return;
+		}
+		await LoadFc26CareerBudgetAsync(candidates[0], showErrors);
+	}
+
+	private async System.Threading.Tasks.Task LoadFc26CareerBudgetAsync(string fileName, bool showErrors)
+	{
 		SetFc26CareerBudgetBusy(true, "Loading Career save...");
 		try
 		{
-			string fileName = dialog.FileName;
 			string schemaFile = FifaEnvironment.FifaXmlFileName;
 			m_Fc26CareerBudgetEditor = await System.Threading.Tasks.Task.Run(
 				() => CareerBudgetEditor.Open(fileName, schemaFile));
 		}
 		catch (Exception ex)
 		{
-			MessageBox.Show(this, "The Career budget could not be loaded.\r\n\r\n" + ex.Message,
-				"FC26 Career Budget", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			m_Fc26CareerBudgetEditor = null;
+			if (showErrors)
+				MessageBox.Show(this, "The Career budget could not be loaded.\r\n\r\n" + ex.Message,
+					"FC26 Career Budget", MessageBoxButtons.OK, MessageBoxIcon.Error);
 		}
 		finally
 		{
@@ -1496,6 +1542,7 @@ public class TeamForm : Form
 		m_Fc26CareerBudgetBusy = busy;
 		UseWaitCursor = busy;
 		if (buttonFc26OpenCareer != null) buttonFc26OpenCareer.Enabled = !busy;
+		if (buttonFc26LoadLatestCareer != null) buttonFc26LoadLatestCareer.Enabled = !busy;
 		if (buttonFc26SaveCareerBudget != null) buttonFc26SaveCareerBudget.Enabled = !busy && m_Fc26CareerBudgetEditor != null;
 		if (numericFc26CareerTransferBudget != null) numericFc26CareerTransferBudget.Enabled = !busy && m_Fc26CareerBudgetEditor != null;
 		if (numericFc26CareerStartBudget != null) numericFc26CareerStartBudget.Enabled = !busy && m_Fc26CareerBudgetEditor != null;
@@ -1507,6 +1554,7 @@ public class TeamForm : Form
 		if (groupFc26CareerBudget == null) return;
 		bool loaded = m_Fc26CareerBudgetEditor != null;
 		buttonFc26OpenCareer.Enabled = !m_Fc26CareerBudgetBusy;
+		buttonFc26LoadLatestCareer.Enabled = !m_Fc26CareerBudgetBusy;
 		buttonFc26SaveCareerBudget.Enabled = loaded && !m_Fc26CareerBudgetBusy;
 		numericFc26CareerTransferBudget.Enabled = loaded && !m_Fc26CareerBudgetBusy;
 		numericFc26CareerStartBudget.Enabled = loaded && !m_Fc26CareerBudgetBusy;
@@ -1646,6 +1694,7 @@ public class TeamForm : Form
 		var placements = new List<Fc26FormationCardPlacement>();
 		var usedRoleIds = new HashSet<int>();
 
+		var formationRoles = new List<Tuple<PlayingRole, int, Label, float, float>>();
 		foreach (PlayingRole playingRole in m_CurrentFormation.PlayingRoles)
 		{
 			if (playingRole?.Role == null)
@@ -1661,22 +1710,31 @@ public class TeamForm : Form
 
 			Label label = m_Fc26RosterLabels[roleId];
 			float normalizedX = Math.Max(0f, Math.Min(1f, playingRole.OffsetX / 100f));
-			float normalizedY = Math.Max(0f, Math.Min(1f, playingRole.OffsetY / 100f));
+			float screenY = 1f - Math.Max(0f, Math.Min(1f, playingRole.OffsetY / 100f));
+			formationRoles.Add(Tuple.Create(playingRole, roleId, label, normalizedX, screenY));
+		}
 
-			// FC26 stores the goalkeeper only a few percentage points below its
-			// centre-backs. That is accurate for the data, but a 56 px card then
-			// overlaps the defensive line. Keep the database coordinates intact
-			// while reserving a readable visual lane for the goalkeeper and back line.
-			float screenY = 1f - normalizedY;
-			if (roleId == (int)ERole.Goalkeeper)
+		// FC26 stores role centre points and several lines are only a few pixels
+		// apart at desktop scale. Group those points into their native tactical
+		// rows and spread the rows over the supplied FC26 pitch. This keeps the
+		// database X order while giving the goalkeeper, defence and midfield clear
+		// visual separation without changing any saved formation coordinate.
+		var visualRows = new List<List<Tuple<PlayingRole, int, Label, float, float>>>();
+		foreach (Tuple<PlayingRole, int, Label, float, float> role in formationRoles.OrderBy(value => value.Item5))
+		{
+			List<Tuple<PlayingRole, int, Label, float, float>> row = visualRows.FirstOrDefault(candidate =>
+				candidate.Any(value => Math.Abs(value.Item5 - role.Item5) <= 0.075f));
+			if (row == null)
 			{
-				screenY = 1f;
+				row = new List<Tuple<PlayingRole, int, Label, float, float>>();
+				visualRows.Add(row);
 			}
-			else if (roleId >= (int)ERole.Sweeper && roleId <= (int)ERole.Left_Wing_Back)
-			{
-				screenY = Math.Min(screenY, 0.72f);
-			}
+			row.Add(role);
+		}
 
+		for (int rowIndex = 0; rowIndex < visualRows.Count; rowIndex++)
+		{
+			float screenY = visualRows.Count <= 1 ? 0.5f : rowIndex / (float)(visualRows.Count - 1);
 			int y = marginY + (int)Math.Round(screenY * usableHeight);
 			float cardCentreY = Math.Max(0f, Math.Min(1f,
 				(y + cardHeight * 0.5f) / Math.Max(1f, Fc26PitchHeight)));
@@ -1686,8 +1744,11 @@ public class TeamForm : Form
 			int right = panel1.ClientSize.Width - marginX -
 				(int)Math.Round(panel1.ClientSize.Width * (1f - pitchRight));
 			int usableRowWidth = Math.Max(1, right - left - cardWidth);
-			int x = left + (int)Math.Round(normalizedX * usableRowWidth);
-			placements.Add(new Fc26FormationCardPlacement(label, x, y, left, right - cardWidth));
+			foreach (Tuple<PlayingRole, int, Label, float, float> role in visualRows[rowIndex])
+			{
+				int x = left + (int)Math.Round(role.Item4 * usableRowWidth);
+				placements.Add(new Fc26FormationCardPlacement(role.Item3, x, y, left, right - cardWidth));
+			}
 		}
 
 		// Database-native FC26 coordinates are centre points, not card rectangles.
@@ -2012,7 +2073,14 @@ public class TeamForm : Form
 
 			// Decode the visible XI first so the pitch becomes useful immediately. The
 			// substitutes and reserves continue afterwards, still away from the UI thread.
-			foreach (Player[] batch in new[] { startingPlayers, remainingPlayers })
+			var batches = new List<Player[]>();
+			if (startingPlayers.Length > 0) batches.Add(startingPlayers);
+			for (int offset = 0; offset < remainingPlayers.Length; offset += 7)
+			{
+				batches.Add(remainingPlayers.Skip(offset).Take(7).ToArray());
+			}
+
+			foreach (Player[] batch in batches)
 			{
 				if (batch.Length == 0) continue;
 				loadedImages = await System.Threading.Tasks.Task.Run(() => DecodeFc26MiniFaces(batch));
@@ -2396,7 +2464,7 @@ public class TeamForm : Form
 		m_CurrentTeam.LinkFormation(m_CurrentFormation);
 		if (m_CurrentTeam.Roster.Count >= 11)
 		{
-			m_CurrentTeam.AssignTitolarToRoles(m_CurrentFormation);
+			AssignPlayersToFormation(m_CurrentFormation);
 		}
 		else
 		{
@@ -3756,6 +3824,23 @@ public class TeamForm : Form
 		obj.ListViewItemSorter = new ListViewItemComparer(sortOrder: obj.Sorting = ((obj.Sorting != SortOrder.Ascending) ? SortOrder.Ascending : SortOrder.Descending), column: e.Column);
 	}
 
+	private void AssignPlayersToFormation(Formation formation)
+	{
+		if (m_CurrentTeam == null || formation == null)
+		{
+			return;
+		}
+
+		if (FifaEnvironment.Year == 26)
+		{
+			m_CurrentTeam.AssignCurrentTitolarToRoles(formation);
+		}
+		else
+		{
+			m_CurrentTeam.AssignTitolarToRoles(formation);
+		}
+	}
+
 	private void radioUseSpecificFormation_CheckedChanged(object sender, EventArgs e)
 	{
 		if (m_LockUserChanges || !radioUseSpecificFormation.Checked)
@@ -3781,7 +3866,7 @@ public class TeamForm : Form
 			m_CurrentFormation.Team = m_CurrentTeam;
 			if (m_BackupSpecificFormation != null)
 			{
-				m_CurrentTeam.AssignTitolarToRoles(formation2);
+				AssignPlayersToFormation(formation2);
 			}
 			InitVisualFormation(m_CurrentTeam.Roster);
 			labelTeamFormationName.Text = m_CurrentFormation.ToString();
@@ -3809,7 +3894,7 @@ public class TeamForm : Form
 			m_CurrentTeam.Formation = formation;
 			m_CurrentFormation = formation;
 			m_CurrentTeam.formationid = formation.Id;
-			m_CurrentTeam.AssignTitolarToRoles(formation);
+			AssignPlayersToFormation(formation);
 			InitVisualFormation(m_CurrentTeam.Roster);
 			labelTeamFormationName.Text = m_CurrentFormation.ToString();
 		}
@@ -3831,7 +3916,7 @@ public class TeamForm : Form
 				m_CurrentFormation.Team = m_CurrentTeam;
 				m_CurrentTeam.LinkFormation(m_CurrentFormation);
 				m_CurrentTeam.formationid = m_CurrentFormation.Id;
-				m_CurrentTeam.AssignTitolarToRoles(m_CurrentFormation);
+				AssignPlayersToFormation(m_CurrentFormation);
 				InitVisualFormation(m_CurrentTeam.Roster);
 				labelTeamFormationName.Text = m_CurrentFormation.ToString();
 				return;
@@ -3841,7 +3926,7 @@ public class TeamForm : Form
 				m_CurrentTeam.Formation = formation;
 				m_CurrentFormation = formation;
 				m_CurrentTeam.formationid = formation.Id;
-				m_CurrentTeam.AssignTitolarToRoles(formation);
+				AssignPlayersToFormation(formation);
 				InitVisualFormation(m_CurrentTeam.Roster);
 				labelTeamFormationName.Text = m_CurrentFormation.ToString();
 			}

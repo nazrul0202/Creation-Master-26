@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Drawing;
 using System.Drawing.Imaging;
 
@@ -3266,8 +3267,8 @@ public class Team : IdObject
 		array[42] = FI.default_teamsheets_playerid42;
 		array[43] = FI.default_teamsheets_playerid43;
 		array[44] = FI.default_teamsheets_playerid44;
-		array[41] = FI.default_teamsheets_playerid45;
-		array[45] = FI.default_teamsheets_playerid46;
+		array[45] = FI.default_teamsheets_playerid45;
+		array[46] = FI.default_teamsheets_playerid46;
 		array[47] = FI.default_teamsheets_playerid47;
 		array[48] = FI.default_teamsheets_playerid48;
 		array[49] = FI.default_teamsheets_playerid49;
@@ -4101,6 +4102,184 @@ public class Team : IdObject
 		{
 			m_Roster.Add(item);
 		}
+	}
+
+	/// <summary>
+	/// Applies a new formation to the current starting XI without replacing players.
+	/// FC26 formation changes are tactical changes, not automatic squad selection.
+	/// </summary>
+	public void AssignCurrentTitolarToRoles(Formation formation)
+	{
+		if (formation == null || formation.PlayingRoles == null || m_Roster == null)
+		{
+			return;
+		}
+
+		ArrayList starters = new ArrayList(11);
+		Hashtable seenPlayerIds = new Hashtable();
+		Hashtable previousRoles = new Hashtable();
+		foreach (TeamPlayer teamPlayer in m_Roster)
+		{
+			if (teamPlayer == null || teamPlayer.Player == null || teamPlayer.position < 0 || teamPlayer.position >= 28)
+			{
+				continue;
+			}
+
+			if (seenPlayerIds.ContainsKey(teamPlayer.Player.Id))
+			{
+				teamPlayer.position = 29;
+				continue;
+			}
+
+			if (starters.Count < 11)
+			{
+				seenPlayerIds.Add(teamPlayer.Player.Id, true);
+				starters.Add(teamPlayer);
+				previousRoles.Add(teamPlayer, teamPlayer.position);
+			}
+			else
+			{
+				teamPlayer.position = 28;
+			}
+		}
+
+		// Corrupt or incomplete teamsheets can contain fewer than eleven starters.
+		// Fill only those empty places, using the strongest available squad members.
+		while (starters.Count < 11)
+		{
+			TeamPlayer best = null;
+			foreach (TeamPlayer teamPlayer in m_Roster)
+			{
+				if (teamPlayer == null || teamPlayer.Player == null || seenPlayerIds.ContainsKey(teamPlayer.Player.Id))
+				{
+					continue;
+				}
+
+				if (best == null || teamPlayer.Player.overallrating > best.Player.overallrating ||
+					(teamPlayer.Player.overallrating == best.Player.overallrating && teamPlayer.Player.Id < best.Player.Id))
+				{
+					best = teamPlayer;
+				}
+			}
+
+			if (best == null)
+			{
+				break;
+			}
+
+			seenPlayerIds.Add(best.Player.Id, true);
+			starters.Add(best);
+			previousRoles.Add(best, best.position);
+		}
+
+		int roleCount = Math.Min(11, formation.PlayingRoles.Length);
+		ERole[] roles = new ERole[roleCount];
+		TeamPlayer[] slotPlayers = new TeamPlayer[roleCount];
+		bool[] roleAssigned = new bool[roleCount];
+		bool[] playerAssigned = new bool[starters.Count];
+		for (int i = 0; i < roleCount; i++)
+		{
+			PlayingRole playingRole = formation.PlayingRoles[i];
+			roles[i] = playingRole == null
+				? default(ERole)
+				: playingRole.Role != null ? playingRole.Role.RoleId : (ERole)playingRole.Id;
+		}
+
+		// Preserve a player's existing slot when the new formation still contains it.
+		for (int i = 0; i < roleCount; i++)
+		{
+			for (int j = 0; j < starters.Count; j++)
+			{
+				if (playerAssigned[j])
+				{
+					continue;
+				}
+
+				TeamPlayer teamPlayer = (TeamPlayer)starters[j];
+				if ((int)previousRoles[teamPlayer] == (int)roles[i])
+				{
+					teamPlayer.position = (int)roles[i];
+					slotPlayers[i] = teamPlayer;
+					playerAssigned[j] = true;
+					roleAssigned[i] = true;
+					break;
+				}
+			}
+		}
+
+		// Match the remaining current starters to the remaining slots by suitability.
+		for (int i = 0; i < roleCount; i++)
+		{
+			if (roleAssigned[i])
+			{
+				continue;
+			}
+
+			int bestIndex = -1;
+			int bestPerformance = int.MinValue;
+			for (int j = 0; j < starters.Count; j++)
+			{
+				if (playerAssigned[j])
+				{
+					continue;
+				}
+
+				TeamPlayer candidate = (TeamPlayer)starters[j];
+				int performance = candidate.Player.GetRolePerformance(roles[i]);
+				if (bestIndex < 0 || performance > bestPerformance ||
+					(performance == bestPerformance && candidate.Player.overallrating > ((TeamPlayer)starters[bestIndex]).Player.overallrating) ||
+					(performance == bestPerformance && candidate.Player.overallrating == ((TeamPlayer)starters[bestIndex]).Player.overallrating && candidate.Player.Id < ((TeamPlayer)starters[bestIndex]).Player.Id))
+				{
+					bestIndex = j;
+					bestPerformance = performance;
+				}
+			}
+
+			if (bestIndex >= 0)
+			{
+				((TeamPlayer)starters[bestIndex]).position = (int)roles[i];
+				slotPlayers[i] = (TeamPlayer)starters[bestIndex];
+				playerAssigned[bestIndex] = true;
+				roleAssigned[i] = true;
+			}
+		}
+
+		for (int i = 0; i < starters.Count; i++)
+		{
+			if (!playerAssigned[i])
+			{
+				((TeamPlayer)starters[i]).position = 28;
+			}
+		}
+
+		// The FC26 default teamsheet stores the tactical slot in playerid0..10.
+		// Keep the in-memory roster in that exact slot order so save/write-back is
+		// deterministic and cannot duplicate a player when two slots share a role.
+		ArrayList orderedRoster = new ArrayList(m_Roster.Count);
+		Hashtable orderedPlayerIds = new Hashtable();
+		for (int i = 0; i < slotPlayers.Length; i++)
+		{
+			TeamPlayer slotPlayer = slotPlayers[i];
+			if (slotPlayer == null || slotPlayer.Player == null || orderedPlayerIds.ContainsKey(slotPlayer.Player.Id))
+			{
+				continue;
+			}
+
+			orderedPlayerIds.Add(slotPlayer.Player.Id, true);
+			orderedRoster.Add(slotPlayer);
+		}
+		foreach (TeamPlayer teamPlayer in m_Roster)
+		{
+			if (teamPlayer == null || teamPlayer.Player == null || orderedPlayerIds.ContainsKey(teamPlayer.Player.Id))
+			{
+				continue;
+			}
+
+			orderedPlayerIds.Add(teamPlayer.Player.Id, true);
+			orderedRoster.Add(teamPlayer);
+		}
+		m_Roster.Clear();
+		m_Roster.AddRange(orderedRoster);
 	}
 
 	public void AssignRoleToSubstitute(ERole role)

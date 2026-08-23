@@ -19,6 +19,14 @@ internal static class Fc26SnapshotLoader
     /// detect genuine user edits; decode artifacts must never be staged as edits.</summary>
     private static readonly Dictionary<int, string> s_loadedPlayerNames =
         new Dictionary<int, string>();
+    /// <summary>
+    /// Formation coordinates in the FC26 database are stored as precise floats,
+    /// while the legacy editor exposes integer percentages.  Keep the exact
+    /// editor-side state captured at load time so opening and saving a project
+    /// does not quantize every untouched formation in the database.
+    /// </summary>
+    private static readonly Dictionary<object, FormationRoleState[]> s_loadedFormationRoles =
+        new Dictionary<object, FormationRoleState[]>(ReferenceComparer.Instance);
 
     internal static void Load(string path)
     {
@@ -30,6 +38,7 @@ internal static class Fc26SnapshotLoader
         s_snapshot = snapshot;
         s_rowOrigins.Clear();
         s_loadedPlayerNames.Clear();
+        s_loadedFormationRoles.Clear();
 
         var countries = Build<CountryList, Country>(tables, "nations", "nationid");
         var leagues = Build<LeagueList, League>(tables, "leagues", "leagueid");
@@ -198,6 +207,7 @@ internal static class Fc26SnapshotLoader
                 }
             }
         }
+        AppendDefaultTeamSheetChanges(snapshot, changes);
         AppendFc26TacticMirrorChanges(snapshot, changes);
         AppendFormationRoleChanges(snapshot, changes);
         AppendPlayerNameChanges(snapshot, changes);
@@ -280,6 +290,120 @@ internal static class Fc26SnapshotLoader
         }
     }
 
+    private static void AppendDefaultTeamSheetChanges(Snapshot snapshot, List<Change> changes)
+    {
+        if (FifaEnvironment.Teams == null) return;
+        var table = snapshot.Tables.FirstOrDefault(value =>
+            value.Name.Equals("default_teamsheets", StringComparison.OrdinalIgnoreCase));
+        if (table == null) return;
+
+        var teamIdColumn = Column(table, "teamid");
+        var tacticIdColumn = Column(table, "tacticid");
+        if (teamIdColumn < 0) return;
+
+        var activeRows = table.Rows
+            .Select((row, index) => new
+            {
+                TeamId = ParseIntAt(row, teamIdColumn),
+                TacticId = ParseIntAt(row, tacticIdColumn),
+                Index = index
+            })
+            .GroupBy(value => value.TeamId)
+            .ToDictionary(group => group.Key,
+                group => group.OrderBy(value => value.TacticId == 0 ? 0 : 1)
+                    .ThenBy(value => value.Index).First().Index);
+
+        var mentalities = snapshot.Tables.FirstOrDefault(value =>
+            value.Name.Equals("default_mentalities", StringComparison.OrdinalIgnoreCase));
+        var mentalityTeamId = mentalities == null ? -1 : Column(mentalities, "teamid");
+
+        foreach (Team team in FifaEnvironment.Teams)
+        {
+            if (!activeRows.TryGetValue(team.Id, out var rowIndex)) continue;
+            var original = table.Rows[rowIndex];
+            var roster = team.Roster.Cast<TeamPlayer>()
+                .Where(value => value?.Player != null)
+                .GroupBy(value => value.Player.Id)
+                .Select(group => group.First())
+                .ToList();
+
+            for (var slot = 0; slot < 52; slot++)
+            {
+                var playerId = slot < roster.Count ? roster[slot].Player.Id : -1;
+                var playerColumn = Column(table, "playerid" + slot);
+                var previousPlayerId = ParseIntAt(original, playerColumn);
+                AddFormationRoleChange(table, rowIndex, "playerid" + slot,
+                    playerId, typeof(int), changes);
+
+                // FC26 keeps the active XI in both tables. Mirror only a genuine
+                // replacement of the same slot, preserving alternate mentalities.
+                if (slot >= 11 || mentalities == null || mentalityTeamId < 0 ||
+                    previousPlayerId <= 0 || playerId <= 0 || previousPlayerId == playerId) continue;
+                var mentalityPlayer = Column(mentalities, "playerid" + slot);
+                if (mentalityPlayer < 0) continue;
+                for (var mentalityRow = 0; mentalityRow < mentalities.Rows.Count; mentalityRow++)
+                {
+                    var values = mentalities.Rows[mentalityRow];
+                    if (ParseIntAt(values, mentalityTeamId) != team.Id ||
+                        ParseIntAt(values, mentalityPlayer) != previousPlayerId) continue;
+                    AddFormationRoleChange(mentalities, mentalityRow, "playerid" + slot,
+                        playerId, typeof(int), changes);
+                }
+            }
+
+            // The formations table stores precise floating-point coordinates while
+            // the legacy UI exposes integer percentages.  Do not mirror an
+            // untouched layout into the teamsheet because that would quantise it
+            // merely by opening and saving a project.
+            if (team.Formation?.PlayingRoles != null && FormationLayoutChanged(team.Formation))
+            {
+                AddFormationRoleChange(table, rowIndex, "formationaudioid",
+                    team.Formation.formationaudioid, typeof(int), changes);
+                for (var slot = 0; slot < Math.Min(11, team.Formation.PlayingRoles.Length); slot++)
+                {
+                    var role = team.Formation.PlayingRoles[slot];
+                    if (role == null) continue;
+                    AddFormationRoleChange(table, rowIndex, "position" + slot,
+                        role.Role?.Id ?? role.Id, typeof(int), changes);
+                    AddFormationRoleChange(table, rowIndex, "offset" + slot + "x",
+                        role.OffsetX / 100f, typeof(float), changes);
+                    AddFormationRoleChange(table, rowIndex, "offset" + slot + "y",
+                        role.OffsetY / 100f, typeof(float), changes);
+                    AddFormationRoleChange(table, rowIndex, "playerinstruction" + slot + "_1",
+                        role.PlayerInstruction_1, typeof(int), changes);
+                    AddFormationRoleChange(table, rowIndex, "playerinstruction" + slot + "_2",
+                        role.PlayerInstruction_2, typeof(int), changes);
+                }
+            }
+
+            var integerFields = new (string Name, int Value)[]
+            {
+                ("busbuildupspeed", team.busbuildupspeed),
+                ("busdribbling", team.busdribbling),
+                ("buspassing", team.buspassing),
+                ("buspositioning", team.buspositioning),
+                ("cccrossing", team.cccrossing),
+                ("ccpassing", team.ccpassing),
+                ("ccpositioning", team.ccpositioning),
+                ("ccshooting", team.ccshooting),
+                ("defaggression", team.defaggression),
+                ("defdefenderline", team.defdefenderline),
+                ("defmentality", team.defmentality),
+                ("defteamwidth", team.defteamwidth),
+                ("captainid", team.captainid),
+                ("freekicktakerid", team.freekicktakerid),
+                ("leftcornerkicktakerid", team.leftcornerkicktakerid),
+                ("leftfreekicktakerid", team.leftfreekicktakerid),
+                ("longkicktakerid", team.longkicktakerid),
+                ("penaltytakerid", team.penaltytakerid),
+                ("rightcornerkicktakerid", team.rightcornerkicktakerid),
+                ("rightfreekicktakerid", team.rightfreekicktakerid)
+            };
+            foreach (var field in integerFields)
+                AddFormationRoleChange(table, rowIndex, field.Name, field.Value, typeof(int), changes);
+        }
+    }
+
     private static void AddMirrorChange(TableSnapshot table, int rowIndex, int columnIndex,
         int value, List<Change> changes)
     {
@@ -322,18 +446,51 @@ internal static class Fc26SnapshotLoader
             {
                 var role = formation.PlayingRoles[index];
                 if (role == null) continue;
-                AddFormationRoleChange(table, rowIndex, "position" + index,
-                    role.Role?.Id ?? role.Id, typeof(int), changes);
-                AddFormationRoleChange(table, rowIndex, "offset" + index + "x",
-                    role.OffsetX / 100f, typeof(float), changes);
-                AddFormationRoleChange(table, rowIndex, "offset" + index + "y",
-                    role.OffsetY / 100f, typeof(float), changes);
-                AddFormationRoleChange(table, rowIndex, "playerinstruction" + index + "_1",
-                    role.PlayerInstruction_1, typeof(int), changes);
-                AddFormationRoleChange(table, rowIndex, "playerinstruction" + index + "_2",
-                    role.PlayerInstruction_2, typeof(int), changes);
+                var current = FormationRoleState.From(role);
+                FormationRoleState? loaded = null;
+                if (s_loadedFormationRoles.TryGetValue(formation, out var loadedRoles) &&
+                    index < loadedRoles.Length)
+                    loaded = loadedRoles[index];
+
+                if (!loaded.HasValue || current.Position != loaded.Value.Position)
+                    AddFormationRoleChange(table, rowIndex, "position" + index,
+                        current.Position, typeof(int), changes);
+                if (!loaded.HasValue || current.OffsetX != loaded.Value.OffsetX)
+                    AddFormationRoleChange(table, rowIndex, "offset" + index + "x",
+                        current.OffsetX / 100f, typeof(float), changes);
+                if (!loaded.HasValue || current.OffsetY != loaded.Value.OffsetY)
+                    AddFormationRoleChange(table, rowIndex, "offset" + index + "y",
+                        current.OffsetY / 100f, typeof(float), changes);
+                if (!loaded.HasValue || current.Instruction1 != loaded.Value.Instruction1)
+                    AddFormationRoleChange(table, rowIndex, "playerinstruction" + index + "_1",
+                        current.Instruction1, typeof(int), changes);
+                if (!loaded.HasValue || current.Instruction2 != loaded.Value.Instruction2)
+                    AddFormationRoleChange(table, rowIndex, "playerinstruction" + index + "_2",
+                        current.Instruction2, typeof(int), changes);
             }
         }
+    }
+
+    private static bool FormationLayoutChanged(Formation formation)
+    {
+        if (formation.PlayingRoles == null ||
+            !s_loadedFormationRoles.TryGetValue(formation, out var loadedRoles))
+            return true;
+
+        var count = Math.Min(11, formation.PlayingRoles.Length);
+        if (count != loadedRoles.Length) return true;
+        for (var index = 0; index < count; index++)
+        {
+            var current = FormationRoleState.From(formation.PlayingRoles[index]);
+            var loaded = loadedRoles[index];
+            if (current.Position != loaded.Position ||
+                current.OffsetX != loaded.OffsetX ||
+                current.OffsetY != loaded.OffsetY ||
+                current.Instruction1 != loaded.Instruction1 ||
+                current.Instruction2 != loaded.Instruction2)
+                return true;
+        }
+        return false;
     }
 
     private static void AddFormationRoleChange(TableSnapshot table, int rowIndex,
@@ -530,6 +687,42 @@ internal static class Fc26SnapshotLoader
             formation.PlayingRoles = playingRoles;
         }
         formations.LinkRoles(roles);
+        foreach (Formation formation in formations)
+        {
+            if (formation.PlayingRoles == null) continue;
+            s_loadedFormationRoles[formation] = formation.PlayingRoles
+                .Take(11)
+                .Select(FormationRoleState.From)
+                .ToArray();
+        }
+    }
+
+    private readonly struct FormationRoleState
+    {
+        internal int Position { get; }
+        internal int OffsetX { get; }
+        internal int OffsetY { get; }
+        internal int Instruction1 { get; }
+        internal int Instruction2 { get; }
+
+        private FormationRoleState(int position, int offsetX, int offsetY,
+            int instruction1, int instruction2)
+        {
+            Position = position;
+            OffsetX = offsetX;
+            OffsetY = offsetY;
+            Instruction1 = instruction1;
+            Instruction2 = instruction2;
+        }
+
+        internal static FormationRoleState From(PlayingRole? role)
+        {
+            return role == null
+                ? new FormationRoleState(-1, 0, 0, 0, 0)
+                : new FormationRoleState(role.Role?.Id ?? role.Id,
+                    role.OffsetX, role.OffsetY,
+                    role.PlayerInstruction_1, role.PlayerInstruction_2);
+        }
     }
 
     private static CompobjList BuildCompetitions(Dictionary<string, TableSnapshot> tables)
@@ -809,10 +1002,70 @@ internal static class Fc26SnapshotLoader
                 }
             }
         }
+        ApplyDefaultTeamSheets(tables, teams);
         players.LinkTeam(teams);
         teams.LinkPlayer(players);
         teams.LinkLeague(leagues);
         teams.LinkOpponent(teams);
+    }
+
+    private static void ApplyDefaultTeamSheets(Dictionary<string, TableSnapshot> tables, TeamList teams)
+    {
+        if (!tables.TryGetValue("default_teamsheets", out var sheets)) return;
+        var teamIdColumn = Column(sheets, "teamid");
+        var tacticIdColumn = Column(sheets, "tacticid");
+        if (teamIdColumn < 0) return;
+
+        foreach (var group in sheets.Rows
+            .Select((row, index) => new { Row = row, Index = index })
+            .GroupBy(value => ParseIntAt(value.Row, teamIdColumn)))
+        {
+            var team = teams.SearchId(group.Key) as Team;
+            if (team == null || team.Roster.Count == 0) continue;
+            var selected = group.OrderBy(value => ParseIntAt(value.Row, tacticIdColumn) == 0 ? 0 : 1)
+                .ThenBy(value => value.Index).First();
+
+            // Tactics, captain and set-piece assignments live on the active
+            // FC26 teamsheet rather than teams. Populate those legacy fields.
+            MapFields(team, sheets.Columns, selected.Row);
+
+            var original = team.Roster.Cast<TeamPlayer>()
+                .Where(value => value?.Player != null).ToList();
+            var byPlayerId = original.GroupBy(value => value.Player.Id)
+                .ToDictionary(grouped => grouped.Key, grouped => grouped.First());
+            var ordered = new List<TeamPlayer>(original.Count);
+            var seen = new HashSet<int>();
+
+            for (var slot = 0; slot < 52; slot++)
+            {
+                var playerId = ParseIntAt(selected.Row, Column(sheets, "playerid" + slot));
+                if (playerId <= 0 || !seen.Add(playerId) || !byPlayerId.TryGetValue(playerId, out var player))
+                    continue;
+                if (slot < 11)
+                {
+                    var position = ParseIntAt(selected.Row, Column(sheets, "position" + slot));
+                    if (position < 0 || position >= 28)
+                        position = team.Formation?.PlayingRoles != null && slot < team.Formation.PlayingRoles.Length
+                            ? team.Formation.PlayingRoles[slot].Role?.Id ?? team.Formation.PlayingRoles[slot].Id
+                            : player.Player.preferredposition1;
+                    player.position = position;
+                }
+                else
+                {
+                    player.position = slot < 18 ? 28 : 29;
+                }
+                ordered.Add(player);
+            }
+
+            foreach (var player in original)
+            {
+                if (!seen.Add(player.Player.Id)) continue;
+                player.position = 29;
+                ordered.Add(player);
+            }
+            team.Roster.Clear();
+            team.Roster.AddRange(ordered.ToArray());
+        }
     }
 
     private static int Column(TableSnapshot table, string name) =>

@@ -10,13 +10,14 @@
                             ZoomExtentsWhenLoaded="True"
                             ShowCoordinateSystem="False"
                             ShowFrameRate="False"
-                            ShowViewCube="False"
+                            ShowViewCube="True"
                             ShowCameraInfo="False"
                             Background="#FF2D2D30"
                             CameraRotationMode="Turntable">
             <hx:HelixViewport3D.Camera>
                 <PerspectiveCamera Position="2,1,2" LookDirection="-2,-1,-2" UpDirection="0,1,0" FieldOfView="45" />
             </hx:HelixViewport3D.Camera>
+            <hx:DefaultLights />
         </hx:HelixViewport3D>
 
         <!-- Loading overlay -->
