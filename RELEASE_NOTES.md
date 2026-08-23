@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.140 - light formation cards and reliable roster editing (2026-08-23)
+
+- Restyled the FC26 formation board to match Creation Master's light application theme, with clear perspective pitch markings and separate substitute/reserve sections.
+- Rebuilt player cards with a white glass-style layout showing position, miniface, overall rating and one unambiguous player name.
+- Fixed transfer, loan-in, loan-out and bulk-transfer actions so they preserve the original `TeamPlayer` record, including contract dates, shirt data and loan state after save/reload.
+- Added a direct **New Player** action to Available Players and automatically registers the created player with the current club.
+- Fixed stale Available Players selections after filters or team changes, ensuring the correct transfer and loan buttons become available.
+- Removed the confusing **(not budget)** suffix from **Club Worth** while retaining the separate real Career-save transfer-budget editor.
+
 ## Version 1.0.139 - reliable FC26 teamsheets, formations, Career budgets and 3D previews (2026-08-23)
 
 - Loads and saves the complete active/default FC26 teamsheet: all 52 squad slots, the unique Starting XI, captain, set pieces, formation and supported tactics now round-trip together.

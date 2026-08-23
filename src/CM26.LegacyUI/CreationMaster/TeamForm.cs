@@ -30,6 +30,10 @@ public class TeamForm : Form
 
 	private NewIdCreator m_NewIdCreator = new NewIdCreator();
 
+	private readonly NewIdCreator m_NewPlayerIdCreator = new NewIdCreator();
+
+	private Button m_ButtonCreatePlayer;
+
 	private TeamPlayer m_CurrentTeamPlayer;
 
 	private Player m_CurrentAvailablePlayer;
@@ -1348,10 +1352,27 @@ public class TeamForm : Form
 		if (comboObjective.Items.Count > 0) comboObjective.Items[0] = "Career generated (not in squads DB)";
 		if (comboMaxOnjective.Items.Count > 0) comboMaxOnjective.Items[0] = "Career generated (not in squads DB)";
 		if (comboProbObjective.Items.Count > 0) comboProbObjective.Items[0] = "Career generated (not in squads DB)";
-		labelInitialBudget.Text = "Club Worth (not budget)";
+		labelInitialBudget.Text = "Club Worth";
 		ConfigureFc26CareerBudgetUi();
 
 		ConfigureFc26RosterFormationUi();
+		ConfigureFc26PlayerCreationUi();
+	}
+
+	private void ConfigureFc26PlayerCreationUi()
+	{
+		m_ButtonCreatePlayer = new Button
+		{
+			Name = "buttonCreateFc26Player",
+			Text = "New\r\nPlayer",
+			Location = new Point(79, 9),
+			Size = new Size(68, 75),
+			UseVisualStyleBackColor = true,
+			TabIndex = 150
+		};
+		m_ButtonCreatePlayer.Click += buttonCreateFc26Player_Click;
+		panelAvailablePlayersTop.Controls.Add(m_ButtonCreatePlayer);
+		m_ButtonCreatePlayer.BringToFront();
 	}
 
 	private void ConfigureFc26CareerBudgetUi()
@@ -1596,12 +1617,12 @@ public class TeamForm : Form
 		foreach (Label label in m_Fc26RosterLabels)
 		{
 			label.BackColor = Color.Transparent;
-			label.ForeColor = Color.White;
+			label.ForeColor = Color.FromArgb(25, 35, 45);
 			label.TextAlign = ContentAlignment.MiddleCenter;
 			label.Paint += Fc26RosterLabel_Paint;
 		}
 
-		panel1.BackColor = Color.FromArgb(16, 22, 28);
+		panel1.BackColor = Color.White;
 		panel1.BackgroundImageLayout = ImageLayout.Stretch;
 		pageTeamRoster.Resize += Fc26RosterPage_Resize;
 
@@ -1892,10 +1913,11 @@ public class TeamForm : Form
 		var bitmap = new Bitmap(Math.Max(1, size.Width), Math.Max(1, size.Height));
 		using (Graphics graphics = Graphics.FromImage(bitmap))
 		using (var background = new LinearGradientBrush(new Rectangle(Point.Empty, bitmap.Size),
-			Color.FromArgb(7, 8, 9), Color.FromArgb(27, 27, 28), LinearGradientMode.Vertical))
-		using (var pitchPen = new Pen(Color.FromArgb(116, 151, 154, 156), 1.2f))
-		using (var sectionBrush = new SolidBrush(Color.FromArgb(190, 22, 27, 35)))
-		using (var headingBrush = new SolidBrush(Color.FromArgb(235, 240, 243, 245)))
+			Color.FromArgb(255, 255, 255), Color.FromArgb(247, 249, 252), LinearGradientMode.Vertical))
+		using (var pitchPen = new Pen(Color.FromArgb(145, 174, 181, 188), 1.2f))
+		using (var sectionBrush = new SolidBrush(Color.FromArgb(248, 250, 252)))
+		using (var sectionPen = new Pen(Color.FromArgb(205, 213, 221), 1f))
+		using (var headingBrush = new SolidBrush(Color.FromArgb(92, 101, 111)))
 		using (var headingFont = new Font("Segoe UI", 8f, FontStyle.Bold))
 		{
 			graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -1949,6 +1971,10 @@ public class TeamForm : Form
 				Fc26ReservesTop - Fc26SubstitutesTop - 3);
 			graphics.FillRectangle(sectionBrush, 0, Fc26ReservesTop, bitmap.Width,
 				bitmap.Height - Fc26ReservesTop);
+			graphics.DrawRectangle(sectionPen, 0, Fc26SubstitutesTop, bitmap.Width - 1,
+				Fc26ReservesTop - Fc26SubstitutesTop - 3);
+			graphics.DrawRectangle(sectionPen, 0, Fc26ReservesTop, bitmap.Width - 1,
+				bitmap.Height - Fc26ReservesTop - 1);
 			graphics.DrawString("SUBSTITUTES", headingFont, headingBrush, 8, Fc26SubstitutesTop + 1);
 			graphics.DrawString("RESERVES", headingFont, headingBrush, 8, Fc26ReservesTop + 1);
 		}
@@ -1967,9 +1993,9 @@ public class TeamForm : Form
 		var bounds = new Rectangle(0, 0, Math.Max(1, label.Width - 1), Math.Max(1, label.Height - 1));
 		using (GraphicsPath card = CreateRoundedRectangle(bounds, 5))
 		using (var fill = new SolidBrush(teamPlayer == m_CurrentTeamPlayer
-			? Color.FromArgb(255, 45, 55, 68) : Color.FromArgb(255, 20, 24, 30)))
+			? Color.FromArgb(232, 247, 255) : Color.FromArgb(250, 252, 255)))
 		using (var border = new Pen(teamPlayer == m_CurrentTeamPlayer
-			? Color.FromArgb(0, 226, 230) : Color.FromArgb(125, 112, 124, 132)))
+			? Color.FromArgb(0, 153, 219) : Color.FromArgb(195, 205, 215)))
 		{
 			e.Graphics.FillPath(fill, card);
 			e.Graphics.DrawPath(border, card);
@@ -1977,7 +2003,7 @@ public class TeamForm : Form
 
 		if (player == null)
 		{
-			using (var placeholder = new SolidBrush(Color.FromArgb(105, 205, 211, 216)))
+			using (var placeholder = new SolidBrush(Color.FromArgb(125, 135, 145)))
 			using (var font = new Font("Segoe UI", 6.5f, FontStyle.Regular))
 			using (var format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
 			{
@@ -1995,8 +2021,8 @@ public class TeamForm : Form
 			return;
 		}
 
-		int faceSize = label.Width >= 85 ? 35 : 27;
-		var faceBounds = new Rectangle(3, Math.Max(2, (label.Height - faceSize) / 2), faceSize, faceSize);
+		int faceSize = label.Width >= 85 ? Math.Min(40, label.Height - 8) : Math.Min(31, label.Height - 8);
+		var faceBounds = new Rectangle((label.Width - faceSize) / 2, 4, faceSize, faceSize);
 		if (m_Fc26MiniFaceCache.TryGetValue(player.Id, out Image face))
 		{
 			GraphicsState state = e.Graphics.Save();
@@ -2010,28 +2036,39 @@ public class TeamForm : Form
 		}
 		else
 		{
-			using (var fallback = new SolidBrush(Color.FromArgb(72, 88, 100)))
+			using (var fallback = new SolidBrush(Color.FromArgb(218, 226, 233)))
 				e.Graphics.FillEllipse(fallback, faceBounds);
 		}
 
-		int textLeft = faceBounds.Right + 3;
-		int textWidth = Math.Max(12, label.Width - textLeft - 3);
-		Color ratingColor = player.overallrating >= 80 ? Color.FromArgb(22, 220, 112)
-			: player.overallrating >= 70 ? Color.FromArgb(248, 204, 65) : Color.White;
-		using (var ratingBrush = new SolidBrush(ratingColor))
-		using (var nameBrush = new SolidBrush(Color.White))
-		using (var ratingFont = new Font("Segoe UI", label.Width >= 85 ? 9.5f : 8f, FontStyle.Bold))
-		using (var nameFont = new Font("Segoe UI", label.Width >= 85 ? 8.2f : 7f, FontStyle.Bold))
-		using (var format = new StringFormat { Alignment = StringAlignment.Far,
-			Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap })
+		int pillHeight = label.Width >= 85 ? 17 : 15;
+		int positionWidth = label.Width >= 85 ? 31 : 25;
+		int ratingWidth = label.Width >= 85 ? 31 : 25;
+		var positionBounds = new Rectangle(3, 3, positionWidth, pillHeight);
+		var ratingBounds = new Rectangle(label.Width - ratingWidth - 3, 3, ratingWidth, pillHeight);
+		var nameBounds = new Rectangle(4, label.Height - pillHeight - 3, label.Width - 8, pillHeight);
+		using (GraphicsPath positionPill = CreateRoundedRectangle(positionBounds, pillHeight / 2))
+		using (GraphicsPath ratingPill = CreateRoundedRectangle(ratingBounds, pillHeight / 2))
+		using (GraphicsPath namePill = CreateRoundedRectangle(nameBounds, pillHeight / 2))
+		using (var pillFill = new SolidBrush(Color.FromArgb(244, 248, 252)))
+		using (var pillBorder = new Pen(Color.FromArgb(200, 211, 221)))
+		using (var textBrush = new SolidBrush(Color.FromArgb(20, 31, 43)))
+		using (var accentBrush = new SolidBrush(Color.FromArgb(0, 135, 214)))
+		using (var smallFont = new Font("Segoe UI", label.Width >= 85 ? 7.2f : 6.2f, FontStyle.Bold))
+		using (var nameFont = new Font("Segoe UI", label.Width >= 85 ? 7.8f : 6.5f, FontStyle.Bold))
+		using (var centre = new StringFormat { Alignment = StringAlignment.Center,
+			LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter,
+			FormatFlags = StringFormatFlags.NoWrap })
 		{
-			e.Graphics.DrawString(player.overallrating.ToString(), ratingFont, ratingBrush,
-				new RectangleF(textLeft, 2, textWidth, 16), format);
-			e.Graphics.DrawString(player.Name, nameFont, nameBrush,
-				new RectangleF(textLeft, 20, textWidth, label.Height - 22), format);
+			e.Graphics.FillPath(pillFill, positionPill);
+			e.Graphics.FillPath(pillFill, ratingPill);
+			e.Graphics.FillPath(pillFill, namePill);
+			e.Graphics.DrawPath(pillBorder, positionPill);
+			e.Graphics.DrawPath(pillBorder, ratingPill);
+			e.Graphics.DrawPath(pillBorder, namePill);
+			e.Graphics.DrawString(player.GetRoleAcronym(), smallFont, accentBrush, positionBounds, centre);
+			e.Graphics.DrawString(player.overallrating.ToString(), smallFont, textBrush, ratingBounds, centre);
+			e.Graphics.DrawString(player.Name, nameFont, textBrush, nameBounds, centre);
 		}
-		using (var fitness = new Pen(Color.FromArgb(18, 232, 118), 2.3f))
-			e.Graphics.DrawLine(fitness, textLeft, label.Height - 3, label.Width - 4, label.Height - 3);
 	}
 
 	private static GraphicsPath CreateRoundedRectangle(Rectangle bounds, int radius)
@@ -2491,6 +2528,7 @@ public class TeamForm : Form
 	public void Preset()
 	{
 		m_NewIdCreator.IdList = FifaEnvironment.Teams;
+		m_NewPlayerIdCreator.IdList = FifaEnvironment.Players;
 		IdArrayList[] filterValues = new IdArrayList[5]
 		{
 			null,
@@ -2724,14 +2762,10 @@ public class TeamForm : Form
 				listViewPlayersAvailable.Items.Add(listViewItem);
 			}
 		}
-		if (listViewPlayersAvailable.Items.Count > 0)
-		{
-			listViewPlayersAvailable.Items[0].Selected = true;
-		}
 		listViewPlayersAvailable.EndUpdate();
-		EnableRosterButtons();
 		listViewPlayersAvailable.ListViewItemSorter = listViewItemSorter;
 		m_AvailablePlayerLocked = false;
+		SelectFirstAvailablePlayer();
 	}
 
 	private void InitListViewPlayersAvailable(IdObject filterObject, bool excludeYoung)
@@ -2763,14 +2797,25 @@ public class TeamForm : Form
 				listViewPlayersAvailable.Items.Add(listViewItem);
 			}
 		}
+		listViewPlayersAvailable.EndUpdate();
+		listViewPlayersAvailable.ListViewItemSorter = listViewItemSorter;
+		m_AvailablePlayerLocked = false;
+		SelectFirstAvailablePlayer();
+	}
+
+	private void SelectFirstAvailablePlayer()
+	{
+		m_CurrentAvailablePlayer = null;
 		if (listViewPlayersAvailable.Items.Count > 0)
 		{
 			listViewPlayersAvailable.Items[0].Selected = true;
+			listViewPlayersAvailable_SelectedIndexChanged(listViewPlayersAvailable, EventArgs.Empty);
+			return;
 		}
-		listViewPlayersAvailable.EndUpdate();
+		labelRosterNameFrom.Text = string.Empty;
+		pictureAvailablePlayer.Image = null;
+		labelAvailablePlayerStars.ImageIndex = 0;
 		EnableRosterButtons();
-		listViewPlayersAvailable.ListViewItemSorter = listViewItemSorter;
-		m_AvailablePlayerLocked = false;
 	}
 
 	private void EnableRosterButtons()
@@ -2827,6 +2872,10 @@ public class TeamForm : Form
 
 	private void buttonTransferFrom_Click(object sender, EventArgs e)
 	{
+		if (m_CurrentTeam == null || m_CurrentAvailablePlayer == null || m_CurrentAvailablePlayer.IsPlayingFor(m_CurrentTeam))
+		{
+			return;
+		}
 		Team team = null;
 		if (m_CurrentAvailableTeam != null)
 		{
@@ -2844,11 +2893,10 @@ public class TeamForm : Form
 				}
 			}
 		}
-		team?.RemoveTeamPlayer(m_CurrentAvailablePlayer);
-		TeamPlayer selectedTeamPlayer = m_CurrentTeam.AddTeamPlayer(m_CurrentAvailablePlayer);
+		TeamPlayer selectedTeamPlayer = MoveAvailablePlayerToCurrentTeam(team);
 		m_CurrentAvailablePlayer.joindate = dateTransferPreset.Value;
 		m_CurrentAvailablePlayer.IsLoaned = false;
-		m_CurrentAvailablePlayer.TeamLoanedFrom = team;
+		m_CurrentAvailablePlayer.TeamLoanedFrom = null;
 		if (m_CurrentAvailablePlayer.contractvaliduntil < m_CurrentAvailablePlayer.joindate.Year + 1)
 		{
 			m_CurrentAvailablePlayer.contractvaliduntil = m_CurrentAvailablePlayer.joindate.Year + 1;
@@ -2865,6 +2913,10 @@ public class TeamForm : Form
 
 	private void buttonLoanFrom_Click(object sender, EventArgs e)
 	{
+		if (m_CurrentTeam == null || m_CurrentAvailablePlayer == null || m_CurrentAvailablePlayer.IsPlayingFor(m_CurrentTeam))
+		{
+			return;
+		}
 		Team team = null;
 		if (m_CurrentAvailableTeam != null)
 		{
@@ -2882,8 +2934,7 @@ public class TeamForm : Form
 				}
 			}
 		}
-		team?.RemoveTeamPlayer(m_CurrentAvailablePlayer);
-		TeamPlayer selectedTeamPlayer = m_CurrentTeam.AddTeamPlayer(m_CurrentAvailablePlayer);
+		TeamPlayer selectedTeamPlayer = MoveAvailablePlayerToCurrentTeam(team);
 		m_CurrentAvailablePlayer.joindate = dateTransferPreset.Value;
 		m_CurrentAvailablePlayer.loandateend = m_CurrentAvailablePlayer.joindate.AddDays(364.0);
 		m_CurrentAvailablePlayer.TeamLoanedFrom = team;
@@ -2899,6 +2950,10 @@ public class TeamForm : Form
 
 	private void buttonCall_Click(object sender, EventArgs e)
 	{
+		if (m_CurrentTeam == null || m_CurrentAvailablePlayer == null || m_CurrentAvailablePlayer.IsPlayingFor(m_CurrentTeam))
+		{
+			return;
+		}
 		TeamPlayer selectedTeamPlayer = m_CurrentTeam.AddTeamPlayer(m_CurrentAvailablePlayer);
 		InitListViewTeamPlayers(m_CurrentTeam.Roster, selectedTeamPlayer);
 		InitVisualFormation(m_CurrentTeam.Roster);
@@ -2907,10 +2962,50 @@ public class TeamForm : Form
 
 	private void buttonRosterLetFree_Click(object sender, EventArgs e)
 	{
+		if (m_CurrentTeam == null || m_CurrentTeamPlayer == null)
+		{
+			return;
+		}
 		m_CurrentTeam.RemoveTeamPlayer(m_CurrentTeamPlayer);
 		InitListViewTeamPlayers(m_CurrentTeam.Roster);
 		InitVisualFormation(m_CurrentTeam.Roster);
 		EnableRosterButtons();
+	}
+
+	private TeamPlayer MoveAvailablePlayerToCurrentTeam(Team sourceTeam)
+	{
+		TeamPlayer teamPlayer = sourceTeam?.Roster?.SearchTeamPlayer(m_CurrentAvailablePlayer);
+		if (teamPlayer != null)
+		{
+			sourceTeam.RemoveTeamPlayer(teamPlayer);
+			m_CurrentTeam.AddTeamPlayer(teamPlayer);
+			return teamPlayer;
+		}
+		sourceTeam?.RemoveTeamPlayer(m_CurrentAvailablePlayer);
+		return m_CurrentTeam.AddTeamPlayer(m_CurrentAvailablePlayer);
+	}
+
+	private void buttonCreateFc26Player_Click(object sender, EventArgs e)
+	{
+		if (m_CurrentTeam == null)
+		{
+			return;
+		}
+		m_NewPlayerIdCreator.ShowDialog();
+		Player player = m_NewPlayerIdCreator.NewObject as Player;
+		if (player == null)
+		{
+			return;
+		}
+		player.joindate = dateTransferPreset.Value;
+		player.contractvaliduntil = Math.Max(player.contractvaliduntil, player.joindate.Year + 1);
+		player.IsLoaned = false;
+		player.TeamLoanedFrom = null;
+		TeamPlayer selectedTeamPlayer = m_CurrentTeam.AddTeamPlayer(player);
+		InitListViewTeamPlayers(m_CurrentTeam.Roster, selectedTeamPlayer);
+		InitVisualFormation(m_CurrentTeam.Roster);
+		EnableRosterButtons();
+		MainForm.CM.JumpTo(player);
 	}
 
 	private void listViewTeamPlayers_DoubleClick(object sender, EventArgs e)
@@ -2934,6 +3029,10 @@ public class TeamForm : Form
 	{
 		if (listViewTeamPlayers.SelectedItems.Count <= 0)
 		{
+			m_CurrentTeamPlayer = null;
+			CleanRosterTeamPlayer();
+			EnableRosterButtons();
+			InvalidateFc26RosterLabels();
 			return;
 		}
 		TeamPlayer teamPlayer = (TeamPlayer)listViewTeamPlayers.SelectedItems[0].Tag;
@@ -3004,16 +3103,22 @@ public class TeamForm : Form
 
 	private void buttonTransferPlayer_Click(object sender, EventArgs e)
 	{
-		m_CurrentTeam.RemoveTeamPlayer(m_CurrentTeamPlayer);
-		m_CurrentAvailableTeam.AddTeamPlayer(m_CurrentTeamPlayer);
-		m_CurrentTeamPlayer.Player.joindate = dateTransferPreset.Value;
-		m_CurrentTeamPlayer.Player.IsLoaned = false;
-		m_CurrentTeamPlayer.Player.TeamLoanedFrom = m_CurrentTeam;
-		if (m_CurrentTeamPlayer.Player.contractvaliduntil < m_CurrentTeamPlayer.Player.joindate.Year + 1)
+		if (m_CurrentTeam == null || m_CurrentTeamPlayer == null || m_CurrentAvailableTeam == null || m_CurrentAvailableTeam == m_CurrentTeam)
 		{
-			m_CurrentTeamPlayer.Player.contractvaliduntil = m_CurrentTeamPlayer.Player.joindate.Year + 1;
+			return;
 		}
-		m_CurrentTeamPlayer.Player.PreviousTeam = m_CurrentTeam;
+		Team sourceTeam = m_CurrentTeam;
+		TeamPlayer movedTeamPlayer = m_CurrentTeamPlayer;
+		sourceTeam.RemoveTeamPlayer(movedTeamPlayer);
+		m_CurrentAvailableTeam.AddTeamPlayer(movedTeamPlayer);
+		movedTeamPlayer.Player.joindate = dateTransferPreset.Value;
+		movedTeamPlayer.Player.IsLoaned = false;
+		movedTeamPlayer.Player.TeamLoanedFrom = null;
+		if (movedTeamPlayer.Player.contractvaliduntil < movedTeamPlayer.Player.joindate.Year + 1)
+		{
+			movedTeamPlayer.Player.contractvaliduntil = movedTeamPlayer.Player.joindate.Year + 1;
+		}
+		movedTeamPlayer.Player.PreviousTeam = sourceTeam;
 		InitListViewTeamPlayers(m_CurrentTeam.Roster);
 		InitListViewPlayersAvailable(m_CurrentAvailableTeam, null, showFreeAgents: false);
 		EnableRosterButtons();
@@ -3061,6 +3166,14 @@ public class TeamForm : Form
 				averageRoleAttribute = 9;
 			}
 			labelAvailablePlayerStars.ImageIndex = averageRoleAttribute;
+			EnableRosterButtons();
+		}
+		else if (!m_AvailablePlayerLocked)
+		{
+			m_CurrentAvailablePlayer = null;
+			labelRosterNameFrom.Text = string.Empty;
+			pictureAvailablePlayer.Image = null;
+			labelAvailablePlayerStars.ImageIndex = 0;
 			EnableRosterButtons();
 		}
 	}
@@ -4565,12 +4678,18 @@ public class TeamForm : Form
 
 	private void buttonLoanTo_Click(object sender, EventArgs e)
 	{
-		m_CurrentTeam.RemoveTeamPlayer(m_CurrentTeamPlayer);
-		m_CurrentAvailableTeam.AddTeamPlayer(m_CurrentTeamPlayer);
-		m_CurrentTeamPlayer.Player.joindate = dateTransferPreset.Value;
-		m_CurrentTeamPlayer.Player.TeamLoanedFrom = m_CurrentTeam;
-		m_CurrentTeamPlayer.Player.loandateend = m_CurrentTeamPlayer.Player.joindate.AddDays(364.0);
-		m_CurrentTeamPlayer.Player.IsLoaned = true;
+		if (m_CurrentTeam == null || m_CurrentTeamPlayer == null || m_CurrentAvailableTeam == null || m_CurrentAvailableTeam == m_CurrentTeam)
+		{
+			return;
+		}
+		Team sourceTeam = m_CurrentTeam;
+		TeamPlayer movedTeamPlayer = m_CurrentTeamPlayer;
+		sourceTeam.RemoveTeamPlayer(movedTeamPlayer);
+		m_CurrentAvailableTeam.AddTeamPlayer(movedTeamPlayer);
+		movedTeamPlayer.Player.joindate = dateTransferPreset.Value;
+		movedTeamPlayer.Player.TeamLoanedFrom = sourceTeam;
+		movedTeamPlayer.Player.loandateend = movedTeamPlayer.Player.joindate.AddDays(364.0);
+		movedTeamPlayer.Player.IsLoaned = true;
 		InitListViewTeamPlayers(m_CurrentTeam.Roster);
 		InitListViewPlayersAvailable(m_CurrentAvailableTeam, null, showFreeAgents: false);
 		EnableRosterButtons();
@@ -4851,19 +4970,24 @@ public class TeamForm : Form
 
 	private void buttonTransferAll_Click(object sender, EventArgs e)
 	{
-		while (m_CurrentTeam.Roster.Count > 0)
+		if (m_CurrentTeam == null || m_CurrentAvailableTeam == null || m_CurrentAvailableTeam == m_CurrentTeam)
 		{
-			m_CurrentTeamPlayer = (TeamPlayer)m_CurrentTeam.Roster[0];
-			m_CurrentTeam.RemoveTeamPlayer(m_CurrentTeamPlayer);
+			return;
+		}
+		Team sourceTeam = m_CurrentTeam;
+		while (sourceTeam.Roster.Count > 0)
+		{
+			m_CurrentTeamPlayer = (TeamPlayer)sourceTeam.Roster[0];
+			sourceTeam.RemoveTeamPlayer(m_CurrentTeamPlayer);
 			m_CurrentAvailableTeam.AddTeamPlayer(m_CurrentTeamPlayer);
 			m_CurrentTeamPlayer.Player.joindate = dateTransferPreset.Value;
 			m_CurrentTeamPlayer.Player.IsLoaned = false;
-			m_CurrentTeamPlayer.Player.TeamLoanedFrom = m_CurrentTeam;
+			m_CurrentTeamPlayer.Player.TeamLoanedFrom = null;
 			if (m_CurrentTeamPlayer.Player.contractvaliduntil < m_CurrentTeamPlayer.Player.joindate.Year + 1)
 			{
 				m_CurrentTeamPlayer.Player.contractvaliduntil = m_CurrentTeamPlayer.Player.joindate.Year + 1;
 			}
-			m_CurrentTeamPlayer.Player.PreviousTeam = m_CurrentTeam;
+			m_CurrentTeamPlayer.Player.PreviousTeam = sourceTeam;
 		}
 		InitListViewTeamPlayers(m_CurrentTeam.Roster);
 		InitListViewPlayersAvailable(m_CurrentAvailableTeam, null, showFreeAgents: false);
