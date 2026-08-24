@@ -165,6 +165,113 @@ public partial class TeamView : UserControl
 
     private void RosterList_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
 
+    private void TransferPlayer_Click(object sender, RoutedEventArgs e)
+    {
+        if (RosterList.SelectedItem is not TeamRosterItem player)
+        {
+            MessageBox.Show(Window.GetWindow(this), "Select a team player first.", "Transfer Player",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var links = _vm.Session.Database.GetTable("teamplayerlinks");
+        var teams = _vm.Session.Database.GetTable("teams");
+        if (links == null || teams == null)
+        {
+            MessageBox.Show(Window.GetWindow(this), "Roster relationship data is unavailable.", "Transfer Player",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var linkTeamColumn = ColumnIndex(links, "teamid");
+        var linkPlayerColumn = ColumnIndex(links, "playerid");
+        var teamIdColumn = ColumnIndex(teams, "teamid");
+        var teamNameColumn = ColumnIndex(teams, "teamname");
+        if (_teamId <= 0 || linkTeamColumn < 0 || linkPlayerColumn < 0 || teamIdColumn < 0 || teamNameColumn < 0 ||
+            !links.Columns[linkTeamColumn].IsWritable)
+        {
+            MessageBox.Show(Window.GetWindow(this), "This player relationship cannot be edited safely.", "Transfer Player",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var sourceLinkRow = -1;
+        var alreadyLinkedTeamIds = new HashSet<int>();
+        for (var row = 0; row < links.RowCount; row++)
+        {
+            if (!int.TryParse(_vm.Session.Database.GetCell("teamplayerlinks", row, "playerid"), out var linkedPlayerId) ||
+                linkedPlayerId != player.PlayerId) continue;
+            if (!int.TryParse(_vm.Session.Database.GetCell("teamplayerlinks", row, "teamid"), out var linkedTeamId)) continue;
+            alreadyLinkedTeamIds.Add(linkedTeamId);
+            if (linkedTeamId == _teamId) sourceLinkRow = row;
+        }
+        if (sourceLinkRow < 0)
+        {
+            MessageBox.Show(Window.GetWindow(this), "The selected player's link to this team was not found.", "Transfer Player",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var choices = new List<TeamTransferChoice>();
+        for (var row = 0; row < teams.RowCount; row++)
+        {
+            var record = _vm.Session.Database.GetRecord("teams", row);
+            if (record == null || !int.TryParse(record.Get(teamIdColumn), out var targetTeamId) || targetTeamId <= 0 ||
+                targetTeamId == _teamId || alreadyLinkedTeamIds.Contains(targetTeamId)) continue;
+            choices.Add(new TeamTransferChoice(targetTeamId, record.Get(teamNameColumn)));
+        }
+        choices.Sort((left, right) => StringComparer.CurrentCultureIgnoreCase.Compare(left.Name, right.Name));
+        if (choices.Count == 0)
+        {
+            MessageBox.Show(Window.GetWindow(this), "No valid destination team is available.", "Transfer Player",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var destination = new ComboBox { ItemsSource = choices, SelectedIndex = 0, MinWidth = 300, Margin = new Thickness(0, 6, 0, 12) };
+        var dialog = new Window
+        {
+            Title = $"Transfer {player.Name}", Owner = Window.GetWindow(this), WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            SizeToContent = SizeToContent.WidthAndHeight, ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false,
+            Content = new StackPanel { Margin = new Thickness(16), MinWidth = 340 }
+        };
+        var content = (StackPanel)dialog.Content;
+        content.Children.Add(new TextBlock { Text = $"Move {player.Name} to:", FontWeight = FontWeights.SemiBold });
+        content.Children.Add(destination);
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        var transfer = new Button { Content = "Transfer", IsDefault = true, MinWidth = 86, Margin = new Thickness(0, 0, 6, 0) };
+        transfer.Click += (_, _) => dialog.DialogResult = true;
+        var cancel = new Button { Content = "Cancel", IsCancel = true, MinWidth = 76 };
+        buttons.Children.Add(transfer);
+        buttons.Children.Add(cancel);
+        content.Children.Add(buttons);
+
+        if (dialog.ShowDialog() != true || destination.SelectedItem is not TeamTransferChoice target) return;
+        var outcome = _vm.Session.Pending.Stage("teamplayerlinks", sourceLinkRow, "teamid", target.TeamId.ToString());
+        if (!outcome.Success)
+        {
+            MessageBox.Show(Window.GetWindow(this), outcome.Message, "Transfer Player", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        LoadRoster();
+        MessageBox.Show(Window.GetWindow(this), $"{player.Name} will move to {target.Name}. Save to apply the transfer.",
+            "Transfer Player", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private static int ColumnIndex(DbTable table, string name)
+    {
+        for (var index = 0; index < table.Columns.Count; index++)
+            if (string.Equals(table.Columns[index].Name, name, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(table.Columns[index].ShortName, name, StringComparison.OrdinalIgnoreCase)) return index;
+        return -1;
+    }
+
+    private sealed record TeamTransferChoice(int TeamId, string Name)
+    {
+        public override string ToString() => $"{Name} [{TeamId}]";
+    }
+
     private EditOutcome? StageEdit(string fieldName, string value)
     {
         if (TeamList.SelectedItem is not RecordListItem item) return null;
@@ -242,7 +349,7 @@ public partial class TeamView : UserControl
     private static bool IsManager(string n) => false;
     private static bool IsInfo(string n) => n is "teamid" or "overallrating" or "attackrating" or "midfieldrating" or "defenserating"
         or "matchdayoverallrating" or "matchdayattackrating" or "matchdaymidfieldrating" or "matchdaydefenserating"
-        or "domesticprestige" or "internationalprestige" or "foundationyear" or "clubworth" or "popularity"
+        or "domesticprestige" or "internationalprestige" or "foundationyear" or "clubworth" or "profitability" or "popularity"
         or "youthdevelopment" or "form" or "gender" or "rivalteam" or "ballid";
     private static bool IsLastYear(string n) => n is "prevleague" or "positionlastyear" or "ischampion";
     private static bool IsLocation(string n) => n is "latitude" or "longitude" or "utcoffset" or "cityid";

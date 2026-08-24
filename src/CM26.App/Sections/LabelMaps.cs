@@ -43,6 +43,7 @@ public static class LabelMaps
         ["internationalprestige"] = "International Prestige",
         ["foundationyear"] = "Founded",
         ["clubworth"] = "Club Worth",
+        ["profitability"] = "Profitability",
         ["popularity"] = "Popularity",
         ["youthdevelopment"] = "Youth Development",
         ["ballid"] = "Home Ball",

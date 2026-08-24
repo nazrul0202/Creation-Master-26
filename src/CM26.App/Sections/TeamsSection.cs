@@ -70,6 +70,7 @@ public sealed class TeamsSection : SectionBase
     private Label _teamFanbaseLabel = new();
     private Label _teamYouthLabel = new();
     private Label _teamFinanceLabel = new();
+    private Label _teamPrestigeLabel = new();
     private Label _teamHonoursLabel = new();
     private Label _teamStadiumLabel = new();
     private Label _teamRivalLabel = new();
@@ -779,9 +780,14 @@ public sealed class TeamsSection : SectionBase
         _teamFinanceLabel.Size = new Size(228, 20);
         card.Controls.Add(_teamFinanceLabel);
 
+        _teamPrestigeLabel = MakeLabel("Prestige: —", StudioFonts.DataLabel, StudioColors.PrimaryText, false);
+        _teamPrestigeLabel.Location = new Point(StudioSpacing.Medium, 162);
+        _teamPrestigeLabel.Size = new Size(228, 20);
+        card.Controls.Add(_teamPrestigeLabel);
+
         _teamHonoursLabel = MakeLabel("Honours: —", StudioFonts.DataLabel, StudioColors.MutedText, false);
-        _teamHonoursLabel.Location = new Point(StudioSpacing.Medium, 164);
-        _teamHonoursLabel.Size = new Size(228, 46);
+        _teamHonoursLabel.Location = new Point(StudioSpacing.Medium, 188);
+        _teamHonoursLabel.Size = new Size(228, 30);
         card.Controls.Add(_teamHonoursLabel);
 
         var careerNote = MakeLabel("Budget & objectives: Career save only", StudioFonts.DataLabel, StudioColors.MutedText, false);
@@ -2321,7 +2327,8 @@ public sealed class TeamsSection : SectionBase
         _teamFanbaseLabel.Text = $"Fanbase devotion: {Fc26ClubProfile.RatingLabel(record.Get(Col(table, "popularity")))}";
         _teamYouthLabel.Text = $"Youth facilities: {Fc26ClubProfile.RatingLabel(record.Get(Col(table, "youthdevelopment")))}";
         _teamFinanceLabel.Text = $"Financial stability: {Fc26ClubProfile.RatingLabel(record.Get(Col(table, "profitability")))}";
-        _teamHonoursLabel.Text = $"Honours: League {record.Get(Col(table, "leaguetitles")) ?? "—"}  •  Cups {record.Get(Col(table, "domesticcups")) ?? "—"}\nChampions League {record.Get(Col(table, "uefa_cl_wins")) ?? "—"}";
+        _teamPrestigeLabel.Text = $"Prestige: Domestic {record.Get(Col(table, "domesticprestige")) ?? "—"}  •  International {record.Get(Col(table, "internationalprestige")) ?? "—"}";
+        _teamHonoursLabel.Text = $"Honours: League {record.Get(Col(table, "leaguetitles")) ?? "—"}  •  Cups {record.Get(Col(table, "domesticcups")) ?? "—"}  •  UCL {record.Get(Col(table, "uefa_cl_wins")) ?? "—"}";
         RefreshTacticsCard(crestTeamId);
 
         ReplacePreviewImage(_teamKitHome, null);
@@ -2918,13 +2925,22 @@ public sealed class TeamsSection : SectionBase
         var teamColumn = Col(links, "teamid");
         var jerseyColumn = Col(links, "jerseynumber");
         var positionColumn = Col(links, "position");
+        var selectedTeam = Services.Session.GetRecord(TableName, CurrentRecordIndex);
+        var selectedTeamIdColumn = Services.Session.GetTable(TableName) is { } selectedTeamTable
+            ? Col(selectedTeamTable, "teamid")
+            : -1;
+        var currentTeamId = selectedTeam != null && selectedTeamIdColumn >= 0
+            ? Parse(selectedTeam.Get(selectedTeamIdColumn))
+            : 0;
         var linkRow = Enumerable.Range(0, links.RowCount).FirstOrDefault(row =>
         {
             var link = Services.Session.GetRecord("teamplayerlinks", row);
-            return link != null && Parse(link.Get(playerColumn)) == _selectedRosterPlayerId;
+            return link != null
+                && Parse(link.Get(playerColumn)) == _selectedRosterPlayerId
+                && Parse(link.Get(teamColumn)) == currentTeamId;
         }, -1);
-        if (linkRow < 0 || teamColumn < 0 || jerseyColumn < 0 || positionColumn < 0 ||
-            !links.Columns[teamColumn].IsWritable || !links.Columns[jerseyColumn].IsWritable || !links.Columns[positionColumn].IsWritable)
+        if (currentTeamId <= 0 || playerColumn < 0 || teamColumn < 0 || linkRow < 0 ||
+            !links.Columns[teamColumn].IsWritable)
         {
             MessageBox.Show(this, "This player relationship cannot be safely edited.", "Transfer", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
@@ -2938,7 +2954,7 @@ public sealed class TeamsSection : SectionBase
             var team = Services.Session.GetRecord("teams", row);
             if (team == null) continue;
             var id = Parse(team.Get(teamIdColumn));
-            if (id > 0) choices.Add(new TeamChoice(id, team.Get(teamNameColumn)));
+            if (id > 0 && id != currentTeamId) choices.Add(new TeamChoice(id, team.Get(teamNameColumn)));
         }
         if (choices.Count == 0) return;
 
@@ -2953,16 +2969,21 @@ public sealed class TeamsSection : SectionBase
         dialog.Controls.Add(new Label { Text = "Destination team", Location = new Point(15, 54), AutoSize = true });
         var destination = new ComboBox { Location = new Point(130, 50), Size = new Size(270, 22), DropDownStyle = ComboBoxStyle.DropDownList };
         destination.Items.AddRange(choices.OrderBy(choice => choice.Name, StringComparer.CurrentCultureIgnoreCase).Cast<object>().ToArray());
-        var currentTeamId = Parse(current.Get(teamColumn));
-        destination.SelectedItem = destination.Items.Cast<TeamChoice>().FirstOrDefault(choice => choice.Id == currentTeamId);
+        if (destination.Items.Count > 0) destination.SelectedIndex = 0;
         dialog.Controls.Add(destination);
         dialog.Controls.Add(new Label { Text = "Shirt number", Location = new Point(15, 90), AutoSize = true });
-        var shirt = new NumericUpDown { Location = new Point(130, 86), Size = new Size(90, 22), Minimum = 0, Maximum = 99, Value = Math.Clamp(Parse(current.Get(jerseyColumn)), 0, 99) };
+        var canEditJersey = jerseyColumn >= 0 && links.Columns[jerseyColumn].IsWritable;
+        var shirt = new NumericUpDown { Location = new Point(130, 86), Size = new Size(90, 22), Minimum = 0, Maximum = 99, Value = canEditJersey ? Math.Clamp(Parse(current.Get(jerseyColumn)), 0, 99) : 0, Enabled = canEditJersey };
         dialog.Controls.Add(shirt);
         dialog.Controls.Add(new Label { Text = "Position", Location = new Point(240, 90), AutoSize = true });
         var position = new ComboBox { Location = new Point(290, 86), Size = new Size(110, 22), DropDownStyle = ComboBoxStyle.DropDownList };
         for (var value = 0; value <= 27; value++) position.Items.Add(new PositionChoice(value));
-        position.SelectedItem = position.Items.Cast<PositionChoice>().FirstOrDefault(choice => choice.Id == Parse(current.Get(positionColumn)));
+        var canEditPosition = positionColumn >= 0 && links.Columns[positionColumn].IsWritable;
+        position.SelectedItem = canEditPosition
+            ? position.Items.Cast<PositionChoice>().FirstOrDefault(choice => choice.Id == Parse(current.Get(positionColumn)))
+            : position.Items[0];
+        if (position.SelectedIndex < 0) position.SelectedIndex = 0;
+        position.Enabled = canEditPosition;
         dialog.Controls.Add(position);
         var stage = new Button { Text = "Stage Transfer", DialogResult = DialogResult.OK, Location = new Point(210, 150), Size = new Size(100, 28) };
         dialog.Controls.Add(stage);
@@ -2972,9 +2993,12 @@ public sealed class TeamsSection : SectionBase
         if (dialog.ShowDialog(this) != DialogResult.OK || destination.SelectedItem is not TeamChoice target || position.SelectedItem is not PositionChoice role) return;
 
         var ok = StageField("teamplayerlinks", linkRow, "teamid", target.Id.ToString(), _stagingGrid);
-        ok &= StageField("teamplayerlinks", linkRow, "jerseynumber", ((int)shirt.Value).ToString(), _stagingGrid);
-        ok &= StageField("teamplayerlinks", linkRow, "position", role.Id.ToString(), _stagingGrid);
+        if (canEditJersey)
+            ok &= StageField("teamplayerlinks", linkRow, "jerseynumber", ((int)shirt.Value).ToString(), _stagingGrid);
+        if (canEditPosition)
+            ok &= StageField("teamplayerlinks", linkRow, "position", role.Id.ToString(), _stagingGrid);
         if (!ok) return;
+        ShowRecord(CurrentRecordIndex);
         MessageBox.Show(this, $"{player.Name} will move to {target.Name}. Save to apply the transfer.", "Transfer", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
