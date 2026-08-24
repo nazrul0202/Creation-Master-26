@@ -1,6 +1,6 @@
 # End User License Agreement — Creation Master 26
 
-**Version 1.0.142 · MIT License · © 2026 Rizco98**
+**Version 1.0.143 · MIT License · © 2026 Rizco98**
 
 This software is released under the **MIT License** — see [`LICENSE`](LICENSE).
 A plain-language summary follows; the license file is authoritative.

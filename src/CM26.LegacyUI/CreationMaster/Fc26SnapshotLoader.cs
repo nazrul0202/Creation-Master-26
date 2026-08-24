@@ -827,12 +827,27 @@ internal static class Fc26SnapshotLoader
             // FC26 removed teams.transferbudget; clubworth is the nearest per-team value.
             if (columnName == "clubworth" && fields.TryGetValue("transferbudget", out field!)) return true;
         }
+        if (targetType == typeof(TeamPlayer))
+        {
+            // teamplayerlinks stores ids while the legacy object keeps linked
+            // Team/Player objects. Resolve these explicitly so moving an existing
+            // player to another club is emitted as a teamid change on save.
+            if (columnName == "teamid" && fields.TryGetValue("team", out field!)) return true;
+            if (columnName == "playerid" && fields.TryGetValue("player", out field!)) return true;
+        }
         field = null!;
         return false;
     }
 
     private static string ToDatabaseTextForColumn(object item, FieldInfo field, string columnName)
     {
+        if (item is TeamPlayer teamPlayer)
+        {
+            if (columnName == "teamid")
+                return (teamPlayer.Team?.Id ?? 0).ToString(CultureInfo.InvariantCulture);
+            if (columnName == "playerid")
+                return (teamPlayer.Player?.Id ?? 0).ToString(CultureInfo.InvariantCulture);
+        }
         var value = field.GetValue(item);
         if (item is Player && columnName == "preferredfoot" && value is int preferredFoot)
             value = (preferredFoot <= 0 ? 0 : 1) + 1;

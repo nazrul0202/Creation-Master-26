@@ -1,6 +1,6 @@
 {
-  "version": "1.0.142",
+  "version": "1.0.143",
   "name": "Creation Master 26",
-  "notes": "v1.0.142 - fixed player transfers between exact club roster links and expanded Team Info financial and prestige details.",
+  "notes": "v1.0.143 - fixed transfers and editable club profile fields in the CM16 Legacy Team screen.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

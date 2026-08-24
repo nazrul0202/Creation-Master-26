@@ -12,6 +12,44 @@ internal static class Program
 	{
 		Fc26HostBridge.Configure(args);
 		FifaLibrary.FifaEnvironment.Fc26AssetExporter = Fc26HostBridge.ExportAsset;
+		if (args.Length >= 3 && string.Equals(args[0], "--cm26-team-transfer-plan-test", StringComparison.OrdinalIgnoreCase))
+		{
+			try
+			{
+				Fc26SnapshotLoader.Load(args[1]);
+				FifaLibrary.Team source = null;
+				FifaLibrary.Team destination = null;
+				FifaLibrary.TeamPlayer playerLink = null;
+				foreach (FifaLibrary.Team candidate in FifaLibrary.FifaEnvironment.Teams)
+				{
+					if (candidate.NationalTeam) continue;
+					if (source == null && candidate.Roster.Count > 0)
+					{
+						source = candidate;
+						playerLink = (FifaLibrary.TeamPlayer)candidate.Roster[0];
+					}
+					else if (source != null && candidate != source) { destination = candidate; break; }
+				}
+				if (source == null || destination == null || playerLink == null)
+					throw new InvalidDataException("FC26 transfer test could not find two club teams.");
+				// The UI move uses this same linked TeamPlayer object. Setting its
+				// destination is sufficient here to verify snapshot persistence without
+				// disturbing formation/set-piece assignments during the diagnostic.
+				playerLink.Team = destination;
+				Fc26SnapshotLoader.WriteChanges(args[2]);
+				var plan = File.ReadAllText(args[2]);
+				var expected = "\"FieldName\":\"teamid\",\"Value\":\"" + destination.Id + "\"";
+				if (plan.IndexOf(expected, StringComparison.Ordinal) < 0)
+					throw new InvalidDataException("FC26 player transfer was not saved as a teamplayerlinks.teamid change.");
+				Environment.ExitCode = 0;
+			}
+			catch (Exception ex)
+			{
+				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				Environment.ExitCode = 1;
+			}
+			return;
+		}
 		if (args.Length >= 3 && string.Equals(args[0], "--cm26-tactics-plan-test", StringComparison.OrdinalIgnoreCase))
 		{
 			try

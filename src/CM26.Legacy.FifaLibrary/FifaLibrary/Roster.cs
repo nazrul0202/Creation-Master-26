@@ -139,7 +139,7 @@ public class Roster : ArrayList
 			while (enumerator.MoveNext())
 			{
 				TeamPlayer teamPlayer = (TeamPlayer)enumerator.Current;
-				if (teamPlayer != null)
+				if (teamPlayer?.Player != null)
 				{
 					int rolePerformance = teamPlayer.Player.GetRolePerformance(requestedRole);
 					if (rolePerformance > num)
@@ -235,7 +235,7 @@ public class Roster : ArrayList
 			while (enumerator.MoveNext())
 			{
 				TeamPlayer teamPlayer = (TeamPlayer)enumerator.Current;
-				if (teamPlayer != null)
+				if (teamPlayer?.Player != null)
 				{
 					int averageRoleAttribute = teamPlayer.Player.GetAverageRoleAttribute();
 					if (averageRoleAttribute > num)

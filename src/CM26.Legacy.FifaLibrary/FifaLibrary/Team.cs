@@ -177,6 +177,12 @@ public class Team : IdObject
 
 	private int m_domesticprestige;
 
+	private int m_profitability;
+
+	private int m_popularity;
+
+	private int m_youthdevelopment;
+
 	private int m_numtransfersin;
 
 	private string m_stadiumcustomname;
@@ -1045,6 +1051,24 @@ public class Team : IdObject
 		}
 	}
 
+	public int profitability
+	{
+		get { return m_profitability; }
+		set { m_profitability = value; }
+	}
+
+	public int popularity
+	{
+		get { return m_popularity; }
+		set { m_popularity = value; }
+	}
+
+	public int youthdevelopment
+	{
+		get { return m_youthdevelopment; }
+		set { m_youthdevelopment = value; }
+	}
+
 	public string stadiumcustomname
 	{
 		get
@@ -1868,7 +1892,8 @@ public class Team : IdObject
 		bool result = false;
 		if (m_Roster != null && m_Roster.Count > 0)
 		{
-			result = m_Roster.GetBestPlayer().Player.Female;
+			TeamPlayer bestPlayer = m_Roster.GetBestPlayer();
+			result = bestPlayer?.Player != null && bestPlayer.Player.Female;
 		}
 		return result;
 	}
@@ -2305,6 +2330,9 @@ public class Team : IdObject
 		m_transferbudget = 1000000;
 		m_internationalprestige = 10;
 		m_domesticprestige = 10;
+		m_profitability = 5;
+		m_popularity = 5;
+		m_youthdevelopment = 5;
 		m_formationid = 0;
 		m_busbuildupspeed = 50;
 		m_buspassing = 50;
@@ -2423,6 +2451,12 @@ public class Team : IdObject
 			m_transferbudget = r.GetAndCheckIntField(td.GetFieldIndex("clubworth"));
 		m_domesticprestige = r.GetAndCheckIntField(td.GetFieldIndex("domesticprestige"));
 		m_internationalprestige = r.GetAndCheckIntField(td.GetFieldIndex("internationalprestige"));
+		int profitabilityIndex = td.GetFieldIndex("profitability");
+		if (profitabilityIndex >= 0) m_profitability = r.GetAndCheckIntField(profitabilityIndex);
+		int popularityIndex = td.GetFieldIndex("popularity");
+		if (popularityIndex >= 0) m_popularity = r.GetAndCheckIntField(popularityIndex);
+		int youthDevelopmentIndex = td.GetFieldIndex("youthdevelopment");
+		if (youthDevelopmentIndex >= 0) m_youthdevelopment = r.GetAndCheckIntField(youthDevelopmentIndex);
 		m_rivalteam = r.GetAndCheckIntField(td.GetFieldIndex("rivalteam"));
 		m_captainid = r.GetAndCheckIntField(td.GetFieldIndex("captainid"));
 		m_penaltytakerid = r.GetAndCheckIntField(td.GetFieldIndex("penaltytakerid"));
@@ -2551,6 +2585,12 @@ public class Team : IdObject
 			m_defensivedepth = r.GetAndCheckIntField(FI.teams_defensivedepth);
 		m_domesticprestige = r.GetAndCheckIntField(FI.teams_domesticprestige);
 		m_internationalprestige = r.GetAndCheckIntField(FI.teams_internationalprestige);
+		if (FI.teams_profitability >= 0)
+			m_profitability = r.GetAndCheckIntField(FI.teams_profitability);
+		if (FI.teams_popularity >= 0)
+			m_popularity = r.GetAndCheckIntField(FI.teams_popularity);
+		if (FI.teams_youthdevelopment >= 0)
+			m_youthdevelopment = r.GetAndCheckIntField(FI.teams_youthdevelopment);
 		m_rivalteam = r.GetAndCheckIntField(FI.teams_rivalteam);
 		m_captainid = r.GetAndCheckIntField(FI.teams_captainid);
 		m_penaltytakerid = r.GetAndCheckIntField(FI.teams_penaltytakerid);
@@ -2960,6 +3000,12 @@ public class Team : IdObject
 			r.IntField[FI.teams_defensivedepth] = m_defensivedepth;
 		r.IntField[FI.teams_internationalprestige] = m_internationalprestige;
 		r.IntField[FI.teams_domesticprestige] = m_domesticprestige;
+		if (FI.teams_profitability >= 0)
+			r.IntField[FI.teams_profitability] = m_profitability;
+		if (FI.teams_popularity >= 0)
+			r.IntField[FI.teams_popularity] = m_popularity;
+		if (FI.teams_youthdevelopment >= 0)
+			r.IntField[FI.teams_youthdevelopment] = m_youthdevelopment;
 		r.IntField[FI.teams_busbuildupspeed] = m_busbuildupspeed;
 		r.IntField[FI.teams_buspassing] = m_buspassing;
 		if (FifaEnvironment.Year == 14)
@@ -3951,12 +3997,14 @@ public class Team : IdObject
 	{
 		m_Roster.Remove(teamPlayer);
 		teamPlayer.Player.NotPlayFor(this);
-		if (teamPlayer.position < 28)
+		// Some FC26 clubs have no linked formation. A transfer must still be
+		// possible; formation-only reassignment is simply skipped for those clubs.
+		if (Formation != null && teamPlayer.position < 28)
 		{
 			AssignRoleToSubstitute((ERole)teamPlayer.position);
 			AssignBench();
 		}
-		else if (teamPlayer.position == 28)
+		else if (Formation != null && teamPlayer.position == 28)
 		{
 			AssignBench();
 		}

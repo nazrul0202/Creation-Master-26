@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.143 - Legacy Team transfer and club profile fix (2026-08-24)
+
+- Fixed the actual CM16 Legacy Team Roster page so **Available Players** is populated when the page opens and existing players can be selected for transfer from another club.
+- Fixed FC26 `teamplayerlinks.teamid` persistence when an existing linked player is moved between clubs.
+- Added editable **Profitability**, **Popularity**, and **Youth Development** fields to the Legacy Team Info panel, backed by the real FC26 `teams` columns.
+- Made roster rendering and transfers tolerate incomplete FC26 team/formation links instead of failing on affected clubs.
+- Added Legacy Team UI smoke coverage and a transfer-plan persistence diagnostic.
+
 ## Version 1.0.142 - reliable club transfers and Team Info details (2026-08-24)
 
 - Fixed player transfers to update the exact Team X roster link instead of the player's first link, which could belong to another club or a national team.

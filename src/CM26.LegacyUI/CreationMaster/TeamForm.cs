@@ -62,6 +62,12 @@ public class TeamForm : Form
 
 	private bool m_Fc26TeamUiConfigured;
 
+	private NumericUpDown numericFc26Profitability;
+
+	private NumericUpDown numericFc26Popularity;
+
+	private NumericUpDown numericFc26YouthDevelopment;
+
 	private CareerBudgetEditor m_Fc26CareerBudgetEditor;
 
 	private GroupBox groupFc26CareerBudget;
@@ -1353,10 +1359,54 @@ public class TeamForm : Form
 		if (comboMaxOnjective.Items.Count > 0) comboMaxOnjective.Items[0] = "Career generated (not in squads DB)";
 		if (comboProbObjective.Items.Count > 0) comboProbObjective.Items[0] = "Career generated (not in squads DB)";
 		labelInitialBudget.Text = "Club Worth";
+		ConfigureFc26ClubProfileUi();
 		ConfigureFc26CareerBudgetUi();
 
 		ConfigureFc26RosterFormationUi();
 		ConfigureFc26PlayerCreationUi();
+	}
+
+	private void ConfigureFc26ClubProfileUi()
+	{
+		// Insert FC26's real club-profile fields after Club Worth. The controls
+		// below this point are shifted down so none of the legacy fields overlap.
+		const int insertTop = 228;
+		const int addedHeight = 81;
+		foreach (Control control in groupBox3.Controls)
+		{
+			if (control.Top >= insertTop) control.Top += addedHeight;
+		}
+		groupBox3.Height += addedHeight;
+
+		numericFc26Profitability = AddFc26ClubProfileRow("Profitability", "profitability", insertTop);
+		numericFc26Popularity = AddFc26ClubProfileRow("Popularity", "popularity", insertTop + 27);
+		numericFc26YouthDevelopment = AddFc26ClubProfileRow("Youth Development", "youthdevelopment", insertTop + 54);
+	}
+
+	private NumericUpDown AddFc26ClubProfileRow(string labelText, string propertyName, int top)
+	{
+		var label = new Label
+		{
+			Text = labelText,
+			Location = new Point(6, top + 3),
+			Size = new Size(82, 17),
+			TextAlign = ContentAlignment.MiddleLeft,
+			BackColor = Color.Transparent
+		};
+		var numeric = new NumericUpDown
+		{
+			Name = "numericFc26" + propertyName,
+			Location = new Point(92, top),
+			Size = new Size(167, 20),
+			Minimum = 0,
+			Maximum = 10,
+			TextAlign = HorizontalAlignment.Center
+		};
+		numeric.DataBindings.Add(new Binding("Value", teamBindingSource, propertyName, true,
+			DataSourceUpdateMode.OnPropertyChanged));
+		groupBox3.Controls.Add(label);
+		groupBox3.Controls.Add(numeric);
+		return numeric;
 	}
 
 	private void ConfigureFc26PlayerCreationUi()
@@ -2427,6 +2477,15 @@ public class TeamForm : Form
 		SelectFc26FormationPreset();
 		LoadFc26RosterMiniFacesAsync(m_CurrentTeam);
 		LoadFc26Tactics();
+		RefreshAvailablePlayers();
+	}
+
+	private void RefreshAvailablePlayers()
+	{
+		object filter = null;
+		if (pickUpAvailablePlayers.comboFilterBy.SelectedIndex > 0)
+			filter = pickUpAvailablePlayers.comboFilterValue.SelectedItem;
+		AvailablePlayersFilterChanged(pickUpAvailablePlayers, filter);
 	}
 
 	private void SelectFc26FormationPreset()
@@ -2473,6 +2532,11 @@ public class TeamForm : Form
 			}
 			if (FifaEnvironment.Year == 26)
 			{
+				if (numericFc26Profitability == null || numericFc26Popularity == null ||
+					numericFc26YouthDevelopment == null)
+					throw new InvalidOperationException("FC26 club profile fields were not added to Team Info.");
+				if (listViewPlayersAvailable.Items.Count == 0)
+					throw new InvalidOperationException("FC26 Available Players did not load on the Roster page.");
 				var formationNames = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
 				foreach (object item in comboGenericFormations.Items) formationNames.Add(item.ToString());
 				if (comboGenericFormations.Items.Count != 29 || formationNames.Count != 29)
@@ -2721,6 +2785,7 @@ public class TeamForm : Form
 		for (int i = 0; i < roster.Count; i++)
 		{
 			TeamPlayer teamPlayer = (TeamPlayer)roster[i];
+			if (teamPlayer?.Player == null) continue;
 			string s = teamPlayer.jerseynumber.ToString();
 			s = FifaUtil.PadBlanks(s, 2);
 			ListViewItem listViewItem = new ListViewItem(teamPlayer.Player.Name);
@@ -3606,6 +3671,7 @@ public class TeamForm : Form
 		for (int i = 0; i < roster.Count; i++)
 		{
 			TeamPlayer teamPlayer = (TeamPlayer)roster[i];
+			if (teamPlayer?.Player == null) continue;
 			switch (teamPlayer.position)
 			{
 			case 0:
