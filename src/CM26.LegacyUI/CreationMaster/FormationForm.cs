@@ -259,9 +259,15 @@ public class FormationForm : Form
 
 	private NumericUpDown numericFullName;
 
+	private CmStyleDetailsPanel m_ClubUsage;
+
 	public FormationForm()
 	{
 		InitializeComponent();
+		var usagePage = new TabPage("Club Usage") { BackColor = SystemColors.Control };
+		m_ClubUsage = new CmStyleDetailsPanel(DetailSection.Formation);
+		usagePage.Controls.Add(m_ClubUsage);
+		tabFormation.TabPages.Add(usagePage);
 		pickUpControl.SelectObject = SelectFormation;
 		pickUpControl.CreateObject = CreateFormation;
 		pickUpControl.DeleteObject = DeleteFormation;
@@ -463,6 +469,7 @@ public class FormationForm : Form
 			return;
 		}
 		m_CurrentFormation = formation;
+		m_ClubUsage.Reload(formation.Id);
 		m_PositioningFlag = true;
 		for (int i = 0; i < 11; i++)
 		{

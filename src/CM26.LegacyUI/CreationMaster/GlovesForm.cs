@@ -32,11 +32,17 @@ public class GlovesForm : Form
 	private ToolStripButton buttonShow3DModel;
 
 	private ToolStripSeparator toolStripSeparator1;
+	private CmStyleDetailsPanel databaseDetails;
 
 	public GlovesForm()
 	{
 		base.Visible = false;
 		InitializeComponent();
+		databaseDetails = new CmStyleDetailsPanel(DetailSection.Gloves);
+		Controls.Add(databaseDetails);
+		splitContainer1.Visible = false;
+		databaseDetails.BringToFront();
+		VisibleChanged += (_, _) => { if (Visible) databaseDetails.Reload(0); };
 		viewer3DGloves = new Viewer3D();
 		viewer3DGloves.AmbientColor = Color.White;
 		viewer3DGloves.BackColor = Color.Gray;

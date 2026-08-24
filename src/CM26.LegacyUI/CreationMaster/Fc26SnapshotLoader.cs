@@ -27,6 +27,17 @@ internal static class Fc26SnapshotLoader
     /// </summary>
     private static readonly Dictionary<object, FormationRoleState[]> s_loadedFormationRoles =
         new Dictionary<object, FormationRoleState[]>(ReferenceComparer.Instance);
+    private static readonly Dictionary<object, TeamSheetState> s_loadedTeamSheets =
+        new Dictionary<object, TeamSheetState>(ReferenceComparer.Instance);
+    private static readonly HashSet<string> s_teamSheetAssignmentFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "captainid", "freekicktakerid", "leftcornerkicktakerid", "leftfreekicktakerid",
+        "longkicktakerid", "penaltytakerid", "rightcornerkicktakerid", "rightfreekicktakerid"
+    };
+    private static readonly Dictionary<string, Change> s_detailChanges =
+        new Dictionary<string, Change>(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, string> s_detailOriginalValues =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
     internal static void Load(string path)
     {
@@ -39,6 +50,9 @@ internal static class Fc26SnapshotLoader
         s_rowOrigins.Clear();
         s_loadedPlayerNames.Clear();
         s_loadedFormationRoles.Clear();
+        s_loadedTeamSheets.Clear();
+        s_detailChanges.Clear();
+        s_detailOriginalValues.Clear();
 
         var countries = Build<CountryList, Country>(tables, "nations", "nationid");
         var leagues = Build<LeagueList, League>(tables, "leagues", "leagueid");
@@ -194,6 +208,10 @@ internal static class Fc26SnapshotLoader
                 {
                     if (columnIndex == idIndex) continue;
                     var columnName = Normalize(table.Columns[columnIndex]);
+                    if (mapping.Table.Equals("teamplayerlinks", StringComparison.OrdinalIgnoreCase) &&
+                        columnName == "position" && s_loadedTeamSheets.Count > 0) continue;
+                    if (mapping.Table.Equals("teams", StringComparison.OrdinalIgnoreCase) &&
+                        s_teamSheetAssignmentFields.Contains(table.Columns[columnIndex]) && s_loadedTeamSheets.Count > 0) continue;
                     if (!TryResolveField(item.GetType(), fields, columnName, out var field)) continue;
                     var current = ToDatabaseTextForColumn(item, field, columnName);
                     if (DatabaseEquals(row[columnIndex], current, field.FieldType)) continue;
@@ -211,6 +229,7 @@ internal static class Fc26SnapshotLoader
         AppendFc26TacticMirrorChanges(snapshot, changes);
         AppendFormationRoleChanges(snapshot, changes);
         AppendPlayerNameChanges(snapshot, changes);
+        AppendDetailChanges(changes);
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         File.WriteAllText(path, JsonSerializer.Serialize(new ChangePlan
         {
@@ -220,6 +239,58 @@ internal static class Fc26SnapshotLoader
             Changes = changes
         }));
         return changes.Count;
+    }
+
+    internal static SnapshotDetailTable? DetailTable(string tableName)
+    {
+        var table = s_snapshot?.Tables.FirstOrDefault(value =>
+            value.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
+        return table == null ? null : new SnapshotDetailTable(table.Name, table.Columns, table.Rows);
+    }
+
+    internal static void StageDetailValue(string tableName, int rowIndex, string fieldName, string value)
+    {
+        var table = s_snapshot?.Tables.FirstOrDefault(candidate =>
+            candidate.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
+        if (table == null || rowIndex < 0 || rowIndex >= table.Rows.Count)
+            throw new InvalidOperationException("The selected detail record is unavailable.");
+        var column = Column(table, fieldName);
+        if (column < 0 || column >= table.Rows[rowIndex].Length)
+            throw new InvalidOperationException("The selected detail field is unavailable.");
+        var key = table.Name + "\u001f" + rowIndex.ToString(CultureInfo.InvariantCulture) + "\u001f" + fieldName;
+        if (!s_detailOriginalValues.TryGetValue(key, out var original))
+        {
+            original = table.Rows[rowIndex][column] ?? string.Empty;
+            s_detailOriginalValues[key] = original;
+        }
+        if (string.Equals(original, value ?? string.Empty, StringComparison.Ordinal))
+        {
+            s_detailChanges.Remove(key);
+            table.Rows[rowIndex][column] = original;
+            return;
+        }
+        s_detailChanges[key] = new Change
+        {
+            TableName = table.Name,
+            RowIndex = rowIndex,
+            FieldName = table.Columns[column],
+            Value = value ?? string.Empty
+        };
+        // Keep the in-memory view in sync so closing and reopening a details
+        // page shows the staged value instead of the old snapshot text.
+        table.Rows[rowIndex][column] = value ?? string.Empty;
+    }
+
+    private static void AppendDetailChanges(List<Change> changes)
+    {
+        foreach (var staged in s_detailChanges.Values)
+        {
+            changes.RemoveAll(existing =>
+                existing.RowIndex == staged.RowIndex &&
+                existing.TableName.Equals(staged.TableName, StringComparison.OrdinalIgnoreCase) &&
+                existing.FieldName.Equals(staged.FieldName, StringComparison.OrdinalIgnoreCase));
+            changes.Add(staged);
+        }
     }
 
     private static void AppendFc26TacticMirrorChanges(Snapshot snapshot, List<Change> changes)
@@ -327,7 +398,11 @@ internal static class Fc26SnapshotLoader
                 .Select(group => group.First())
                 .ToList();
 
-            for (var slot = 0; slot < 52; slot++)
+            s_loadedTeamSheets.TryGetValue(team, out var loadedSheet);
+            var rosterChanged = loadedSheet == null || !roster.Select(value => value.Player.Id)
+                .SequenceEqual(loadedSheet.PlayerIds);
+
+            for (var slot = 0; rosterChanged && slot < 52; slot++)
             {
                 var playerId = slot < roster.Count ? roster[slot].Player.Id : -1;
                 var playerColumn = Column(table, "playerid" + slot);
@@ -400,7 +475,11 @@ internal static class Fc26SnapshotLoader
                 ("rightfreekicktakerid", team.rightfreekicktakerid)
             };
             foreach (var field in integerFields)
+            {
+                if (loadedSheet != null && loadedSheet.IntegerValues.TryGetValue(field.Name, out var loaded) &&
+                    loaded == field.Value) continue;
                 AddFormationRoleChange(table, rowIndex, field.Name, field.Value, typeof(int), changes);
+            }
         }
     }
 
@@ -1042,7 +1121,15 @@ internal static class Fc26SnapshotLoader
             .GroupBy(value => ParseIntAt(value.Row, teamIdColumn)))
         {
             var team = teams.SearchId(group.Key) as Team;
-            if (team == null || team.Roster.Count == 0) continue;
+            if (team == null) continue;
+            if (team.Roster.Count == 0)
+            {
+                // Empty placeholder clubs still own a teamsheet row. Capture
+                // their loaded state so a no-op save never writes synthetic
+                // captain and set-piece values into that row.
+                s_loadedTeamSheets[team] = TeamSheetState.From(team);
+                continue;
+            }
             var selected = group.OrderBy(value => ParseIntAt(value.Row, tacticIdColumn) == 0 ? 0 : 1)
                 .ThenBy(value => value.Index).First();
 
@@ -1086,6 +1173,7 @@ internal static class Fc26SnapshotLoader
             }
             team.Roster.Clear();
             team.Roster.AddRange(ordered.ToArray());
+            s_loadedTeamSheets[team] = TeamSheetState.From(team);
         }
     }
 
@@ -1148,5 +1236,57 @@ internal static class Fc26SnapshotLoader
         internal static readonly ReferenceComparer Instance = new ReferenceComparer();
         public new bool Equals(object x, object y) => ReferenceEquals(x, y);
         public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
+    }
+
+    private sealed class TeamSheetState
+    {
+        internal int[] PlayerIds { get; private set; } = Array.Empty<int>();
+        internal Dictionary<string, int> IntegerValues { get; private set; } = new Dictionary<string, int>();
+
+        internal static TeamSheetState From(Team team) => new TeamSheetState
+        {
+            PlayerIds = team.Roster.Cast<TeamPlayer>().Where(value => value?.Player != null)
+                .GroupBy(value => value.Player.Id).Select(group => group.First().Player.Id).ToArray(),
+            IntegerValues = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["busbuildupspeed"] = team.busbuildupspeed, ["busdribbling"] = team.busdribbling,
+                ["buspassing"] = team.buspassing, ["buspositioning"] = team.buspositioning,
+                ["cccrossing"] = team.cccrossing, ["ccpassing"] = team.ccpassing,
+                ["ccpositioning"] = team.ccpositioning, ["ccshooting"] = team.ccshooting,
+                ["defaggression"] = team.defaggression, ["defdefenderline"] = team.defdefenderline,
+                ["defmentality"] = team.defmentality, ["defteamwidth"] = team.defteamwidth,
+                ["captainid"] = team.captainid, ["freekicktakerid"] = team.freekicktakerid,
+                ["leftcornerkicktakerid"] = team.leftcornerkicktakerid,
+                ["leftfreekicktakerid"] = team.leftfreekicktakerid,
+                ["longkicktakerid"] = team.longkicktakerid, ["penaltytakerid"] = team.penaltytakerid,
+                ["rightcornerkicktakerid"] = team.rightcornerkicktakerid,
+                ["rightfreekicktakerid"] = team.rightfreekicktakerid
+            }
+        };
+    }
+}
+
+internal sealed class SnapshotDetailTable
+{
+    internal SnapshotDetailTable(string name, string[] columns, List<string[]> rows)
+    {
+        Name = name;
+        Columns = columns;
+        Rows = rows;
+    }
+
+    internal string Name { get; }
+    internal string[] Columns { get; }
+    internal IReadOnlyList<string[]> Rows { get; }
+
+    internal int Column(string fieldName) =>
+        Array.FindIndex(Columns, value => value.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+
+    internal string Value(int rowIndex, string fieldName)
+    {
+        var column = Column(fieldName);
+        return rowIndex >= 0 && rowIndex < Rows.Count && column >= 0 && column < Rows[rowIndex].Length
+            ? Rows[rowIndex][column]
+            : string.Empty;
     }
 }

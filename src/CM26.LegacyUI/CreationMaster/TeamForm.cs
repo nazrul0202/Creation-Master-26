@@ -766,10 +766,16 @@ public class TeamForm : Form
 
 	private Button buttonTransferAll;
 
+	private CmStyleDetailsPanel m_ClubRelations;
+
 	public TeamForm()
 	{
 		base.Visible = false;
 		InitializeComponent();
+		var relationsPage = new TabPage("Club Relations") { BackColor = SystemColors.Control };
+		m_ClubRelations = new CmStyleDetailsPanel(DetailSection.Team);
+		relationsPage.Controls.Add(m_ClubRelations);
+		tableEditTeam.TabPages.Add(relationsPage);
 		viewer3DTeamManager = new Viewer3D();
 		groupTeamManager.Controls.Add(viewer3DTeamManager);
 		viewer3DTeamManager.Width = 256;
@@ -1275,6 +1281,7 @@ public class TeamForm : Form
 			if (m_CurrentTeam == team && m_CurrentPage == tableEditTeam.SelectedTab) return;
 			m_CurrentTeam = team;
 			teamBindingSource.DataSource = m_CurrentTeam;
+			m_ClubRelations.Reload(team.Id);
 			UpdateCurrentPage();
 		}
 		finally

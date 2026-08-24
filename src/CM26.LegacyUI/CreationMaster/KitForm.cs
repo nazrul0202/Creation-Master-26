@@ -239,6 +239,8 @@ public class KitForm : Form
 	{
 		base.Visible = false;
 		InitializeComponent();
+		CmStyleDetailsWindow.Attach(this, "Kit Details", DetailSection.Kit,
+			() => m_CurrentKit?.Id ?? -1);
 		viewer3DKit = new Viewer3D();
 		viewer3DKit.AmbientColor = Color.White;
 		viewer3DKit.BackColor = Color.Gray;

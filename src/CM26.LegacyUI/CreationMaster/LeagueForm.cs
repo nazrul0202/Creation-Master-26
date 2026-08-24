@@ -144,6 +144,8 @@ public class LeagueForm : Form
 	{
 		base.Visible = false;
 		InitializeComponent();
+		CmStyleDetailsWindow.Attach(this, "League Details", DetailSection.League,
+			() => m_CurrentLeague?.Id ?? -1);
 		pickUpControl.SelectObject = SelectLeague;
 		pickUpControl.CreateObject = CreateLeague;
 		pickUpControl.DeleteObject = DeleteLeague;

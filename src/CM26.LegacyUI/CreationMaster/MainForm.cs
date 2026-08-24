@@ -332,6 +332,8 @@ public class MainForm : Form
 	public MainForm()
 	{
 		InitializeComponent();
+		buttonSponsor.Visible = true;
+		buttonTv.Visible = true;
 		m_SplitterDistanceBottom = splitHoriz.Height * 2 / 3;
 		m_SplitterDistanceRight = splitVert.Width * 3 / 4;
 		FifaEnvironment.InitializeDefault();
@@ -871,6 +873,10 @@ public class MainForm : Form
 		{
 			ShowFormOnPanel(m_ManagerForm, panel);
 		}
+		if (obj == buttonSponsor)
+		{
+			CmStyleDetailsWindow.Open(this, "Sponsors", DetailSection.Sponsor);
+		}
 		if (obj == buttonGameGraphics)
 		{
 			ShowFormOnPanel(m_GameGraphicForm, panel);
@@ -1273,6 +1279,7 @@ public class MainForm : Form
 
 	private void adboardsToolStripMenuItem_Click(object sender, EventArgs e)
 	{
+		CmStyleDetailsWindow.Open(this, "Adboards", DetailSection.Adboard);
 	}
 
 	private void ballsToolStripMenuItem_Click(object sender, EventArgs e)

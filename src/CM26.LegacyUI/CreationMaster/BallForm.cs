@@ -70,6 +70,8 @@ public class BallForm : Form
 	{
 		base.Visible = false;
 		InitializeComponent();
+		CmStyleDetailsWindow.Attach(this, "Ball Assignments", DetailSection.Ball,
+			() => m_CurrentBall?.Id ?? -1);
 		viewer3DBall = new Viewer3D();
 		viewer3DBall.AmbientColor = Color.DimGray;
 		viewer3DBall.BackColor = Color.Gray;

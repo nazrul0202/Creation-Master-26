@@ -1377,6 +1377,8 @@ public class CompetitionForm : Form
 	{
 		base.Visible = false;
 		InitializeComponent();
+		CmStyleDetailsWindow.Attach(this, "Competition Details", DetailSection.Competition,
+			() => m_CurrentCompobj?.Id ?? -1);
 		viewer3DTrophy = new Viewer3D();
 		viewer3DTrophy.AmbientColor = Color.Black;
 		viewer3DTrophy.BackColor = Color.Gray;

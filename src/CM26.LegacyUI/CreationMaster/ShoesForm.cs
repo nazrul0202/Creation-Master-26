@@ -67,6 +67,8 @@ public class ShoesForm : Form
 	{
 		base.Visible = false;
 		InitializeComponent();
+		CmStyleDetailsWindow.Attach(this, "Boot Details", DetailSection.Boot,
+			() => m_CurrentShoes?.Id ?? -1);
 		pickUpControl.SelectObject = SelectShoes;
 		pickUpControl.CreateObject = CreateShoes;
 		pickUpControl.DeleteObject = DeleteShoes;

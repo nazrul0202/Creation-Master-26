@@ -141,6 +141,8 @@ public class CountryForm : Form
 	{
 		base.Visible = false;
 		InitializeComponent();
+		CmStyleDetailsWindow.Attach(this, "Association Details", DetailSection.Country,
+			() => m_CurrentCountry?.Id ?? -1);
 		pickUpControl.SelectObject = SelectCountry;
 		pickUpControl.CreateObject = CreateCountry;
 		pickUpControl.DeleteObject = DeleteCountry;

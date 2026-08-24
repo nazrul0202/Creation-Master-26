@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.146 - complete structured section details (2026-08-25)
+
+- Expanded the Legacy data bridge from 25 to 88 football-facing database tables, covering linked club, player, competition, presentation, equipment and matchday records.
+- Added compact CM16-style detail cards across Team, Player, Stadium, Formation, Country, League, Kit, Ball, Boot, Gloves, Competition, Referee, Manager, Sponsor, Adboard and Broadcast sections.
+- Replaced technical foreign-key entry with named Team, Player, League, Stadium, Formation, Competition, Country, Ball, Referee and Sponsor selectors wherever a relationship is available.
+- Kept the public interface curated: friendly labels, grouped records and item-specific filtering are used instead of raw schema names or an all-fields dump.
+- Fixed expanded-snapshot roster loading so clubs retain their linked players and lineups, including teams with incomplete formation data.
+- Prevented untouched team sheets, set-piece assignments and detail records from producing false save-plan changes.
+
 ## Version 1.0.145 - native CM16-style Club Details layout (2026-08-24)
 
 - Removed the raw FC26 record/rating field block from the Generic Team page.

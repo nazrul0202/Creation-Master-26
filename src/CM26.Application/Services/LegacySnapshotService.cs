@@ -17,7 +17,30 @@ public static class LegacySnapshotService
         "default_mentalities", "defaultteamdata",
         "manager", "referee", "leaguerefereelinks", "teamballs", "shoecolors",
         "playerboots", "fieldpositionboundingboxes", "competition", "competitioninfo",
-        "compobj", "audionation", "career_managerpref"
+        "compobj", "audionation", "career_managerpref",
+
+        // Structured CM-style detail editors. These are intentionally limited to
+        // football-facing records used by a visible section; internal tuning,
+        // temporary, anatomy and simulation tables stay out of the x86 snapshot.
+        "audiostadium", "goalkeepergloves", "sponsors", "teamsponsorlinks",
+        "modeadboardlinks", "adboardconsoleoverrides", "adboardlogicexceptions",
+        "broadcastleague", "presentationmodesettings",
+        "default_teamsheets", "customformations", "formationoffsets", "mentalities",
+        "teamformationteamstylelinks", "customteamstyles",
+        "playerloans", "playersuspensions", "transfers", "previousteam",
+        "playerperks", "playerarchetypelinks", "playstyles", "playeroutfitlinks",
+        "tattoo", "celebrations", "goalcelebrationlink", "playercalls",
+        "playervoicemap", "playerpronouns", "playernamemap", "commentarynames",
+        "rivals", "clubcoefficients", "nationcoefficients", "teamcounterparts",
+        "tifo", "teamkithudvalues", "kitcoloroverrides", "kitremapping",
+        "competitionbadges", "competitionballs", "competitionkits",
+        "competitionmatchups", "competitionseeds", "competitionsponsorlinks",
+        "competitionstadiumlinks", "competitionuefasponsors",
+        "competitionrefereekits", "fixtures", "prevcompetitionstats",
+        "stadiumassignments", "stadiumcolor", "seatcolor", "netpattern",
+        "turfattributesmap", "turfsquadtypemap",
+        "dlcballs", "teamballremapping", "footwear", "dlcboots",
+        "playerbootremapping", "crowdregion", "crowdregionlrc"
     };
 
     public static void Write(DatabaseSession session, string outputPath, string? gameRoot = null)

@@ -94,6 +94,31 @@ internal static class Program
 			}
 			return;
 		}
+		if (args.Length >= 3 && string.Equals(args[0], "--cm26-detail-plan-test", StringComparison.OrdinalIgnoreCase))
+		{
+			try
+			{
+				Fc26SnapshotLoader.Load(args[1]);
+				var rivals = Fc26SnapshotLoader.DetailTable("rivals")
+					?? throw new InvalidDataException("Rival records are missing from the snapshot.");
+				if (rivals.Rows.Count == 0) throw new InvalidDataException("No rival record is available for the test.");
+				var original = int.TryParse(rivals.Value(0, "rivaltype"), out var value) ? value : 0;
+				var replacement = original == 1 ? 2 : 1;
+				Fc26SnapshotLoader.StageDetailValue("rivals", 0, "rivaltype", replacement.ToString());
+				Fc26SnapshotLoader.WriteChanges(args[2]);
+				var plan = File.ReadAllText(args[2]);
+				if (plan.IndexOf("\"TableName\":\"rivals\"", StringComparison.Ordinal) < 0 ||
+					plan.IndexOf("\"FieldName\":\"rivaltype\"", StringComparison.Ordinal) < 0)
+					throw new InvalidDataException("The structured detail edit was not written to the save plan.");
+				Environment.ExitCode = 0;
+			}
+			catch (Exception ex)
+			{
+				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				Environment.ExitCode = 1;
+			}
+			return;
+		}
 		Application.EnableVisualStyles();
 		Application.SetCompatibleTextRenderingDefault(defaultValue: false);
 		Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);

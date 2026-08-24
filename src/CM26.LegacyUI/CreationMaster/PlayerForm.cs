@@ -820,10 +820,16 @@ public class PlayerForm : Form
 
 	private CheckBox checkTechDribbler;
 
+	private CmStyleDetailsPanel m_CareerDetails;
+
 	public PlayerForm()
 	{
 		base.Visible = false;
 		InitializeComponent();
+		var careerPage = new TabPage("Career Details") { BackColor = SystemColors.Control };
+		m_CareerDetails = new CmStyleDetailsPanel(DetailSection.Player);
+		careerPage.Controls.Add(m_CareerDetails);
+		tabEditPlayer.TabPages.Add(careerPage);
 		InitializeFc26PlaystyleControls();
 		viewer3D = new Viewer3D();
 		splitContainer2.Panel1.Controls.Add(viewer3D);
@@ -1175,6 +1181,7 @@ public class PlayerForm : Form
 			m_CurrentPlayer = player;
 			buttonSaveHair.Enabled = false;
 			playerBindingSource.DataSource = m_CurrentPlayer;
+			m_CareerDetails.Reload(player.Id);
 			m_CurrentPage = tabEditPlayer.SelectedTab;
 			if (m_CurrentPage == pageInfo)
 			{

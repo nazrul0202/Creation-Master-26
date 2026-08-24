@@ -52,6 +52,7 @@ public class ManagerForm : Form
 	public ManagerForm()
 	{
 		InitializeComponent();
+		CmStyleDetailsWindow.Attach(this, "Manager Records", DetailSection.Manager, () => 0);
 		viewer3DManager = new Viewer3D();
 		viewer3DManager.AmbientColor = Color.Black;
 		viewer3DManager.BackColor = Color.Gray;

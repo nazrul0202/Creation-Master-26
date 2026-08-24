@@ -217,10 +217,16 @@ public class StadiumForm : Form
 
 	private RadioButton radioPreviewOvercast;
 
+	private CmStyleDetailsPanel m_MatchdayDetails;
+
 	public StadiumForm()
 	{
 		base.Visible = false;
 		InitializeComponent();
+		var matchdayPage = new TabPage("Matchday Details") { BackColor = SystemColors.Control };
+		m_MatchdayDetails = new CmStyleDetailsPanel(DetailSection.Stadium);
+		matchdayPage.Controls.Add(m_MatchdayDetails);
+		tabEsitStadium.TabPages.Add(matchdayPage);
 		pickUpControl.SelectObject = SelectStadium;
 		pickUpControl.DeleteObject = DeleteStadium;
 		pickUpControl.CloneObject = CloneStadium;
@@ -476,6 +482,7 @@ public class StadiumForm : Form
 		if (m_IsLoaded && (m_CurrentStadium != stadium || m_CurrentPage != tabEsitStadium.SelectedTab))
 		{
 			m_CurrentStadium = stadium;
+			m_MatchdayDetails.Reload(stadium.Id);
 			m_CurrentPage = tabEsitStadium.SelectedTab;
 			if (m_CurrentPage == pageStadiumGeneral)
 			{
