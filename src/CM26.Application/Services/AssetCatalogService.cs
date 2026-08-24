@@ -20,23 +20,39 @@ public sealed class AssetCatalogService
     };
     private static readonly string[] BallPatterns =
     {
+        Path.Combine("assets", "26", "ballid", "{0}.png"),
+        Path.Combine("assets", "ballid", "{0}.png"),
+        Path.Combine("26", "ballid", "{0}.png"),
+        Path.Combine("ballid", "{0}.png"),
         Path.Combine("FC Editor by decoruiz Alpha v21", "assets", "26", "ballid", "{0}.png"),
         Path.Combine("FC Editor by decoruiz Alpha v21", "assets", "ballid", "{0}.png"),
     };
     private static readonly string[] StadiumPatterns =
     {
+        Path.Combine("assets", "stadiumid", "{0}.png"),
+        Path.Combine("stadiumid", "{0}.png"),
         Path.Combine("FC Editor by decoruiz Alpha v21", "assets", "stadiumid", "{0}.png"),
     };
     private static readonly string[] BootPatterns =
     {
+        Path.Combine("assets", "26", "shoetypecode", "{0}.png"),
+        Path.Combine("assets", "shoetypecode", "{0}.png"),
+        Path.Combine("26", "shoetypecode", "{0}.png"),
+        Path.Combine("shoetypecode", "{0}.png"),
         Path.Combine("FC Editor by decoruiz Alpha v21", "assets", "26", "shoetypecode", "{0}.png"),
     };
     private static readonly string[] GlovePatterns =
     {
+        Path.Combine("assets", "26", "gkglovetypecode", "{0}.png"),
+        Path.Combine("assets", "gkglovetypecode", "{0}.png"),
+        Path.Combine("26", "gkglovetypecode", "{0}.png"),
+        Path.Combine("gkglovetypecode", "{0}.png"),
         Path.Combine("FC Editor by decoruiz Alpha v21", "assets", "26", "gkglovetypecode", "{0}.png"),
     };
     private static readonly string[] FlagPatterns =
     {
+        Path.Combine("FC Editor by decoruiz Alpha v21.exe_extracted", "art", "flags", "{0}.png"),
+        Path.Combine("art", "flags", "{0}.png"),
         Path.Combine("FC Editor by decoruiz Alpha v21", "FC Editor by decoruiz Alpha v21.exe_extracted", "art", "flags", "{0}.png"),
         Path.Combine("country_logos", "{0}.png"),
         Path.Combine("nation_logos", "{0}.png"),

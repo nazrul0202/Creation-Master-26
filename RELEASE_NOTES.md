@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Unreleased - integrated DBM / RDM / Deco workflows
+
+- Expanded the advanced Database Browser with transactional multi-cell paste, single-table and all-table TSV/CSV export, row-index-safe table import with a change preview, automatic rollback when any staged value fails, and a readable pending-change list.
+- Added dependency-impact inspection for the selected entity, reporting exact matching references across tables that share its identity field.
+- Added direct discovery of an `FC Editor by decoruiz Alpha v21` folder in Downloads and support for using that folder itself as the configured asset root for ball, stadium, boot, glove, flag and crest previews.
+- Kept all database imports on CM26's existing staged validation/save path; no third-party source or executable is embedded.
+
 ## Version 1.0.147 - club, roster and asset workflow polish (2026-08-25)
 
 - Moved the complete Club Details layout into Team Generic and removed the unsupported legacy Objective, Highest and Probable controls.
@@ -51,7 +58,6 @@
 - Made shirt number and position optional during transfer when those FC26 columns are unavailable or read-only, so they no longer block a valid club move.
 - Expanded Team Info with profitability/financial stability, club worth, domestic and international prestige, popularity/fanbase and youth development.
 - Made the legacy CM16 shell build reproducibly through NuGet reference assemblies when the standalone .NET Framework 4.8 Developer Pack is not installed.
-
 ## Version 1.0.141 - complete formation minifaces (2026-08-23)
 
 - Removed the circular crop that cut off player hair and shoulders on the FC26 formation board.

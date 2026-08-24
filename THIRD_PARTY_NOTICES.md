@@ -52,7 +52,8 @@ code or assets is compiled into, linked by, or shipped with Creation Master 26.
 | Reference | Use |
 |-----------|-----|
 | **CM16 source/decompile references** | Workflow/section-arrangement reference only. No code copied. |
-| **DBM Studio** | Entity-ID and Compdata workflow research only. No source copied or bundled; no repository licence was present during review. |
+| **DBM Studio** | Table-workspace and import/export workflow research only. No source copied or bundled; no repository licence was present during review. |
+| **RDBM26 decompiled reference** | Cross-table/dependency workflow research only. No code or binary is copied, linked, or bundled. |
 | **FMT / FET / FrostyToolsuite / FMT.Releases** | Understanding Frostbite container, chunk and editor workflows; no source or binary is incorporated into CM26. |
 | **vgmstream** | Considered for audio preview; not integrated. |
 

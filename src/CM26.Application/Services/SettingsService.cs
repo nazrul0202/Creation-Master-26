@@ -120,6 +120,8 @@ public static class SettingsService
         var candidates = new List<string>
         {
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "FC26 Assets"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Downloads", "FC Editor by decoruiz Alpha v21"),
         };
         // Common portable pack names, checked only at a drive root (never a broad scan).
         candidates.AddRange(ExternalToolLocator.DriveRootFolders("FC26 FILE TOOL", "FC26 Assets"));
@@ -134,6 +136,9 @@ public static class SettingsService
                     return root;
                 var fceditor = Path.Combine(root, "FC Editor by decoruiz Alpha v21", "assets");
                 if (Directory.Exists(fceditor))
+                    return root;
+                if (Directory.Exists(Path.Combine(root, "assets", "26")) ||
+                    Directory.Exists(Path.Combine(root, "assets", "stadiumid")))
                     return root;
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CM26] Asset root candidate skipped: {ex.Message}"); /* keep looking */ }

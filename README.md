@@ -46,12 +46,13 @@ Checksums: `SHA256SUMS_v1.0.147.txt` is included with the v1.0.147 release asset
 - **Countries** — Nation profile, flags, national-team linking, regional audio mappings
 - **Managers · Stadiums · Kits · Competitions · Formations · Balls · Boots · Gloves · Referees · Transfers** — full FC26 schema coverage
 - **Sponsors · Adboards · Audio** — FC26-only tables with artwork preview & NewWave bank browser
-- **Database Browser** — browse any table in the game database
+- **Advanced Database Workspace** — browse/edit every table, copy/paste in bulk, preview pending changes, inspect linked-table impact, and import/export one or all tables as TSV/CSV
 - **Restored specialist tabs** — Players includes Info, Skills, Face, Details and Callname; Teams includes Sponsors, Adboards, Flags and Audio
 
 ### Data & assets
 - **Compdata workbook editor** — league/cup builder, promotion & relegation links, TXT export
 - **Legacy asset import/remove** — crests, flags, logos, minifaces, kit textures (DDS/PNG)
+- **Deco asset-pack discovery** — automatically uses a local `FC Editor by decoruiz Alpha v21` folder (including the standard Downloads location) for supported visual previews
 - **Frostbite asset search** — RES/Ebx search, NewWave audio bank metadata inspection
 - **Data Sync** — import squads from CM26 Scraper or Transfermarkt CSV
 

@@ -4,6 +4,7 @@ using CM26.App.Controls;
 using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
+using CM26.Application.Services;
 
 namespace CM26.App.Sections;
 
@@ -20,6 +21,7 @@ public sealed class DatabaseBrowserSection : SectionBase
     private readonly Button _duplicateRow;
     private readonly Button _deleteRow;
     private readonly StudioToolbar _toolbar;
+    private readonly FlowLayoutPanel _actions;
     private List<DbTable> _ordered = new();
     private DbTable? _activeTable;
     private bool _binding;
@@ -73,6 +75,24 @@ public sealed class DatabaseBrowserSection : SectionBase
         card.Controls.Add(_grid);
         card.Controls.Add(pager);
 
+        _actions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            Height = 36,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            Padding = new Padding(5, 4, 5, 2),
+            BackColor = StudioColors.Surface,
+        };
+        AddAction("Copy", CopySelection);
+        AddAction("Paste", PasteSelection);
+        AddAction("Export table", ExportTable);
+        AddAction("Export all", ExportAllTables);
+        AddAction("Import table", ImportTable);
+        AddAction("Dependencies", ShowDependencies);
+        AddAction("Pending changes", ShowPendingChanges);
+        card.Controls.Add(_actions);
+
         _toolbar = new StudioToolbar
         {
             Title = "Database Browser",
@@ -96,6 +116,14 @@ public sealed class DatabaseBrowserSection : SectionBase
         page.Controls.Add(_toolbar);
         Tabs.TabPages.Add(page);
         Header.SetRecord("Database Browser", "Inspect every table and edit fields supported by the validated writer", IconService.Get("browser", 44));
+    }
+
+    private void AddAction(string text, Action action)
+    {
+        var button = new Button { Text = text, AutoSize = true, Height = 27, Margin = new Padding(2, 0, 2, 0) };
+        button.Click += (_, _) => action();
+        Theme.ApplyButton(button);
+        _actions.Controls.Add(button);
     }
 
     private void StepTable(int delta)
@@ -279,5 +307,208 @@ public sealed class DatabaseBrowserSection : SectionBase
         if (string.IsNullOrWhiteSpace(tableName)) return;
         var index = _ordered.FindIndex(table => table.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
         if (index >= 0) GoToRecord(index);
+    }
+
+    private void CopySelection()
+    {
+        if (_grid.GetCellCount(DataGridViewElementStates.Selected) == 0) return;
+        var data = _grid.GetClipboardContent();
+        if (data != null) Clipboard.SetDataObject(data);
+        _info.Text = $"Copied {_grid.GetCellCount(DataGridViewElementStates.Selected):N0} cell(s).";
+    }
+
+    private void PasteSelection()
+    {
+        if (_activeTable == null || _grid.CurrentCell == null || !Clipboard.ContainsText()) return;
+        var values = TableWorkspaceService.Parse(Clipboard.GetText(), '\t');
+        if (values.Count == 0) return;
+        var startRow = _grid.CurrentCell.RowIndex;
+        var startColumn = _grid.CurrentCell.ColumnIndex;
+        var staged = 0;
+        try
+        {
+            for (var rowOffset = 0; rowOffset < values.Count; rowOffset++)
+            {
+                var gridRow = startRow + rowOffset;
+                if (gridRow >= _grid.Rows.Count || _grid.Rows[gridRow].Tag is not int recordIndex) break;
+                for (var columnOffset = 0; columnOffset < values[rowOffset].Count; columnOffset++)
+                {
+                    var columnIndex = startColumn + columnOffset;
+                    if (columnIndex >= _activeTable.Columns.Count) break;
+                    if (!CanEdit(columnIndex))
+                        throw new InvalidOperationException($"{_activeTable.Columns[columnIndex].Name} is read-only.");
+                    var value = values[rowOffset][columnOffset];
+                    var field = _activeTable.Columns[columnIndex].Name;
+                    if (Services.Session.GetCell(_activeTable.Name, recordIndex, field) == value) continue;
+                    var outcome = Services.Pending.Stage(_activeTable.Name, recordIndex, field, value);
+                    if (!outcome.Success) throw new InvalidOperationException(outcome.Message);
+                    staged++;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            while (staged-- > 0) Services.Pending.Undo();
+            MessageBox.Show(this, $"Nothing was pasted. {ex.Message}", "Paste", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        Services.NotifyPendingChanged();
+        BindGrid(_activeTable);
+        _info.Text = $"Pasted and staged {staged:N0} cell change(s). Validate or Ctrl+S to save.";
+    }
+
+    private void ExportTable()
+    {
+        if (_activeTable == null) return;
+        using var dialog = new SaveFileDialog
+        {
+            Title = $"Export {_activeTable.Name}",
+            FileName = _activeTable.Name + ".tsv",
+            Filter = "Tab-separated table (*.tsv)|*.tsv|CSV table (*.csv)|*.csv",
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        try
+        {
+            TableWorkspaceService.ExportTable(Services.Session, _activeTable.Name, dialog.FileName);
+            _info.Text = $"Exported {_activeTable.RowCount:N0} {_activeTable.Name} row(s) to {dialog.FileName}.";
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Export table", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+    }
+
+    private void ExportAllTables()
+    {
+        using var dialog = new FolderBrowserDialog { Description = "Choose a folder for all CM26 table exports", UseDescriptionForTitle = true };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        try
+        {
+            foreach (var table in Services.Session.Tables)
+                TableWorkspaceService.ExportTable(Services.Session, table.Name,
+                    Path.Combine(dialog.SelectedPath, SafeFileName(table.Name) + ".tsv"));
+            _info.Text = $"Exported {Services.Session.Tables.Count:N0} table(s) to {dialog.SelectedPath}.";
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Export all tables", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+    }
+
+    private void ImportTable()
+    {
+        if (_activeTable == null) return;
+        using var dialog = new OpenFileDialog
+        {
+            Title = $"Import edits into {_activeTable.Name}",
+            Filter = "CM26 table exports (*.tsv;*.csv)|*.tsv;*.csv|All files (*.*)|*.*",
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        try
+        {
+            var plan = TableWorkspaceService.BuildImportPlan(Services.Session, _activeTable.Name, dialog.FileName);
+            if (plan.Count == 0)
+            {
+                MessageBox.Show(this, "The file matches the current table; no changes are required.", "Import table", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            if (MessageBox.Show(this,
+                    $"Preview: {plan.Count:N0} cell change(s) across {plan.Select(e => e.RowIndex).Distinct().Count():N0} row(s).\n\nStage these changes?",
+                    "Import table preview", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+
+            var staged = 0;
+            try
+            {
+                foreach (var edit in plan)
+                {
+                    var outcome = Services.Pending.Stage(edit.TableName, edit.RowIndex, edit.FieldName, edit.NewValue);
+                    if (!outcome.Success) throw new InvalidOperationException(outcome.Message);
+                    staged++;
+                }
+            }
+            catch
+            {
+                while (staged-- > 0) Services.Pending.Undo();
+                throw;
+            }
+            Services.NotifyPendingChanged();
+            BindGrid(_activeTable);
+            _info.Text = $"Imported and staged {plan.Count:N0} validated cell change(s). Ctrl+S to commit.";
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Import table", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+    }
+
+    private void ShowPendingChanges()
+    {
+        var changes = Services.Pending.Changes;
+        var text = changes.Count == 0
+            ? "No scalar changes are currently staged."
+            : string.Join(Environment.NewLine, changes.Take(500).Select(change => change.Describe())) +
+              (changes.Count > 500 ? $"{Environment.NewLine}… and {changes.Count - 500:N0} more." : string.Empty);
+        ShowTextDialog("Pending changes", text);
+    }
+
+    private void ShowDependencies()
+    {
+        if (_activeTable == null || SelectedRecordIndex() is not int rowIndex) return;
+        var key = FindIdentityColumn(_activeTable);
+        if (key == null)
+        {
+            ShowTextDialog("Dependencies", "No reliable identity field was found for this table.");
+            return;
+        }
+        var value = Services.Session.GetCell(_activeTable.Name, rowIndex, key.Name);
+        var lines = new List<string> { $"{_activeTable.Name}[{rowIndex}].{key.Name} = {value}", string.Empty };
+        Cursor = Cursors.WaitCursor;
+        try
+        {
+            foreach (var table in Services.Session.Tables.OrderBy(table => table.Name))
+            {
+                var column = table.FindColumn(key.Name);
+                if (column == null || table.Name.Equals(_activeTable.Name, StringComparison.OrdinalIgnoreCase)) continue;
+                var count = 0;
+                for (var row = 0; row < table.RowCount; row++)
+                    if (Services.Session.GetCell(table.Name, row, column.Name) == value) count++;
+                if (count > 0) lines.Add($"{table.Name}.{column.Name}: {count:N0} linked row(s)");
+            }
+        }
+        finally { Cursor = Cursors.Default; }
+        if (lines.Count == 2) lines.Add("No exact references were found in tables sharing this identity field.");
+        ShowTextDialog("Dependency impact", string.Join(Environment.NewLine, lines));
+    }
+
+    private static DbColumn? FindIdentityColumn(DbTable table)
+    {
+        var singular = table.Name.EndsWith("s", StringComparison.OrdinalIgnoreCase) ? table.Name[..^1] : table.Name;
+        return table.FindColumn(singular + "id")
+            ?? table.FindColumn("artificialkey")
+            ?? table.Columns.FirstOrDefault(column => column.Name.EndsWith("id", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void ShowTextDialog(string title, string text)
+    {
+        using var dialog = new Form
+        {
+            Text = title,
+            StartPosition = FormStartPosition.CenterParent,
+            Size = new Size(760, 520),
+            MinimizeBox = false,
+            MaximizeBox = true,
+            BackColor = StudioColors.AppBackground,
+        };
+        var box = new TextBox
+        {
+            Dock = DockStyle.Fill,
+            Multiline = true,
+            ReadOnly = true,
+            ScrollBars = ScrollBars.Both,
+            WordWrap = false,
+            Text = text,
+            Font = new Font(FontFamily.GenericMonospace, 9f),
+            BackColor = StudioColors.Surface,
+            ForeColor = StudioColors.PrimaryText,
+        };
+        dialog.Controls.Add(box);
+        dialog.ShowDialog(this);
+    }
+
+    private static string SafeFileName(string value)
+    {
+        foreach (var invalid in Path.GetInvalidFileNameChars()) value = value.Replace(invalid, '_');
+        return value;
     }
 }
