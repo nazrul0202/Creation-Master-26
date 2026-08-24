@@ -183,6 +183,24 @@ public class Team : IdObject
 
 	private int m_youthdevelopment;
 
+	// FC26 club record/profile columns retained by the squads database. These
+	// names intentionally mirror the Frostbite fields used by the snapshot bridge.
+	private int m_foundationyear;
+
+	private int m_teamstadiumcapacity;
+
+	private int m_leaguetitles;
+
+	private int m_domesticcups;
+
+	private int m_uefa_cl_wins;
+
+	private int m_uefa_el_wins;
+
+	private int m_uefa_uecl_wins;
+
+	private int m_uefa_consecutive_wins;
+
 	private int m_numtransfersin;
 
 	private string m_stadiumcustomname;
@@ -1067,6 +1085,54 @@ public class Team : IdObject
 	{
 		get { return m_youthdevelopment; }
 		set { m_youthdevelopment = value; }
+	}
+
+	public int foundationyear
+	{
+		get { return m_foundationyear; }
+		set { m_foundationyear = value; }
+	}
+
+	public int teamstadiumcapacity
+	{
+		get { return m_teamstadiumcapacity; }
+		set { m_teamstadiumcapacity = value; }
+	}
+
+	public int leaguetitles
+	{
+		get { return m_leaguetitles; }
+		set { m_leaguetitles = value; }
+	}
+
+	public int domesticcups
+	{
+		get { return m_domesticcups; }
+		set { m_domesticcups = value; }
+	}
+
+	public int uefa_cl_wins
+	{
+		get { return m_uefa_cl_wins; }
+		set { m_uefa_cl_wins = value; }
+	}
+
+	public int uefa_el_wins
+	{
+		get { return m_uefa_el_wins; }
+		set { m_uefa_el_wins = value; }
+	}
+
+	public int uefa_uecl_wins
+	{
+		get { return m_uefa_uecl_wins; }
+		set { m_uefa_uecl_wins = value; }
+	}
+
+	public int uefa_consecutive_wins
+	{
+		get { return m_uefa_consecutive_wins; }
+		set { m_uefa_consecutive_wins = value; }
 	}
 
 	public string stadiumcustomname

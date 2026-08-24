@@ -793,6 +793,12 @@ internal static class Fc26SnapshotLoader
         for (var i = 0; i < columns.Length && i < values.Length; i++)
         {
             var columnName = Normalize(columns[i]);
+            // TeamPlayer already receives its linked Team and Player objects in
+            // LinkCore. The numeric foreign keys are resolved only for change-plan
+            // serialization; assigning an Int32 to those reference fields converts
+            // to null and leaves a roster full of empty placeholder entries.
+            if (target is TeamPlayer && (columnName == "teamid" || columnName == "playerid"))
+                continue;
             if (!TryResolveField(target.GetType(), fields, columnName, out var field)) continue;
             try
             {

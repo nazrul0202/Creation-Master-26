@@ -1,10 +1,45 @@
-# FC26 database deep scan — updated for v1.0.143
+# FC26 database deep scan — updated for v1.0.144
 
 Source inspected: the installed FC26 direct-session squads database dated 2026-08-22. Values can change with a later Title Update or squad file.
 
-## Team information
+## Complete Team-section inventory
 
-Verified static `teams` fields include `clubworth` (stored in thousands), `popularity`, `youthdevelopment`, `profitability`, `foundationyear`, `leaguetitles`, `domesticcups` and `uefa_cl_wins`.
+The inspected snapshot contains 808 teams and 110 columns in `teams`. The
+Team section is spread across these linked tables rather than one record:
+
+| Table | Rows | Team data supplied |
+| --- | ---: | --- |
+| `teams` | 808 | identity, colours, prestige, finances, ratings, honours, tactics, traits, atmosphere/pitch flags and set-piece player IDs |
+| `leagueteamlinks` | 808 | league membership, last-season/current positions, champion flag, form/statistics and objective bounds |
+| `teamplayerlinks` | 21,622 | player, club, shirt number, tactical position and competition statistics |
+| `formations` | 837 | team-specific and 29 generic tactical layouts |
+| `default_mentalities` | 4,045 | five default mentality variants per supported team, tactics and XI slots |
+| `defaultteamdata` | 808 | default layout/depth and related team defaults |
+| `teamkits` | 3,781 | team kit links and kit appearance data |
+| `teamstadiumlinks` | 814 | home stadium assignment |
+| `teamnationlinks` | 145 | national-team country assignment |
+| `manager` | 808 | manager identity, team assignment, appearance and traits |
+| `stadiums` | 180 | stadium model, capacity/environment and presentation values |
+| `teamballs` | 149 | ball assets referenced by teams/competitions |
+| `career_managerpref` | 1 | Career-save budget/wage preferences; not a per-team squads table |
+
+### Static club information available in `teams`
+
+Verified editable profile fields include `clubworth` (stored in thousands),
+`domesticprestige`, `internationalprestige`, `profitability`, `popularity`,
+`youthdevelopment`, `foundationyear`, `teamstadiumcapacity`, `overallrating`,
+`attackrating`, `midfieldrating`, `defenserating`, `leaguetitles`,
+`domesticcups`, `uefa_cl_wins`, `uefa_el_wins`, `uefa_uecl_wins` and
+`uefa_consecutive_wins`. v1.0.144 exposes these high-value fields in the Legacy
+Team Info page; the snapshot change plan writes them back to their native
+columns.
+
+Additional available categories are team colours, rival, ball, city/location,
+kit/stadium presentation, crowd/tifo/banner flags, pitch/net styles, set-piece
+takers, opponent thresholds, matchday ratings, build-up style, defensive depth
+and the three opponent-context trait masks. Asset/presentation flags remain in
+the snapshot until a safe editor and visual validation exist; they are not
+silently reinterpreted as old CM16 fields.
 
 Manchester City (`teamid=10`) in the inspected database has Club Worth `4564360` (about 4.56B after scaling), popularity `9` (Very High), youth development `3` (Low), profitability `8` (High), founded `1880`, 10 league titles, 7 domestic cups and 1 Champions League. A screenshot from another squad/Title Update can therefore legitimately show a different Club Worth.
 
@@ -12,11 +47,31 @@ Manchester City (`teamid=10`) in the inspected database has Club Worth `4564360`
 
 The live Career save does populate `career_managerpref.transferbudget` and
 `startofseasontransferbudget`. The active manager's club is identified by
-`career_users.clubteamid`. Creation Master 26 v1.0.143 edits those two Career
+`career_users.clubteamid`. Creation Master 26 v1.0.144 edits those two Career
 values directly from the Team page while keeping static `teams.clubworth`
 separate, and creates a timestamped copy of the complete save before writing.
 
-`leagueteamlinks.objective`, `highestpossible` and `highestprobable` are zero placeholders in the inspected static database. Career mode generates the visible board objectives; interpreting zero as the old CM16 enum value “Win League Title” is incorrect.
+`leagueteamlinks.objective` is zero for all 808 teams in this snapshot, so the
+actual Career board objective is not present in the base squads DB. However,
+`highestpossible` is non-zero for 131 teams and `highestprobable` is non-zero
+for 299 teams. v1.0.144 therefore treats each field independently: unavailable
+zero values are labelled and disabled, while populated Highest/Probable values
+remain visible and editable. Interpreting every zero as the old CM16 enum value
+“Win League Title” is incorrect.
+
+## Roster-link integrity
+
+There are 21,622 `teamplayerlinks` covering 801 of the 808 team IDs; seven
+database teams intentionally have no linked players. The scanned player table
+contains 20,268 unique player IDs, and the tested Al Fateh links all resolve to
+real player rows.
+
+The v1.0.143 roster regression was in the bridge, not the database: after
+creating a linked `TeamPlayer`, its numeric `teamid` and `playerid` were passed
+through the generic reflection mapper and overwrote the linked Team/Player
+objects with null. v1.0.144 keeps foreign-key conversion in the save-plan path
+only. Real-database smoke coverage now verifies that every loaded roster link
+has a live player object and specifically renders Al Fateh's roster list.
 
 ## Formations and tactics
 

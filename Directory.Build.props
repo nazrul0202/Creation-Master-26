@@ -5,7 +5,7 @@
        here only. Release\assemble_packages.ps1 and the CI workflow read the
        same number back out of version.json and fail if the two disagree. -->
   <PropertyGroup>
-    <CM26Version>1.0.143</CM26Version>
+    <CM26Version>1.0.144</CM26Version>
 
     <Version>$(CM26Version)</Version>
     <AssemblyVersion>$(CM26Version).0</AssemblyVersion>

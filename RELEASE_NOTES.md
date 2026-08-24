@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.144 - complete Team database scan and roster-link repair (2026-08-24)
+
+- Fixed the FC26 snapshot mapper overwriting linked `TeamPlayer.Player` and `TeamPlayer.Team` objects with numeric foreign keys, which left affected clubs with empty player lists and formation cards.
+- Restored complete roster rendering for Al Fateh and other affected teams while retaining transferable `teamplayerlinks.teamid` save-plan support.
+- Added full-database roster integrity checks across all 21,622 team-player links and targeted Team-page rendering coverage.
+- Added editable Founded, Stadium Capacity, Overall/Attack/Midfield/Defense ratings, League Titles, Domestic Cups and UEFA honours to the Legacy Team Info page.
+- Deep-scanned all FC26 Team-related tables and corrected objective handling: base `objective` is unavailable, while populated `highestpossible` and `highestprobable` values are displayed and edited independently.
+- Kept the real transfer budget in the Career-save panel and static Club Worth/Profitability values in the squads Team profile.
+
 ## Version 1.0.143 - Legacy Team transfer and club profile fix (2026-08-24)
 
 - Fixed the actual CM16 Legacy Team Roster page so **Available Players** is populated when the page opens and existing players can be selected for transfer from another club.

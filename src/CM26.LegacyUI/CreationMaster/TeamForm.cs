@@ -68,6 +68,8 @@ public class TeamForm : Form
 
 	private NumericUpDown numericFc26YouthDevelopment;
 
+	private GroupBox groupFc26ClubRecord;
+
 	private CareerBudgetEditor m_Fc26CareerBudgetEditor;
 
 	private GroupBox groupFc26CareerBudget;
@@ -1352,15 +1354,13 @@ public class TeamForm : Form
 		labelDefteamwidth.Visible = false;
 		groupBox6.Visible = false;
 
-		// These values are generated inside a Career save. The squads database
-		// contains zero placeholders, which the CM16 enum previously rendered as
-		// the misleading "Win League Title" objective.
-		if (comboObjective.Items.Count > 0) comboObjective.Items[0] = "Career generated (not in squads DB)";
-		if (comboMaxOnjective.Items.Count > 0) comboMaxOnjective.Items[0] = "Career generated (not in squads DB)";
-		if (comboProbObjective.Items.Count > 0) comboProbObjective.Items[0] = "Career generated (not in squads DB)";
+		// objective is zero for every club in the inspected FC26 squads database.
+		// highestpossible/highestprobable are populated for some competitions, so
+		// preserve the original 17-value enum and handle an unavailable zero at load.
 		labelInitialBudget.Text = "Club Worth";
 		ConfigureFc26ClubProfileUi();
 		ConfigureFc26CareerBudgetUi();
+		ConfigureFc26ClubRecordUi();
 
 		ConfigureFc26RosterFormationUi();
 		ConfigureFc26PlayerCreationUi();
@@ -1407,6 +1407,58 @@ public class TeamForm : Form
 		groupBox3.Controls.Add(label);
 		groupBox3.Controls.Add(numeric);
 		return numeric;
+	}
+
+	private void ConfigureFc26ClubRecordUi()
+	{
+		groupFc26ClubRecord = new GroupBox
+		{
+			Name = "groupFc26ClubRecord",
+			Text = "FC26 Club Record & Ratings",
+			Size = new Size(540, 207),
+			Margin = new Padding(3)
+		};
+		AddFc26RecordField("Founded", "foundationyear", 12, 25, 0, 3000);
+		AddFc26RecordField("Stadium Capacity", "teamstadiumcapacity", 12, 52, 0, 1000000);
+		AddFc26RecordField("Overall Rating", "overallrating", 12, 79, 0, 100);
+		AddFc26RecordField("Attack Rating", "attackrating", 12, 106, 0, 100);
+		AddFc26RecordField("Midfield Rating", "midfieldrating", 12, 133, 0, 100);
+		AddFc26RecordField("Defense Rating", "defenserating", 12, 160, 0, 100);
+
+		AddFc26RecordField("League Titles", "leaguetitles", 279, 25, 0, 999);
+		AddFc26RecordField("Domestic Cups", "domesticcups", 279, 52, 0, 999);
+		AddFc26RecordField("Champions League", "uefa_cl_wins", 279, 79, 0, 999);
+		AddFc26RecordField("Europa League", "uefa_el_wins", 279, 106, 0, 999);
+		AddFc26RecordField("Conference League", "uefa_uecl_wins", 279, 133, 0, 999);
+		AddFc26RecordField("UEFA Consecutive", "uefa_consecutive_wins", 279, 160, 0, 999);
+		flowPanelTeamGeneric.Controls.Add(groupFc26ClubRecord);
+	}
+
+	private void AddFc26RecordField(string labelText, string propertyName, int left, int top,
+		decimal minimum, decimal maximum)
+	{
+		var label = new Label
+		{
+			Text = labelText,
+			Location = new Point(left, top + 3),
+			Size = new Size(112, 17),
+			TextAlign = ContentAlignment.MiddleLeft,
+			BackColor = Color.Transparent
+		};
+		var numeric = new NumericUpDown
+		{
+			Name = "numericFc26" + propertyName,
+			Location = new Point(left + 116, top),
+			Size = new Size(126, 20),
+			Minimum = minimum,
+			Maximum = maximum,
+			ThousandsSeparator = maximum >= 10000,
+			TextAlign = HorizontalAlignment.Center
+		};
+		numeric.DataBindings.Add(new Binding("Value", teamBindingSource, propertyName, true,
+			DataSourceUpdateMode.OnPropertyChanged));
+		groupFc26ClubRecord.Controls.Add(label);
+		groupFc26ClubRecord.Controls.Add(numeric);
 	}
 
 	private void ConfigureFc26PlayerCreationUi()
@@ -2337,15 +2389,17 @@ public class TeamForm : Form
 		SetNumericValue(numericTeamId, m_CurrentTeam.Id);
 		comboRivalTeam.SelectedItem = m_CurrentTeam.RivalTeam;
 		checkIsNationalTeam.Checked = m_CurrentTeam.NationalTeam;
-		SetSelectedIndex(comboObjective, m_CurrentTeam.objective);
-		SetSelectedIndex(comboMaxOnjective, m_CurrentTeam.highestpossible);
-		SetSelectedIndex(comboProbObjective, m_CurrentTeam.highestprobable);
 		if (FifaEnvironment.Year == 26)
 		{
-			bool hasStoredObjective = m_CurrentTeam.objective != 0 || m_CurrentTeam.highestpossible != 0 || m_CurrentTeam.highestprobable != 0;
-			comboObjective.Enabled = hasStoredObjective;
-			comboMaxOnjective.Enabled = hasStoredObjective;
-			comboProbObjective.Enabled = hasStoredObjective;
+			LoadFc26ObjectiveValue(comboObjective, m_CurrentTeam.objective);
+			LoadFc26ObjectiveValue(comboMaxOnjective, m_CurrentTeam.highestpossible);
+			LoadFc26ObjectiveValue(comboProbObjective, m_CurrentTeam.highestprobable);
+		}
+		else
+		{
+			SetSelectedIndex(comboObjective, m_CurrentTeam.objective);
+			SetSelectedIndex(comboMaxOnjective, m_CurrentTeam.highestpossible);
+			SetSelectedIndex(comboProbObjective, m_CurrentTeam.highestprobable);
 		}
 		teamBindingSource.ResetBindings(metadataChanged: false);
 		LoadFc26TraitChecks();
@@ -2480,6 +2534,19 @@ public class TeamForm : Form
 		RefreshAvailablePlayers();
 	}
 
+	private static void LoadFc26ObjectiveValue(ComboBox combo, int value)
+	{
+		if (value <= 0)
+		{
+			combo.SelectedIndex = -1;
+			combo.Text = "Not stored in squads DB";
+			combo.Enabled = false;
+			return;
+		}
+		SetSelectedIndex(combo, value);
+		combo.Enabled = combo.SelectedIndex >= 0;
+	}
+
 	private void RefreshAvailablePlayers()
 	{
 		object filter = null;
@@ -2518,6 +2585,8 @@ public class TeamForm : Form
 		if (!m_IsLoaded || FifaEnvironment.Teams == null || FifaEnvironment.Teams.Count == 0) return;
 		Team originalTeam = m_CurrentTeam;
 		TabPage originalPage = tableEditTeam.SelectedTab;
+		AssertAllFc26RosterLinks();
+		AssertFc26RosterRendered(112390, "before Team audit", false);
 		var samples = new[] { 0, FifaEnvironment.Teams.Count / 2, FifaEnvironment.Teams.Count - 1 };
 		try
 		{
@@ -2526,14 +2595,17 @@ public class TeamForm : Form
 				Team team = (Team)FifaEnvironment.Teams[index];
 				tableEditTeam.SelectedTab = pageTeamGeneric;
 				ReloadTeam(team);
+				AssertFc26RosterRendered(112390, "after generic sample " + team.Id, false);
 				tableEditTeam.SelectedTab = pageTeamRoster;
 				ReloadTeam(team);
 				Application.DoEvents();
+				AssertFc26RosterRendered(112390, "after roster sample " + team.Id, false);
 			}
 			if (FifaEnvironment.Year == 26)
 			{
 				if (numericFc26Profitability == null || numericFc26Popularity == null ||
-					numericFc26YouthDevelopment == null)
+					numericFc26YouthDevelopment == null || groupFc26ClubRecord == null ||
+					groupFc26ClubRecord.Controls.Count != 24)
 					throw new InvalidOperationException("FC26 club profile fields were not added to Team Info.");
 				if (listViewPlayersAvailable.Items.Count == 0)
 					throw new InvalidOperationException("FC26 Available Players did not load on the Roster page.");
@@ -2547,6 +2619,7 @@ public class TeamForm : Form
 					tableEditTeam.SelectedTab = pageTeamRoster;
 					ReloadTeam(heidenheim);
 					Application.DoEvents();
+					AssertFc26RosterRendered(112390, "after Heidenheim roster", false);
 					if (heidenheim.Formation == null || labelTeamFormationName.Text.IndexOf("5-4-1", StringComparison.Ordinal) < 0)
 						throw new InvalidOperationException("FC26 team formation was not linked from formations.teamid.");
 					var linkedRoleIds = new System.Collections.Generic.HashSet<int>();
@@ -2564,6 +2637,10 @@ public class TeamForm : Form
 						throw new InvalidOperationException("FC26 build-up style or defensive line height was not rendered.");
 					tableEditTeam.SelectedTab = pageTeamGeneric;
 					ReloadTeam(heidenheim);
+					AssertFc26RosterRendered(112390, "after Heidenheim generic", false);
+					if (heidenheim.foundationyear != 2007 || heidenheim.teamstadiumcapacity != 15000 ||
+						heidenheim.overallrating != 72 || heidenheim.attackrating != 73)
+						throw new InvalidOperationException("FC26 club record/rating columns were not loaded from teams.");
 					comboTraitContext.SelectedIndex = 1;
 					LoadFc26TraitChecks();
 					int expectedKnown = heidenheim.GetFc26TraitMask(1) & 1023;
@@ -2575,12 +2652,59 @@ public class TeamForm : Form
 					if (heidenheim.objective == 0 && comboObjective.Enabled)
 						throw new InvalidOperationException("FC26 Career-generated objective placeholder is incorrectly editable.");
 				}
+				Team kaiserslautern = FifaEnvironment.Teams.SearchId(29) as Team;
+				if (kaiserslautern != null)
+				{
+					tableEditTeam.SelectedTab = pageTeamGeneric;
+					ReloadTeam(kaiserslautern);
+					if (comboObjective.Enabled || !comboMaxOnjective.Enabled || !comboProbObjective.Enabled ||
+						comboMaxOnjective.SelectedIndex != kaiserslautern.highestpossible ||
+						comboProbObjective.SelectedIndex != kaiserslautern.highestprobable)
+						throw new InvalidOperationException("FC26 stored Highest/Probable objective fields were not rendered independently.");
+				}
+				Team alFateh = FifaEnvironment.Teams.SearchId(112390) as Team;
+				if (alFateh != null)
+				{
+					tableEditTeam.SelectedTab = pageTeamRoster;
+					ReloadTeam(alFateh);
+					Application.DoEvents();
+					AssertFc26RosterRendered(112390, "Al Fateh roster page", true);
+				}
 			}
 		}
 		finally
 		{
 			if (originalPage != null) tableEditTeam.SelectedTab = originalPage;
 			if (originalTeam != null) ReloadTeam(originalTeam);
+		}
+	}
+
+	private void AssertFc26RosterRendered(int teamId, string stage, bool verifyList)
+	{
+		if (FifaEnvironment.Year != 26) return;
+		Team team = FifaEnvironment.Teams.SearchId(teamId) as Team;
+		if (team == null) return;
+		int validPlayers = 0;
+		foreach (TeamPlayer teamPlayer in team.Roster)
+			if (teamPlayer?.Player != null) validPlayers++;
+		if (team.Roster.Count == 0 || validPlayers != team.Roster.Count ||
+			(verifyList && listViewTeamPlayers.Items.Count != validPlayers))
+			throw new InvalidOperationException("FC26 roster regression at " + stage + ": team=" + teamId +
+				", links=" + team.Roster.Count + ", valid=" + validPlayers +
+				", list=" + listViewTeamPlayers.Items.Count + ".");
+	}
+
+	private static void AssertAllFc26RosterLinks()
+	{
+		if (FifaEnvironment.Year != 26) return;
+		foreach (Team team in FifaEnvironment.Teams)
+		{
+			foreach (TeamPlayer teamPlayer in team.Roster)
+			{
+				if (teamPlayer?.Player == null || teamPlayer.Team != team)
+					throw new InvalidOperationException("FC26 roster contains an unresolved foreign key: team=" +
+						team.Id + ".");
+			}
 		}
 	}
 
