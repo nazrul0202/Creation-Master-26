@@ -33,7 +33,7 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.144.txt` is included with the v1.0.144 release assets.
+Checksums: `SHA256SUMS_v1.0.145.txt` is included with the v1.0.145 release assets.
 
 ---
 

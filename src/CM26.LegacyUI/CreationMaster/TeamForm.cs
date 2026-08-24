@@ -70,6 +70,14 @@ public class TeamForm : Form
 
 	private GroupBox groupFc26ClubRecord;
 
+	private TabPage pageFc26ClubDetails;
+
+	private GroupBox groupFc26TeamRatings;
+
+	private GroupBox groupFc26ClubProfile;
+
+	private GroupBox groupFc26Honours;
+
 	private CareerBudgetEditor m_Fc26CareerBudgetEditor;
 
 	private GroupBox groupFc26CareerBudget;
@@ -914,6 +922,10 @@ public class TeamForm : Form
 		{
 			LoadGenericPage();
 		}
+		else if (m_CurrentPage == pageFc26ClubDetails)
+		{
+			LoadFc26ClubDetailsPage();
+		}
 		else if (m_CurrentPage == pageTeamRoster)
 		{
 			LoadRosterPage();
@@ -1411,45 +1423,95 @@ public class TeamForm : Form
 
 	private void ConfigureFc26ClubRecordUi()
 	{
+		pageFc26ClubDetails = new TabPage
+		{
+			Name = "pageFc26ClubDetails",
+			Text = "Club Details",
+			UseVisualStyleBackColor = true,
+			Padding = new Padding(7),
+			AutoScroll = true
+		};
+		var detailsCanvas = new Panel
+		{
+			Name = "panelFc26ClubDetails",
+			Location = new Point(7, 7),
+			Size = new Size(644, 456),
+			Anchor = AnchorStyles.Top | AnchorStyles.Left
+		};
+
 		groupFc26ClubRecord = new GroupBox
 		{
 			Name = "groupFc26ClubRecord",
-			Text = "FC26 Club Record & Ratings",
-			Size = new Size(540, 207),
-			Margin = new Padding(3)
+			Text = "Club Identity",
+			Location = new Point(3, 3),
+			Size = new Size(308, 108)
 		};
-		AddFc26RecordField("Founded", "foundationyear", 12, 25, 0, 3000);
-		AddFc26RecordField("Stadium Capacity", "teamstadiumcapacity", 12, 52, 0, 1000000);
-		AddFc26RecordField("Overall Rating", "overallrating", 12, 79, 0, 100);
-		AddFc26RecordField("Attack Rating", "attackrating", 12, 106, 0, 100);
-		AddFc26RecordField("Midfield Rating", "midfieldrating", 12, 133, 0, 100);
-		AddFc26RecordField("Defense Rating", "defenserating", 12, 160, 0, 100);
+		AddFc26DetailField(groupFc26ClubRecord, "Foundation Year", "foundationyear", 24, 0, 3000);
+		AddFc26DetailField(groupFc26ClubRecord, "Stadium Capacity", "teamstadiumcapacity", 51, 0, 1000000);
 
-		AddFc26RecordField("League Titles", "leaguetitles", 279, 25, 0, 999);
-		AddFc26RecordField("Domestic Cups", "domesticcups", 279, 52, 0, 999);
-		AddFc26RecordField("Champions League", "uefa_cl_wins", 279, 79, 0, 999);
-		AddFc26RecordField("Europa League", "uefa_el_wins", 279, 106, 0, 999);
-		AddFc26RecordField("Conference League", "uefa_uecl_wins", 279, 133, 0, 999);
-		AddFc26RecordField("UEFA Consecutive", "uefa_consecutive_wins", 279, 160, 0, 999);
-		flowPanelTeamGeneric.Controls.Add(groupFc26ClubRecord);
+		groupFc26TeamRatings = new GroupBox
+		{
+			Name = "groupFc26TeamRatings",
+			Text = "Team Ratings",
+			Location = new Point(323, 3),
+			Size = new Size(308, 162)
+		};
+		AddFc26DetailField(groupFc26TeamRatings, "Overall", "overallrating", 24, 0, 100);
+		AddFc26DetailField(groupFc26TeamRatings, "Attack", "attackrating", 51, 0, 100);
+		AddFc26DetailField(groupFc26TeamRatings, "Midfield", "midfieldrating", 78, 0, 100);
+		AddFc26DetailField(groupFc26TeamRatings, "Defense", "defenserating", 105, 0, 100);
+
+		groupFc26ClubProfile = new GroupBox
+		{
+			Name = "groupFc26ClubProfile",
+			Text = "Club Profile",
+			Location = new Point(3, 123),
+			Size = new Size(308, 189)
+		};
+		AddFc26DetailField(groupFc26ClubProfile, "Domestic Prestige", "domesticprestige", 24, 0, 20);
+		AddFc26DetailField(groupFc26ClubProfile, "International Prestige", "internationalprestige", 51, 0, 20);
+		AddFc26DetailField(groupFc26ClubProfile, "Profitability", "profitability", 78, 0, 10);
+		AddFc26DetailField(groupFc26ClubProfile, "Popularity", "popularity", 105, 0, 10);
+		AddFc26DetailField(groupFc26ClubProfile, "Youth Development", "youthdevelopment", 132, 0, 10);
+
+		groupFc26Honours = new GroupBox
+		{
+			Name = "groupFc26Honours",
+			Text = "Club Honours",
+			Location = new Point(323, 177),
+			Size = new Size(308, 216)
+		};
+		AddFc26DetailField(groupFc26Honours, "League Titles", "leaguetitles", 24, 0, 999);
+		AddFc26DetailField(groupFc26Honours, "Domestic Cups", "domesticcups", 51, 0, 999);
+		AddFc26DetailField(groupFc26Honours, "Champions League", "uefa_cl_wins", 78, 0, 999);
+		AddFc26DetailField(groupFc26Honours, "Europa League", "uefa_el_wins", 105, 0, 999);
+		AddFc26DetailField(groupFc26Honours, "Conference League", "uefa_uecl_wins", 132, 0, 999);
+		AddFc26DetailField(groupFc26Honours, "UEFA Consecutive Wins", "uefa_consecutive_wins", 159, 0, 999);
+
+		detailsCanvas.Controls.Add(groupFc26ClubRecord);
+		detailsCanvas.Controls.Add(groupFc26TeamRatings);
+		detailsCanvas.Controls.Add(groupFc26ClubProfile);
+		detailsCanvas.Controls.Add(groupFc26Honours);
+		pageFc26ClubDetails.Controls.Add(detailsCanvas);
+		tableEditTeam.TabPages.Insert(1, pageFc26ClubDetails);
 	}
 
-	private void AddFc26RecordField(string labelText, string propertyName, int left, int top,
-		decimal minimum, decimal maximum)
+	private void AddFc26DetailField(GroupBox group, string labelText, string propertyName,
+		int top, decimal minimum, decimal maximum)
 	{
 		var label = new Label
 		{
 			Text = labelText,
-			Location = new Point(left, top + 3),
-			Size = new Size(112, 17),
+			Location = new Point(12, top + 3),
+			Size = new Size(162, 17),
 			TextAlign = ContentAlignment.MiddleLeft,
 			BackColor = Color.Transparent
 		};
 		var numeric = new NumericUpDown
 		{
 			Name = "numericFc26" + propertyName,
-			Location = new Point(left + 116, top),
-			Size = new Size(126, 20),
+			Location = new Point(180, top),
+			Size = new Size(114, 20),
 			Minimum = minimum,
 			Maximum = maximum,
 			ThousandsSeparator = maximum >= 10000,
@@ -1457,8 +1519,14 @@ public class TeamForm : Form
 		};
 		numeric.DataBindings.Add(new Binding("Value", teamBindingSource, propertyName, true,
 			DataSourceUpdateMode.OnPropertyChanged));
-		groupFc26ClubRecord.Controls.Add(label);
-		groupFc26ClubRecord.Controls.Add(numeric);
+		group.Controls.Add(label);
+		group.Controls.Add(numeric);
+	}
+
+	private void LoadFc26ClubDetailsPage()
+	{
+		if (FifaEnvironment.Year != 26 || m_CurrentTeam == null) return;
+		teamBindingSource.ResetBindings(metadataChanged: false);
 	}
 
 	private void ConfigureFc26PlayerCreationUi()
@@ -2604,8 +2672,11 @@ public class TeamForm : Form
 			if (FifaEnvironment.Year == 26)
 			{
 				if (numericFc26Profitability == null || numericFc26Popularity == null ||
-					numericFc26YouthDevelopment == null || groupFc26ClubRecord == null ||
-					groupFc26ClubRecord.Controls.Count != 24)
+					numericFc26YouthDevelopment == null || pageFc26ClubDetails == null ||
+					tableEditTeam.TabPages.IndexOf(pageFc26ClubDetails) != 1 ||
+					groupFc26ClubRecord?.Controls.Count != 4 || groupFc26TeamRatings?.Controls.Count != 8 ||
+					groupFc26ClubProfile?.Controls.Count != 10 || groupFc26Honours?.Controls.Count != 12 ||
+					flowPanelTeamGeneric.Controls.Contains(groupFc26ClubRecord))
 					throw new InvalidOperationException("FC26 club profile fields were not added to Team Info.");
 				if (listViewPlayersAvailable.Items.Count == 0)
 					throw new InvalidOperationException("FC26 Available Players did not load on the Roster page.");
@@ -2641,6 +2712,10 @@ public class TeamForm : Form
 					if (heidenheim.foundationyear != 2007 || heidenheim.teamstadiumcapacity != 15000 ||
 						heidenheim.overallrating != 72 || heidenheim.attackrating != 73)
 						throw new InvalidOperationException("FC26 club record/rating columns were not loaded from teams.");
+					tableEditTeam.SelectedTab = pageFc26ClubDetails;
+					ReloadTeam(heidenheim);
+					if (m_CurrentPage != pageFc26ClubDetails)
+						throw new InvalidOperationException("FC26 Club Details page could not be selected.");
 					comboTraitContext.SelectedIndex = 1;
 					LoadFc26TraitChecks();
 					int expectedKnown = heidenheim.GetFc26TraitMask(1) & 1023;

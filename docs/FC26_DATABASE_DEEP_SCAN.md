@@ -1,4 +1,4 @@
-# FC26 database deep scan — updated for v1.0.144
+# FC26 database deep scan — updated for v1.0.145
 
 Source inspected: the installed FC26 direct-session squads database dated 2026-08-22. Values can change with a later Title Update or squad file.
 
@@ -30,9 +30,9 @@ Verified editable profile fields include `clubworth` (stored in thousands),
 `youthdevelopment`, `foundationyear`, `teamstadiumcapacity`, `overallrating`,
 `attackrating`, `midfieldrating`, `defenserating`, `leaguetitles`,
 `domesticcups`, `uefa_cl_wins`, `uefa_el_wins`, `uefa_uecl_wins` and
-`uefa_consecutive_wins`. v1.0.144 exposes these high-value fields in the Legacy
-Team Info page; the snapshot change plan writes them back to their native
-columns.
+`uefa_consecutive_wins`. v1.0.145 exposes these high-value fields through the
+structured CM16-style Club Details tab; the snapshot change plan writes them
+back to their native columns.
 
 Additional available categories are team colours, rival, ball, city/location,
 kit/stadium presentation, crowd/tifo/banner flags, pitch/net styles, set-piece

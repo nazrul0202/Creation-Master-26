@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.145 - native CM16-style Club Details layout (2026-08-24)
+
+- Removed the raw FC26 record/rating field block from the Generic Team page.
+- Added a dedicated **Club Details** tab directly after Generic, matching the compact CM16 group-box layout.
+- Organised editable values into **Club Identity**, **Club Profile**, **Team Ratings**, and **Club Honours** instead of exposing a flat database-field dump.
+- Preserved the v1.0.144 roster-link, cross-team transfer, Career budget and objective fixes.
+
 ## Version 1.0.144 - complete Team database scan and roster-link repair (2026-08-24)
 
 - Fixed the FC26 snapshot mapper overwriting linked `TeamPlayer.Player` and `TeamPlayer.Team` objects with numeric foreign keys, which left affected clubs with empty player lists and formation cards.

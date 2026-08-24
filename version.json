@@ -1,6 +1,6 @@
 {
-  "version": "1.0.144",
+  "version": "1.0.145",
   "name": "Creation Master 26",
-  "notes": "v1.0.144 - repaired all FC26 roster links and expanded the Legacy Team database fields.",
+  "notes": "v1.0.145 - rebuilt Club Details as a structured CM16-style interface.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
