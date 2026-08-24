@@ -149,6 +149,26 @@ internal static class Fc26HostBridge
         }
     }
 
+    internal static string StageImage(string legacyPath, string sourcePath, int width, int height)
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
+            throw new FileNotFoundException("CM26 FC26 host executable was not found.", s_HostPath);
+        var start = new ProcessStartInfo
+        {
+            FileName = s_HostPath,
+            Arguments = "--legacy-stage-image \"" + legacyPath.Replace("\"", string.Empty) + "\" \"" +
+                sourcePath.Replace("\"", string.Empty) + "\" " + width + " " + height,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
+        };
+        var result = RunProcess(start, AssetCommandTimeoutMs, "FC26 asset importer");
+        if (result.ExitCode != 0) throw new InvalidOperationException(result.StandardError.Trim());
+        return result.StandardOutput.Trim();
+    }
+
     internal static string ExportFaceMesh(int playerId, int headAssetId)
     {
         if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
@@ -187,6 +207,67 @@ internal static class Fc26HostBridge
         {
             try { if (File.Exists(responsePath)) File.Delete(responsePath); } catch { }
         }
+    }
+
+    internal static EquipmentPreview ExportEquipmentPreview(string kind, int id)
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
+            throw new FileNotFoundException("CM26 FC26 host executable was not found.", s_HostPath);
+        var response = Path.Combine(Path.GetTempPath(), "cm26-equipment-" + Guid.NewGuid().ToString("N") + ".txt");
+        try
+        {
+            var start = new ProcessStartInfo
+            {
+                FileName = s_HostPath,
+                Arguments = "--legacy-equipment-preview " + kind + " " + id + " \"" + response + "\"",
+                UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardOutput = true, RedirectStandardError = true,
+                WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
+            };
+            var result = RunProcess(start, AssetCommandTimeoutMs, "FC26 equipment preview exporter");
+            if (result.ExitCode != 0) throw new InvalidOperationException(result.StandardError.Trim());
+            var lines = File.Exists(response) ? File.ReadAllLines(response) : Array.Empty<string>();
+            if (lines.Length == 0 || !File.Exists(lines[0])) throw new FileNotFoundException("Equipment mesh was not exported.");
+            return new EquipmentPreview(lines[0], lines.Length > 1 && File.Exists(lines[1]) ? lines[1] : null);
+        }
+        finally { try { if (File.Exists(response)) File.Delete(response); } catch { } }
+    }
+
+    internal sealed class EquipmentPreview
+    {
+        internal EquipmentPreview(string meshPath, string? texturePath) { MeshPath = meshPath; TexturePath = texturePath; }
+        internal string MeshPath { get; }
+        internal string? TexturePath { get; }
+    }
+
+    internal static ScoreboardAsset[] LoadScoreboards()
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath)) return Array.Empty<ScoreboardAsset>();
+        var response = Path.Combine(Path.GetTempPath(), "cm26-scoreboards-" + Guid.NewGuid().ToString("N") + ".txt");
+        try
+        {
+            var start = new ProcessStartInfo
+            {
+                FileName = s_HostPath, Arguments = "--legacy-scoreboards \"" + response + "\"",
+                UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardOutput = true, RedirectStandardError = true,
+                WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
+            };
+            var result = RunProcess(start, AssetCommandTimeoutMs, "FC26 scoreboard catalog");
+            if (result.ExitCode != 0) throw new InvalidOperationException(result.StandardError.Trim());
+            return File.Exists(response) ? File.ReadAllLines(response).Select(line => line.Split(new[] { '\t' }, 2))
+                .Where(parts => parts.Length == 2).Select(parts => new ScoreboardAsset(parts[0], parts[1])).ToArray()
+                : Array.Empty<ScoreboardAsset>();
+        }
+        finally { try { if (File.Exists(response)) File.Delete(response); } catch { } }
+    }
+
+    internal sealed class ScoreboardAsset
+    {
+        internal ScoreboardAsset(string type, string name) { Type = type; Name = name; }
+        internal string Type { get; }
+        internal string Name { get; }
+        public override string ToString() => Path.GetFileName(Name.Replace('/', Path.DirectorySeparatorChar));
     }
 
     private static bool DotnetHostIsAvailable()
@@ -327,8 +408,6 @@ internal static class Fc26HostBridge
         Directory.CreateDirectory(outputDirectory);
         var planPath = Path.Combine(outputDirectory, "fc26-changes.json");
         var changeCount = Fc26SnapshotLoader.WriteChanges(planPath);
-        if (changeCount == 0) return "No FC26 database changes to save.";
-
         var start = new ProcessStartInfo
         {
             FileName = s_HostPath,

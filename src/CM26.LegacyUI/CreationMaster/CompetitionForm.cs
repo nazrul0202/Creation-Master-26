@@ -1377,6 +1377,13 @@ public class CompetitionForm : Form
 	{
 		base.Visible = false;
 		InitializeComponent();
+		if (FifaEnvironment.Year == 26)
+		{
+			// The competition ID remains available in Competition Details; keep the
+			// main header focused on the resolved competition name.
+			textUniqueId.Visible = false;
+			label66.Visible = false;
+		}
 		CmStyleDetailsWindow.Attach(this, "Competition Details", DetailSection.Competition,
 			() => m_CurrentCompobj?.Id ?? -1);
 		viewer3DTrophy = new Viewer3D();

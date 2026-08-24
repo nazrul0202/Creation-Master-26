@@ -52,9 +52,27 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 5 && args[0] == "--legacy-stage-image")
+        {
+            Environment.ExitCode = StageLegacyImage(args[1], args[2], args[3], args[4]);
+            return;
+        }
+
         if (args.Length >= 3 && args[0] == "--legacy-face-mesh")
         {
             Environment.ExitCode = ExportLegacyFaceMesh(args[1], args[2], args.Length >= 4 ? args[3] : null);
+            return;
+        }
+
+        if (args.Length >= 4 && args[0] == "--legacy-equipment-preview")
+        {
+            Environment.ExitCode = ExportLegacyEquipmentPreview(args[1], args[2], args[3]);
+            return;
+        }
+
+        if (args.Length >= 2 && args[0] == "--legacy-scoreboards")
+        {
+            Environment.ExitCode = ExportLegacyScoreboardList(args[1]);
             return;
         }
 
@@ -617,6 +635,29 @@ internal static class Program
         return score;
     }
 
+    private static int StageLegacyImage(string legacyPath, string sourcePath, string widthText, string heightText)
+    {
+        try
+        {
+            if (!int.TryParse(widthText, out var width) || !int.TryParse(heightText, out var height) ||
+                width <= 0 || height <= 0) throw new ArgumentException("Invalid texture dimensions.");
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot)) throw new InvalidOperationException("FC26 installation was not detected.");
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+            var mods = new LegacyAssetModService();
+            mods.Open(assets.Fingerprint);
+            Console.WriteLine(mods.StageImage(legacyPath, sourcePath, width, height));
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
+    }
+
     private static int ExportLegacyFaceMesh(string playerText, string headText, string? responsePath)
     {
         try
@@ -663,6 +704,67 @@ internal static class Program
             Console.Error.WriteLine(ex.Message);
             return 1;
         }
+    }
+
+    private static int ExportLegacyEquipmentPreview(string kind, string idText, string responsePath)
+    {
+        try
+        {
+            if (!int.TryParse(idText, out var id) || id < 0) throw new ArgumentException("Invalid equipment id.");
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot)) throw new InvalidOperationException("FC26 installation was not detected.");
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+            string[] stems = kind.Equals("ball", StringComparison.OrdinalIgnoreCase)
+                ? new[] { $"ball_{id}_mesh", $"ball_{id}" }
+                : new[] { $"shoe_{id}_mesh", $"boot_{id}_mesh", $"shoe_{id}", $"boot_{id}" };
+            var mesh = assets.ExportMeshForQuery(stems, 300);
+            if (string.IsNullOrWhiteSpace(mesh) || !File.Exists(mesh))
+                throw new FileNotFoundException($"No indexed {kind} mesh was found for id {id}.");
+            string texture = string.Empty;
+            var selected = stems.SelectMany(stem => assets.SearchAssets(stem, "Res", 120))
+                .Where(match => match.ResType == 0x6BDE20BA && match.Name.Contains("color", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(match => match.Name.Length).FirstOrDefault();
+            if (selected != null)
+            {
+                var source = assets.ExportTexture(selected.Name);
+                if (!string.IsNullOrWhiteSpace(source) && File.Exists(source))
+                {
+                    using var preview = new TexturePreviewService().CreatePreview(source, 2048, 2048);
+                    if (preview != null)
+                    {
+                        texture = Path.Combine(Path.GetTempPath(), $"cm26-{kind}-{id}-color.png");
+                        preview.Save(texture, System.Drawing.Imaging.ImageFormat.Png);
+                    }
+                }
+            }
+            Directory.CreateDirectory(Path.GetDirectoryName(responsePath)!);
+            File.WriteAllLines(responsePath, new[] { mesh, texture });
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int ExportLegacyScoreboardList(string responsePath)
+    {
+        try
+        {
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot)) throw new InvalidOperationException("FC26 installation was not detected.");
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+            var rows = new[] { "scoreboard", "score_board", "broadcastoverlay", "matchoverlay" }
+                .SelectMany(query => assets.SearchAssets(query, null, 750))
+                .GroupBy(item => item.Name, StringComparer.OrdinalIgnoreCase).Select(group => group.First())
+                .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(item => item.Type + "\t" + item.Name).ToArray();
+            Directory.CreateDirectory(Path.GetDirectoryName(responsePath)!);
+            File.WriteAllLines(responsePath, rows);
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
     }
 
     private static int ExportLegacyAssets(string requestPath)

@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using FifaControls;
@@ -232,6 +233,7 @@ public class KitForm : Form
 	private Label labelTeamId;
 
 	private Button buttonExportAllKits;
+	private Button buttonImportKitFolder;
 
 	private Button buttonMinikitPicture;
 
@@ -239,6 +241,18 @@ public class KitForm : Form
 	{
 		base.Visible = false;
 		InitializeComponent();
+		if (FifaEnvironment.Year == 26)
+		{
+			buttonImportKitFolder = new Button
+			{
+				Text = "Import Folder...",
+				Location = new Point(buttonExportAllKits.Right + 8, buttonExportAllKits.Top),
+				Size = new Size(105, buttonExportAllKits.Height),
+				UseVisualStyleBackColor = true
+			};
+			buttonImportKitFolder.Click += buttonImportKitFolder_Click;
+			buttonExportAllKits.Parent.Controls.Add(buttonImportKitFolder);
+		}
 		CmStyleDetailsWindow.Attach(this, "Kit Details", DetailSection.Kit,
 			() => m_CurrentKit?.Id ?? -1);
 		viewer3DKit = new Viewer3D();
@@ -1492,7 +1506,7 @@ public class KitForm : Form
 		}
 	}
 
-	private void buttonExportAllKits_Click(object sender, EventArgs e)
+	private async void buttonExportAllKits_Click(object sender, EventArgs e)
 	{
 		FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
 		folderBrowserDialog.SelectedPath = FifaEnvironment.ExportFolder;
@@ -1505,6 +1519,30 @@ public class KitForm : Form
 		}
 		string selectedPath = folderBrowserDialog.SelectedPath;
 		folderBrowserDialog.Dispose();
+		if (FifaEnvironment.Year == 26)
+		{
+			buttonExportAllKits.Enabled = false;
+			int exported = 0;
+			try
+			{
+				for (int i = 0; i < pickUpControl.combo.Items.Count; i++)
+				{
+					if (pickUpControl.combo.Items[i] is not Kit kit) continue;
+					string path = await System.Threading.Tasks.Task.Run(
+						() => Fc26HostBridge.ExportKitTexture(kit.teamid, kit.kittype));
+					if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) continue;
+					string teamFolder = Path.Combine(selectedPath, kit.teamid.ToString());
+					Directory.CreateDirectory(teamFolder);
+					File.Copy(path, Path.Combine(teamFolder,
+						$"jersey_{kit.teamid}_{kit.kittype}_color.png"), overwrite: true);
+					exported++;
+				}
+				MessageBox.Show(this, $"Exported {exported} kit texture(s) to:\r\n{selectedPath}",
+					"Export Kits", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			}
+			finally { buttonExportAllKits.Enabled = true; }
+			return;
+		}
 		int num = 1;
 		for (int i = 0; i < pickUpControl.combo.Items.Count; i++)
 		{
@@ -1541,6 +1579,65 @@ public class KitForm : Form
 				GC.Collect();
 			}
 		}
+	}
+
+	private async void buttonImportKitFolder_Click(object sender, EventArgs e)
+	{
+		if (m_CurrentKit == null) return;
+		using var dialog = new FolderBrowserDialog
+		{
+			Description = "Select the folder containing this kit's texture files",
+			ShowNewFolderButton = false
+		};
+		if (dialog.ShowDialog(this) != DialogResult.OK) return;
+		string variant = m_CurrentKit.kittype switch
+		{
+			0 => "home", 1 => "away", 2 => "third", 3 => "gk", 4 => "gk_away", 5 => "gk_third", _ => string.Empty
+		};
+		if (variant.Length == 0) return;
+		var files = Directory.EnumerateFiles(dialog.SelectedPath, "*", SearchOption.TopDirectoryOnly)
+			.Where(path => new[] { ".png", ".jpg", ".jpeg", ".bmp", ".dds" }
+				.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
+			.Where(path =>
+			{
+				string name = Path.GetFileNameWithoutExtension(path);
+				return name.StartsWith("jersey_", StringComparison.OrdinalIgnoreCase) ||
+					name.StartsWith("shorts_", StringComparison.OrdinalIgnoreCase) ||
+					name.StartsWith("socks_", StringComparison.OrdinalIgnoreCase) ||
+					name.StartsWith("brand_", StringComparison.OrdinalIgnoreCase) ||
+					name.StartsWith("crest_", StringComparison.OrdinalIgnoreCase);
+			}).ToArray();
+		if (files.Length == 0)
+		{
+			MessageBox.Show(this, "No supported kit textures were found in that folder.",
+				"Import Kit Folder", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		buttonImportKitFolder.Enabled = false;
+		try
+		{
+			int imported = 0;
+			foreach (string source in files)
+			{
+				int width = 2048, height = 2048;
+				if (!Path.GetExtension(source).Equals(".dds", StringComparison.OrdinalIgnoreCase))
+				{
+					using Image image = Image.FromFile(source);
+					width = image.Width; height = image.Height;
+				}
+				string assetName = Path.GetFileNameWithoutExtension(source) + ".dds";
+				string logicalPath = $"content/character/kit/{m_CurrentKit.teamid}/{variant}_1_0/{assetName}";
+				await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.StageImage(logicalPath, source, width, height));
+				imported++;
+			}
+			MessageBox.Show(this, $"Imported {imported} texture(s). Use File > Save to apply them.",
+				"Import Kit Folder", MessageBoxButtons.OK, MessageBoxIcon.Information);
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show(this, ex.Message, "Import Kit Folder", MessageBoxButtons.OK, MessageBoxIcon.Error);
+		}
+		finally { buttonImportKitFolder.Enabled = true; }
 	}
 
 	protected override void Dispose(bool disposing)

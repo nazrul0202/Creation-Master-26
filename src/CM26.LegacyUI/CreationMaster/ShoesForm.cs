@@ -26,6 +26,8 @@ public class ShoesForm : Form
 	private GroupBox group3D;
 
 	private Viewer3D viewer3D;
+	private CreationMaster.Controls.Mesh3DPreviewHost m_Fc26Preview;
+	private int m_Fc26PreviewRequest;
 
 	private ToolStrip tool3DModel;
 
@@ -69,6 +71,13 @@ public class ShoesForm : Form
 		InitializeComponent();
 		CmStyleDetailsWindow.Attach(this, "Boot Details", DetailSection.Boot,
 			() => m_CurrentShoes?.Id ?? -1);
+		if (FifaEnvironment.Year == 26)
+		{
+			viewer3D.Visible = false;
+			m_Fc26Preview = new CreationMaster.Controls.Mesh3DPreviewHost { Dock = DockStyle.Fill };
+			group3D.Controls.Add(m_Fc26Preview);
+			m_Fc26Preview.BringToFront();
+		}
 		pickUpControl.SelectObject = SelectShoes;
 		pickUpControl.CreateObject = CreateShoes;
 		pickUpControl.DeleteObject = DeleteShoes;
@@ -222,8 +231,22 @@ public class ShoesForm : Form
 		LoadShoes(shoes);
 	}
 
-	public void Show3DShoes()
+	public async void Show3DShoes()
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			if (m_Fc26Preview == null || m_CurrentShoes == null) return;
+			if (!buttonShow3DModel.Checked) { m_Fc26Preview.ClearModel(); return; }
+			int request = ++m_Fc26PreviewRequest;
+			m_Fc26Preview.ShowStatus("Loading boot preview...");
+			try
+			{
+				var preview = await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.ExportEquipmentPreview("boot", m_CurrentShoes.Id));
+				if (request == m_Fc26PreviewRequest && !IsDisposed) m_Fc26Preview.LoadMesh(preview.MeshPath, preview.TexturePath);
+			}
+			catch (Exception ex) { if (request == m_Fc26PreviewRequest && !IsDisposed) m_Fc26Preview.ShowStatus(ex.Message); }
+			return;
+		}
 		if (!buttonShow3DModel.Checked)
 		{
 			viewer3D.ShowEmpty();

@@ -1358,14 +1358,7 @@ public class PlayerForm : Form
 		m_OverallSema = false;
 		numericRandomize.Value = m_CurrentPlayer.GetAverageRoleAttribute();
 		m_OverallSema = true;
-		if (m_CurrentPlayer.skillmoves < 1)
-		{
-			m_CurrentPlayer.skillmoves = 1;
-		}
-		if (m_CurrentPlayer.skillmoves > 1)
-		{
-			m_CurrentPlayer.skillmoves = 5;
-		}
+		m_CurrentPlayer.skillmoves = Math.Max(1, Math.Min(5, m_CurrentPlayer.skillmoves));
 		labelSkillsStars.ImageIndex = m_CurrentPlayer.skillmoves - 1;
 		numericSkillMoves.Value = m_CurrentPlayer.skillmoves;
 		playerBindingSource.ResetBindings(metadataChanged: false);
@@ -1378,7 +1371,7 @@ public class PlayerForm : Form
 
 		groupTraits.SuspendLayout();
 		groupTraits.Controls.Clear();
-		groupTraits.Text = "FC 26 PlayStyles / PlayStyles+";
+		groupTraits.Text = "PlayStyles";
 		groupTraits.Location = new Point(8, 387);
 		groupTraits.Size = new Size(1235, 254);
 
@@ -1397,28 +1390,30 @@ public class PlayerForm : Form
 
 		for (int index = 0; index < c_Fc26PlaystyleNames.Length; index++)
 		{
-			var panel = new FlowLayoutPanel
+			var panel = new Panel
 			{
 				Dock = DockStyle.Fill,
-				FlowDirection = FlowDirection.LeftToRight,
-				WrapContents = false,
 				Margin = Padding.Empty
 			};
 			var playstyle = new CheckBox
 			{
 				AutoSize = false,
-				Width = 220,
+				Width = 238,
 				Height = 22,
 				Text = c_Fc26PlaystyleNames[index],
 				Tag = index,
-				Margin = new Padding(1)
+				Location = new Point(2, 1)
 			};
 			var plus = new CheckBox
 			{
-				AutoSize = true,
-				Text = "+",
+				Appearance = Appearance.Button,
+				AutoSize = false,
+				Text = "PlayStyle+",
 				Tag = index,
-				Margin = new Padding(1, 3, 1, 1)
+				Location = new Point(241, 1),
+				Size = new Size(61, 22),
+				FlatStyle = FlatStyle.Flat,
+				TextAlign = ContentAlignment.MiddleCenter
 			};
 			playstyle.CheckedChanged += Fc26Playstyle_CheckedChanged;
 			plus.CheckedChanged += Fc26PlaystylePlus_CheckedChanged;
@@ -1483,7 +1478,10 @@ public class PlayerForm : Form
 	private void Fc26Playstyle_CheckedChanged(object sender, EventArgs e)
 	{
 		if (m_Fc26PlaystylesLoading || m_CurrentPlayer == null || sender is not CheckBox check) return;
-		SetFc26Playstyle((int)check.Tag, plus: false, check.Checked);
+		int index = (int)check.Tag;
+		SetFc26Playstyle(index, plus: false, check.Checked);
+		if (!check.Checked && m_Fc26PlaystylePlusChecks[index].Checked)
+			m_Fc26PlaystylePlusChecks[index].Checked = false;
 	}
 
 	private void Fc26PlaystylePlus_CheckedChanged(object sender, EventArgs e)
@@ -1491,6 +1489,7 @@ public class PlayerForm : Form
 		if (m_Fc26PlaystylesLoading || m_CurrentPlayer == null || sender is not CheckBox check) return;
 		int index = (int)check.Tag;
 		SetFc26Playstyle(index, plus: true, check.Checked);
+		check.BackColor = check.Checked ? Color.Gold : SystemColors.Control;
 		if (check.Checked && !m_Fc26PlaystyleChecks[index].Checked)
 			m_Fc26PlaystyleChecks[index].Checked = true;
 	}

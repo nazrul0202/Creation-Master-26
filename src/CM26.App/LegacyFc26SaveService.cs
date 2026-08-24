@@ -12,20 +12,23 @@ internal static class LegacyFc26SaveService
         var plan = JsonSerializer.Deserialize<ChangePlan>(File.ReadAllText(planPath),
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
             ?? throw new InvalidDataException("FC26 change plan is empty.");
-        if (plan.Changes.Count == 0) return "No FC26 database changes to save.";
-
         var gameRoot = FrostbiteAssetSession.ResolveGameRoot(
             string.IsNullOrWhiteSpace(plan.GameRoot) ? SettingsService.FC26GameFolder : plan.GameRoot)
             ?? throw new InvalidOperationException("FC26 installation was not detected.");
         var assets = new FrostbiteAssetSession();
         assets.Open(gameRoot);
         if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+        var mods = new LegacyAssetModService();
+        mods.Open(assets.Fingerprint);
+        if (plan.Changes.Count == 0 && !mods.HasChanges)
+            return "No database or asset changes to save.";
         if (applyDirect)
         {
             var backup = GameBackupService.EnsureCreated(gameRoot);
             if (!backup.Success) throw new InvalidOperationException(backup.Message);
         }
 
+        string? stagingFolder = null;
         var workspace = Fc26WorkspaceService.Open(assets);
         using var session = new DatabaseSession();
         session.Load(workspace.DatabaseFolder);
@@ -41,15 +44,16 @@ internal static class LegacyFc26SaveService
                 string.Join("; ", failures.Take(8)) +
                 (failures.Count > 8 ? $" (+{failures.Count - 8} more)" : string.Empty));
 
-        var stagingFolder = Path.Combine(Path.GetTempPath(),
-            "CM26-legacy-save-" + Guid.NewGuid().ToString("N"));
-        var save = new SaveService(session).SaveToDirectory(stagingFolder);
-        if (!save.Success) throw new InvalidOperationException(save.Message);
-        if (!string.IsNullOrWhiteSpace(session.MetaPath) && File.Exists(session.MetaPath))
-            File.Copy(session.MetaPath,
-                Path.Combine(stagingFolder, Path.GetFileName(session.MetaPath)), overwrite: true);
+        if (plan.Changes.Count > 0)
+        {
+            stagingFolder = Path.Combine(Path.GetTempPath(), "CM26-legacy-save-" + Guid.NewGuid().ToString("N"));
+            var save = new SaveService(session).SaveToDirectory(stagingFolder);
+            if (!save.Success) throw new InvalidOperationException(save.Message);
+            if (!string.IsNullOrWhiteSpace(session.MetaPath) && File.Exists(session.MetaPath))
+                File.Copy(session.MetaPath, Path.Combine(stagingFolder, Path.GetFileName(session.MetaPath)), overwrite: true);
+        }
 
-        using (var verification = new DatabaseSession())
+        if (stagingFolder != null) using (var verification = new DatabaseSession())
         {
             verification.Load(stagingFolder);
             var mismatches = plan.Changes.Where(change =>
@@ -62,16 +66,17 @@ internal static class LegacyFc26SaveService
         }
 
         if (!applyDirect)
-            return $"Staged and reload-verified {plan.Changes.Count} FC26 database change(s) at {stagingFolder}";
+            return stagingFolder != null
+                ? $"Staged and reload-verified {plan.Changes.Count} FC26 database change(s) at {stagingFolder}"
+                : $"Validated {mods.Count} staged asset file(s); no database changes were requested.";
 
-        var mods = new LegacyAssetModService();
-        mods.Open(assets.Fingerprint);
-        mods.StageDatabase(stagingFolder, includeLocale: false);
+        var assetCount = mods.Count;
+        if (stagingFolder != null) mods.StageDatabase(stagingFolder, includeLocale: false);
         var directPlan = mods.WriteDirectPlan();
         var applied = assets.ApplyDirect(directPlan);
         if (!applied.Success) throw new InvalidOperationException(applied.Message);
         mods.MarkApplied();
-        return $"Saved and verified {plan.Changes.Count} FC26 database change(s). {applied.Message}";
+        return $"Saved and verified {plan.Changes.Count} database change(s) and {assetCount} asset file(s). {applied.Message}";
     }
 
     private sealed class ChangePlan

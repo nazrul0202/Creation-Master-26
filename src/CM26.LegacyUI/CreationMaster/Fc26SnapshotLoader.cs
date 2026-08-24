@@ -810,16 +810,38 @@ internal static class Fc26SnapshotLoader
         var world = new World(0, "FC26", "FC26 Competitions");
         result.Add(world);
         if (!tables.TryGetValue("competition", out var table)) return result;
+        var leagueNames = new Dictionary<int, string>();
+        if (tables.TryGetValue("leagues", out var leagues))
+        {
+            var leagueId = Column(leagues, "leagueid");
+            var leagueName = Column(leagues, "leaguename");
+            foreach (var row in leagues.Rows)
+            {
+                var id = ParseIntAt(row, leagueId);
+                if (leagueName >= 0 && leagueName < row.Length && !string.IsNullOrWhiteSpace(row[leagueName]))
+                    leagueNames[id] = row[leagueName].Trim();
+            }
+        }
         var idColumn = Column(table, "competitionid");
         var ballColumn = Column(table, "ballid");
+        var womenColumn = Column(table, "iswomencompetition");
+        var countryColumn = Column(table, "country_lock");
         foreach (var row in table.Rows)
         {
             var competitionId = ParseIntAt(row, idColumn);
-            var trophy = new Trophy(competitionId + 1, "Competition " + competitionId,
-                "Competition " + competitionId, world)
+            string displayName;
+            if (!leagueNames.TryGetValue(competitionId, out displayName!))
             {
-                LongName = "Competition " + competitionId,
-                ShortName = "Competition " + competitionId,
+                bool women = ParseIntAt(row, womenColumn) != 0;
+                bool international = ParseIntAt(row, countryColumn) < 0;
+                displayName = international
+                    ? (women ? "Women's International Tournament" : "International Tournament")
+                    : (women ? "Women's Cup Competition" : "Cup Competition");
+            }
+            var trophy = new Trophy(competitionId + 1, displayName, displayName, world)
+            {
+                LongName = displayName,
+                ShortName = displayName,
                 ballid = ParseIntAt(row, ballColumn)
             };
             trophy.Settings.m_asset_id = competitionId;

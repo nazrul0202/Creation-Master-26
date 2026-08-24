@@ -19,6 +19,8 @@ public class BallForm : Form
 	private string m_BallCurrentFolder = FifaEnvironment.ExportFolder;
 
 	private Viewer3D viewer3DBall;
+	private CreationMaster.Controls.Mesh3DPreviewHost m_Fc26Preview;
+	private int m_Fc26PreviewRequest;
 
 	private IContainer components;
 
@@ -95,6 +97,13 @@ public class BallForm : Form
 		viewer3DBall.ViewZ = 30f;
 		viewer3DBall.ZbufferRenderState = null;
 		group3D.Controls.Add(viewer3DBall);
+		if (FifaEnvironment.Year == 26)
+		{
+			viewer3DBall.Visible = false;
+			m_Fc26Preview = new CreationMaster.Controls.Mesh3DPreviewHost { Dock = DockStyle.Fill };
+			group3D.Controls.Add(m_Fc26Preview);
+			m_Fc26Preview.BringToFront();
+		}
 		pickUpControl.SelectObject = SelectBall;
 		pickUpControl.CreateObject = CreateBall;
 		pickUpControl.DeleteObject = DeleteBall;
@@ -158,8 +167,22 @@ public class BallForm : Form
 		}
 	}
 
-	public void Show3DBall()
+	public async void Show3DBall()
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			if (m_Fc26Preview == null || m_CurrentBall == null) return;
+			if (!buttonShow3DModel.Checked) { m_Fc26Preview.ClearModel(); return; }
+			int request = ++m_Fc26PreviewRequest;
+			m_Fc26Preview.ShowStatus("Loading ball preview...");
+			try
+			{
+				var preview = await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.ExportEquipmentPreview("ball", m_CurrentBall.Id));
+				if (request == m_Fc26PreviewRequest && !IsDisposed) m_Fc26Preview.LoadMesh(preview.MeshPath, preview.TexturePath);
+			}
+			catch (Exception ex) { if (request == m_Fc26PreviewRequest && !IsDisposed) m_Fc26Preview.ShowStatus(ex.Message); }
+			return;
+		}
 		if (!buttonShow3DModel.Checked)
 		{
 			viewer3DBall.ShowEmpty();

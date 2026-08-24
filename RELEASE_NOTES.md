@@ -1,5 +1,16 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.147 - club, roster and asset workflow polish (2026-08-25)
+
+- Moved the complete Club Details layout into Team Generic and removed the unsupported legacy Objective, Highest and Probable controls.
+- Kept the verified database-backed team traits, reduced roster miniface scale and extended the reserves area so the full squad remains visible.
+- Rebuilt flag creation without missing CM16 template files and added import-ready exports.
+- Added Frostbite mesh and colour-texture previews for balls and boots, following the model-plus-texture workflow used by Miniball Renderer.
+- Added a searchable scoreboard/broadcast asset browser with preview and exported-file access.
+- Added kit folder import, fixed all-kit export, and made staged asset-only changes apply through Save.
+- Reworked PlayStyle+ controls and fixed Skill Moves values 2-4 being incorrectly displayed as 5.
+- Resolved competition names from league data where available and removed the duplicate ID from the main competition header.
+
 ## Version 1.0.146 - complete structured section details (2026-08-25)
 
 - Expanded the Legacy data bridge from 25 to 88 football-facing database tables, covering linked club, player, competition, presentation, equipment and matchday records.

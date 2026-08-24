@@ -62,15 +62,9 @@ public class TeamForm : Form
 
 	private bool m_Fc26TeamUiConfigured;
 
-	private NumericUpDown numericFc26Profitability;
-
-	private NumericUpDown numericFc26Popularity;
-
-	private NumericUpDown numericFc26YouthDevelopment;
-
 	private GroupBox groupFc26ClubRecord;
 
-	private TabPage pageFc26ClubDetails;
+	private GroupBox groupFc26ClubDetails;
 
 	private GroupBox groupFc26TeamRatings;
 
@@ -928,10 +922,6 @@ public class TeamForm : Form
 		{
 			LoadGenericPage();
 		}
-		else if (m_CurrentPage == pageFc26ClubDetails)
-		{
-			LoadFc26ClubDetailsPage();
-		}
 		else if (m_CurrentPage == pageTeamRoster)
 		{
 			LoadRosterPage();
@@ -1373,85 +1363,34 @@ public class TeamForm : Form
 		labelDefteamwidth.Visible = false;
 		groupBox6.Visible = false;
 
-		// objective is zero for every club in the inspected FC26 squads database.
-		// highestpossible/highestprobable are populated for some competitions, so
-		// preserve the original 17-value enum and handle an unavailable zero at load.
 		labelInitialBudget.Text = "Club Worth";
-		ConfigureFc26ClubProfileUi();
-		ConfigureFc26CareerBudgetUi();
+		// These legacy CM objectives are not club fields in the FC26 squads database.
+		comboObjective.Visible = labelObjective.Visible = false;
+		comboMaxOnjective.Visible = labelMaxObjective.Visible = false;
+		comboProbObjective.Visible = labelProbObjective.Visible = false;
 		ConfigureFc26ClubRecordUi();
+		ConfigureFc26CareerBudgetUi();
 
 		ConfigureFc26RosterFormationUi();
 		ConfigureFc26PlayerCreationUi();
 	}
 
-	private void ConfigureFc26ClubProfileUi()
-	{
-		// Insert FC26's real club-profile fields after Club Worth. The controls
-		// below this point are shifted down so none of the legacy fields overlap.
-		const int insertTop = 228;
-		const int addedHeight = 81;
-		foreach (Control control in groupBox3.Controls)
-		{
-			if (control.Top >= insertTop) control.Top += addedHeight;
-		}
-		groupBox3.Height += addedHeight;
-
-		numericFc26Profitability = AddFc26ClubProfileRow("Profitability", "profitability", insertTop);
-		numericFc26Popularity = AddFc26ClubProfileRow("Popularity", "popularity", insertTop + 27);
-		numericFc26YouthDevelopment = AddFc26ClubProfileRow("Youth Development", "youthdevelopment", insertTop + 54);
-	}
-
-	private NumericUpDown AddFc26ClubProfileRow(string labelText, string propertyName, int top)
-	{
-		var label = new Label
-		{
-			Text = labelText,
-			Location = new Point(6, top + 3),
-			Size = new Size(82, 17),
-			TextAlign = ContentAlignment.MiddleLeft,
-			BackColor = Color.Transparent
-		};
-		var numeric = new NumericUpDown
-		{
-			Name = "numericFc26" + propertyName,
-			Location = new Point(92, top),
-			Size = new Size(167, 20),
-			Minimum = 0,
-			Maximum = 10,
-			TextAlign = HorizontalAlignment.Center
-		};
-		numeric.DataBindings.Add(new Binding("Value", teamBindingSource, propertyName, true,
-			DataSourceUpdateMode.OnPropertyChanged));
-		groupBox3.Controls.Add(label);
-		groupBox3.Controls.Add(numeric);
-		return numeric;
-	}
-
 	private void ConfigureFc26ClubRecordUi()
 	{
-		pageFc26ClubDetails = new TabPage
+		groupFc26ClubDetails = new GroupBox
 		{
-			Name = "pageFc26ClubDetails",
 			Text = "Club Details",
-			UseVisualStyleBackColor = true,
-			Padding = new Padding(7),
-			AutoScroll = true
-		};
-		var detailsCanvas = new Panel
-		{
-			Name = "panelFc26ClubDetails",
-			Location = new Point(7, 7),
-			Size = new Size(644, 456),
-			Anchor = AnchorStyles.Top | AnchorStyles.Left
+			Name = "groupFc26ClubDetails",
+			Size = new Size(540, 420),
+			TabStop = false
 		};
 
 		groupFc26ClubRecord = new GroupBox
 		{
 			Name = "groupFc26ClubRecord",
 			Text = "Club Identity",
-			Location = new Point(3, 3),
-			Size = new Size(308, 108)
+			Location = new Point(10, 20),
+			Size = new Size(252, 108)
 		};
 		AddFc26DetailField(groupFc26ClubRecord, "Foundation Year", "foundationyear", 24, 0, 3000);
 		AddFc26DetailField(groupFc26ClubRecord, "Stadium Capacity", "teamstadiumcapacity", 51, 0, 1000000);
@@ -1460,8 +1399,8 @@ public class TeamForm : Form
 		{
 			Name = "groupFc26TeamRatings",
 			Text = "Team Ratings",
-			Location = new Point(323, 3),
-			Size = new Size(308, 162)
+			Location = new Point(272, 20),
+			Size = new Size(252, 162)
 		};
 		AddFc26DetailField(groupFc26TeamRatings, "Overall", "overallrating", 24, 0, 100);
 		AddFc26DetailField(groupFc26TeamRatings, "Attack", "attackrating", 51, 0, 100);
@@ -1472,8 +1411,8 @@ public class TeamForm : Form
 		{
 			Name = "groupFc26ClubProfile",
 			Text = "Club Profile",
-			Location = new Point(3, 123),
-			Size = new Size(308, 189)
+			Location = new Point(10, 138),
+			Size = new Size(252, 189)
 		};
 		AddFc26DetailField(groupFc26ClubProfile, "Domestic Prestige", "domesticprestige", 24, 0, 20);
 		AddFc26DetailField(groupFc26ClubProfile, "International Prestige", "internationalprestige", 51, 0, 20);
@@ -1485,8 +1424,8 @@ public class TeamForm : Form
 		{
 			Name = "groupFc26Honours",
 			Text = "Club Honours",
-			Location = new Point(323, 177),
-			Size = new Size(308, 216)
+			Location = new Point(272, 192),
+			Size = new Size(252, 216)
 		};
 		AddFc26DetailField(groupFc26Honours, "League Titles", "leaguetitles", 24, 0, 999);
 		AddFc26DetailField(groupFc26Honours, "Domestic Cups", "domesticcups", 51, 0, 999);
@@ -1495,12 +1434,11 @@ public class TeamForm : Form
 		AddFc26DetailField(groupFc26Honours, "Conference League", "uefa_uecl_wins", 132, 0, 999);
 		AddFc26DetailField(groupFc26Honours, "UEFA Consecutive Wins", "uefa_consecutive_wins", 159, 0, 999);
 
-		detailsCanvas.Controls.Add(groupFc26ClubRecord);
-		detailsCanvas.Controls.Add(groupFc26TeamRatings);
-		detailsCanvas.Controls.Add(groupFc26ClubProfile);
-		detailsCanvas.Controls.Add(groupFc26Honours);
-		pageFc26ClubDetails.Controls.Add(detailsCanvas);
-		tableEditTeam.TabPages.Insert(1, pageFc26ClubDetails);
+		groupFc26ClubDetails.Controls.Add(groupFc26ClubRecord);
+		groupFc26ClubDetails.Controls.Add(groupFc26TeamRatings);
+		groupFc26ClubDetails.Controls.Add(groupFc26ClubProfile);
+		groupFc26ClubDetails.Controls.Add(groupFc26Honours);
+		flowPanelTeamGeneric.Controls.Add(groupFc26ClubDetails);
 	}
 
 	private void AddFc26DetailField(GroupBox group, string labelText, string propertyName,
@@ -1509,16 +1447,16 @@ public class TeamForm : Form
 		var label = new Label
 		{
 			Text = labelText,
-			Location = new Point(12, top + 3),
-			Size = new Size(162, 17),
+			Location = new Point(10, top + 3),
+			Size = new Size(137, 17),
 			TextAlign = ContentAlignment.MiddleLeft,
 			BackColor = Color.Transparent
 		};
 		var numeric = new NumericUpDown
 		{
 			Name = "numericFc26" + propertyName,
-			Location = new Point(180, top),
-			Size = new Size(114, 20),
+			Location = new Point(151, top),
+			Size = new Size(88, 20),
 			Minimum = minimum,
 			Maximum = maximum,
 			ThousandsSeparator = maximum >= 10000,
@@ -1557,7 +1495,7 @@ public class TeamForm : Form
 		groupFc26CareerBudget = new GroupBox
 		{
 			Name = "groupFc26CareerBudget",
-			Text = "FC26 Career Transfer Budget",
+			Text = "Career Transfer Budget",
 			Size = new Size(540, 213),
 			TabStop = false
 		};
@@ -1845,8 +1783,8 @@ public class TeamForm : Form
 			const int setPieceWidth = 85;
 			int availableWidth = pageTeamRoster.ClientSize.Width - left - setPieceWidth - 24;
 			int panelWidth = Math.Max(477, Math.Min(980, availableWidth));
-			panel1.Bounds = new Rectangle(left, 3, panelWidth, 718);
-			pageTeamRoster.AutoScrollMinSize = new Size(left + panelWidth + setPieceWidth + 24, 875);
+			panel1.Bounds = new Rectangle(left, 3, panelWidth, 748);
+			pageTeamRoster.AutoScrollMinSize = new Size(left + panelWidth + setPieceWidth + 24, 905);
 
 			int setPieceLeft = panel1.Right + 8;
 			foreach (Label label in new[]
@@ -2207,9 +2145,9 @@ public class TeamForm : Form
 
 		// Keep the complete FC26 cut-out visible. The previous circular clip removed
 		// hair and shoulders, while its lower edge was hidden behind the name pill.
-		int faceAreaHeight = Math.Max(12, nameBounds.Top - 3);
-		int faceAreaWidth = Math.Min(label.Width >= 85 ? 48 : 36, label.Width - 8);
-		var faceBounds = new Rectangle((label.Width - faceAreaWidth) / 2, 2,
+		int faceAreaHeight = Math.Max(12, nameBounds.Top - 7);
+		int faceAreaWidth = Math.Min(label.Width >= 85 ? 34 : 27, label.Width - 12);
+		var faceBounds = new Rectangle((label.Width - faceAreaWidth) / 2, 6,
 			faceAreaWidth, faceAreaHeight);
 		if (m_Fc26MiniFaceCache.TryGetValue(player.Id, out Image face))
 		{
@@ -2678,12 +2616,10 @@ public class TeamForm : Form
 			}
 			if (FifaEnvironment.Year == 26)
 			{
-				if (numericFc26Profitability == null || numericFc26Popularity == null ||
-					numericFc26YouthDevelopment == null || pageFc26ClubDetails == null ||
-					tableEditTeam.TabPages.IndexOf(pageFc26ClubDetails) != 1 ||
+				if (groupFc26ClubDetails == null || !flowPanelTeamGeneric.Controls.Contains(groupFc26ClubDetails) ||
 					groupFc26ClubRecord?.Controls.Count != 4 || groupFc26TeamRatings?.Controls.Count != 8 ||
 					groupFc26ClubProfile?.Controls.Count != 10 || groupFc26Honours?.Controls.Count != 12 ||
-					flowPanelTeamGeneric.Controls.Contains(groupFc26ClubRecord))
+					comboObjective.Visible || comboMaxOnjective.Visible || comboProbObjective.Visible)
 					throw new InvalidOperationException("FC26 club profile fields were not added to Team Info.");
 				if (listViewPlayersAvailable.Items.Count == 0)
 					throw new InvalidOperationException("FC26 Available Players did not load on the Roster page.");
@@ -2719,10 +2655,6 @@ public class TeamForm : Form
 					if (heidenheim.foundationyear != 2007 || heidenheim.teamstadiumcapacity != 15000 ||
 						heidenheim.overallrating != 72 || heidenheim.attackrating != 73)
 						throw new InvalidOperationException("FC26 club record/rating columns were not loaded from teams.");
-					tableEditTeam.SelectedTab = pageFc26ClubDetails;
-					ReloadTeam(heidenheim);
-					if (m_CurrentPage != pageFc26ClubDetails)
-						throw new InvalidOperationException("FC26 Club Details page could not be selected.");
 					comboTraitContext.SelectedIndex = 1;
 					LoadFc26TraitChecks();
 					int expectedKnown = heidenheim.GetFc26TraitMask(1) & 1023;
@@ -2731,18 +2663,6 @@ public class TeamForm : Form
 						if (m_Fc26TraitChecks[bit].Checked) renderedKnown |= 1 << bit;
 					if (renderedKnown != expectedKnown)
 						throw new InvalidOperationException("FC26 opponent-context team traits were not rendered.");
-					if (heidenheim.objective == 0 && comboObjective.Enabled)
-						throw new InvalidOperationException("FC26 Career-generated objective placeholder is incorrectly editable.");
-				}
-				Team kaiserslautern = FifaEnvironment.Teams.SearchId(29) as Team;
-				if (kaiserslautern != null)
-				{
-					tableEditTeam.SelectedTab = pageTeamGeneric;
-					ReloadTeam(kaiserslautern);
-					if (comboObjective.Enabled || !comboMaxOnjective.Enabled || !comboProbObjective.Enabled ||
-						comboMaxOnjective.SelectedIndex != kaiserslautern.highestpossible ||
-						comboProbObjective.SelectedIndex != kaiserslautern.highestprobable)
-						throw new InvalidOperationException("FC26 stored Highest/Probable objective fields were not rendered independently.");
 				}
 				Team alFateh = FifaEnvironment.Teams.SearchId(112390) as Team;
 				if (alFateh != null)
@@ -4658,48 +4578,86 @@ public class TeamForm : Form
 
 	private void buttonCreateFlags_Click(object sender, EventArgs e)
 	{
-		if (m_CurrentTeam != null)
+		if (m_CurrentTeam == null) return;
+		try
 		{
-			Bitmap[] array = new Bitmap[4];
 			Bitmap crest = m_CurrentTeam.GetCrest();
-			new Rectangle(0, 0, 256, 256);
-			Rectangle destRectangle = new Rectangle(160, 32, 192, 192);
-			int style = labelFlag1.ImageIndex + 1;
-			string filename = FifaEnvironment.LaunchDir + "\\Templates\\" + Team.GenericFlagFileName(style);
-			array[0] = new Bitmap(filename);
-			GraphicUtil.ColorizeRGB(array[0], pictureFlagRed.BackColor, pictureFlagGreen.BackColor, pictureFlagBlue.BackColor, preserveArmBand: false);
-			if (checkFlag1.Checked)
+			Bitmap[] flags =
 			{
-				array[0] = GraphicUtil.Overlap(array[0], crest, destRectangle);
-			}
-			style = labelFlag2.ImageIndex + 1;
-			filename = FifaEnvironment.LaunchDir + "\\Templates\\" + Team.GenericFlagFileName(style);
-			array[1] = new Bitmap(filename);
-			GraphicUtil.ColorizeRGB(array[1], pictureFlagRed.BackColor, pictureFlagGreen.BackColor, pictureFlagBlue.BackColor, preserveArmBand: false);
-			if (checkFlag2.Checked)
+				CreateFc26Flag(512, 256, labelFlag1.ImageIndex + 1, checkFlag1.Checked, crest),
+				CreateFc26Flag(512, 256, labelFlag2.ImageIndex + 1, checkFlag2.Checked, crest),
+				CreateFc26Flag(256, 256, labelFlag3.ImageIndex + 1, checkFlag3.Checked, crest),
+				CreateFc26Flag(256, 256, labelFlag4.ImageIndex + 1, checkFlag4.Checked, crest)
+			};
+			if (FifaEnvironment.Year != 26) m_CurrentTeam.SetFlags(flags);
+			multiViewer2DFlags15.Bitmaps = flags;
+			multiViewer2DFlags15.Refresh();
+			if (FifaEnvironment.Year == 26)
 			{
-				array[1] = GraphicUtil.Overlap(array[1], crest, destRectangle);
+				string folder = Path.Combine(FifaEnvironment.ExportFolder, "Flags", m_CurrentTeam.Id.ToString());
+				Directory.CreateDirectory(folder);
+				flags[0].Save(Path.Combine(folder, $"flag_{m_CurrentTeam.Id}_0_color.png"));
+				flags[1].Save(Path.Combine(folder, $"flag_{m_CurrentTeam.Id}_1_color.png"));
+				flags[2].Save(Path.Combine(folder, $"flag_{m_CurrentTeam.Id}_square_0_color.png"));
+				flags[3].Save(Path.Combine(folder, $"flag_{m_CurrentTeam.Id}_square_1_color.png"));
+				MessageBox.Show(this, "Flags created and exported to:\r\n" + folder,
+					"Create Flags", MessageBoxButtons.OK, MessageBoxIcon.Information);
 			}
-			destRectangle = new Rectangle(32, 32, 192, 192);
-			style = labelFlag3.ImageIndex + 1;
-			filename = FifaEnvironment.LaunchDir + "\\Templates\\" + Team.GenericFlagFileName(style);
-			array[2] = new Bitmap(filename);
-			GraphicUtil.ColorizeRGB(array[2], pictureFlagRed.BackColor, pictureFlagGreen.BackColor, pictureFlagBlue.BackColor, preserveArmBand: false);
-			if (checkFlag3.Checked)
-			{
-				array[2] = GraphicUtil.Overlap(array[2], crest, destRectangle);
-			}
-			style = labelFlag4.ImageIndex + 1;
-			filename = FifaEnvironment.LaunchDir + "\\Templates\\" + Team.GenericFlagFileName(style);
-			array[3] = new Bitmap(filename);
-			GraphicUtil.ColorizeRGB(array[3], pictureFlagRed.BackColor, pictureFlagGreen.BackColor, pictureFlagBlue.BackColor, preserveArmBand: false);
-			if (checkFlag4.Checked)
-			{
-				array[3] = GraphicUtil.Overlap(array[3], crest, destRectangle);
-			}
-			m_CurrentTeam.SetFlags(array);
-			multiViewer2DFlags15.Bitmaps = m_CurrentTeam.GetFlags();
 		}
+		catch (Exception ex)
+		{
+			MessageBox.Show(this, "Flags could not be created.\r\n\r\n" + ex.Message,
+				"Create Flags", MessageBoxButtons.OK, MessageBoxIcon.Error);
+		}
+	}
+
+	private Bitmap CreateFc26Flag(int width, int height, int style, bool includeCrest, Image crest)
+	{
+		var bitmap = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+		using (Graphics graphics = Graphics.FromImage(bitmap))
+		using (var first = new SolidBrush(pictureFlagRed.BackColor))
+		using (var second = new SolidBrush(pictureFlagGreen.BackColor))
+		using (var third = new SolidBrush(pictureFlagBlue.BackColor))
+		{
+			graphics.Clear(pictureFlagRed.BackColor);
+			graphics.SmoothingMode = SmoothingMode.AntiAlias;
+			switch (((style - 1) % 6 + 6) % 6)
+			{
+				case 0:
+					graphics.FillRectangle(second, 0, height / 3, width, height / 3);
+					graphics.FillRectangle(third, 0, height * 2 / 3, width, height / 3);
+					break;
+				case 1:
+					graphics.FillRectangle(second, width / 3, 0, width / 3, height);
+					graphics.FillRectangle(third, width * 2 / 3, 0, width / 3, height);
+					break;
+				case 2:
+					for (int y = 0; y < height; y += Math.Max(1, height / 8))
+						graphics.FillRectangle(((y / Math.Max(1, height / 8)) & 1) == 0 ? first : second,
+							0, y, width, Math.Max(1, height / 8));
+					break;
+				case 3:
+					for (int x = 0; x < width; x += Math.Max(1, width / 8))
+						graphics.FillRectangle(((x / Math.Max(1, width / 8)) & 1) == 0 ? first : second,
+							x, 0, Math.Max(1, width / 8), height);
+					break;
+				case 4:
+					graphics.FillPolygon(second, new[] { new Point(0, 0), new Point(width, 0), new Point(0, height) });
+					graphics.FillPolygon(third, new[] { new Point(width, 0), new Point(width, height), new Point(0, height) });
+					break;
+				default:
+					graphics.FillRectangle(second, 0, height / 3, width, height / 3);
+					graphics.FillRectangle(second, width / 3, 0, width / 3, height);
+					break;
+			}
+			if (includeCrest && crest != null)
+			{
+				int size = Math.Min(height * 3 / 4, width / 2);
+				DrawImageContained(graphics, crest,
+					new Rectangle((width - size) / 2, (height - size) / 2, size, size));
+			}
+		}
+		return bitmap;
 	}
 
 	private void comboDEFLine_SelectedIndexChanged(object sender, EventArgs e)
