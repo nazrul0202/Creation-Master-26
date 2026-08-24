@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.142 - reliable club transfers and Team Info details (2026-08-24)
+
+- Fixed player transfers to update the exact Team X roster link instead of the player's first link, which could belong to another club or a national team.
+- Added a direct **Transfer** workflow to the public WPF Roster page, with duplicate-link prevention and immediate roster refresh after staging.
+- Made shirt number and position optional during transfer when those FC26 columns are unavailable or read-only, so they no longer block a valid club move.
+- Expanded Team Info with profitability/financial stability, club worth, domestic and international prestige, popularity/fanbase and youth development.
+- Made the legacy CM16 shell build reproducibly through NuGet reference assemblies when the standalone .NET Framework 4.8 Developer Pack is not installed.
+
 ## Version 1.0.141 - complete formation minifaces (2026-08-23)
 
 - Removed the circular crop that cut off player hair and shoulders on the FC26 formation board.

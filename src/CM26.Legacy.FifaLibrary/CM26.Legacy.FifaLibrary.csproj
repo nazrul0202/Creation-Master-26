@@ -12,6 +12,7 @@
     <RootNamespace />
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
     <PackageReference Include="System.Resources.Extensions" Version="9.0.0" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
