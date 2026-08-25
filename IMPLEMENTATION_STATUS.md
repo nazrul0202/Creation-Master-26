@@ -1,10 +1,11 @@
-# CM26 v1.0.157 implementation status
+# CM26 v1.0.158 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
 ## Complete
 
 - Original v1.0.148-style Creation Master interface as the normal public shell.
+- Permanently visible CM26 Direct Tools bar plus an in-page Player Tools panel, both connected to the implemented DBM Studio, RDM26 and Deco-derived workflows.
 - Installed FC26 and extracted-database loading through the verified x64 native engine.
 - Main and locale table discovery, search/filter/sort, copy/paste, replace, TSV exchange, row clone/delete and unsaved-change tracking.
 - Dependency impact scan, linked-reference replacement, ID change/swap and transactional change plans.

@@ -155,6 +155,30 @@ internal static class Program
 		Application.EnableVisualStyles();
 		Application.SetCompatibleTextRenderingDefault(defaultValue: false);
 		Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+		if (args.Length >= 1 && string.Equals(args[0], "--cm26-ui-integration-test", StringComparison.OrdinalIgnoreCase))
+		{
+			try
+			{
+				using var main = new MainForm();
+				main.Show();
+				Application.DoEvents();
+				var directTools = FindControl(main, "fc26DirectToolsStrip") as ToolStrip
+					?? throw new InvalidDataException("The CM26 Direct Tools bar is not visible in MainForm.");
+				if (directTools.Items.Count < 12)
+					throw new InvalidDataException("The CM26 Direct Tools bar is incomplete.");
+				var playerTools = FindControl(main.m_PlayerForm, "fc26PlayerToolsPanel")
+					?? throw new InvalidDataException("The CM26 Player Tools panel is not present in Player Info.");
+				if (playerTools.Controls.Count < 7)
+					throw new InvalidDataException("The CM26 Player Tools panel is incomplete.");
+				Environment.ExitCode = 0;
+			}
+			catch (Exception ex)
+			{
+				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				Environment.ExitCode = 1;
+			}
+			return;
+		}
 		if (args.Length >= 3 && string.Equals(args[0], "--cm26-smoke", StringComparison.OrdinalIgnoreCase))
 		{
 			var errorLog = Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log");
@@ -227,5 +251,17 @@ internal static class Program
 		if (diagnostic) Environment.Exit(1);
 		MessageBox.Show((exception?.Message ?? "Unknown error") + "\r\n\r\n" + log,
 			"Creation Master 26", MessageBoxButtons.OK, MessageBoxIcon.Error);
+	}
+
+	private static Control FindControl(Control root, string name)
+	{
+		if (root == null) return null;
+		if (string.Equals(root.Name, name, StringComparison.Ordinal)) return root;
+		foreach (Control child in root.Controls)
+		{
+			var match = FindControl(child, name);
+			if (match != null) return match;
+		}
+		return null;
 	}
 }

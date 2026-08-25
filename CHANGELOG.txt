@@ -1,3 +1,11 @@
+Creation Master 26 v1.0.158 - 25 August 2026
+
+- Added a permanently visible CM26 Direct Tools bar to the classic interface.
+- Exposed Project, Database, Player ID/Names, Transfer/Loan, Face/Miniface, Assets, Batch Player, Competition, Health and Career workflows without searching hidden menus.
+- Added a visible CM26 Player Tools panel inside Player Info for Transfermarkt, identity, roster, face, batch and asset operations.
+- Added the exact running version to the main interface to prevent old EXE/package confusion.
+- Preserved the original v1.0.148 page layout and validated direct Frostbite save pipeline.
+
 Creation Master 26 v1.0.157 - 25 August 2026
 
 - Added an FC26 Project Launcher, portable .cm26session files and recent-project reopening.

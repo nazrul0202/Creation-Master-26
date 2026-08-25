@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.158 - visible classic-interface integration (2026-08-25)
+
+- Added a permanently visible CM26 Direct Tools bar to every classic editor screen.
+- Added a CM26 Player Tools panel directly inside Player Info.
+- Connected those controls to the implemented project/database, identity, transfer/loan, face/miniface, asset, batch, competition, health and Career workflows.
+- Displays the running build version in the main window while retaining the v1.0.148 design and validated direct Frostbite save model.
+
 ## Version 1.0.157 - project, transfer/loan and workflow completion (2026-08-25)
 
 - Added direct-source CM26 project sessions and recent-project reopening.

@@ -1,5 +1,11 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.158 - visible classic-interface integration (2026-08-25)
+
+- **PASS:** release build exposes the integrated specialist workflows through a permanent Direct Tools bar and Player Tools panel.
+- **PASS:** every new visible control invokes an implemented CM26 form or a validated direct-data workflow; there are no placeholder buttons.
+- **PASS:** the original v1.0.148 editor pages and navigation remain intact.
+
 ## Version 1.0.157 - project, transfer/loan and workflow completion (2026-08-25)
 
 - Release build compiles with direct project/session reopening, complete transfer/loan operations, separate Career budget editing and workflow diagnostics.

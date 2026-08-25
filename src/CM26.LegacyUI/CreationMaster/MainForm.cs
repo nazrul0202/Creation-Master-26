@@ -118,6 +118,8 @@ public class MainForm : Form
 
 	private ToolStrip toolStripMain;
 
+	private ToolStrip m_Fc26DirectToolsStrip;
+
 	private ToolStrip toolStripRight;
 
 	private ToolStripButton buttonShowRight;
@@ -333,6 +335,7 @@ public class MainForm : Form
 	public MainForm()
 	{
 		InitializeComponent();
+		CreateFc26DirectToolsStrip();
 		var projectLauncher = new ToolStripMenuItem("FC26 Project Launcher...");
 		projectLauncher.Click += (_, _) => ShowFc26ProjectLauncher();
 		var openExtracted = new ToolStripMenuItem("Open extracted FC26 database...");
@@ -388,6 +391,70 @@ public class MainForm : Form
 		CM = this;
 		EnablePanels(enable: false);
 		EnableMenus();
+	}
+
+	private void CreateFc26DirectToolsStrip()
+	{
+		m_Fc26DirectToolsStrip = new ToolStrip
+		{
+			Name = "fc26DirectToolsStrip",
+			Dock = DockStyle.Top,
+			GripStyle = ToolStripGripStyle.Hidden,
+			AutoSize = true,
+			BackColor = Color.FromArgb(224, 255, 218),
+			RenderMode = ToolStripRenderMode.System,
+			Padding = new Padding(4, 2, 4, 2)
+		};
+
+		var title = new ToolStripLabel("CM26 DIRECT TOOLS")
+		{
+			Font = new Font(Font, FontStyle.Bold),
+			ForeColor = Color.FromArgb(0, 75, 35),
+			Margin = new Padding(3, 1, 10, 2)
+		};
+		m_Fc26DirectToolsStrip.Items.Add(title);
+		AddFc26DirectButton("PROJECT", "Open FC26, extracted data or a CM26 session", ShowFc26ProjectLauncher);
+		AddFc26DirectButton("DATABASE", "Advanced database workspace", ShowFc26DatabaseWorkspace);
+		AddFc26DirectButton("PLAYER ID & NAMES", "Player IDs, linked names and internal utilities", ShowFc26ModdingUtilities);
+		AddFc26DirectButton("TRANSFER / LOAN", "Roster, transfer, loan, national and youth tools", ShowFc26RosterTools);
+		AddFc26DirectButton("FACE & MINIFACE", "Face, hair and miniface tools", ShowFc26FaceTools);
+		AddFc26DirectButton("ASSETS", "Direct Frostbite visual asset manager", ShowFc26AssetManager);
+		AddFc26DirectButton("BATCH PLAYERS", "Batch player editor", ShowFc26BatchPlayerEditor);
+		AddFc26DirectButton("COMPETITION", "Competition and compdata editor", ShowFc26CompdataEditor);
+		AddFc26DirectButton("HEALTH", "Validate and safely repair the loaded FC26 database", ShowFc26HealthCentre);
+		AddFc26DirectButton("CAREER", "Career save and transfer-budget tools", ShowFc26CareerSaveModule);
+
+		m_Fc26DirectToolsStrip.Items.Add(new ToolStripSeparator());
+		m_Fc26DirectToolsStrip.Items.Add(new ToolStripLabel("Validate  >  Backup  >  Direct Save")
+		{
+			ForeColor = Color.FromArgb(0, 82, 150),
+			Font = new Font(Font, FontStyle.Bold)
+		});
+		m_Fc26DirectToolsStrip.Items.Add(new ToolStripLabel("v" + Application.ProductVersion)
+		{
+			Alignment = ToolStripItemAlignment.Right,
+			ForeColor = Color.DimGray
+		});
+
+		Controls.Add(m_Fc26DirectToolsStrip);
+		Controls.SetChildIndex(menuStrip, 0);
+		Controls.SetChildIndex(toolStripMain, 1);
+		Controls.SetChildIndex(m_Fc26DirectToolsStrip, 2);
+	}
+
+	private void AddFc26DirectButton(string text, string toolTip, Action action)
+	{
+		var button = new ToolStripButton(text)
+		{
+			DisplayStyle = ToolStripItemDisplayStyle.Text,
+			ToolTipText = toolTip,
+			AutoSize = true,
+			ForeColor = Color.FromArgb(0, 55, 105),
+			Font = new Font(Font, FontStyle.Bold),
+			Margin = new Padding(1, 1, 1, 2)
+		};
+		button.Click += (_, _) => action();
+		m_Fc26DirectToolsStrip.Items.Add(button);
 	}
 
 	private void ShowFc26ProjectLauncher()
@@ -447,7 +514,7 @@ public class MainForm : Form
 		finally { Cursor.Current = Cursors.Default; }
 	}
 
-	private void ShowFc26CareerSaveModule()
+	internal void ShowFc26CareerSaveModule()
 	{
 		using (var career = new Fc26CareerSaveForm()) career.ShowDialog(this);
 	}
@@ -457,7 +524,7 @@ public class MainForm : Form
 		using (var utilities = new Fc26WorkflowUtilitiesForm()) utilities.ShowDialog(this);
 	}
 
-	private void ShowFc26RosterTools()
+	internal void ShowFc26RosterTools()
 	{
 		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
 		{
@@ -467,7 +534,7 @@ public class MainForm : Form
 		using (var tools = new Fc26RosterToolsForm()) tools.ShowDialog(this);
 	}
 
-	private void ShowFc26FaceTools()
+	internal void ShowFc26FaceTools()
 	{
 		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
 		{
@@ -477,7 +544,7 @@ public class MainForm : Form
 		using (var tools = new Fc26FaceToolsForm()) tools.ShowDialog(this);
 	}
 
-	private void ShowFc26BatchPlayerEditor()
+	internal void ShowFc26BatchPlayerEditor()
 	{
 		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
 		{
@@ -492,7 +559,7 @@ public class MainForm : Form
 		using (var editor = new Fc26CompdataForm()) editor.ShowDialog(this);
 	}
 
-	private void ShowFc26AssetManager()
+	internal void ShowFc26AssetManager()
 	{
 		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
 		{
@@ -502,7 +569,7 @@ public class MainForm : Form
 		using (var manager = new Fc26AssetManagerForm()) manager.ShowDialog(this);
 	}
 
-	private void ShowFc26ModdingUtilities()
+	internal void ShowFc26ModdingUtilities()
 	{
 		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
 		{
