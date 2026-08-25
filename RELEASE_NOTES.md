@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.163 - mapped finance, Generic and Compdata completion (2026-08-25)
+
+- Separated FC26 Club Worth from Transfer Budget and added Deco-style read-only dollar information to Team Generic; Transfer Budget is no longer exposed as an editable raw value.
+- Added named Matchday Presentation controls to Team Generic for supporter, crowd, flag, scarf, tifo and stadium-presentation settings.
+- Integrated friendly Compdata structure, calendar, wizard, advancement, validation and export actions directly into Competition, with no raw sheet grid or standalone editor.
+- Fixed CM26 section initialization so Player tactical roles/skills, Team Generic additions and Competition Compdata always appear after startup; reduced the player and roster miniface footprint.
+
 ## Version 1.0.162 - strict original-section mapping (2026-08-25)
 
 - Added named FC26 Tactical Roles to the original Player Info page; role slots now load and save directly instead of remaining disconnected raw fields.

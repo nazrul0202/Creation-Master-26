@@ -1,3 +1,10 @@
+Creation Master 26 v1.0.163 - 25 August 2026
+
+- Separated Club Worth and Transfer Budget and added a Deco-style read-only Career Money display to Team Generic.
+- Added mapped Matchday Presentation controls without exposing raw database fields.
+- Embedded friendly Compdata tools directly in Competition and removed the remaining standalone Compdata window.
+- Fixed startup initialization for mapped Player/Team/Competition controls and reduced the miniface footprint.
+
 Creation Master 26 v1.0.162 - 25 August 2026
 
 - Added friendly FC26 Tactical Roles selectors to Player Info and wired role1-role5 through database load/save.
