@@ -1,6 +1,6 @@
 {
-  "version": "1.0.153",
+  "version": "1.0.154",
   "name": "Creation Master 26",
-  "notes": "v1.0.153 - completes native-file direct asset staging, visual Compdata structure/calendar workflows and multi-field Batch Player Matrix presets in the classic CM26 shell.",
+  "notes": "v1.0.154 - connects the classic specialist asset editors to direct FC26 Frostbite staging while preserving the v1.0.148 interface.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

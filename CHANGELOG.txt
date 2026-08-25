@@ -1,3 +1,9 @@
+Creation Master 26 v1.0.154 - 25 August 2026
+
+- Connected the classic Stadium, Ball, Boots, GK Gloves, Kit and Trophy controls to direct FC26 asset staging.
+- Added direct native model/container import, export and removal plus encoded DDS artwork staging.
+- Preserved the original v1.0.148 interface and direct-save workflow.
+
 Creation Master 26 v1.0.153 - 25 August 2026
 
 - Kept the original v1.0.148-style Creation Master interface as the normal launcher.
