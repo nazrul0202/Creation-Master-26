@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.156 - player identity, face and roster completion (2026-08-25)
+
+- Kept the v1.0.148 classic Creation Master shell as the normal public interface.
+- Added a real Player Names manager beside the dependency-aware ID manager: audit, repair/create and relink first, surname, common and jersey-name records.
+- Expanded Transfermarkt preview with market-value/age/position OVR and potential suggestions plus optional nationality-aware generic appearance values.
+- Added direct Miniface & Face Tools for installed/missing scans, batch import/export, missing reports, linked-ID asset renames, exact native face/cranium staging and generic face/hair/facial-hair assignment.
+- Added Roster, National Team & Youth Tools for transfers, releases, nationality-validated call-ups, U21 sync, Auto Best XI, duplicate/shirt/formation/set-piece repairs and roster CSV exchange.
+- All new database and asset operations remain staged behind the existing Validate, Backup and direct Frostbite Save transaction.
+
 ## Version 1.0.155 - comprehensive classic workflow completion (2026-08-25)
 
 - Preserved the v1.0.148 classic Creation Master design and normal launch path.

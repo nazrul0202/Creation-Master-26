@@ -30,9 +30,12 @@ public sealed class Fc26TransfermarktForm : Form
 	private readonly NumericUpDown _overall = new NumericUpDown { Minimum = 10, Maximum = 99, Dock = DockStyle.Fill };
 	private readonly NumericUpDown _potential = new NumericUpDown { Minimum = 10, Maximum = 99, Dock = DockStyle.Fill };
 	private readonly CheckBox _generateAttributes = new CheckBox { Text = "Generate position-based attributes at selected OVR", AutoSize = true };
+	private readonly CheckBox _applyAppearance = new CheckBox { Text = "Apply nationality-aware generic appearance suggestion", AutoSize = true };
 	private readonly Label _audit = new Label { AutoSize = true, ForeColor = Color.DimGray };
 	private readonly Label _status = new Label { AutoSize = true, ForeColor = Color.FromArgb(20, 88, 45) };
 	private string _sourceUrl = string.Empty;
+	private int _suggestedHead;
+	private int _suggestedSkin;
 
 	public Fc26TransfermarktForm(Player player)
 	{
@@ -73,6 +76,7 @@ public sealed class Fc26TransfermarktForm : Form
 		AddField(fields, "Overall", _overall);
 		AddField(fields, "Potential", _potential);
 		AddField(fields, "Attribute generator", _generateAttributes);
+		AddField(fields, "Appearance suggestion", _applyAppearance);
 		AddField(fields, "Source audit", _audit);
 		root.Controls.Add(fields, 0, 1);
 		root.Controls.Add(_status, 0, 2);
@@ -160,6 +164,7 @@ public sealed class Fc26TransfermarktForm : Form
 			if (profile.Height > 0) _height.Value = Math.Max(_height.Minimum, Math.Min(_height.Maximum, profile.Height));
 			SelectText(_country, profile.Nationality);
 			SelectPosition(profile.Position);
+			ApplyGeneratedSuggestions(profile);
 			_sourceUrl = uri.AbsoluteUri;
 			_audit.Text = "Loaded " + DateTime.Now.ToString("yyyy-MM-dd HH:mm") + " — " + _sourceUrl;
 			_status.Text = "Preview loaded. Review every value before Apply.";
@@ -191,6 +196,12 @@ public sealed class Fc26TransfermarktForm : Form
 		if (_generateAttributes.Checked) _player.RandomizeSkillsExactly((int)_overall.Value);
 		else _player.overallrating = (int)_overall.Value;
 		_player.potential = Math.Max(_player.overallrating, (int)_potential.Value);
+		if (_applyAppearance.Checked)
+		{
+			_player.headclasscode = 1;
+			_player.headtypecode = _suggestedHead;
+			_player.skintonecode = _suggestedSkin;
+		}
 
 		if (target != null && target.Id >= 0)
 		{
@@ -224,8 +235,56 @@ public sealed class Fc26TransfermarktForm : Form
 		var height = 0;
 		var metres = Regex.Match(heightText, @"(?<m>[12])[,.](?<cm>\d{2})\s*m");
 		if (metres.Success) height = int.Parse(metres.Groups["m"].Value) * 100 + int.Parse(metres.Groups["cm"].Value);
+		var marketValue = ParseMarketValue(FindFact(plain, "Market value", "Current market value"));
+		if (marketValue <= 0) marketValue = ExtractMarketValue(doc);
 		return new Profile(name.Trim(), dob, height,
-			FindFact(plain, "Citizenship", "Nationality"), FindFact(plain, "Position"));
+			FindFact(plain, "Citizenship", "Nationality"), FindFact(plain, "Position"), marketValue);
+	}
+
+	private static float ExtractMarketValue(HtmlAgilityPack.HtmlDocument document)
+	{
+		var nodes = document.DocumentNode.SelectNodes("//*[contains(text(),'€') or contains(text(),'£')]");
+		if (nodes == null) return 0;
+		foreach (var node in nodes)
+		{
+			var text = WebUtility.HtmlDecode(node.InnerText ?? string.Empty);
+			if (!Regex.IsMatch(text, @"\d[\d,.]*\s*(m|k|bn)\b", RegexOptions.IgnoreCase)) continue;
+			var value = ParseMarketValue(text);
+			if (value > 0) return value;
+		}
+		return 0;
+	}
+
+	private void ApplyGeneratedSuggestions(Profile profile)
+	{
+		var age = DateTime.Today.Year - (profile.BirthDate ?? _birthDate.Value).Year;
+		if ((profile.BirthDate ?? _birthDate.Value).Date > DateTime.Today.AddYears(-age)) age--;
+		if (_position.SelectedItem is Choice role && profile.MarketValueMillions > 0)
+		{
+			var suggestedOverall = _player.EstimateSkills(profile.MarketValueMillions, Math.Max(15, age), (ERole)role.Id);
+			_overall.Value = Math.Max(_overall.Minimum, Math.Min(_overall.Maximum, suggestedOverall));
+			var growth = age <= 18 ? 9 : age <= 20 ? 7 : age <= 22 ? 6 : age <= 24 ? 4 : age <= 27 ? 3 : age <= 29 ? 1 : 0;
+			_potential.Value = Math.Max(_potential.Minimum, Math.Min(_potential.Maximum, Math.Min(96, suggestedOverall + growth)));
+		}
+		var nation = _country.SelectedItem as Choice;
+		var country = nation == null ? null : (Country)FifaEnvironment.Countries.SearchId(nation.Id);
+		var confederation = country == null ? Country.EConfederation.None : (Country.EConfederation)country.m_confederation;
+		if (confederation == Country.EConfederation.Africa) { _suggestedHead = 1000; _suggestedSkin = 8; }
+		else if (confederation == Country.EConfederation.South_America) { _suggestedHead = 1500; _suggestedSkin = 6; }
+		else if (confederation == Country.EConfederation.Asia) { _suggestedHead = 500; _suggestedSkin = 4; }
+		else { _suggestedHead = 0; _suggestedSkin = 3; }
+		_applyAppearance.Text = "Apply generic head " + _suggestedHead + " / skin " + _suggestedSkin + " (nationality suggestion)";
+		if (profile.MarketValueMillions > 0)
+			_status.Text = "Generated FC26 suggestions from €" + profile.MarketValueMillions.ToString("0.##") + "m, age and position. Review before Apply.";
+	}
+
+	private static float ParseMarketValue(string value)
+	{
+		var text = WebUtility.HtmlDecode(value ?? string.Empty).Replace(',', '.').ToLowerInvariant();
+		var match = Regex.Match(text, @"(?<v>\d+(?:\.\d+)?)\s*(?<u>m|k|bn)?");
+		if (!match.Success || !float.TryParse(match.Groups["v"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var amount)) return 0;
+		var unit = match.Groups["u"].Value;
+		return unit == "k" ? amount / 1000f : unit == "bn" ? amount * 1000f : amount;
 	}
 
 	private static async System.Threading.Tasks.Task<Uri> FindPlayerUriAsync(string query)
@@ -327,7 +386,8 @@ public sealed class Fc26TransfermarktForm : Form
 		public int Height { get; }
 		public string Nationality { get; }
 		public string Position { get; }
-		public Profile(string name, DateTime? birthDate, int height, string nationality, string position)
-		{ Name = name; BirthDate = birthDate; Height = height; Nationality = nationality; Position = position; }
+		public float MarketValueMillions { get; }
+		public Profile(string name, DateTime? birthDate, int height, string nationality, string position, float marketValueMillions)
+		{ Name = name; BirthDate = birthDate; Height = height; Nationality = nationality; Position = position; MarketValueMillions = marketValueMillions; }
 	}
 }

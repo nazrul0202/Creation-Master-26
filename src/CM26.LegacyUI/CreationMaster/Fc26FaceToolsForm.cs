@@ -1,0 +1,299 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
+using FifaLibrary;
+
+namespace CreationMaster;
+
+/// <summary>Batch miniface and exact-path native face management for the classic shell.
+/// Every write is staged through the x64 host and committed only by File &gt; Save.</summary>
+internal sealed class Fc26FaceToolsForm : Form
+{
+	private readonly TextBox _search = new TextBox { Width = 190 };
+	private readonly ComboBox _team = new ComboBox { Width = 210, DropDownStyle = ComboBoxStyle.DropDownList };
+	private readonly DataGridView _grid = new DataGridView();
+	private readonly PictureBox _preview = new PictureBox { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.FromArgb(36, 36, 36) };
+	private readonly Label _status = new Label { Dock = DockStyle.Bottom, Height = 25, Padding = new Padding(6, 4, 0, 0) };
+	private List<Row> _rows = new List<Row>();
+
+	internal Fc26FaceToolsForm()
+	{
+		Text = "FC26 Miniface & Face Tools";
+		StartPosition = FormStartPosition.CenterParent;
+		Size = new Size(1120, 720);
+		MinimumSize = new Size(900, 580);
+		Icon = Form.ActiveForm?.Icon;
+		_team.Items.Add(new TeamChoice(null));
+		foreach (Team team in FifaEnvironment.Teams.Cast<Team>().OrderBy(item => item.TeamNameFull)) _team.Items.Add(new TeamChoice(team));
+		_team.SelectedIndex = 0;
+		var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, Padding = new Padding(8), WrapContents = true };
+		top.Controls.AddRange(new Control[]
+		{
+			new Label { Text = "Player / ID", AutoSize = true, Padding = new Padding(0, 6, 0, 0) }, _search,
+			new Label { Text = "Team", AutoSize = true, Padding = new Padding(8, 6, 0, 0) }, _team,
+			Button("Refresh", (_, _) => RefreshRows()), Button("Scan selected", ScanSelected),
+			Button("Batch import minifaces", BatchImport), Button("Export visible", ExportVisible),
+			Button("Missing report", MissingReport), Button("Rename linked assets", RenameAssets),
+			Button("Assign specific face", AssignSpecificFace), Button("Generic appearance...", GenericAppearance),
+			Button("Import native cranium/face", ImportNativeFace)
+		});
+		_search.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { RefreshRows(); e.SuppressKeyPress = true; } };
+		_team.SelectedIndexChanged += (_, _) => RefreshRows();
+		_grid.Dock = DockStyle.Fill;
+		_grid.ReadOnly = true;
+		_grid.AllowUserToAddRows = false;
+		_grid.AllowUserToDeleteRows = false;
+		_grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+		_grid.MultiSelect = true;
+		_grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells;
+		_grid.SelectionChanged += (_, _) => PreviewSelected();
+		var split = new SplitContainer { Dock = DockStyle.Fill, SplitterDistance = 790 };
+		split.Panel1.Controls.Add(_grid);
+		split.Panel2.Controls.Add(_preview);
+		Controls.Add(split);
+		Controls.Add(top);
+		Controls.Add(_status);
+		RefreshRows();
+	}
+
+	private static Button Button(string text, EventHandler click)
+	{
+		var button = new Button { Text = text, AutoSize = true };
+		button.Click += click;
+		return button;
+	}
+
+	private void RefreshRows()
+	{
+		var query = _search.Text.Trim();
+		var team = (_team.SelectedItem as TeamChoice)?.Team;
+		_rows = FifaEnvironment.Players.Cast<Player>()
+			.Where(player => team == null || player.GetClub() == team)
+			.Where(player => query.Length == 0 || player.Id.ToString().Contains(query) || player.ToString().IndexOf(query, StringComparison.CurrentCultureIgnoreCase) >= 0)
+			.Take(2000).Select(player => new Row(player)).ToList();
+		_grid.DataSource = null;
+		_grid.DataSource = _rows;
+		_status.Text = _rows.Count.ToString("N0") + " player(s). Scan checks exact FC26 paths without modifying the game.";
+	}
+
+	private IEnumerable<Row> SelectedRows()
+	{
+		var selected = _grid.SelectedRows.Cast<DataGridViewRow>().Select(row => row.DataBoundItem as Row).Where(row => row != null).ToArray();
+		return selected.Length == 0 ? _rows.Take(500) : selected;
+	}
+
+	private void ScanSelected(object sender, EventArgs e)
+	{
+		Run("Scanning FC26 face assets...", () =>
+		{
+			var targets = SelectedRows().ToArray();
+			foreach (var row in targets) row.Scan();
+			_grid.Refresh();
+			return "Scanned " + targets.Length + " player(s); installed/missing state refreshed.";
+		});
+	}
+
+	private void BatchImport(object sender, EventArgs e)
+	{
+		using (var dialog = new FolderBrowserDialog { Description = "Choose a folder containing p<playerid>.png/.jpg/.bmp/.dds minifaces" })
+		{
+			if (dialog.ShowDialog(this) != DialogResult.OK) return;
+			Run("Staging batch minifaces...", () =>
+			{
+				var count = 0; var skipped = 0;
+				foreach (var file in Directory.GetFiles(dialog.SelectedPath))
+				{
+					var extension = Path.GetExtension(file);
+					if (!new[] { ".png", ".jpg", ".jpeg", ".bmp", ".dds" }.Contains(extension, StringComparer.OrdinalIgnoreCase)) { skipped++; continue; }
+					var stem = Path.GetFileNameWithoutExtension(file);
+					if (!stem.StartsWith("p", StringComparison.OrdinalIgnoreCase) || !int.TryParse(stem.Substring(1), out var id) || FifaEnvironment.Players.SearchId(id) == null) { skipped++; continue; }
+					var width = 1; var height = 1;
+					if (!extension.Equals(".dds", StringComparison.OrdinalIgnoreCase))
+						using (var image = Image.FromFile(file)) { width = image.Width; height = image.Height; }
+					Fc26HostBridge.StageImage(Player.SpecificPhotoDdsFileName(id), file, width, height);
+					count++;
+				}
+				return count + " miniface(s) staged; " + skipped + " unrelated/unknown file(s) skipped. Use File > Save to commit.";
+			});
+		}
+	}
+
+	private void ExportVisible(object sender, EventArgs e)
+	{
+		using (var dialog = new FolderBrowserDialog { Description = "Choose output folder for installed minifaces" })
+		{
+			if (dialog.ShowDialog(this) != DialogResult.OK) return;
+			Run("Exporting minifaces...", () =>
+			{
+				var count = 0;
+				foreach (var row in SelectedRows())
+				{
+					var source = Fc26HostBridge.ExportAsset(Player.SpecificPhotoDdsFileName(row.Id));
+					if (string.IsNullOrWhiteSpace(source) || !File.Exists(source)) continue;
+					File.Copy(source, Path.Combine(dialog.SelectedPath, "p" + row.Id + Path.GetExtension(source)), true);
+					count++;
+				}
+				return count + " installed miniface(s) exported.";
+			});
+		}
+	}
+
+	private void MissingReport(object sender, EventArgs e)
+	{
+		using (var dialog = new SaveFileDialog { Filter = "CSV report|*.csv", FileName = "CM26_missing_faces.csv" })
+		{
+			if (dialog.ShowDialog(this) != DialogResult.OK) return;
+			Run("Building missing-face report...", () =>
+			{
+				var lines = new List<string> { "PlayerID,Player,Miniface,Head,FaceTexture,Hair" };
+				foreach (var row in SelectedRows())
+				{
+					row.Scan();
+					if (row.Miniface == "Installed" && row.Head == "Installed" && row.FaceTexture == "Installed" && row.Hair == "Installed") continue;
+					lines.Add(row.Id + ",\"" + row.PlayerName.Replace("\"", "\"\"") + "\"," + row.Miniface + "," + row.Head + "," + row.FaceTexture + "," + row.Hair);
+				}
+				File.WriteAllLines(dialog.FileName, lines, Encoding.UTF8);
+				return (lines.Count - 1) + " incomplete player asset record(s) written to the report.";
+			});
+		}
+	}
+
+	private void RenameAssets(object sender, EventArgs e)
+	{
+		var row = Current(); if (row == null) return;
+		using (var dialog = new Form { Text = "Rename Player Assets", StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog, ClientSize = new Size(350, 125) })
+		using (var id = new NumericUpDown { Minimum = 1, Maximum = 999999999, Value = row.Id, Location = new Point(145, 18), Width = 160 })
+		using (var ok = new Button { Text = "Preview & Stage", DialogResult = DialogResult.OK, Location = new Point(185, 72), AutoSize = true })
+		{
+			dialog.Controls.AddRange(new Control[] { new Label { Text = "New Player ID", Location = new Point(20, 22), AutoSize = true }, id, ok, new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(275, 72), AutoSize = true } });
+			if (dialog.ShowDialog(this) != DialogResult.OK) return;
+			var newId = (int)id.Value;
+			if (newId == row.Id) return;
+			if (MessageBox.Show(this, "Stage every installed player-linked asset from ID " + row.Id + " to " + newId + "?\r\nThe database ID itself must be changed with the dependency-aware ID manager.", "Asset Rename Preview", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+			Run("Staging linked asset rename...", () => RenameFamilies(row.Id, newId) + " linked asset(s) staged for rename.");
+		}
+	}
+
+	private static int RenameFamilies(int oldId, int newId)
+	{
+		var pairs = new[]
+		{
+			Tuple.Create(Player.SpecificPhotoDdsFileName(oldId), Player.SpecificPhotoDdsFileName(newId)),
+			Tuple.Create(Player.SpecificHeadModelFileName(oldId), Player.SpecificHeadModelFileName(newId)),
+			Tuple.Create(Player.SpecificFaceTextureFileName(oldId), Player.SpecificFaceTextureFileName(newId)),
+			Tuple.Create(Player.SpecificHairModelFileName(oldId), Player.SpecificHairModelFileName(newId)),
+			Tuple.Create(Player.SpecificHairLodModelFileName(oldId), Player.SpecificHairLodModelFileName(newId)),
+			Tuple.Create(Player.SpecificHairTexturesFileName(oldId), Player.SpecificHairTexturesFileName(newId)),
+			Tuple.Create("data/sceneassets/body/playerskin_" + oldId + "_textures.rx3", "data/sceneassets/body/playerskin_" + newId + "_textures.rx3"),
+			Tuple.Create("data/sceneassets/tattoo/tattoo_" + oldId + "_0.rx3", "data/sceneassets/tattoo/tattoo_" + newId + "_0.rx3")
+		};
+		var count = 0;
+		foreach (var pair in pairs)
+		{
+			var source = Fc26HostBridge.ExportAsset(pair.Item1);
+			if (string.IsNullOrWhiteSpace(source) || !File.Exists(source)) continue;
+			Fc26HostBridge.StageFile(pair.Item2, source);
+			Fc26HostBridge.RemoveStagedAsset(pair.Item1);
+			count++;
+		}
+		return count;
+	}
+
+	private void AssignSpecificFace(object sender, EventArgs e)
+	{
+		var row = Current(); if (row == null) return;
+		row.Player.headclasscode = 0;
+		_status.Text = "Specific face assignment staged for " + row.PlayerName + ". Import/check the matching native head and texture, then File > Save.";
+	}
+
+	private void GenericAppearance(object sender, EventArgs e)
+	{
+		var row = Current(); if (row == null) return;
+		using (var dialog = new Form { Text = "Generic Face / Hair / Facial Hair", StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog, ClientSize = new Size(390, 235) })
+		using (var head = Number(row.Player.headtypecode, 0, 999999, 170, 20))
+		using (var hair = Number(row.Player.hairtypecode, 0, 999999, 170, 60))
+		using (var beard = Number(row.Player.facialhairtypecode, 0, 999999, 170, 100))
+		using (var skin = Number(row.Player.skintonecode, 1, 10, 170, 140))
+		{
+			dialog.Controls.AddRange(new Control[] { LabelAt("Generic head ID", 20), LabelAt("Hair ID", 60), LabelAt("Facial-hair ID", 100), LabelAt("Skin tone", 140), head, hair, beard, skin,
+				new Button { Text = "Apply staged", DialogResult = DialogResult.OK, Location = new Point(205, 185), AutoSize = true }, new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(305, 185), AutoSize = true } });
+			if (dialog.ShowDialog(this) != DialogResult.OK) return;
+			row.Player.headclasscode = 1; row.Player.headtypecode = (int)head.Value; row.Player.hairtypecode = (int)hair.Value; row.Player.facialhairtypecode = (int)beard.Value; row.Player.skintonecode = (int)skin.Value;
+			_status.Text = "Generic head/hair/facial-hair assignment staged for " + row.PlayerName + ".";
+		}
+	}
+
+	private void ImportNativeFace(object sender, EventArgs e)
+	{
+		var row = Current(); if (row == null) return;
+		using (var type = new Form { Text = "Import Native FC26 Face Asset", StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog, ClientSize = new Size(430, 150) })
+		using (var choice = new ComboBox { Location = new Point(25, 25), Width = 375, DropDownStyle = ComboBoxStyle.DropDownList })
+		{
+			choice.Items.AddRange(new object[] { "Specific head model", "Specific face texture", "Specific hair model", "Specific hair LOD", "Specific hair texture", "Player skin", "Tattoo / cranium container" }); choice.SelectedIndex = 0;
+			type.Controls.AddRange(new Control[] { choice, new Button { Text = "Choose native file...", DialogResult = DialogResult.OK, Location = new Point(230, 85), AutoSize = true }, new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(350, 85), AutoSize = true } });
+			if (type.ShowDialog(this) != DialogResult.OK) return;
+			var paths = new[] { Player.SpecificHeadModelFileName(row.Id), Player.SpecificFaceTextureFileName(row.Id), Player.SpecificHairModelFileName(row.Id), Player.SpecificHairLodModelFileName(row.Id), Player.SpecificHairTexturesFileName(row.Id), "data/sceneassets/body/playerskin_" + row.Id + "_textures.rx3", "data/sceneassets/tattoo/tattoo_" + row.Id + "_0.rx3" };
+			using (var file = new OpenFileDialog { Filter = "FC26 native RX3/container|*.rx3;*.bin|All files|*.*", CheckFileExists = true })
+			{
+				if (file.ShowDialog(this) != DialogResult.OK) return;
+				var target = paths[choice.SelectedIndex];
+				if (!Path.GetExtension(file.FileName).Equals(Path.GetExtension(target), StringComparison.OrdinalIgnoreCase)) { MessageBox.Show(this, "Native replacement extension must match " + Path.GetExtension(target) + ".", Text); return; }
+				Fc26HostBridge.StageFile(target, file.FileName);
+				if (choice.SelectedIndex <= 1) row.Player.headclasscode = 0;
+				_status.Text = "Native face/cranium asset staged at " + target + ". Use File > Save to validate and commit.";
+			}
+		}
+	}
+
+	private void PreviewSelected()
+	{
+		var row = Current(); if (row == null) return;
+		try
+		{
+			var file = Fc26HostBridge.ExportAsset(Player.SpecificPhotoDdsFileName(row.Id));
+			if (string.IsNullOrWhiteSpace(file) || !File.Exists(file)) { ReplacePreview(null); return; }
+			using (var source = Image.FromFile(file)) ReplacePreview(new Bitmap(source));
+		}
+		catch { ReplacePreview(null); }
+	}
+
+	private void ReplacePreview(Image image) { var old = _preview.Image; _preview.Image = image; old?.Dispose(); }
+	private Row Current() => _grid.CurrentRow?.DataBoundItem as Row;
+	private static NumericUpDown Number(int value, int min, int max, int x, int y) => new NumericUpDown { Minimum = min, Maximum = max, Value = Math.Max(min, Math.Min(max, value)), Location = new Point(x, y), Width = 180 };
+	private static Label LabelAt(string text, int y) => new Label { Text = text, Location = new Point(25, y + 4), AutoSize = true };
+	private void Run(string message, Func<string> action)
+	{
+		try { Cursor = Cursors.WaitCursor; _status.Text = message; Application.DoEvents(); _status.Text = action(); }
+		catch (Exception ex) { _status.Text = "Failed: " + ex.Message; MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+		finally { Cursor = Cursors.Default; }
+	}
+
+	private sealed class Row
+	{
+		internal Player Player { get; }
+		internal Row(Player player) { Player = player; }
+		public int Id => Player.Id;
+		public string PlayerName => Player.ToString();
+		public string Team => Player.GetClub()?.TeamNameFull ?? "Free agent";
+		public string Miniface { get; private set; } = "Not scanned";
+		public string Head { get; private set; } = "Not scanned";
+		public string FaceTexture { get; private set; } = "Not scanned";
+		public string Hair { get; private set; } = "Not scanned";
+		internal void Scan()
+		{
+			Miniface = Exists(Player.SpecificPhotoDdsFileName(Id)); Head = Exists(Player.SpecificHeadModelFileName(Id));
+			FaceTexture = Exists(Player.SpecificFaceTextureFileName(Id)); Hair = Exists(Player.SpecificHairModelFileName(Id));
+		}
+		private static string Exists(string path) { var file = Fc26HostBridge.ExportAsset(path); return !string.IsNullOrWhiteSpace(file) && File.Exists(file) ? "Installed" : "Missing"; }
+	}
+	private sealed class TeamChoice
+	{
+		internal TeamChoice(Team team) { Team = team; }
+		internal Team Team { get; }
+		public override string ToString() => Team == null ? "All teams" : Team.TeamNameFull;
+	}
+}

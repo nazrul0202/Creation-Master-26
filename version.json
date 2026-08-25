@@ -1,6 +1,6 @@
 {
-  "version": "1.0.155",
+  "version": "1.0.156",
   "name": "Creation Master 26",
-  "notes": "v1.0.155 - completes the classic Transfermarkt, Batch Player and unified direct-asset workflows while preserving the v1.0.148 interface.",
+  "notes": "v1.0.156 - completes classic Player ID/name, Miniface/Face and Roster/National/Youth workflows while preserving the v1.0.148 interface.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

@@ -23,6 +23,12 @@ internal sealed class Fc26ModdingUtilitiesForm : Form
     private readonly DateTimePicker _date = new DateTimePicker();
     private readonly NumericUpDown _fifaDate = new NumericUpDown();
     private readonly TextBox _xmlReport = new TextBox();
+    private readonly ComboBox _namePlayer = new ComboBox();
+    private readonly TextBox _firstName = new TextBox();
+    private readonly TextBox _lastName = new TextBox();
+    private readonly TextBox _commonName = new TextBox();
+    private readonly TextBox _jerseyName = new TextBox();
+    private readonly TextBox _nameReport = new TextBox();
 
     private static readonly Dictionary<string, string[]> Entities = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
     {
@@ -41,10 +47,164 @@ internal sealed class Fc26ModdingUtilitiesForm : Form
         Icon = Form.ActiveForm?.Icon;
         var tabs = new TabControl { Dock = DockStyle.Fill };
         tabs.TabPages.Add(BuildIdPage());
+        tabs.TabPages.Add(BuildNamesPage());
         tabs.TabPages.Add(BuildHashPage());
         tabs.TabPages.Add(BuildXmlPage());
         tabs.TabPages.Add(BuildComparePage());
         Controls.Add(tabs);
+    }
+
+    private TabPage BuildNamesPage()
+    {
+        var page = new TabPage("Player Names");
+        var editor = new TableLayoutPanel { Dock = DockStyle.Top, Height = 196, Padding = new Padding(10), ColumnCount = 4, RowCount = 6 };
+        editor.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
+        editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        editor.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
+        editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        _namePlayer.DropDownStyle = ComboBoxStyle.DropDownList;
+        _namePlayer.DisplayMember = "Display";
+        _namePlayer.ValueMember = "Player";
+        _namePlayer.SelectedIndexChanged += (_, _) => LoadSelectedPlayerNames();
+        editor.Controls.Add(new Label { Text = "Player", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
+        editor.Controls.Add(_namePlayer, 1, 0); editor.SetColumnSpan(_namePlayer, 3);
+        AddNameField(editor, "First name", _firstName, 0, 1);
+        AddNameField(editor, "Surname", _lastName, 2, 1);
+        AddNameField(editor, "Common name", _commonName, 0, 2);
+        AddNameField(editor, "Jersey name", _jerseyName, 2, 2);
+        var apply = Button("Apply names", (_, _) => ApplyNames());
+        var repair = Button("Create / repair name records", (_, _) => RepairSelectedNameRecords());
+        var audit = Button("Audit all players", (_, _) => AuditPlayerNames());
+        var refresh = Button("Refresh", (_, _) => PopulateNamePlayers());
+        var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true };
+        actions.Controls.AddRange(new Control[] { apply, repair, audit, refresh });
+        editor.Controls.Add(actions, 0, 4); editor.SetColumnSpan(actions, 4);
+        editor.Controls.Add(new Label
+        {
+            Text = "Names are staged in CM26. File > Save resolves/creates playernames records, validates and commits them.",
+            AutoSize = true, ForeColor = Color.DarkGreen, Anchor = AnchorStyles.Left
+        }, 0, 5); editor.SetColumnSpan(editor.GetControlFromPosition(0, 5), 4);
+        _nameReport.Dock = DockStyle.Fill; _nameReport.Multiline = true; _nameReport.ReadOnly = true;
+        _nameReport.ScrollBars = ScrollBars.Both; _nameReport.Font = new Font("Consolas", 9f);
+        page.Controls.Add(_nameReport); page.Controls.Add(editor);
+        page.Enter += (_, _) => PopulateNamePlayers();
+        return page;
+    }
+
+    private static void AddNameField(TableLayoutPanel editor, string label, Control field, int column, int row)
+    {
+        field.Dock = DockStyle.Fill;
+        editor.Controls.Add(new Label { Text = label, AutoSize = true, Anchor = AnchorStyles.Left }, column, row);
+        editor.Controls.Add(field, column + 1, row);
+    }
+
+    private void PopulateNamePlayers()
+    {
+        var selected = SelectedNamePlayer()?.Id ?? -1;
+        var rows = FifaEnvironment.Players.Cast<Player>()
+            .OrderBy(player => player.ToString(), StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(player => player.Id)
+            .Select(player => new PlayerChoice(player)).ToArray();
+        _namePlayer.BeginUpdate();
+        _namePlayer.DataSource = rows;
+        _namePlayer.EndUpdate();
+        if (selected >= 0)
+        {
+            var index = Array.FindIndex(rows, row => row.Player.Id == selected);
+            if (index >= 0) _namePlayer.SelectedIndex = index;
+        }
+        LoadSelectedPlayerNames();
+    }
+
+    private Player SelectedNamePlayer()
+    {
+        var choice = _namePlayer.SelectedItem as PlayerChoice;
+        return choice?.Player;
+    }
+
+    private void LoadSelectedPlayerNames()
+    {
+        var player = SelectedNamePlayer();
+        if (player == null) return;
+        _firstName.Text = player.firstname ?? string.Empty;
+        _lastName.Text = player.lastname ?? string.Empty;
+        _commonName.Text = player.commonname ?? string.Empty;
+        _jerseyName.Text = player.playerjerseyname ?? string.Empty;
+        _nameReport.Text = NameRecordReport(player);
+    }
+
+    private void ApplyNames()
+    {
+        var player = SelectedNamePlayer();
+        if (player == null) return;
+        player.firstname = PlayerNames.Normalize(_firstName.Text.Trim());
+        player.lastname = PlayerNames.Normalize(_lastName.Text.Trim());
+        player.commonname = PlayerNames.Normalize(_commonName.Text.Trim());
+        player.playerjerseyname = PlayerNames.Normalize(_jerseyName.Text.Trim());
+        RepairNameRecords(player);
+        _nameReport.Text = "Applied to player " + player.Id + ".\r\n\r\n" + NameRecordReport(player);
+    }
+
+    private void RepairSelectedNameRecords()
+    {
+        var player = SelectedNamePlayer();
+        if (player == null) return;
+        var repaired = RepairNameRecords(player);
+        _nameReport.Text = repaired + " name record(s) created/relinked for player " + player.Id + ".\r\n\r\n" + NameRecordReport(player);
+    }
+
+    private static int RepairNameRecords(Player player)
+    {
+        var repaired = 0;
+        repaired += EnsureNameRecord(player.firstname, player.firstnameid, id => player.firstnameid = id);
+        repaired += EnsureNameRecord(player.lastname, player.lastnameid, id => player.lastnameid = id);
+        repaired += EnsureNameRecord(player.commonname, player.commonnameid, id => player.commonnameid = id);
+        repaired += EnsureNameRecord(player.playerjerseyname, player.playerjerseynameid, id => player.playerjerseynameid = id);
+        return repaired;
+    }
+
+    private static int EnsureNameRecord(string text, int currentId, Action<int> assign)
+    {
+        text = PlayerNames.Normalize(text ?? string.Empty);
+        if (text.Length == 0) { if (currentId != 0) assign(0); return currentId == 0 ? 0 : 1; }
+        string existing;
+        if (currentId > 0 && FifaEnvironment.PlayerNamesList.TryGetValue(currentId, out existing, isUsed: true) && existing == text) return 0;
+        var resolved = FifaEnvironment.PlayerNamesList.GetKey(text);
+        assign(resolved);
+        return 1;
+    }
+
+    private void AuditPlayerNames()
+    {
+        var issues = new List<string>();
+        foreach (Player player in FifaEnvironment.Players)
+        {
+            AuditName(player, "firstnameid", player.firstnameid, player.firstname, issues);
+            AuditName(player, "lastnameid", player.lastnameid, player.lastname, issues);
+            AuditName(player, "commonnameid", player.commonnameid, player.commonname, issues);
+            AuditName(player, "playerjerseynameid", player.playerjerseynameid, player.playerjerseyname, issues);
+        }
+        _nameReport.Text = issues.Count == 0 ? "All player name links are valid." :
+            issues.Count + " invalid or missing player-name link(s):\r\n\r\n" + string.Join("\r\n", issues.Take(5000));
+    }
+
+    private static void AuditName(Player player, string field, int id, string text, List<string> issues)
+    {
+        if (string.IsNullOrWhiteSpace(text)) { if (id != 0) issues.Add(player.Id + " " + field + "=" + id + " points to an empty value"); return; }
+        string linked;
+        if (id <= 0 || !FifaEnvironment.PlayerNamesList.TryGetValue(id, out linked, isUsed: false))
+            issues.Add(player.Id + " " + field + "=" + id + " missing (value: " + text + ")");
+        else if (!string.Equals(linked, text, StringComparison.Ordinal))
+            issues.Add(player.Id + " " + field + "=" + id + " resolves to '" + linked + "' instead of '" + text + "'");
+    }
+
+    private static string NameRecordReport(Player player)
+    {
+        return "Player ID: " + player.Id + "\r\n" +
+            "firstnameid: " + player.firstnameid + " -> " + player.firstname + "\r\n" +
+            "lastnameid: " + player.lastnameid + " -> " + player.lastname + "\r\n" +
+            "commonnameid: " + player.commonnameid + " -> " + player.commonname + "\r\n" +
+            "playerjerseynameid: " + player.playerjerseynameid + " -> " + player.playerjerseyname;
     }
 
     private TabPage BuildIdPage()
@@ -255,5 +415,13 @@ internal sealed class Fc26ModdingUtilitiesForm : Form
         internal IdHit(string table, int row, string field) { Table = table; Row = row; Field = field; }
         internal string Table { get; } internal int Row { get; } internal string Field { get; }
         public override string ToString() => Table + "[" + Row + "]." + Field;
+    }
+
+    private sealed class PlayerChoice
+    {
+        internal PlayerChoice(Player player) { Player = player; Display = player + "  [" + player.Id + "]"; }
+        public Player Player { get; }
+        public string Display { get; }
+        public override string ToString() => Display;
     }
 }

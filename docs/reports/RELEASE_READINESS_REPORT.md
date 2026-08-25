@@ -1,5 +1,12 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.156 - identity, face and roster completion (2026-08-25)
+
+- **PASS:** the classic x86 interface builds with zero errors after adding Player Names, Miniface/Face and Roster/National/Youth tools.
+- **PASS:** Transfermarkt suggestions and all new database/asset actions operate on real CM26 objects or verified logical paths and remain staged until direct Save.
+- **PASS:** the v1.0.148 visual shell and normal public launch path remain unchanged.
+- **Boundary:** exact native-container replacement is supported; CM26 still does not fabricate an encoder for unknown Frostbite resource formats.
+
 ## Version 1.0.155 - comprehensive classic workflow completion (2026-08-25)
 
 - **PASS:** x86 classic shell and x64 host build with zero errors.

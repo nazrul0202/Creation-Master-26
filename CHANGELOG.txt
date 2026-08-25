@@ -1,3 +1,11 @@
+Creation Master 26 v1.0.156 - 25 August 2026
+
+- Added Player ID/name-link audit and repair, including real playernames record creation.
+- Added complete classic Miniface & Face batch tools with direct asset staging.
+- Added roster, national-team and U21 management with preview-first repairs.
+- Expanded Transfermarkt OVR/POT and nationality-aware appearance suggestions.
+- Preserved the original v1.0.148 interface and validated direct Frostbite save.
+
 Creation Master 26 v1.0.155 - 25 August 2026
 
 - Added classic Player Transfermarkt search/URL preview and staged apply with local source audit.

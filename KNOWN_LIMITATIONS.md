@@ -1,10 +1,10 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.155 (MIT License), 2026-08-25.
+Status: Version 1.0.156 (MIT License), 2026-08-25.
 
 ## User interface
 
-The v1.0.155 public launcher preserves the original Creation Master / CM16-style interface used by v1.0.148. The x64 Frostbite host runs behind that interface; the internal modern Studio is available only with `--studio`. Exotic DPI combinations or very small window sizes may still need refinement.
+The v1.0.156 public launcher preserves the original Creation Master / CM16-style interface used by v1.0.148. The x64 Frostbite host runs behind that interface; the internal modern Studio is available only with `--studio`. Exotic DPI combinations or very small window sizes may still need refinement.
 
 v1.0.124 adds embedded in-app 3D previews (HelixToolkit + Assimp FBX import) for kit, player face, stadium, ball and boot records. The external `CM26.3DViewer` remains available as a separate tool for standalone FBX inspection.
 

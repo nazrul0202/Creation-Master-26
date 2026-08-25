@@ -343,7 +343,7 @@ public class MainForm : Form
 		databaseWorkspace.Click += (_, _) => ShowFc26DatabaseWorkspace();
 		var healthCentre = new ToolStripMenuItem("FC26 Database Health Centre...");
 		healthCentre.Click += (_, _) => ShowFc26HealthCentre();
-		var moddingUtilities = new ToolStripMenuItem("FC26 Internal Modding Utilities...");
+		var moddingUtilities = new ToolStripMenuItem("FC26 Player ID, Names & Internal Utilities...");
 		moddingUtilities.Click += (_, _) => ShowFc26ModdingUtilities();
 		var assetManager = new ToolStripMenuItem("FC26 Visual Asset Manager...");
 		assetManager.Click += (_, _) => ShowFc26AssetManager();
@@ -351,6 +351,10 @@ public class MainForm : Form
 		compdataEditor.Click += (_, _) => ShowFc26CompdataEditor();
 		var batchPlayers = new ToolStripMenuItem("FC26 Batch Player Editor...");
 		batchPlayers.Click += (_, _) => ShowFc26BatchPlayerEditor();
+		var faceTools = new ToolStripMenuItem("FC26 Miniface & Face Tools...");
+		faceTools.Click += (_, _) => ShowFc26FaceTools();
+		var rosterTools = new ToolStripMenuItem("FC26 Roster, National Team & Youth Tools...");
+		rosterTools.Click += (_, _) => ShowFc26RosterTools();
 		menuTools.DropDownItems.Add(new ToolStripSeparator());
 		menuTools.DropDownItems.Add(databaseWorkspace);
 		menuTools.DropDownItems.Add(healthCentre);
@@ -358,6 +362,8 @@ public class MainForm : Form
 		menuTools.DropDownItems.Add(assetManager);
 		menuTools.DropDownItems.Add(compdataEditor);
 		menuTools.DropDownItems.Add(batchPlayers);
+		menuTools.DropDownItems.Add(faceTools);
+		menuTools.DropDownItems.Add(rosterTools);
 		buttonSponsor.Visible = true;
 		buttonTv.Visible = true;
 		m_SplitterDistanceBottom = splitHoriz.Height * 2 / 3;
@@ -367,6 +373,26 @@ public class MainForm : Form
 		CM = this;
 		EnablePanels(enable: false);
 		EnableMenus();
+	}
+
+	private void ShowFc26RosterTools()
+	{
+		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
+		{
+			MessageBox.Show(this, "Open FC26 first.", "Roster Tools", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		using (var tools = new Fc26RosterToolsForm()) tools.ShowDialog(this);
+	}
+
+	private void ShowFc26FaceTools()
+	{
+		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
+		{
+			MessageBox.Show(this, "Open FC26 first.", "Miniface & Face Tools", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		using (var tools = new Fc26FaceToolsForm()) tools.ShowDialog(this);
 	}
 
 	private void ShowFc26BatchPlayerEditor()
