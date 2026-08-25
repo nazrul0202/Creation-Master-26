@@ -332,6 +332,10 @@ public class MainForm : Form
 	public MainForm()
 	{
 		InitializeComponent();
+		var healthCentre = new ToolStripMenuItem("FC26 Database Health Centre...");
+		healthCentre.Click += (_, _) => ShowFc26HealthCentre();
+		menuTools.DropDownItems.Add(new ToolStripSeparator());
+		menuTools.DropDownItems.Add(healthCentre);
 		buttonSponsor.Visible = true;
 		buttonTv.Visible = true;
 		m_SplitterDistanceBottom = splitHoriz.Height * 2 / 3;
@@ -341,6 +345,32 @@ public class MainForm : Form
 		CM = this;
 		EnablePanels(enable: false);
 		EnableMenus();
+	}
+
+	private void ShowFc26HealthCentre()
+	{
+		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
+		{
+			MessageBox.Show(this, "Open FC26 first.", "Database Health Centre",
+				MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		Cursor.Current = Cursors.WaitCursor;
+		try
+		{
+			statusBar.Text = "Scanning FC26 database health...";
+			var report = Fc26HostBridge.LoadHealthReport();
+			MessageBox.Show(this, report, "FC26 Database Health Centre",
+				MessageBoxButtons.OK, report.Contains("[Error]") ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
+			statusBar.Text = "Database health scan completed.";
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show(this, ex.Message, "Database Health Centre",
+				MessageBoxButtons.OK, MessageBoxIcon.Error);
+			statusBar.Text = "Database health scan failed.";
+		}
+		finally { Cursor.Current = Cursors.Default; }
 	}
 
 	private void CreateForms()

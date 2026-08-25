@@ -79,6 +79,7 @@ public sealed class MainForm : Form
         toolsMenu.DropDownItems.Add(new ToolStripSeparator());
         toolsMenu.DropDownItems.Add("Undo Last Complete Operation", null, (_, _) => UndoCompleteOperation());
         toolsMenu.DropDownItems.Add("Redo Last Complete Operation", null, (_, _) => RedoCompleteOperation());
+        toolsMenu.DropDownItems.Add("Database Health Centre", null, (_, _) => ShowDatabaseHealthCentre());
         var patchMenu = new ToolStripMenuItem("Patch");
         patchMenu.DropDownItems.Add("Validate staged changes", null, (_, _) => ValidateAll());
         var helpMenu = new ToolStripMenuItem("Help");
@@ -1054,6 +1055,16 @@ if (choice == DialogResult.No)
             if (_activeKey != null && _sections.TryGetValue(_activeKey, out var section)) section.ActivateSection();
         }
         else SetStatus("No complete scalar operation is available to redo.");
+    }
+
+    private void ShowDatabaseHealthCentre()
+    {
+        var report = DatabaseHealthService.Analyze(_services.Session);
+        SetStatus(report.IsHealthy
+            ? "Database Health Centre passed."
+            : $"Database Health Centre found {report.Errors} error(s) and {report.Warnings} warning(s).");
+        MessageBox.Show(this, report.ToText(), "Database Health Centre", MessageBoxButtons.OK,
+            report.Errors > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
     }
 
     private void Redo()

@@ -5,6 +5,22 @@ namespace CM26.Tests;
 public sealed class DbToolsTests
 {
     [Fact]
+    public void HealthReportSeparatesErrorsWarningsAndRepairableIssues()
+    {
+        var report = new DatabaseHealthReport(new DatabaseHealthIssue[]
+        {
+            new("broken", HealthSeverity.Error, "links", 2, "Missing parent", true),
+            new("shirt", HealthSeverity.Warning, "links", 3, "Duplicate shirt", true),
+            new("info", HealthSeverity.Info, "teams", null, "Optional information", false),
+        });
+
+        Assert.Equal(1, report.Errors);
+        Assert.Equal(1, report.Warnings);
+        Assert.Equal(2, report.Repairable);
+        Assert.Contains("links[2]", report.ToText());
+    }
+
+    [Fact]
     public void NotApplicableExplainsFifa16OnlyTools()
     {
         var result = DbToolsService.NotApplicable("Expand Database");

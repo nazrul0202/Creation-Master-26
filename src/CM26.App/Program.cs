@@ -76,6 +76,12 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 2 && args[0] == "--legacy-health-report")
+        {
+            Environment.ExitCode = WriteLegacyHealthReport(args[1]);
+            return;
+        }
+
         if (args.Length >= 2 && args[0] == "--legacy-save")
         {
             try
@@ -765,6 +771,31 @@ internal static class Program
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int WriteLegacyHealthReport(string responsePath)
+    {
+        try
+        {
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot))
+                throw new InvalidOperationException("FC26 installation was not detected.");
+            using var database = new DatabaseSession();
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+            var workspace = Fc26WorkspaceService.Open(assets);
+            database.Load(workspace.DatabaseFolder);
+            var report = DatabaseHealthService.Analyze(database).ToText();
+            Directory.CreateDirectory(Path.GetDirectoryName(responsePath)!);
+            File.WriteAllText(responsePath, report);
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
     }
 
     private static int ExportLegacyAssets(string requestPath)

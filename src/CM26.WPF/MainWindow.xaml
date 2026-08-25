@@ -56,6 +56,7 @@
             <MenuItem x:Name="MenuTools" Header="_Tools">
                 <MenuItem Header="Undo Last Complete Operation" Click="MenuTool_Click" Tag="undo-operation" />
                 <MenuItem Header="Redo Last Complete Operation" Click="MenuTool_Click" Tag="redo-operation" />
+                <MenuItem Header="Database Health Centre" Click="MenuTool_Click" Tag="health-report" />
                 <Separator />
                 <MenuItem Header="Enable all messages" IsEnabled="False" Click="MenuTool_Click" Tag="enable-messages">
                     <MenuItem.Icon>

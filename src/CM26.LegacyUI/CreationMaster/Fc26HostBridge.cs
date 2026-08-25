@@ -262,6 +262,36 @@ internal static class Fc26HostBridge
         finally { try { if (File.Exists(response)) File.Delete(response); } catch { } }
     }
 
+    internal static string LoadHealthReport()
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
+            throw new FileNotFoundException("CM26 FC26 host executable was not found.", s_HostPath);
+        var response = Path.Combine(Path.GetTempPath(), "cm26-health-" + Guid.NewGuid().ToString("N") + ".txt");
+        try
+        {
+            var start = new ProcessStartInfo
+            {
+                FileName = s_HostPath,
+                Arguments = "--legacy-health-report \"" + response + "\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
+            };
+            var result = RunProcess(start, DatabaseCommandTimeoutMs, "FC26 database health scan");
+            if (result.ExitCode != 0)
+                throw new InvalidOperationException(string.IsNullOrWhiteSpace(result.StandardError)
+                    ? "Database health scan failed." : result.StandardError.Trim());
+            if (!File.Exists(response)) throw new FileNotFoundException("Health report was not created.");
+            return File.ReadAllText(response);
+        }
+        finally
+        {
+            try { if (File.Exists(response)) File.Delete(response); } catch { }
+        }
+    }
+
     internal sealed class ScoreboardAsset
     {
         internal ScoreboardAsset(string type, string name) { Type = type; Name = name; }

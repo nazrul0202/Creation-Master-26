@@ -399,6 +399,16 @@ public partial class MainWindow : Window
             if (changed && _activeSectionKey != null) ShowSection(_activeSectionKey);
             return;
         }
+        if (key == "health-report")
+        {
+            var report = DatabaseHealthService.Analyze(_session.Database);
+            StatusBarText.Text = report.IsHealthy
+                ? "Database Health Centre passed."
+                : $"Database Health Centre found {report.Errors} error(s) and {report.Warnings} warning(s).";
+            MessageBox.Show(this, report.ToText(), "Database Health Centre", MessageBoxButton.OK,
+                report.Errors > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+            return;
+        }
 
         var result = RunDbTool(key);
         if (result == null) return; // handled by UI state, nothing to report
