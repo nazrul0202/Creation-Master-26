@@ -35,7 +35,8 @@ internal sealed class Fc26BatchPlayerForm : Form
         new FieldSpec("Dribbling", "dribbling", 1, 99), new FieldSpec("Ball control", "ballcontrol", 1, 99),
         new FieldSpec("Reactions", "reactions", 1, 99), new FieldSpec("Stamina", "stamina", 1, 99),
         new FieldSpec("Strength", "strength", 1, 99), new FieldSpec("Aggression", "aggression", 1, 99),
-        new FieldSpec("Marking", "marking", 1, 99), new FieldSpec("Standing tackle", "standingtackle", 1, 99),
+        new FieldSpec("Defensive awareness", "marking", 1, 99), new FieldSpec("Composure", "composure", 1, 99),
+        new FieldSpec("Standing tackle", "standingtackle", 1, 99),
         new FieldSpec("Sliding tackle", "slidingtackle", 1, 99), new FieldSpec("GK diving", "gkdiving", 1, 99),
         new FieldSpec("GK handling", "gkhandling", 1, 99), new FieldSpec("GK kicking", "gkkicking", 1, 99),
         new FieldSpec("GK positioning", "gkpositioning", 1, 99), new FieldSpec("GK reflexes", "gkreflexes", 1, 99),
@@ -52,11 +53,11 @@ internal sealed class Fc26BatchPlayerForm : Form
         new FieldSpec("Running style 1", "runningcode1", 0, 255),
         new FieldSpec("Running style 2", "runningcode2", 0, 255),
         new FieldSpec("Jersey style", "jerseystylecode", 0, 255)
-        ,new FieldSpec("Tactical role 1", "role1", 0, 23)
-        ,new FieldSpec("Tactical role 2", "role2", 0, 23)
-        ,new FieldSpec("Tactical role 3", "role3", 0, 23)
-        ,new FieldSpec("Tactical role 4", "role4", 0, 23)
-        ,new FieldSpec("Tactical role 5", "role5", 0, 23)
+        ,new FieldSpec("Tactical role 1", "role1", 0, 152)
+        ,new FieldSpec("Tactical role 2", "role2", 0, 152)
+        ,new FieldSpec("Tactical role 3", "role3", 0, 152)
+        ,new FieldSpec("Tactical role 4", "role4", 0, 152)
+        ,new FieldSpec("Tactical role 5", "role5", 0, 152)
     };
 
     private static readonly string[] Playstyles =

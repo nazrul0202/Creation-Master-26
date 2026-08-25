@@ -760,16 +760,11 @@ public class TeamForm : Form
 
 	private Button buttonTransferAll;
 
-	private CmStyleDetailsPanel m_ClubRelations;
-
 	public TeamForm()
 	{
 		base.Visible = false;
 		InitializeComponent();
-		var relationsPage = new TabPage("Club Relations") { BackColor = SystemColors.Control };
-		m_ClubRelations = new CmStyleDetailsPanel(DetailSection.Team);
-		relationsPage.Controls.Add(m_ClubRelations);
-		tableEditTeam.TabPages.Add(relationsPage);
+		tableEditTeam.TabPages.Remove(pageTeamrevMod);
 		viewer3DTeamManager = new Viewer3D();
 		groupTeamManager.Controls.Add(viewer3DTeamManager);
 		viewer3DTeamManager.Width = 256;
@@ -1271,7 +1266,6 @@ public class TeamForm : Form
 			if (m_CurrentTeam == team && m_CurrentPage == tableEditTeam.SelectedTab) return;
 			m_CurrentTeam = team;
 			teamBindingSource.DataSource = m_CurrentTeam;
-			m_ClubRelations.Reload(team.Id);
 			UpdateCurrentPage();
 		}
 		finally
@@ -1479,7 +1473,7 @@ public class TeamForm : Form
 		m_ButtonCreatePlayer = new Button
 		{
 			Name = "buttonCreateFc26Player",
-			Text = "New\r\nPlayer",
+			Text = "Add\r\nPlayer",
 			Location = new Point(79, 9),
 			Size = new Size(68, 75),
 			UseVisualStyleBackColor = true,
@@ -3040,16 +3034,9 @@ public class TeamForm : Form
 		if (m_CurrentTeamPlayer != null)
 		{
 			buttonRosterLetFree.Enabled = true;
-			if (m_CurrentAvailableTeam != null && m_CurrentAvailableTeam != m_CurrentTeam && m_CurrentAvailableTeam.Id != 0)
-			{
-				buttonTransferPlayer.Enabled = true;
-				buttonLoanTo.Enabled = true;
-			}
-			else
-			{
-				buttonTransferPlayer.Enabled = false;
-				buttonLoanTo.Enabled = false;
-			}
+			bool hasTargetTeam = m_CurrentAvailableTeam != null && m_CurrentAvailableTeam != m_CurrentTeam && m_CurrentAvailableTeam.Id != 0;
+			buttonTransferPlayer.Enabled = hasTargetTeam;
+			buttonLoanTo.Enabled = hasTargetTeam;
 		}
 		else
 		{
@@ -3204,25 +3191,12 @@ public class TeamForm : Form
 
 	private void buttonCreateFc26Player_Click(object sender, EventArgs e)
 	{
-		if (m_CurrentTeam == null)
-		{
-			return;
-		}
-		m_NewPlayerIdCreator.ShowDialog();
-		Player player = m_NewPlayerIdCreator.NewObject as Player;
-		if (player == null)
-		{
-			return;
-		}
-		player.joindate = dateTransferPreset.Value;
-		player.contractvaliduntil = Math.Max(player.contractvaliduntil, player.joindate.Year + 1);
-		player.IsLoaned = false;
-		player.TeamLoanedFrom = null;
-		TeamPlayer selectedTeamPlayer = m_CurrentTeam.AddTeamPlayer(player);
-		InitListViewTeamPlayers(m_CurrentTeam.Roster, selectedTeamPlayer);
-		InitVisualFormation(m_CurrentTeam.Roster);
+		if (m_CurrentTeam == null) return;
+		m_CurrentAvailableTeam = null;
+		m_CurrentAvailablePlayer = null;
+		InitListViewPlayersAvailable((Team)null, (Country)null, showFreeAgents: false);
+		listViewPlayersAvailable.Focus();
 		EnableRosterButtons();
-		MainForm.CM.JumpTo(player);
 	}
 
 	private void listViewTeamPlayers_DoubleClick(object sender, EventArgs e)

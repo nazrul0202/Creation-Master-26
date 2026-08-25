@@ -33,24 +33,20 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.161.txt` is included with the v1.0.161 release assets.
+Checksums: `SHA256SUMS_v1.0.162.txt` is included with the v1.0.162 release assets.
 
 ---
 
 ## ✨ Features
 
-### Core editors and workflow hub
+### Original CM26 editors with FC26 mapping
 
-- **Comprehensive Tools** — one searchable launch point for all 38 accepted CM26 workflow areas, routed to the real Direct Frostbite editors and validators
-- **Players** — Full FC-style player card: OVR/POT tiles, PAC/SHO/PAS/DRI/DEF/PHY rating bars, playstyles, roles, contract, face preview + **3D FBX viewer** with optional F3D launch
-- **Teams** — FC Tools Hub-style club profile: crest, overall tile, ATT/MID/DEF bars, kits, squad roster with drag-drop lineups, formation board, FC26 build-up style, defensive line/height and three-context team traits
-- **Leagues** — Profile header with logo/OVR bars, clubs grid, settings flags, country assignment
-- **Countries** — Nation profile, flags, national-team linking, regional audio mappings
-- **Managers · Stadiums · Kits · Competitions · Formations · Balls · Boots · Gloves · Referees · Transfers** — full FC26 schema coverage
-- **Sponsors · Adboards · Audio** — FC26-only tables with artwork preview & NewWave bank browser
-- **Advanced Database Workspace** — browse/edit every table; all-row text/numeric filters and saved searches; transactional copy/paste and bulk replace; file comparison; row templates; pending/history views; dependency and asset-usage reports; safe linked-ID replacement; and TSV/CSV import/export for one or all tables
+- **Players** — classic Info, Skills and Face pages with contracts, appearance, named tactical roles, Composure, Defensive Awareness, PlayStyles/PlayStyles+ and direct miniface/face assets
+- **Teams** — classic Generic and Roster pages with crest, club profile, career transfer budget, transfers/loans, real XI/substitutes/reserves, formations and set pieces
+- **Leagues and countries** — original logo/flag, club/national-team and presentation controls with relationship-aware FC26 selectors
+- **Managers · Stadiums · Kits · Competitions · Formations · Balls · Boots · Gloves · Referees · Transfers** — mapped football controls in their owning original editor sections
+- **Sponsors · Adboards · Audio** — mapped artwork and assignment workflows; low-level database/schema tools remain internal
 - **Roster integrity tools** — repair broken/duplicate club links and missing team-sheet players, assign unique shirt numbers, and run the engine's full key/relationship validator
-- **Restored specialist tabs** — Players includes Info, Skills, Face, Details and Callname; Teams includes Sponsors, Adboards, Flags and Audio
 
 ### Data & assets
 - **Compdata editor** — Simple structure tree, visual calendar/conflict view, league/cup wizard, advancement links, raw XLSX/TXT editing and validated TXT export

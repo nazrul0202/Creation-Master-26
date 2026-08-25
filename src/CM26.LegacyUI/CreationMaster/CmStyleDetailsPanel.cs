@@ -308,6 +308,7 @@ internal static class Definitions
         DetailSection.Competition => new[]
         {
             T("Official Balls", "competitionballs", "Ball", "competitionid", "ballid", F("ballid", "Ball"), F("weather", "Weather"), F("stage", "Stage")),
+            T("Referee Kit", "competitionrefereekits", "Kit", "competitionid", "refereekit", F("refereekit", "Kit Number")),
             T("Qualification Seeds", "competitionseeds", "Seed", "competitionid", "teamid", F("teamid", "Club"), F("group", "Group"), F("groupslot", "Slot"), F("isqualified", "Qualified", true)),
             T("Competition Stadiums", "competitionstadiumlinks", "Stadium", "competitionid", "stadiumid", F("stadiumid", "Stadium"), F("iscupfinal", "Cup Final", true)),
             T("Competition Sponsors", "competitionsponsorlinks", "Sponsor", "competitionid", "adsponserid", F("adsponserid", "Sponsor"), F("dynamicimageid", "Artwork"), F("isapproved", "Approved", true)),
@@ -344,10 +345,7 @@ internal static class Definitions
             T("League Broadcasts", "broadcastleague", "Assignment", "", "leagueid|teamid|nationid", F("leagueid", "League"), F("teamid", "Club"), F("nationid", "Country")),
             T("Presentation Modes", "presentationmodesettings", "Mode", "", "modetypestr|modeid", F("modetypestr", "Presentation Style"), F("isbrandpartnersenabled", "Brand Partners", true), F("isuniqueadboardsmodeenabled", "Unique Adboards", true), F("iscompetitionspecificboardsmodeenabled", "Competition Adboards", true), F("isgoallinetechforceenabled", "Goal-line Technology", true))
         },
-        DetailSection.Referee => new[]
-        {
-            T("Competition Kits", "competitionrefereekits", "Kit", "", "competitionid", F("competitionid", "Competition"), F("refereekit", "Kit Number"))
-        },
+        DetailSection.Referee => Array.Empty<DetailTable>(),
         _ => Array.Empty<DetailTable>()
     };
 }

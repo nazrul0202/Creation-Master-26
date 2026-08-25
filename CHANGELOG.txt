@@ -1,3 +1,10 @@
+Creation Master 26 v1.0.162 - 25 August 2026
+
+- Added friendly FC26 Tactical Roles selectors to Player Info and wired role1-role5 through database load/save.
+- Added Composure and renamed Marking to Defensive Awareness in the original Player Skills layout.
+- Removed Career Details, Club Relations and Rev. Mod. Extensions from the public Player/Team sections.
+- Moved referee-kit assignment into Competition Details, removed disconnected Manager/Referee popups and invalidated corrupt legacy kit texture caches before regeneration.
+
 Creation Master 26 v1.0.161 - 25 August 2026
 
 - Removed the remaining standalone specialist editor entries from Tools and Project Launcher.

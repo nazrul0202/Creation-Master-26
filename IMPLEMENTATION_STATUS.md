@@ -1,4 +1,4 @@
-# CM26 v1.0.161 implementation status
+# CM26 v1.0.162 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
@@ -21,6 +21,7 @@ This status is intentionally conservative: a visible control is not counted as w
 ## Functional
 
 - Existing classic player, team, roster, transfer, formation, league, country, competition, stadium, kit, ball, boot, glove, manager and career-budget editors for mapped FC26 fields.
+- Player Info now exposes named FC26 Tactical Roles and Player Skills exposes Composure/Defensive Awareness; all six values round-trip through the loaded `players` record.
 - Preview-first Batch Player Matrix with team/league/name-or-ID grouping, age/position selection, equipment/style fields, PlayStyles/PlayStyles+, FC26 tactical roles, age curves and multi-field development, star, positional, physical and technical presets.
 - Indexed Frostbite catalog search plus supported texture preview/export, installed/missing family checks, dependency usage labels and persistent favourites/recent paths.
 - Direct staged replacement for verified ChunkFileCollector paths: encoded images and format-compatible native RX3/DDS/BIG/binary payloads for player, kit, stadium, ball, boot, glove, trophy and presentation asset families.

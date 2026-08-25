@@ -1,6 +1,6 @@
 {
-  "version": "1.0.161",
+  "version": "1.0.162",
   "name": "Creation Master 26",
-  "notes": "v1.0.161 - removes every remaining separate specialist entry point so the public workflow stays inside mapped classic CM26 sections.",
+  "notes": "v1.0.162 - maps FC26 composure and tactical roles into the original Player editor, removes duplicate tabs and repairs kit texture cache decoding.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

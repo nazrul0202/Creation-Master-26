@@ -2118,6 +2118,16 @@ public class FI
 
 	public static int players_reactions = -1;
 
+	public static int players_role1 = -1;
+
+	public static int players_role2 = -1;
+
+	public static int players_role3 = -1;
+
+	public static int players_role4 = -1;
+
+	public static int players_role5 = -1;
+
 	public static int players_runningcode1 = -1;
 
 	public static int players_runningcode2 = -1;
@@ -6391,6 +6401,11 @@ public class FI
 			players_preferredposition3 = table14.TableDescriptor.GetFieldIndex("preferredposition3");
 			players_preferredposition4 = table14.TableDescriptor.GetFieldIndex("preferredposition4");
 			players_reactions = table14.TableDescriptor.GetFieldIndex("reactions");
+			players_role1 = table14.TableDescriptor.GetFieldIndex("role1");
+			players_role2 = table14.TableDescriptor.GetFieldIndex("role2");
+			players_role3 = table14.TableDescriptor.GetFieldIndex("role3");
+			players_role4 = table14.TableDescriptor.GetFieldIndex("role4");
+			players_role5 = table14.TableDescriptor.GetFieldIndex("role5");
 			players_runningcode1 = table14.TableDescriptor.GetFieldIndex("runningcode1");
 			players_runningcode2 = table14.TableDescriptor.GetFieldIndex("runningcode2");
 			players_shoecolorcode1 = table14.TableDescriptor.GetFieldIndex("shoecolorcode1");

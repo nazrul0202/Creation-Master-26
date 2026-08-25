@@ -668,11 +668,12 @@ internal static class Program
             var cached = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Creation Master 26", "legacy-kit-textures-v1", $"{teamId}_{kitType}.png");
-            if (File.Exists(cached) && new FileInfo(cached).Length > 0)
+            if (File.Exists(cached) && new FileInfo(cached).Length > 0 && IsReadableRaster(cached))
             {
                 Console.WriteLine(cached);
                 return 0;
             }
+			try { if (File.Exists(cached)) File.Delete(cached); } catch { }
 
             var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
             if (string.IsNullOrWhiteSpace(gameRoot))
@@ -847,6 +848,16 @@ internal static class Program
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static bool IsReadableRaster(string path)
+    {
+        try
+        {
+            using var image = System.Drawing.Image.FromFile(path);
+            return image.Width > 0 && image.Height > 0;
+        }
+        catch { return false; }
     }
 
     private static int StageLegacyFile(string legacyPath, string sourcePath)

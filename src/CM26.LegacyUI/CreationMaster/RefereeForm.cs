@@ -246,7 +246,6 @@ public class RefereeForm : Form
 	public RefereeForm()
 	{
 		InitializeComponent();
-		CmStyleDetailsWindow.Attach(this, "Competition Kits", DetailSection.Referee, () => 0);
 		viewer3DReferee = new Viewer3D();
 		viewer3DReferee.AmbientColor = Color.Gray;
 		viewer3DReferee.BackColor = Color.Gray;

@@ -397,6 +397,8 @@ public class Player : IdObject
 
 	private int m_marking;
 
+	private int m_composure;
+
 	private int m_standingtackle;
 
 	private int m_slidingtackle;
@@ -1591,6 +1593,18 @@ public class Player : IdObject
 		set
 		{
 			m_marking = value;
+		}
+	}
+
+	public int composure
+	{
+		get
+		{
+			return m_composure;
+		}
+		set
+		{
+			m_composure = value;
 		}
 	}
 
@@ -2969,6 +2983,12 @@ public class Player : IdObject
 		m_longpassing = r.GetAndCheckIntField(FI.players_longpassing);
 		m_longshots = r.GetAndCheckIntField(FI.players_longshots);
 		m_marking = r.GetAndCheckIntField(FI.players_marking);
+		m_composure = r.GetAndCheckIntField(FI.players_composure);
+		m_role1 = r.GetAndCheckIntField(FI.players_role1);
+		m_role2 = r.GetAndCheckIntField(FI.players_role2);
+		m_role3 = r.GetAndCheckIntField(FI.players_role3);
+		m_role4 = r.GetAndCheckIntField(FI.players_role4);
+		m_role5 = r.GetAndCheckIntField(FI.players_role5);
 		m_positioning = r.GetAndCheckIntField(FI.players_positioning);
 		m_potential = r.GetAndCheckIntField(FI.players_potential);
 		m_reactions = r.GetAndCheckIntField(FI.players_reactions);
@@ -3121,6 +3141,12 @@ public class Player : IdObject
 		m_longpassing = r.GetAndCheckIntField(FI.players_longpassing);
 		m_longshots = r.GetAndCheckIntField(FI.players_longshots);
 		m_marking = r.GetAndCheckIntField(FI.players_marking);
+		m_composure = r.GetAndCheckIntField(FI.players_composure);
+		m_role1 = r.GetAndCheckIntField(FI.players_role1);
+		m_role2 = r.GetAndCheckIntField(FI.players_role2);
+		m_role3 = r.GetAndCheckIntField(FI.players_role3);
+		m_role4 = r.GetAndCheckIntField(FI.players_role4);
+		m_role5 = r.GetAndCheckIntField(FI.players_role5);
 		m_positioning = r.GetAndCheckIntField(FI.players_positioning);
 		m_potential = r.GetAndCheckIntField(FI.players_potential);
 		m_reactions = r.GetAndCheckIntField(FI.players_reactions);
@@ -3321,6 +3347,12 @@ public class Player : IdObject
 		m_longpassing = r.GetAndCheckIntField(td.GetFieldIndex("longpassing"));
 		m_longshots = r.GetAndCheckIntField(td.GetFieldIndex("longshots"));
 		m_marking = r.GetAndCheckIntField(td.GetFieldIndex("marking"));
+		m_composure = r.GetAndCheckIntField(td.GetFieldIndex("composure"));
+		m_role1 = r.GetAndCheckIntField(td.GetFieldIndex("role1"));
+		m_role2 = r.GetAndCheckIntField(td.GetFieldIndex("role2"));
+		m_role3 = r.GetAndCheckIntField(td.GetFieldIndex("role3"));
+		m_role4 = r.GetAndCheckIntField(td.GetFieldIndex("role4"));
+		m_role5 = r.GetAndCheckIntField(td.GetFieldIndex("role5"));
 		m_positioning = r.GetAndCheckIntField(td.GetFieldIndex("positioning"));
 		m_potential = r.GetAndCheckIntField(td.GetFieldIndex("potential"));
 		m_reactions = r.GetAndCheckIntField(td.GetFieldIndex("reactions"));
@@ -3713,6 +3745,12 @@ public class Player : IdObject
 		m_longpassing = r.GetAndCheckIntField(td.GetFieldIndex("longpassing"));
 		m_longshots = r.GetAndCheckIntField(td.GetFieldIndex("longshots"));
 		m_marking = r.GetAndCheckIntField(td.GetFieldIndex("marking"));
+		m_composure = r.GetAndCheckIntField(td.GetFieldIndex("composure"));
+		m_role1 = r.GetAndCheckIntField(td.GetFieldIndex("role1"));
+		m_role2 = r.GetAndCheckIntField(td.GetFieldIndex("role2"));
+		m_role3 = r.GetAndCheckIntField(td.GetFieldIndex("role3"));
+		m_role4 = r.GetAndCheckIntField(td.GetFieldIndex("role4"));
+		m_role5 = r.GetAndCheckIntField(td.GetFieldIndex("role5"));
 		m_positioning = r.GetAndCheckIntField(td.GetFieldIndex("positioning"));
 		m_potential = r.GetAndCheckIntField(td.GetFieldIndex("potential"));
 		m_reactions = r.GetAndCheckIntField(td.GetFieldIndex("reactions"));
@@ -3993,6 +4031,7 @@ public class Player : IdObject
 		m_stamina = 50;
 		m_strength = 50;
 		m_marking = 50;
+		m_composure = 50;
 		m_standingtackle = 50;
 		m_slidingtackle = 50;
 		m_ballcontrol = 50;
@@ -4177,6 +4216,7 @@ public class Player : IdObject
 		clone.m_stamina = m_stamina;
 		clone.m_strength = m_strength;
 		clone.m_marking = m_marking;
+		clone.m_composure = m_composure;
 		clone.m_interceptions = m_interceptions;
 		clone.m_standingtackle = m_standingtackle;
 		clone.m_slidingtackle = m_slidingtackle;
@@ -5875,6 +5915,12 @@ public class Player : IdObject
 		r.IntField[FI.players_stamina] = m_stamina;
 		r.IntField[FI.players_strength] = m_strength;
 		r.IntField[FI.players_marking] = m_marking;
+		if (FI.players_composure >= 0) r.IntField[FI.players_composure] = m_composure;
+		if (FI.players_role1 >= 0) r.IntField[FI.players_role1] = m_role1;
+		if (FI.players_role2 >= 0) r.IntField[FI.players_role2] = m_role2;
+		if (FI.players_role3 >= 0) r.IntField[FI.players_role3] = m_role3;
+		if (FI.players_role4 >= 0) r.IntField[FI.players_role4] = m_role4;
+		if (FI.players_role5 >= 0) r.IntField[FI.players_role5] = m_role5;
 		r.IntField[FI.players_standingtackle] = m_standingtackle;
 		r.IntField[FI.players_slidingtackle] = m_slidingtackle;
 		r.IntField[FI.players_ballcontrol] = m_ballcontrol;
@@ -6510,7 +6556,7 @@ public class Player : IdObject
 			2 => (m_crossing + m_shortpassing + m_longpassing + m_ballcontrol + m_vision + m_curve) / 6, 
 			3 => (m_finishing + m_shotpower + m_longshots + m_dribbling + m_headingaccuracy + m_volleys) / 6, 
 			4 => (m_acceleration + m_sprintspeed + m_stamina + m_strength + m_agility + m_jumping + m_reactions + m_balance) / 8, 
-			5 => (m_potential + m_positioning) / 2, 
+			5 => (m_potential + m_positioning + m_composure) / 3,
 			6 => (m_freekickaccuracy + m_penalties) / 2, 
 			_ => 0, 
 		};

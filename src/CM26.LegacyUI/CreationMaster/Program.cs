@@ -198,11 +198,20 @@ internal static class Program
 							throw new InvalidDataException("A separate specialist launcher action remains visible: " + forbiddenLauncherAction);
 					}
 				}
-				if (!ContainsControlText(main.m_TeamForm, "Club Relations") ||
-					!ContainsControlText(main.m_PlayerForm, "Career Details") ||
-					!ContainsControlText(main.m_CountryForm, "Association Details") ||
+				if (ContainsControlText(main.m_TeamForm, "Club Relations") ||
+					ContainsControlText(main.m_TeamForm, "Rev. Mod. Extensions") ||
+					ContainsControlText(main.m_PlayerForm, "Career Details"))
+					throw new InvalidDataException("A removed legacy/duplicate tab is still exposed.");
+				if (!ContainsControlText(main.m_CountryForm, "Association Details") ||
 					!ContainsControlText(main.m_LeagueForm, "League Details"))
 					throw new InvalidDataException("A mapped, friendly CM26 details surface is missing.");
+				if (!ContainsControlText(main.m_PlayerForm, "Tactical Roles") ||
+					!ContainsControlText(main.m_PlayerForm, "Composure") ||
+					!ContainsControlText(main.m_PlayerForm, "Def. Awareness"))
+					throw new InvalidDataException("The mapped FC26 Player Info/Skills controls are missing.");
+				if (ContainsControlText(main.m_ManagerForm, "Manager Records") ||
+					ContainsControlText(main.m_RefereeForm, "Competition Kits"))
+					throw new InvalidDataException("A disconnected details popup is still exposed.");
 				var miniface = FindControl(main.m_PlayerForm, "viewer2DPhoto");
 				if (miniface == null || miniface.Width > 128 || miniface.Height > 153)
 					throw new InvalidDataException("Player miniface exceeds the classic CM26 layout boundary.");

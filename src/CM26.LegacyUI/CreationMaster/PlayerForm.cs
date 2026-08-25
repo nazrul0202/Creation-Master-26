@@ -821,11 +821,19 @@ public class PlayerForm : Form
 
 	private CheckBox checkTechDribbler;
 
-	private CmStyleDetailsPanel m_CareerDetails;
-
 	private Button m_AppearanceAssistantButton;
 
 	private Button m_TransfermarktButton;
+
+	private GroupBox m_Fc26RoleGroup;
+
+	private readonly ComboBox[] m_Fc26RoleCombos = new ComboBox[5];
+
+	private TrackBar m_Fc26Composure;
+
+	private Label m_Fc26ComposureLabel;
+
+	private bool m_Fc26FriendlyFieldsLoading;
 
 	public PlayerForm()
 	{
@@ -833,10 +841,7 @@ public class PlayerForm : Form
 		InitializeComponent();
 		InitializeAppearanceAssistant();
 		InitializeTransfermarktImporter();
-		var careerPage = new TabPage("Career Details") { BackColor = SystemColors.Control };
-		m_CareerDetails = new CmStyleDetailsPanel(DetailSection.Player);
-		careerPage.Controls.Add(m_CareerDetails);
-		tabEditPlayer.TabPages.Add(careerPage);
+		InitializeFc26FriendlyPlayerFields();
 		InitializeFc26PlaystyleControls();
 		viewer3D = new Viewer3D();
 		splitContainer2.Panel1.Controls.Add(viewer3D);
@@ -1339,7 +1344,6 @@ public class PlayerForm : Form
 			m_CurrentPlayer = player;
 			buttonSaveHair.Enabled = false;
 			playerBindingSource.DataSource = m_CurrentPlayer;
-			m_CareerDetails.Reload(player.Id);
 			m_CurrentPage = tabEditPlayer.SelectedTab;
 			if (m_CurrentPage == pageInfo)
 			{
@@ -1359,6 +1363,7 @@ public class PlayerForm : Form
 
 	private void LoadPlayerInfo()
 	{
+		RefreshFc26Roles();
 		SetNumericValue(numericPlayerId, m_CurrentPlayer.Id);
 		if (viewer2DPhoto.ShowButton)
 		{
@@ -1520,7 +1525,157 @@ public class PlayerForm : Form
 		labelSkillsStars.ImageIndex = m_CurrentPlayer.skillmoves - 1;
 		numericSkillMoves.Value = m_CurrentPlayer.skillmoves;
 		playerBindingSource.ResetBindings(metadataChanged: false);
+		RefreshFc26Composure();
 		RefreshFc26Playstyles();
+	}
+
+	private void InitializeFc26FriendlyPlayerFields()
+	{
+		if (FifaEnvironment.Year != 26) return;
+
+		labelMarking.Text = "Def. Awareness ";
+		m_Fc26RoleGroup = new GroupBox
+		{
+			Name = "groupFc26TacticalRoles",
+			Text = "Tactical Roles",
+			Size = new Size(360, 174),
+			BackColor = SystemColors.Control
+		};
+		for (int slot = 0; slot < m_Fc26RoleCombos.Length; slot++)
+		{
+			var label = new Label
+			{
+				AutoSize = true,
+				Text = "Role " + (slot + 1),
+				Location = new Point(12, 25 + slot * 28)
+			};
+			var combo = new ComboBox
+			{
+				Name = "comboFc26Role" + (slot + 1),
+				DropDownStyle = ComboBoxStyle.DropDownList,
+				Location = new Point(68, 21 + slot * 28),
+				Size = new Size(280, 21),
+				Tag = slot
+			};
+			foreach (var role in Fc26RoleChoice.CreateAll()) combo.Items.Add(role);
+			combo.SelectedIndexChanged += Fc26Role_SelectedIndexChanged;
+			m_Fc26RoleCombos[slot] = combo;
+			m_Fc26RoleGroup.Controls.Add(label);
+			m_Fc26RoleGroup.Controls.Add(combo);
+		}
+		flowPanelInfo.Controls.Add(m_Fc26RoleGroup);
+
+		m_Fc26ComposureLabel = new Label
+		{
+			Name = "labelFc26Composure",
+			Text = "Composure 50",
+			Font = new Font("Microsoft Sans Serif", 8.25f, FontStyle.Bold),
+			ForeColor = Color.Yellow,
+			TextAlign = ContentAlignment.MiddleCenter,
+			Location = new Point(14, 258),
+			Size = new Size(112, 16),
+			Image = labelPotential.Image
+		};
+		m_Fc26Composure = new TrackBar
+		{
+			Name = "trackFc26Composure",
+			Minimum = 1,
+			Maximum = 99,
+			Value = 50,
+			LargeChange = 10,
+			TickFrequency = 10,
+			Location = new Point(6, 266),
+			Size = new Size(128, 45),
+			BackColor = SystemColors.Control
+		};
+		m_Fc26Composure.ValueChanged += Fc26Composure_ValueChanged;
+		groupMental.Controls.Add(m_Fc26ComposureLabel);
+		groupMental.Controls.Add(m_Fc26Composure);
+	}
+
+	private void RefreshFc26Roles()
+	{
+		if (FifaEnvironment.Year != 26 || m_CurrentPlayer == null || m_Fc26RoleGroup == null) return;
+		m_Fc26FriendlyFieldsLoading = true;
+		try
+		{
+			int[] values = { m_CurrentPlayer.role1, m_CurrentPlayer.role2, m_CurrentPlayer.role3, m_CurrentPlayer.role4, m_CurrentPlayer.role5 };
+			for (int slot = 0; slot < values.Length; slot++)
+			{
+				int selected = -1;
+				for (int index = 0; index < m_Fc26RoleCombos[slot].Items.Count; index++)
+					if (((Fc26RoleChoice)m_Fc26RoleCombos[slot].Items[index]).Id == values[slot]) { selected = index; break; }
+				m_Fc26RoleCombos[slot].SelectedIndex = selected >= 0 ? selected : 0;
+			}
+		}
+		finally { m_Fc26FriendlyFieldsLoading = false; }
+	}
+
+	private void Fc26Role_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (m_Fc26FriendlyFieldsLoading || m_CurrentPlayer == null || sender is not ComboBox combo || combo.SelectedItem is not Fc26RoleChoice role) return;
+		switch ((int)combo.Tag)
+		{
+			case 0: m_CurrentPlayer.role1 = role.Id; break;
+			case 1: m_CurrentPlayer.role2 = role.Id; break;
+			case 2: m_CurrentPlayer.role3 = role.Id; break;
+			case 3: m_CurrentPlayer.role4 = role.Id; break;
+			case 4: m_CurrentPlayer.role5 = role.Id; break;
+		}
+	}
+
+	private void RefreshFc26Composure()
+	{
+		if (FifaEnvironment.Year != 26 || m_CurrentPlayer == null || m_Fc26Composure == null) return;
+		m_Fc26FriendlyFieldsLoading = true;
+		int value = Math.Max(1, Math.Min(99, m_CurrentPlayer.composure));
+		m_Fc26Composure.Value = value;
+		m_Fc26ComposureLabel.Text = "Composure " + value;
+		m_Fc26FriendlyFieldsLoading = false;
+	}
+
+	private void Fc26Composure_ValueChanged(object sender, EventArgs e)
+	{
+		if (m_Fc26FriendlyFieldsLoading || m_CurrentPlayer == null) return;
+		m_CurrentPlayer.composure = m_Fc26Composure.Value;
+		m_Fc26ComposureLabel.Text = "Composure " + m_Fc26Composure.Value;
+		if (m_AttributesSema)
+		{
+			m_AttributesSema = false;
+			numericMentalSkills.Value = m_CurrentPlayer.ComputeMeanAttributes(5);
+			m_AttributesSema = true;
+		}
+	}
+
+	private sealed class Fc26RoleChoice
+	{
+		private static readonly string[] Names =
+		{
+			"GK Goalkeeper", "GK Sweeper Keeper", "RB Fullback", "RB Falseback", "RB Wingback", "RB Attacking Wingback",
+			"LB Fullback", "LB Falseback", "LB Wingback", "LB Attacking Wingback", "CB Defender", "CB Stopper",
+			"CB Ball-Playing Defender", "CDM Holding", "CDM Centre Half", "CDM Deep-Lying Playmaker", "CDM Wide Half",
+			"CM Box-to-Box", "CM Holding", "CM Deep-Lying Playmaker", "CM Playmaker", "CM Half Winger",
+			"RM Winger", "RM Wide Midfielder", "RM Wide Playmaker", "RM Inside Forward", "LM Winger", "LM Wide Midfielder",
+			"LM Wide Playmaker", "LM Inside Forward", "CAM Playmaker", "CAM Shadow Striker", "CAM Half Winger", "CAM Classic 10",
+			"RW Winger", "RW Inside Forward", "RW Wide Playmaker", "LW Winger", "LW Inside Forward", "LW Wide Playmaker",
+			"ST Advanced Forward", "ST Poacher", "ST False 9", "ST Target Forward", "GK Ball-Playing Keeper",
+			"RB Inverted Wingback", "LB Inverted Wingback", "CB Wide Back", "CDM Box Crasher", "ST Roaming Striker",
+			"RW False Winger", "LW False Winger"
+		};
+
+		internal int Id { get; }
+		private string Name { get; }
+		private Fc26RoleChoice(int id, string name) { Id = id; Name = name; }
+		public override string ToString() => Name;
+
+		internal static IEnumerable<Fc26RoleChoice> CreateAll()
+		{
+			yield return new Fc26RoleChoice(0, "None");
+			for (int index = 0; index < Names.Length; index++)
+				yield return new Fc26RoleChoice(index + 1, Names[index] + " +");
+			for (int index = 0; index < Names.Length; index++)
+				yield return new Fc26RoleChoice(index + 101, Names[index] + " ++");
+		}
 	}
 
 	private void InitializeFc26PlaystyleControls()
@@ -2612,6 +2767,12 @@ public class PlayerForm : Form
 			num4 = trackPlayerPositioning.Value + num3;
 			num4 = ((num4 < 1) ? 1 : ((num4 > 99) ? 99 : num4));
 			trackPlayerPositioning.Value = num4;
+			if (m_Fc26Composure != null)
+			{
+				num4 = m_Fc26Composure.Value + num3;
+				num4 = ((num4 < 1) ? 1 : ((num4 > 99) ? 99 : num4));
+				m_Fc26Composure.Value = num4;
+			}
 			m_AttributesSema = true;
 		}
 	}

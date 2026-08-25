@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.162 - strict original-section mapping (2026-08-25)
+
+- Added named FC26 Tactical Roles to the original Player Info page; role slots now load and save directly instead of remaining disconnected raw fields.
+- Added Composure and FC26's Defensive Awareness label to the original Player Skills layout.
+- Removed Player Career Details, Team Club Relations and Rev. Mod. Extensions as requested, without duplicating the existing transfer, roster, set-piece, kit or career-budget features.
+- Moved referee-kit assignment into the existing Competition Details editor, removed the broken Referee/Manager popup buttons, and added corrupt kit-preview cache validation so old DDS data mislabeled as PNG is regenerated correctly.
+
 ## Version 1.0.161 - classic-section-only public workflow (2026-08-25)
 
 - Removed every remaining public shortcut to standalone specialist windows.

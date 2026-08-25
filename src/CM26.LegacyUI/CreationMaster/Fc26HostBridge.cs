@@ -161,15 +161,19 @@ internal static class Fc26HostBridge
         lock (s_AssetGate)
         {
             if (s_AssetCache.TryGetValue(cacheKey, out var known))
-                return string.IsNullOrWhiteSpace(known) ? null : known;
+			{
+				if (!string.IsNullOrWhiteSpace(known) && IsReadableRaster(known)) return known;
+				s_AssetCache.Remove(cacheKey);
+			}
             var diskCache = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Creation Master 26", "legacy-kit-textures-v1", teamId + "_" + kitType + ".png");
-            if (File.Exists(diskCache) && new FileInfo(diskCache).Length > 0)
+            if (File.Exists(diskCache) && new FileInfo(diskCache).Length > 0 && IsReadableRaster(diskCache))
             {
                 s_AssetCache[cacheKey] = diskCache;
                 return diskCache;
             }
+			try { if (File.Exists(diskCache)) File.Delete(diskCache); } catch { }
 
             try
             {
@@ -217,6 +221,17 @@ internal static class Fc26HostBridge
         s_AssetCache.Remove(legacyPath);
         return result.StandardOutput.Trim();
     }
+
+	private static bool IsReadableRaster(string path)
+	{
+		try
+		{
+			if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return false;
+			using (var image = System.Drawing.Image.FromFile(path))
+				return image.Width > 0 && image.Height > 0;
+		}
+		catch { return false; }
+	}
 
     internal static string StageFile(string legacyPath, string sourcePath)
     {
