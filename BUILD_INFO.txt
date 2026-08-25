@@ -1,4 +1,4 @@
-CM26 Version: 1.0.156
+CM26 Version: 1.0.157
 Build Configuration: Release
 Target Framework: .NET 8 Windows host + .NET Framework 4.8 classic UI
 Architecture: x64 Frostbite host + x86 classic UI

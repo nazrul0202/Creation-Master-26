@@ -85,6 +85,8 @@ internal static class Fc26SnapshotLoader
         LinkCore(tables, countries, leagues, teams, players, stadiums, kits, formations);
         ApplyManagerNames(teams, tables);
         LinkReferees(tables, referees, countries, leagues);
+        Fc26ActivityLog.Add("Open", "Loaded " + snapshot.Tables.Count + " FC26 table(s) from " +
+            (string.IsNullOrWhiteSpace(snapshot.GameRoot) ? snapshot.DatabaseFolder : snapshot.GameRoot));
     }
 
     private static void ApplyLeagueNames(LeagueList leagues)
@@ -257,6 +259,26 @@ internal static class Fc26SnapshotLoader
         .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
         .ToArray() ?? Array.Empty<string>();
 
+    internal static bool IsLoaded => s_snapshot != null;
+
+    internal static string CurrentGameRoot => s_snapshot?.GameRoot ?? string.Empty;
+
+    internal static string CurrentDatabaseFolder => s_snapshot?.DatabaseFolder ?? string.Empty;
+
+    internal static int CurrentTableCount => s_snapshot?.Tables.Count ?? 0;
+
+    internal static long CurrentRowCount => s_snapshot?.Tables.Sum(table => (long)table.Rows.Count) ?? 0L;
+
+    internal static string DescribeLoadedSource()
+    {
+        if (s_snapshot == null) return "No FC26 data is loaded.";
+        var source = string.IsNullOrWhiteSpace(s_snapshot.GameRoot)
+            ? s_snapshot.DatabaseFolder
+            : s_snapshot.GameRoot;
+        return CurrentTableCount.ToString("N0", CultureInfo.CurrentCulture) + " table(s), " +
+            CurrentRowCount.ToString("N0", CultureInfo.CurrentCulture) + " row(s)\r\n" + source;
+    }
+
     internal static string CompareWithSnapshot(string path)
     {
         var current = s_snapshot ?? throw new InvalidOperationException("No FC26 database is loaded.");
@@ -311,16 +333,19 @@ internal static class Fc26SnapshotLoader
         var newIndex = table.Rows.Count;
         table.Rows.Add((string[])table.Rows[rowIndex].Clone());
         s_structuralChanges.Add(new StructuralChange { Kind = "duplicate", TableName = table.Name, RowIndex = rowIndex });
+        Fc26ActivityLog.Add("Clone row", table.Name + "[" + rowIndex + "] → staged row " + newIndex);
         return newIndex;
     }
 
     internal static void DeleteDetailRow(string tableName, int rowIndex)
     {
-        if (s_detailChanges.Count > 0 || s_structuralChanges.Count > 0)
-            throw new InvalidOperationException("Save or close the current staged edits first. A dependency-cleaned deletion is isolated so row indexes cannot shift under other edits.");
+        if (s_detailChanges.Count > 0 || s_structuralChanges.Any(change => change.Kind != "delete"))
+            throw new InvalidOperationException("Save or close the current staged field/clone edits first. Dependency-cleaned deletions are isolated so row indexes cannot shift under other edits.");
         var table = s_snapshot?.Tables.FirstOrDefault(candidate => candidate.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
         if (table == null || rowIndex < 0 || rowIndex >= table.Rows.Count) throw new InvalidOperationException("Selected record is unavailable.");
+        if (IsDetailDeleted(tableName, rowIndex)) return;
         s_structuralChanges.Add(new StructuralChange { Kind = "delete", TableName = table.Name, RowIndex = rowIndex });
+        Fc26ActivityLog.Add("Delete row", table.Name + "[" + rowIndex + "] staged for dependency-aware deletion");
     }
 
     internal static bool IsDetailChanged(string tableName, int rowIndex, string fieldName) =>
@@ -358,6 +383,7 @@ internal static class Fc26SnapshotLoader
         // Keep the in-memory view in sync so closing and reopening a details
         // page shows the staged value instead of the old snapshot text.
         table.Rows[rowIndex][column] = value ?? string.Empty;
+        Fc26ActivityLog.Add("Edit", table.Name + "[" + rowIndex + "]." + fieldName + " staged");
     }
 
     private static void AppendDetailChanges(List<Change> changes)

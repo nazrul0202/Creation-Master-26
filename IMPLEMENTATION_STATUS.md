@@ -1,4 +1,4 @@
-# CM26 v1.0.156 implementation status
+# CM26 v1.0.157 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
@@ -11,6 +11,10 @@ This status is intentionally conservative: a visible control is not counted as w
 - XML descriptor range validation, automatic backup, direct save, rollback-on-failure and reload verification.
 - Internal FIFA hash/date/XML/ID/database-compare utilities.
 - Compdata XLSX/TXT load, raw editing, Simple Structure tree, Tournament Calendar, League/Cup Wizard, advancement editing, validation, workbook-copy save and game-TXT export.
+- Direct CM26 project/session save, recent-project history and deterministic reopening of the stored installed-game or extracted-database source.
+- Full-transfer, transfer-all, loan, loan-to-buy, loan termination, loan-end, join-date and contract-year workflows with roster/formation/set-piece repair.
+- Separate Manager Career budget module with matching FC26 XML descriptor, EA-container save and timestamped backup.
+- Action history, source/table performance profile, diagnostic export and safe preview-cache management.
 
 ## Functional
 

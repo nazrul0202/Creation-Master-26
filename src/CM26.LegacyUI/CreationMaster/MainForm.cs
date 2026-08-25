@@ -333,12 +333,21 @@ public class MainForm : Form
 	public MainForm()
 	{
 		InitializeComponent();
+		var projectLauncher = new ToolStripMenuItem("FC26 Project Launcher...");
+		projectLauncher.Click += (_, _) => ShowFc26ProjectLauncher();
 		var openExtracted = new ToolStripMenuItem("Open extracted FC26 database...");
 		openExtracted.Click += (_, _) => OpenExtractedFc26Database();
+		var openSession = new ToolStripMenuItem("Open CM26 project/session...");
+		openSession.Click += (_, _) => OpenFc26ProjectSession();
+		var saveSession = new ToolStripMenuItem("Save CM26 project/session...");
+		saveSession.Click += (_, _) => SaveFc26ProjectSession();
 		// Keep the original File menu order and place the FC26 source directly
 		// after Open FC26 rather than creating a new launcher/dashboard.
 		var openFc26Index = menuFile.DropDownItems.IndexOf(menuOpenFifa16);
-		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 1), openExtracted);
+		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index), projectLauncher);
+		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 2), openExtracted);
+		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 3), openSession);
+		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 4), saveSession);
 		var databaseWorkspace = new ToolStripMenuItem("FC26 Advanced Database Workspace...");
 		databaseWorkspace.Click += (_, _) => ShowFc26DatabaseWorkspace();
 		var healthCentre = new ToolStripMenuItem("FC26 Database Health Centre...");
@@ -355,6 +364,10 @@ public class MainForm : Form
 		faceTools.Click += (_, _) => ShowFc26FaceTools();
 		var rosterTools = new ToolStripMenuItem("FC26 Roster, National Team & Youth Tools...");
 		rosterTools.Click += (_, _) => ShowFc26RosterTools();
+		var careerTools = new ToolStripMenuItem("FC26 Career Save Module...");
+		careerTools.Click += (_, _) => ShowFc26CareerSaveModule();
+		var workflowTools = new ToolStripMenuItem("FC26 Workflow, History & Performance Tools...");
+		workflowTools.Click += (_, _) => ShowFc26WorkflowUtilities();
 		menuTools.DropDownItems.Add(new ToolStripSeparator());
 		menuTools.DropDownItems.Add(databaseWorkspace);
 		menuTools.DropDownItems.Add(healthCentre);
@@ -364,6 +377,8 @@ public class MainForm : Form
 		menuTools.DropDownItems.Add(batchPlayers);
 		menuTools.DropDownItems.Add(faceTools);
 		menuTools.DropDownItems.Add(rosterTools);
+		menuTools.DropDownItems.Add(careerTools);
+		menuTools.DropDownItems.Add(workflowTools);
 		buttonSponsor.Visible = true;
 		buttonTv.Visible = true;
 		m_SplitterDistanceBottom = splitHoriz.Height * 2 / 3;
@@ -373,6 +388,73 @@ public class MainForm : Form
 		CM = this;
 		EnablePanels(enable: false);
 		EnableMenus();
+	}
+
+	private void ShowFc26ProjectLauncher()
+	{
+		using (var launcher = new Fc26ProjectLauncherForm(
+			() => menuOpenFifa16_Click(this, EventArgs.Empty), OpenExtractedFc26Database,
+			OpenFc26ProjectSession, SaveFc26ProjectSession, ShowFc26DatabaseWorkspace,
+			ShowFc26RosterTools, ShowFc26CareerSaveModule, ShowFc26CompdataEditor))
+		{
+			var result = launcher.ShowDialog(this);
+			if (result == DialogResult.Retry && launcher.Tag is string recentPath)
+				OpenFc26ProjectSession(recentPath);
+		}
+	}
+
+	private void SaveFc26ProjectSession()
+	{
+		if (!Fc26SnapshotLoader.IsLoaded)
+		{
+			MessageBox.Show(this, "Open FC26 or an extracted FC26 database first.", "CM26 project", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		using (var dialog = new SaveFileDialog { Filter = "CM26 project session (*.cm26session)|*.cm26session", FileName = "FC26_Project.cm26session" })
+		{
+			if (dialog.ShowDialog(this) != DialogResult.OK) return;
+			try { Fc26ProjectSessionService.Save(dialog.FileName); statusBar.Text = "CM26 project session saved: " + dialog.FileName; }
+			catch (Exception ex) { MessageBox.Show(this, ex.Message, "Save CM26 project", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+		}
+	}
+
+	private void OpenFc26ProjectSession()
+	{
+		using (var dialog = new OpenFileDialog { Filter = "CM26 project session (*.cm26session)|*.cm26session|All files (*.*)|*.*" })
+		{
+			if (dialog.ShowDialog(this) == DialogResult.OK) OpenFc26ProjectSession(dialog.FileName);
+		}
+	}
+
+	private void OpenFc26ProjectSession(string fileName)
+	{
+		try
+		{
+			Cursor.Current = Cursors.WaitCursor;
+			var project = Fc26ProjectSessionService.Load(fileName);
+			string snapshot;
+			if (project.SourceKind.Equals("installed", StringComparison.OrdinalIgnoreCase) && Directory.Exists(project.GameRoot))
+				snapshot = Fc26HostBridge.OpenGameRoot(project.GameRoot);
+			else if (Directory.Exists(project.DatabaseFolder))
+				snapshot = Fc26HostBridge.OpenExtractedFolder(project.DatabaseFolder);
+			else
+				throw new DirectoryNotFoundException("The FC26 source stored by this project is no longer available.\r\n" + project.GameRoot + "\r\n" + project.DatabaseFolder);
+			LoadFc26Snapshot(snapshot, showCountry: true);
+			statusBar.Text = "CM26 project loaded: " + fileName;
+			Fc26ActivityLog.Add("Project", "Opened CM26 session: " + fileName);
+		}
+		catch (Exception ex) { MessageBox.Show(this, ex.Message, "Open CM26 project", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+		finally { Cursor.Current = Cursors.Default; }
+	}
+
+	private void ShowFc26CareerSaveModule()
+	{
+		using (var career = new Fc26CareerSaveForm()) career.ShowDialog(this);
+	}
+
+	private void ShowFc26WorkflowUtilities()
+	{
+		using (var utilities = new Fc26WorkflowUtilitiesForm()) utilities.ShowDialog(this);
 	}
 
 	private void ShowFc26RosterTools()

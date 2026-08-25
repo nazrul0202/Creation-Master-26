@@ -1,3 +1,11 @@
+Creation Master 26 v1.0.157 - 25 August 2026
+
+- Added an FC26 Project Launcher, portable .cm26session files and recent-project reopening.
+- Completed full/batch transfer, contract/join-date, loan, loan-to-buy and loan termination workflows.
+- Added a separate Career Save module with backup-protected Manager Career budget editing.
+- Added action history, source/table diagnostics, performance profile and preview-cache tools.
+- Preserved the original v1.0.148 interface and direct validated Frostbite save pipeline.
+
 Creation Master 26 v1.0.156 - 25 August 2026
 
 - Added Player ID/name-link audit and repair, including real playernames record creation.

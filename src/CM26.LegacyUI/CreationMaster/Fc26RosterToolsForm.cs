@@ -19,6 +19,10 @@ internal sealed class Fc26RosterToolsForm : Form
     private readonly DataGridView _roster = new DataGridView();
     private readonly ListBox _available = new ListBox();
     private readonly Label _summary = new Label();
+    private readonly DateTimePicker _joinDate = new DateTimePicker { Format = DateTimePickerFormat.Short, Width = 105 };
+    private readonly DateTimePicker _loanEnd = new DateTimePicker { Format = DateTimePickerFormat.Short, Width = 105 };
+    private readonly NumericUpDown _contractYear = new NumericUpDown { Minimum = 2026, Maximum = 2100, Value = 2030, Width = 68 };
+    private readonly CheckBox _loanToBuy = new CheckBox { Text = "Loan-to-buy", AutoSize = true };
     private Team[] _teams = Array.Empty<Team>();
 
     internal Fc26RosterToolsForm()
@@ -54,10 +58,16 @@ internal sealed class Fc26RosterToolsForm : Form
         availableBox.Controls.Add(_available);
         split.Panel1.Controls.Add(rosterBox); split.Panel2.Controls.Add(availableBox);
 
-        var actions = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 82, Padding = new Padding(8), WrapContents = true };
+        _joinDate.Value = DateTime.Today; _loanEnd.Value = DateTime.Today.AddYears(1);
+        var actions = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 122, Padding = new Padding(8), WrapContents = true };
         actions.Controls.AddRange(new Control[]
         {
             Button("Add / transfer selected", (_, _) => AddSelected()),
+            Button("Transfer roster → target", (_, _) => TransferSelected()),
+            Button("Transfer ALL → target", (_, _) => TransferAll()),
+            Label("Join"), _joinDate, Label("Contract"), _contractYear,
+            Button("Start loan → target", (_, _) => StartLoan()), _loanEnd, _loanToBuy,
+            Button("Terminate selected loan", (_, _) => TerminateLoan()),
             Button("Remove from team", (_, _) => RemoveSelected()),
             Button("Release to Free Agents", (_, _) => ReleaseSelected()),
             Button("National call-up", (_, _) => NationalCallUp()),
@@ -84,6 +94,7 @@ internal sealed class Fc26RosterToolsForm : Form
         _roster.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Age", DataPropertyName = "Age", Width = 48 });
         _roster.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "OVR", DataPropertyName = "Overall", Width = 52 });
         _roster.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Position", DataPropertyName = "Position", Width = 66 });
+        _roster.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Loan", DataPropertyName = "Loan", Width = 125 });
     }
 
     private void LoadTeams()
@@ -111,7 +122,9 @@ internal sealed class Fc26RosterToolsForm : Form
         var subs = rows.Count(row => row.Link.position == 28);
         var reserves = rows.Count(row => row.Link.position >= 29);
         var youth = rows.Count(row => row.Age <= 21);
-        _summary.Text = team + " [" + team.Id + "] — " + rows.Length + " players | XI " + xi + " | Subs " + subs + " | Reserves " + reserves + " | U21 " + youth;
+        var loansIn = rows.Count(row => row.Link.Player.IsLoaned && row.Link.Player.TeamLoanedFrom != team);
+        var loansOut = FifaEnvironment.Players.Cast<Player>().Count(player => player.IsLoaned && player.TeamLoanedFrom == team);
+        _summary.Text = team + " [" + team.Id + "] — " + rows.Length + " players | XI " + xi + " | Subs " + subs + " | Reserves " + reserves + " | U21 " + youth + " | Loans in " + loansIn + " / out " + loansOut;
         RefreshAvailable();
     }
 
@@ -140,6 +153,103 @@ internal sealed class Fc26RosterToolsForm : Form
             "Roster transfer preview", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
         foreach (var player in players) { player.RemoveCurrentConflictingTeam(team); if (!player.IsPlayingFor(team)) team.AddTeamPlayer(player); }
         RepairTeam(team); RefreshAll();
+    }
+
+    private void TransferSelected()
+    {
+        var source = CurrentTeam(); var target = TargetTeam(); var links = SelectedRoster();
+        if (source == null || target == null || source == target || links.Length == 0) return;
+        TransferPlayers(source, target, links.Select(link => link.Player).Distinct().ToArray(), "Transfer selected players");
+    }
+
+    private void TransferAll()
+    {
+        var source = CurrentTeam(); var target = TargetTeam();
+        if (source == null || target == null || source == target) return;
+        var players = source.Roster.Cast<TeamPlayer>().Where(link => link?.Player != null).Select(link => link.Player).Distinct().ToArray();
+        if (players.Length == 0) return;
+        TransferPlayers(source, target, players, "Transfer ALL players");
+    }
+
+    private void TransferPlayers(Team source, Team target, Player[] players, string operation)
+    {
+        if (source.IsNationalTeam() != target.IsNationalTeam())
+        {
+            MessageBox.Show(this, "Club transfers and national-team call-ups are separate operations. Select two clubs or two national teams.", "Transfer validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); return;
+        }
+        var loanRows = players.Select(player => new { Player = player, Row = FindLoanRow(player.Id) }).Where(item => item.Row >= 0).ToArray();
+        if (loanRows.Length > 0 && Fc26SnapshotLoader.PendingDetailCount > 0)
+        {
+            MessageBox.Show(this, "Save or reopen the current staged advanced edits before breaking existing loan records.", "Transfer validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); return;
+        }
+        var message = operation + ": " + players.Length + " player(s)\r\n" + source + " → " + target +
+            "\r\nJoin date: " + _joinDate.Value.ToShortDateString() + "\r\nContract through: " + _contractYear.Value +
+            (loanRows.Length > 0 ? "\r\nExisting loans to terminate: " + loanRows.Length : string.Empty) +
+            "\r\n\r\nNational-team links are preserved. Formation, shirts, captain and set pieces will be repaired.";
+        if (MessageBox.Show(this, message, "Transfer preview", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+        foreach (var item in loanRows) Fc26SnapshotLoader.DeleteDetailRow("playerloans", item.Row);
+        foreach (var player in players)
+        {
+            player.IsLoaned = false; player.TeamLoanedFrom = null; player.loandateend = DateTime.MinValue;
+            player.joindate = _joinDate.Value.Date; player.contractvaliduntil = (int)_contractYear.Value;
+            player.PreviousTeam = source;
+            player.RemoveCurrentConflictingTeam(target);
+            if (!player.IsPlayingFor(target)) target.AddTeamPlayer(player);
+        }
+        RepairTeam(source); RepairTeam(target); Fc26ActivityLog.Add("Transfer", operation + ": " + players.Length + " player(s), " + source.Id + " → " + target.Id); RefreshAll();
+    }
+
+    private void StartLoan()
+    {
+        var source = CurrentTeam(); var target = TargetTeam(); var players = SelectedRoster().Select(link => link.Player).Distinct().ToArray();
+        if (source == null || target == null || source == target || players.Length == 0) return;
+        if (!source.IsClub() || !target.IsClub()) { MessageBox.Show(this, "Loans can only be created between club teams."); return; }
+        if (_loanEnd.Value.Date <= _joinDate.Value.Date) { MessageBox.Show(this, "Loan end date must be after the joining date."); return; }
+        if (players.Any(player => FindLoanRow(player.Id) >= 0)) { MessageBox.Show(this, "Terminate an existing loan before starting a new one for the same player."); return; }
+        var loanTable = Fc26SnapshotLoader.DetailTable("playerloans");
+        if (loanTable == null || loanTable.Rows.Count == 0) { MessageBox.Show(this, "The FC26 playerloans table is unavailable."); return; }
+        if (MessageBox.Show(this, "Loan " + players.Length + " player(s) from " + source + " to " + target + " until " + _loanEnd.Value.ToShortDateString() +
+            (_loanToBuy.Checked ? " with an option to buy?" : "?") + "\r\n\r\nRoster, shirt, formation and set-piece links will be repaired.", "Loan preview", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+        foreach (var player in players)
+        {
+            var row = Fc26SnapshotLoader.DuplicateDetailRow("playerloans", 0);
+            Fc26SnapshotLoader.StageDetailValue("playerloans", row, "playerid", player.Id.ToString(CultureInfo.InvariantCulture));
+            Fc26SnapshotLoader.StageDetailValue("playerloans", row, "teamidloanedfrom", source.Id.ToString(CultureInfo.InvariantCulture));
+            Fc26SnapshotLoader.StageDetailValue("playerloans", row, "loandateend", FifaUtil.ConvertFromDate(_loanEnd.Value.Date).ToString(CultureInfo.InvariantCulture));
+            if (loanTable.Column("isloantobuy") >= 0)
+                Fc26SnapshotLoader.StageDetailValue("playerloans", row, "isloantobuy", _loanToBuy.Checked ? "1" : "0");
+            player.IsLoaned = true; player.TeamLoanedFrom = source; player.loandateend = _loanEnd.Value.Date;
+            player.joindate = _joinDate.Value.Date; player.contractvaliduntil = Math.Max((int)_contractYear.Value, _loanEnd.Value.Year + 1);
+            player.RemoveCurrentConflictingTeam(target); if (!player.IsPlayingFor(target)) target.AddTeamPlayer(player);
+        }
+        RepairTeam(source); RepairTeam(target); Fc26ActivityLog.Add("Loan", players.Length + " player(s), " + source.Id + " → " + target.Id); RefreshAll();
+    }
+
+    private void TerminateLoan()
+    {
+        var current = CurrentTeam(); var players = SelectedRoster().Select(link => link.Player).Where(player => player.IsLoaned).Distinct().ToArray();
+        if (current == null || players.Length == 0) { MessageBox.Show(this, "Select one or more loaned roster players."); return; }
+        var rows = players.Select(player => new { Player = player, Row = FindLoanRow(player.Id) }).Where(item => item.Row >= 0).ToArray();
+        if (rows.Length == 0) { MessageBox.Show(this, "No matching playerloans records were found."); return; }
+        if (Fc26SnapshotLoader.PendingDetailCount > 0) { MessageBox.Show(this, "Save or reopen the current staged advanced edits before deleting loan records."); return; }
+        if (MessageBox.Show(this, "Terminate " + rows.Length + " loan(s) and return the players to their parent clubs?", "Terminate loan preview", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        foreach (var item in rows)
+        {
+            var parent = item.Player.TeamLoanedFrom;
+            Fc26SnapshotLoader.DeleteDetailRow("playerloans", item.Row);
+            if (parent != null) { item.Player.RemoveCurrentConflictingTeam(parent); if (!item.Player.IsPlayingFor(parent)) parent.AddTeamPlayer(item.Player); RepairTeam(parent); }
+            item.Player.IsLoaned = false; item.Player.TeamLoanedFrom = null; item.Player.loandateend = DateTime.MinValue;
+        }
+        RepairTeam(current); Fc26ActivityLog.Add("Loan", "Terminated " + rows.Length + " loan(s)"); RefreshAll();
+    }
+
+    private static int FindLoanRow(int playerId)
+    {
+        var table = Fc26SnapshotLoader.DetailTable("playerloans"); if (table == null) return -1;
+        var column = table.Column("playerid"); if (column < 0) return -1;
+        for (var row = 0; row < table.Rows.Count; row++)
+            if (!Fc26SnapshotLoader.IsDetailDeleted("playerloans", row) && column < table.Rows[row].Length && Parse(table.Rows[row][column]) == playerId) return row;
+        return -1;
     }
 
     private void RemoveSelected()
@@ -275,5 +385,6 @@ internal sealed class Fc26RosterToolsForm : Form
         public string Slot => Link.position < 28 ? "Starting XI" : Link.position == 28 ? "Substitute" : "Reserve";
         public int Number => Link.jerseynumber; public string Name => Link.Player.ToString(); public int Id => Link.Player.Id;
         public int Age { get; } public int Overall => Link.Player.overallrating; public int Position => Link.position;
+        public string Loan => Link.Player.IsLoaned ? "From " + (Link.Player.TeamLoanedFrom?.ToString() ?? "?") : string.Empty;
     }
 }

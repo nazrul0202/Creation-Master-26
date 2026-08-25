@@ -1,6 +1,6 @@
 {
-  "version": "1.0.156",
+  "version": "1.0.157",
   "name": "Creation Master 26",
-  "notes": "v1.0.156 - completes classic Player ID/name, Miniface/Face and Roster/National/Youth workflows while preserving the v1.0.148 interface.",
+  "notes": "v1.0.157 - adds direct project sessions, complete transfer/loan workflows, a separate Career module and workflow diagnostics while preserving the v1.0.148 interface.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

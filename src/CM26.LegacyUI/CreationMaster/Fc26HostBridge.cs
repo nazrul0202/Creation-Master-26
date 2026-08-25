@@ -84,6 +84,30 @@ internal static class Fc26HostBridge
         return snapshotPath;
     }
 
+    internal static string OpenGameRoot(string gameRoot)
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
+            throw new FileNotFoundException("CM26 FC26 host executable was not found.", s_HostPath);
+        if (!Directory.Exists(gameRoot)) throw new DirectoryNotFoundException(gameRoot);
+        var outputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Creation Master 26", "legacy");
+        Directory.CreateDirectory(outputDirectory);
+        var snapshotPath = Path.Combine(outputDirectory, "fc26-project-snapshot.json");
+        var start = new ProcessStartInfo
+        {
+            FileName = s_HostPath,
+            Arguments = "--legacy-open-root \"" + gameRoot.Replace("\"", string.Empty) + "\" \"" + snapshotPath + "\"",
+            UseShellExecute = false, CreateNoWindow = true,
+            RedirectStandardOutput = true, RedirectStandardError = true,
+            WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
+        };
+        var result = RunProcess(start, DatabaseCommandTimeoutMs, "saved FC26 project loader");
+        if (result.ExitCode != 0) throw new InvalidOperationException(string.IsNullOrWhiteSpace(result.StandardError)
+            ? result.StandardOutput : result.StandardError);
+        if (!File.Exists(snapshotPath)) throw new FileNotFoundException("FC26 project snapshot was not created.", snapshotPath);
+        return snapshotPath;
+    }
+
     internal static string? ExportAsset(string logicalPath)
     {
         if (string.IsNullOrWhiteSpace(logicalPath) || string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
@@ -596,6 +620,26 @@ internal static class Fc26HostBridge
         }
     }
 
+    internal static string ClearPreviewCache()
+    {
+        lock (s_AssetGate) s_AssetCache.Clear();
+        var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Creation Master 26");
+        var folders = new[] { "legacy-assets-v2", "legacy-kit-textures-v1" };
+        long bytes = 0; var files = 0;
+        foreach (var name in folders)
+        {
+            var folder = Path.Combine(root, name);
+            if (!Directory.Exists(folder)) continue;
+            foreach (var file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories))
+            {
+                try { bytes += new FileInfo(file).Length; files++; } catch { }
+            }
+            Directory.Delete(folder, recursive: true);
+        }
+        Fc26ActivityLog.Add("Cache", "Cleared " + files + " cached preview file(s).");
+        return files.ToString("N0") + " cached preview file(s), " + (bytes / 1048576d).ToString("N1") + " MB cleared.";
+    }
+
     private static string? FindCachedAsset(string requestedPath)
     {
         if (File.Exists(requestedPath) && new FileInfo(requestedPath).Length > 0) return requestedPath;
@@ -635,6 +679,7 @@ internal static class Fc26HostBridge
         var error = result.StandardError.Trim();
         if (result.ExitCode != 0)
             throw new InvalidOperationException(string.IsNullOrWhiteSpace(error) ? output : error);
+        Fc26ActivityLog.Add("Direct save", changeCount + " FC26 change(s) validated, backed up and committed");
         return string.IsNullOrWhiteSpace(output) ? $"Saved {changeCount} FC26 change(s)." : output;
     }
 

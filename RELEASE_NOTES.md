@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.157 - project, transfer/loan and workflow completion (2026-08-25)
+
+- Added direct-source CM26 project sessions and recent-project reopening.
+- Completed transfer-all, loan-to-buy, loan termination, contract and joining-date workflows.
+- Added a separate backup-protected FC26 Career save module.
+- Added action history, diagnostics, performance profile and cache management.
+
 ## Version 1.0.156 - player identity, face and roster completion (2026-08-25)
 
 - Kept the v1.0.148 classic Creation Master shell as the normal public interface.

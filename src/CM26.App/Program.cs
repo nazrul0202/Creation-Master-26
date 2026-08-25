@@ -31,6 +31,12 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 3 && args[0] == "--legacy-open-root")
+        {
+            Environment.ExitCode = ExportLegacySnapshotFromRoot(args[1], args[2]);
+            return;
+        }
+
         // Lazy asset endpoint used by the original x86 CM16 forms. Assets are
         // extracted by the native x64 Frostbite engine and cached on disk, so
         // the legacy UI can keep using its original Bitmap-based controls.
@@ -586,20 +592,7 @@ internal static class Program
             var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
             if (string.IsNullOrWhiteSpace(gameRoot))
                 throw new InvalidOperationException("FC26 installation was not detected. Configure the game folder first.");
-
-            var assets = new FrostbiteAssetSession();
-            assets.Open(gameRoot);
-            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
-            var workspace = Fc26WorkspaceService.Open(assets);
-            var backup = GameBackupService.EnsureCreated(workspace.GameRoot);
-            if (!backup.Success) throw new InvalidOperationException(backup.Message);
-            SettingsService.FC26GameFolder = workspace.GameRoot;
-
-            using var database = new DatabaseSession();
-            database.Load(workspace.DatabaseFolder);
-            LegacySnapshotService.Write(database, outputPath, workspace.GameRoot);
-            Console.WriteLine(outputPath);
-            return 0;
+            return ExportLegacySnapshotFromRootCore(gameRoot, outputPath);
         }
         catch (Exception ex)
         {
@@ -1107,6 +1100,39 @@ internal static class Program
             Console.Error.WriteLine(ex.Message);
             return 1;
         }
+    }
+
+    private static int ExportLegacySnapshotFromRoot(string gameRoot, string outputPath)
+    {
+        try
+        {
+            var resolved = FrostbiteAssetSession.ResolveGameRoot(gameRoot);
+            if (string.IsNullOrWhiteSpace(resolved))
+                throw new DirectoryNotFoundException("The saved FC26 game source is no longer available: " + gameRoot);
+            return ExportLegacySnapshotFromRootCore(resolved, outputPath);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
+    }
+
+    private static int ExportLegacySnapshotFromRootCore(string gameRoot, string outputPath)
+    {
+        var assets = new FrostbiteAssetSession();
+        assets.Open(gameRoot);
+        if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+        var workspace = Fc26WorkspaceService.Open(assets);
+        var backup = GameBackupService.EnsureCreated(workspace.GameRoot);
+        if (!backup.Success) throw new InvalidOperationException(backup.Message);
+        SettingsService.FC26GameFolder = workspace.GameRoot;
+
+        using var database = new DatabaseSession();
+        database.Load(workspace.DatabaseFolder);
+        LegacySnapshotService.Write(database, outputPath, workspace.GameRoot);
+        Console.WriteLine(outputPath);
+        return 0;
     }
 
     private static int WriteLegacyHealthReport(string responsePath)

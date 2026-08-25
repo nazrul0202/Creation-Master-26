@@ -1,5 +1,10 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.157 - project, transfer/loan and workflow completion (2026-08-25)
+
+- Release build compiles with direct project/session reopening, complete transfer/loan operations, separate Career budget editing and workflow diagnostics.
+- Original v1.0.148-style public shell remains the default executable path.
+
 ## Version 1.0.156 - identity, face and roster completion (2026-08-25)
 
 - **PASS:** the classic x86 interface builds with zero errors after adding Player Names, Miniface/Face and Roster/National/Youth tools.
