@@ -209,16 +209,31 @@ public class BallForm : Form
 
 	private bool ImportImageBallPicture(object sender, Bitmap bitmap)
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			bool result = Fc26DirectAssetUi.ImportImage(this, m_CurrentBall.BallDdsFileName(), bitmap,
+				bitmap.Width, bitmap.Height, "Ball menu image");
+			if (result) ReloadBall(m_CurrentBall);
+			return result;
+		}
 		return m_CurrentBall.SetBallPicture(bitmap);
 	}
 
 	private bool DeleteImageBallPicture(object sender)
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			bool result = Fc26DirectAssetUi.Remove(this, m_CurrentBall.BallDdsFileName(), "Ball menu image");
+			if (result) ReloadBall(m_CurrentBall);
+			return result;
+		}
 		return m_CurrentBall.DeleteBallPicture();
 	}
 
 	private bool ExportRx3BallTextures(object sender, string exportDir)
 	{
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.Export(this, m_CurrentBall.BallTextureFileName(), exportDir, "Ball texture container");
 		return FifaEnvironment.ExportFileFromZdata(m_CurrentBall.BallTextureFileName(), exportDir);
 	}
 
@@ -234,6 +249,12 @@ public class BallForm : Form
 
 	private bool ImportRx3BallTextures(object sender, string rx3FileName)
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			bool result = Fc26DirectAssetUi.Import(this, m_CurrentBall.BallTextureFileName(), rx3FileName, "Ball texture container");
+			if (result) ReloadBall(m_CurrentBall);
+			return result;
+		}
 		bool num = m_CurrentBall.SetBallTextures(rx3FileName);
 		if (num)
 		{
@@ -244,6 +265,12 @@ public class BallForm : Form
 
 	private bool DeleteRx3BallTextures(object sender)
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			bool result = Fc26DirectAssetUi.Remove(this, m_CurrentBall.BallTextureFileName(), "Ball texture container");
+			if (result) ReloadBall(m_CurrentBall);
+			return result;
+		}
 		bool num = m_CurrentBall.DeleteBallTextures();
 		if (num)
 		{
@@ -309,8 +336,10 @@ public class BallForm : Form
 		string text = FifaEnvironment.BrowseAndCheckModel(ref m_BallCurrentFolder, "Open 3D Ball Model file", "3D ball model files (*.rx3)|ball_*.rx3");
 		if (text != null)
 		{
-			m_CurrentBall.SetBallModel(text);
-			ReloadBall(m_CurrentBall);
+			bool result = FifaEnvironment.Year == 26
+				? Fc26DirectAssetUi.Import(this, m_CurrentBall.BallModelFileName(), text, "Ball 3D model")
+				: m_CurrentBall.SetBallModel(text);
+			if (result) ReloadBall(m_CurrentBall);
 		}
 	}
 
@@ -319,14 +348,19 @@ public class BallForm : Form
 		string text = m_CurrentBall.BallModelFileName();
 		if (text != null)
 		{
-			FifaEnvironment.AskAndExportFromZdata(text, ref m_BallCurrentFolder);
+			if (FifaEnvironment.Year == 26)
+				Fc26DirectAssetUi.ExportWithDialog(this, text, ref m_BallCurrentFolder, "Ball 3D model");
+			else
+				FifaEnvironment.AskAndExportFromZdata(text, ref m_BallCurrentFolder);
 		}
 	}
 
 	private void buttonRemoveNear3DModel_Click(object sender, EventArgs e)
 	{
-		m_CurrentBall.DeleteBallModel();
-		ReloadBall(m_CurrentBall);
+		bool result = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Remove(this, m_CurrentBall.BallModelFileName(), "Ball 3D model")
+			: m_CurrentBall.DeleteBallModel();
+		if (result) ReloadBall(m_CurrentBall);
 	}
 
 	private void BallForm_Load(object sender, EventArgs e)

@@ -1,5 +1,12 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.154 - classic specialist asset integration (2026-08-25)
+
+- **PASS:** x86 classic shell builds with zero errors after direct-asset integration.
+- **PASS:** existing classic controls now stage FC26 kit, number-font, stadium, ball, boot, glove, trophy, wipe and supported model payloads through the x64 host.
+- **PASS:** the v1.0.148 window layout, navigation, forms and normal launch path remain unchanged.
+- **Boundary:** bitmap-to-RX3 authoring still requires a format-compatible native container; CM26 does not fabricate an undocumented Frostbite encoder.
+
 ## Version 1.0.153 - remaining classic workflow completion (2026-08-25)
 
 - **PASS:** Release builds complete with zero errors for the x64 host and x86 classic shell.

@@ -1817,11 +1817,16 @@ public class CompetitionForm : Form
 
 	private bool ImportImageTrophy(object sender, Bitmap bitmap)
 	{
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.ImportImage(this, m_CurrentTrophy.TrophyDdsFileName(), bitmap,
+				bitmap.Width, bitmap.Height, "Trophy menu image");
 		return m_CurrentTrophy.SetTrophy(bitmap);
 	}
 
 	private bool DeleteTrophy(object sender)
 	{
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.Remove(this, m_CurrentTrophy.TrophyDdsFileName(), "Trophy menu image");
 		return m_CurrentTrophy.DeleteTrophy();
 	}
 
@@ -1847,26 +1852,38 @@ public class CompetitionForm : Form
 
 	private bool ImportImageTrophy256(object sender, Bitmap bitmap)
 	{
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.ImportImage(this, m_CurrentTrophy.TrophyDdsFileName256(), bitmap,
+				bitmap.Width, bitmap.Height, "Trophy 256 image");
 		return m_CurrentTrophy.SetTrophy256(bitmap);
 	}
 
 	private bool DeleteTrophy256(object sender)
 	{
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.Remove(this, m_CurrentTrophy.TrophyDdsFileName256(), "Trophy 256 image");
 		return m_CurrentTrophy.DeleteTrophy256();
 	}
 
 	private bool ImportImageTrophySmall(object sender, Bitmap bitmap)
 	{
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.ImportImage(this, m_CurrentTrophy.TrophyDdsFileName128(), bitmap,
+				bitmap.Width, bitmap.Height, "Trophy 128 image");
 		return m_CurrentTrophy.SetTrophy128(bitmap);
 	}
 
 	private bool DeleteTrophySmall(object sender)
 	{
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.Remove(this, m_CurrentTrophy.TrophyDdsFileName128(), "Trophy 128 image");
 		return m_CurrentTrophy.DeleteTrophy128();
 	}
 
 	private bool ExportRx3TrophyTextures(object sender, string exportDir)
 	{
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.Export(this, m_CurrentTrophy.TexturesFileName(), exportDir, "Trophy texture container");
 		return FifaEnvironment.ExportFileFromZdata(m_CurrentTrophy.TexturesFileName(), exportDir);
 	}
 
@@ -1882,7 +1899,9 @@ public class CompetitionForm : Form
 
 	private bool ImportRx3TrophyTextures(object sender, string rx3FileName)
 	{
-		bool num = m_CurrentTrophy.SetTextures(rx3FileName);
+		bool num = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Import(this, m_CurrentTrophy.TexturesFileName(), rx3FileName, "Trophy texture container")
+			: m_CurrentTrophy.SetTextures(rx3FileName);
 		if (num)
 		{
 			ReloadTrophy(m_CurrentTrophy);
@@ -1892,12 +1911,16 @@ public class CompetitionForm : Form
 
 	private bool ExportRx3WipeTextures(object sender, string exportDir)
 	{
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.Export(this, m_CurrentTrophy.Wipe3DFileName(), exportDir, "Tournament wipe texture container");
 		return FifaEnvironment.ExportFileFromZdata(m_CurrentTrophy.Wipe3DFileName(), exportDir);
 	}
 
 	private bool ImportRx3WipeTextures(object sender, string rx3FileName)
 	{
-		bool num = m_CurrentTrophy.SetWipe3DTextures(rx3FileName);
+		bool num = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Import(this, m_CurrentTrophy.Wipe3DFileName(), rx3FileName, "Tournament wipe texture container")
+			: m_CurrentTrophy.SetWipe3DTextures(rx3FileName);
 		if (num)
 		{
 			ReloadTrophy(m_CurrentTrophy);
@@ -1932,7 +1955,10 @@ public class CompetitionForm : Form
 		{
 			return false;
 		}
-		return FifaEnvironment.AskAndExportFromZdata(Ball.RevModTrophyBallTextureFileName(m_CurrentTrophy.Settings.m_asset_id), ref m_TrophyCurrentFolder);
+		string logicalPath = Ball.RevModTrophyBallTextureFileName(m_CurrentTrophy.Settings.m_asset_id);
+		return FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.ExportWithDialog(this, logicalPath, ref m_TrophyCurrentFolder, "Tournament ball texture")
+			: FifaEnvironment.AskAndExportFromZdata(logicalPath, ref m_TrophyCurrentFolder);
 	}
 
 	private bool DeleteTexture(object sender)
@@ -1941,7 +1967,10 @@ public class CompetitionForm : Form
 		{
 			return false;
 		}
-		bool result = Ball.DeleteRevModTrophyBallTextures(m_CurrentTrophy.Settings.m_asset_id);
+		string logicalPath = Ball.RevModTrophyBallTextureFileName(m_CurrentTrophy.Settings.m_asset_id);
+		bool result = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Remove(this, logicalPath, "Tournament ball texture")
+			: Ball.DeleteRevModTrophyBallTextures(m_CurrentTrophy.Settings.m_asset_id);
 		LoadRevModBall();
 		return result;
 	}
@@ -1953,8 +1982,11 @@ public class CompetitionForm : Form
 			string text = FifaEnvironment.BrowseAndCheckModel(ref m_TrophyCurrentFolder, "Open 3D Ball Model file", "3D ball model files (*.rx3)|ball_*.rx3");
 			if (text != null)
 			{
-				Ball.SetRevModTrophyBallModel(m_CurrentTrophy.Settings.m_asset_id, text);
-				LoadRevModBall();
+				string logicalPath = Ball.RevModTrophyBallModelFileName(m_CurrentTrophy.Settings.m_asset_id);
+				bool result = FifaEnvironment.Year == 26
+					? Fc26DirectAssetUi.Import(this, logicalPath, text, "Tournament ball 3D model")
+					: Ball.SetRevModTrophyBallModel(m_CurrentTrophy.Settings.m_asset_id, text);
+				if (result) LoadRevModBall();
 			}
 		}
 	}
@@ -1966,7 +1998,10 @@ public class CompetitionForm : Form
 			string text = Ball.RevModTrophyBallModelFileName(m_CurrentTrophy.Settings.m_asset_id);
 			if (text != null)
 			{
-				FifaEnvironment.AskAndExportFromZdata(text, ref m_TrophyCurrentFolder);
+				if (FifaEnvironment.Year == 26)
+					Fc26DirectAssetUi.ExportWithDialog(this, text, ref m_TrophyCurrentFolder, "Tournament ball 3D model");
+				else
+					FifaEnvironment.AskAndExportFromZdata(text, ref m_TrophyCurrentFolder);
 			}
 		}
 	}
@@ -1975,8 +2010,11 @@ public class CompetitionForm : Form
 	{
 		if (m_CurrentTrophy != null)
 		{
-			Ball.DeleteRevModTrophyBallModel(m_CurrentTrophy.Settings.m_asset_id);
-			LoadRevModBall();
+			string logicalPath = Ball.RevModTrophyBallModelFileName(m_CurrentTrophy.Settings.m_asset_id);
+			bool result = FifaEnvironment.Year == 26
+				? Fc26DirectAssetUi.Remove(this, logicalPath, "Tournament ball 3D model")
+				: Ball.DeleteRevModTrophyBallModel(m_CurrentTrophy.Settings.m_asset_id);
+			if (result) LoadRevModBall();
 		}
 	}
 
@@ -5908,8 +5946,10 @@ public class CompetitionForm : Form
 		string text = FifaEnvironment.BrowseAndCheckModel(ref m_TrophyCurrentFolder, "Open 3D Trophy Model file", "3D trophy model files (*.rx3)|trophy_*.rx3");
 		if (text != null)
 		{
-			m_CurrentTrophy.SetModel(text);
-			ReloadTrophy(m_CurrentTrophy);
+			bool result = FifaEnvironment.Year == 26
+				? Fc26DirectAssetUi.Import(this, m_CurrentTrophy.ModelFileName(), text, "Trophy 3D model")
+				: m_CurrentTrophy.SetModel(text);
+			if (result) ReloadTrophy(m_CurrentTrophy);
 		}
 	}
 
@@ -5918,14 +5958,19 @@ public class CompetitionForm : Form
 		string text = m_CurrentTrophy.ModelFileName();
 		if (text != null)
 		{
-			FifaEnvironment.AskAndExportFromZdata(text, ref m_TrophyCurrentFolder);
+			if (FifaEnvironment.Year == 26)
+				Fc26DirectAssetUi.ExportWithDialog(this, text, ref m_TrophyCurrentFolder, "Trophy 3D model");
+			else
+				FifaEnvironment.AskAndExportFromZdata(text, ref m_TrophyCurrentFolder);
 		}
 	}
 
 	private void buttonRemove3DModel_Click(object sender, EventArgs e)
 	{
-		m_CurrentTrophy.DeleteModel();
-		ReloadTrophy(m_CurrentTrophy);
+		bool result = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Remove(this, m_CurrentTrophy.ModelFileName(), "Trophy 3D model")
+			: m_CurrentTrophy.DeleteModel();
+		if (result) ReloadTrophy(m_CurrentTrophy);
 	}
 
 	private void tabTrophy_SelectedIndexChanged(object sender, EventArgs e)

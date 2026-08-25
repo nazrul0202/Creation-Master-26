@@ -429,7 +429,10 @@ public class StadiumForm : Form
 		{
 			return false;
 		}
-		return FifaEnvironment.ExportFileFromZdata(m_CurrentStadium.TexturesFileName(num), exportDir);
+		string logicalPath = m_CurrentStadium.TexturesFileName(num);
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.Export(this, logicalPath, exportDir, "Stadium texture container");
+		return FifaEnvironment.ExportFileFromZdata(logicalPath, exportDir);
 	}
 
 	private bool SaveRx3StadiumTextures(object sender, Bitmap[] bitmaps)
@@ -454,7 +457,9 @@ public class StadiumForm : Form
 		{
 			return false;
 		}
-		bool num2 = m_CurrentStadium.SetTextures(num, rx3FileName);
+		bool num2 = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Import(this, m_CurrentStadium.TexturesFileName(num), rx3FileName, "Stadium texture container")
+			: m_CurrentStadium.SetTextures(num, rx3FileName);
 		if (num2)
 		{
 			ReloadStadium(m_CurrentStadium);
@@ -469,7 +474,9 @@ public class StadiumForm : Form
 		{
 			return false;
 		}
-		bool num2 = m_CurrentStadium.DeleteContainer(num);
+		bool num2 = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Remove(this, m_CurrentStadium.TexturesFileName(num), "Stadium texture container")
+			: m_CurrentStadium.DeleteContainer(num);
 		if (num2)
 		{
 			ReloadStadium(m_CurrentStadium);

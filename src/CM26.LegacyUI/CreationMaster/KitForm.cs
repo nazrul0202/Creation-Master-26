@@ -892,11 +892,24 @@ public class KitForm : Form
 
 	private bool ImportImageMinikit(object sender, Bitmap bitmap)
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			bool result = Fc26DirectAssetUi.ImportImage(this, m_CurrentKit.MiniKitDdsFileName(), bitmap,
+				bitmap.Width, bitmap.Height, "Minikit image");
+			if (result) ReloadKit(m_CurrentKit);
+			return result;
+		}
 		return m_CurrentKit.SetMiniKit(bitmap);
 	}
 
 	private bool DeleteMinikit(object sender)
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			bool result = Fc26DirectAssetUi.Remove(this, m_CurrentKit.MiniKitDdsFileName(), "Minikit image");
+			if (result) ReloadKit(m_CurrentKit);
+			return result;
+		}
 		return m_CurrentKit.DeleteMiniKit();
 	}
 
@@ -909,12 +922,16 @@ public class KitForm : Form
 
 	private bool ExportRx3Kit(object sender, string exportDir)
 	{
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.Export(this, m_CurrentKit.KitTextureFileName(), exportDir, "Kit texture container");
 		return m_CurrentKit.ExportKitTextures(exportDir);
 	}
 
 	private bool ImportRx3Kit(object sender, string rx3FileName)
 	{
-		bool num = m_CurrentKit.ImportKitTextures(rx3FileName);
+		bool num = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Import(this, m_CurrentKit.KitTextureFileName(), rx3FileName, "Kit texture container")
+			: m_CurrentKit.ImportKitTextures(rx3FileName);
 		if (num)
 		{
 			ReloadKit(m_CurrentKit);
@@ -924,7 +941,9 @@ public class KitForm : Form
 
 	private bool DeleteRx3Kit(object sender)
 	{
-		bool num = m_CurrentKit.DeleteKitTextures();
+		bool num = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Remove(this, m_CurrentKit.KitTextureFileName(), "Kit texture container")
+			: m_CurrentKit.DeleteKitTextures();
 		if (num)
 		{
 			ReloadKit(m_CurrentKit);
@@ -944,12 +963,16 @@ public class KitForm : Form
 
 	private bool ExportRx3JerseyNumbers(object sender, string exportDir)
 	{
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.Export(this, NumberFont.NumberFontFileName(m_CurrentKit.jerseyNumberFont, m_CurrentKit.jerseyNumberColor), exportDir, "Jersey number font");
 		return NumberFont.Export(m_CurrentKit.jerseyNumberFont, m_CurrentKit.jerseyNumberColor, exportDir);
 	}
 
 	private bool ImportRx3JerseyNumbers(object sender, string rx3FileName)
 	{
-		bool num = NumberFont.Import(m_CurrentKit.jerseyNumberFont, m_CurrentKit.jerseyNumberColor, rx3FileName);
+		bool num = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Import(this, NumberFont.NumberFontFileName(m_CurrentKit.jerseyNumberFont, m_CurrentKit.jerseyNumberColor), rx3FileName, "Jersey number font")
+			: NumberFont.Import(m_CurrentKit.jerseyNumberFont, m_CurrentKit.jerseyNumberColor, rx3FileName);
 		if (num)
 		{
 			ReloadKit(m_CurrentKit);
@@ -959,7 +982,9 @@ public class KitForm : Form
 
 	private bool DeleteRx3JerseyNumbers(object sender)
 	{
-		bool num = NumberFont.Delete(m_CurrentKit.jerseyNumberFont, m_CurrentKit.jerseyNumberColor);
+		bool num = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Remove(this, NumberFont.NumberFontFileName(m_CurrentKit.jerseyNumberFont, m_CurrentKit.jerseyNumberColor), "Jersey number font")
+			: NumberFont.Delete(m_CurrentKit.jerseyNumberFont, m_CurrentKit.jerseyNumberColor);
 		if (num)
 		{
 			ReloadKit(m_CurrentKit);
@@ -979,12 +1004,16 @@ public class KitForm : Form
 
 	private bool ExportRx3ShortsNumbers(object sender, string exportDir)
 	{
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.Export(this, NumberFont.NumberFontFileName(m_CurrentKit.shortsNumberFont, m_CurrentKit.shortsNumberColor), exportDir, "Shorts number font");
 		return NumberFont.Export(m_CurrentKit.shortsNumberFont, m_CurrentKit.shortsNumberColor, exportDir);
 	}
 
 	private bool ImportRx3ShortsNumbers(object sender, string rx3FileName)
 	{
-		bool num = NumberFont.Import(m_CurrentKit.shortsNumberFont, m_CurrentKit.shortsNumberColor, rx3FileName);
+		bool num = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Import(this, NumberFont.NumberFontFileName(m_CurrentKit.shortsNumberFont, m_CurrentKit.shortsNumberColor), rx3FileName, "Shorts number font")
+			: NumberFont.Import(m_CurrentKit.shortsNumberFont, m_CurrentKit.shortsNumberColor, rx3FileName);
 		if (num)
 		{
 			ReloadKit(m_CurrentKit);
@@ -994,7 +1023,9 @@ public class KitForm : Form
 
 	private bool DeleteRx3ShortsNumbers(object sender)
 	{
-		bool num = NumberFont.Delete(m_CurrentKit.shortsNumberFont, m_CurrentKit.shortsNumberColor);
+		bool num = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Remove(this, NumberFont.NumberFontFileName(m_CurrentKit.shortsNumberFont, m_CurrentKit.shortsNumberColor), "Shorts number font")
+			: NumberFont.Delete(m_CurrentKit.shortsNumberFont, m_CurrentKit.shortsNumberColor);
 		if (num)
 		{
 			ReloadKit(m_CurrentKit);

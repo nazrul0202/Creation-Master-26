@@ -190,6 +190,7 @@ internal static class Fc26HostBridge
         };
         var result = RunProcess(start, AssetCommandTimeoutMs, "FC26 asset importer");
         if (result.ExitCode != 0) throw new InvalidOperationException(result.StandardError.Trim());
+        s_AssetCache.Remove(legacyPath);
         return result.StandardOutput.Trim();
     }
 

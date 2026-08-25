@@ -164,13 +164,17 @@ public class ShoesForm : Form
 	private bool ExportRx3ShoesColor(object sender, string exportDir)
 	{
 		int shoesColor = (int)numericShoesColor.Value;
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.Export(this, Shoes.ShoesTexturesFileName(m_CurrentShoes.Id, shoesColor), exportDir, "Boot texture container");
 		return Shoes.ExportShoesTextures(m_CurrentShoes.Id, shoesColor, exportDir);
 	}
 
 	private bool ImportRx3ShoesColor(object sender, string rx3FileName)
 	{
 		int shoesColor = (int)numericShoesColor.Value;
-		bool num = Shoes.ImportShoesTextures(m_CurrentShoes.Id, shoesColor, rx3FileName);
+		bool num = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Import(this, Shoes.ShoesTexturesFileName(m_CurrentShoes.Id, shoesColor), rx3FileName, "Boot texture container")
+			: Shoes.ImportShoesTextures(m_CurrentShoes.Id, shoesColor, rx3FileName);
 		if (num)
 		{
 			ReloadShoes(m_CurrentShoes);
@@ -181,7 +185,9 @@ public class ShoesForm : Form
 	private bool DeleteShoesColor(object sender)
 	{
 		int shoesColor = (int)numericShoesColor.Value;
-		bool num = Shoes.DeleteShoesTextures(m_CurrentShoes.Id, shoesColor);
+		bool num = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Remove(this, Shoes.ShoesTexturesFileName(m_CurrentShoes.Id, shoesColor), "Boot texture container")
+			: Shoes.DeleteShoesTextures(m_CurrentShoes.Id, shoesColor);
 		if (num)
 		{
 			ReloadShoes(m_CurrentShoes);
@@ -284,14 +290,19 @@ public class ShoesForm : Form
 		string text = Shoes.ShoesModelFileName(m_CurrentShoes.Id);
 		if (text != null)
 		{
-			FifaEnvironment.AskAndExportFromZdata(text, ref m_ShoesCurrentFolder);
+			if (FifaEnvironment.Year == 26)
+				Fc26DirectAssetUi.ExportWithDialog(this, text, ref m_ShoesCurrentFolder, "Boot 3D model");
+			else
+				FifaEnvironment.AskAndExportFromZdata(text, ref m_ShoesCurrentFolder);
 		}
 	}
 
 	private void buttonRemoveNear3DModel_Click(object sender, EventArgs e)
 	{
-		Shoes.DeleteShoesModel(m_CurrentShoes.Id);
-		ReloadShoes(m_CurrentShoes);
+		bool result = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Remove(this, Shoes.ShoesModelFileName(m_CurrentShoes.Id), "Boot 3D model")
+			: Shoes.DeleteShoesModel(m_CurrentShoes.Id);
+		if (result) ReloadShoes(m_CurrentShoes);
 	}
 
 	private void buttonShow3DModel_Click(object sender, EventArgs e)
@@ -312,7 +323,10 @@ public class ShoesForm : Form
 		string text = Shoes.ShoesModelFileName(m_CurrentShoes.Id);
 		if (text != null)
 		{
-			FifaEnvironment.AskAndExportFromZdata(text, ref m_ShoesCurrentFolder);
+			if (FifaEnvironment.Year == 26)
+				Fc26DirectAssetUi.ExportWithDialog(this, text, ref m_ShoesCurrentFolder, "Boot 3D model");
+			else
+				FifaEnvironment.AskAndExportFromZdata(text, ref m_ShoesCurrentFolder);
 		}
 	}
 
@@ -321,15 +335,19 @@ public class ShoesForm : Form
 		string text = FifaEnvironment.BrowseAndCheckModel(ref m_ShoesCurrentFolder, "Open 3D Shoes Model file", "3D shoes model files (*.rx3)|shoe_*.rx3");
 		if (text != null)
 		{
-			Shoes.SetShoesModel(m_CurrentShoes.Id, text);
-			ReloadShoes(m_CurrentShoes);
+			bool result = FifaEnvironment.Year == 26
+				? Fc26DirectAssetUi.Import(this, Shoes.ShoesModelFileName(m_CurrentShoes.Id), text, "Boot 3D model")
+				: Shoes.SetShoesModel(m_CurrentShoes.Id, text);
+			if (result) ReloadShoes(m_CurrentShoes);
 		}
 	}
 
 	private void buttonRemove3DModel_Click(object sender, EventArgs e)
 	{
-		Shoes.DeleteShoesModel(m_CurrentShoes.Id);
-		ReloadShoes(m_CurrentShoes);
+		bool result = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Remove(this, Shoes.ShoesModelFileName(m_CurrentShoes.Id), "Boot 3D model")
+			: Shoes.DeleteShoesModel(m_CurrentShoes.Id);
+		if (result) ReloadShoes(m_CurrentShoes);
 	}
 
 	private void textShoesName_TextChanged(object sender, EventArgs e)

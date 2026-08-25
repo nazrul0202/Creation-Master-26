@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.154 - classic direct-asset editor completion (2026-08-25)
+
+- Preserved the v1.0.148 classic interface while connecting its existing asset buttons to the FC26 Frostbite transaction.
+- Added direct native import/export/removal for stadium, ball, boot, goalkeeper-glove, kit and kit-number containers.
+- Added direct FC26 minikit, ball-menu and trophy artwork staging through the verified image encoder.
+- Added direct native import/export/removal for ball, boot, trophy and tournament-ball 3D models plus trophy and tournament-wipe containers.
+- Invalidated preview caches after image staging so the classic editors immediately reload the newly staged asset.
+
 ## Version 1.0.153 - direct asset, Compdata and batch completion pass (2026-08-25)
 
 - Preserved the classic v1.0.148 visual shell and its normal launch path.

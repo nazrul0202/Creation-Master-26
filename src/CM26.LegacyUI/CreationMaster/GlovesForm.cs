@@ -186,12 +186,16 @@ public class GlovesForm : Form
 
 	private bool ExportRx3GkGloves(object sender, string exportDir)
 	{
+		if (FifaEnvironment.Year == 26)
+			return Fc26DirectAssetUi.Export(this, GkGloves.GkGlovesTextureFileName(m_CurrentGkGloves.Id), exportDir, "Goalkeeper glove texture container");
 		return GkGloves.ExportGkGlovesTextures(m_CurrentGkGloves.Id, exportDir);
 	}
 
 	private bool ImportRx3GkGloves(object sender, string rx3FileName)
 	{
-		bool num = GkGloves.SetGkGlovesTextures(m_CurrentGkGloves.Id, rx3FileName);
+		bool num = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Import(this, GkGloves.GkGlovesTextureFileName(m_CurrentGkGloves.Id), rx3FileName, "Goalkeeper glove texture container")
+			: GkGloves.SetGkGlovesTextures(m_CurrentGkGloves.Id, rx3FileName);
 		if (num)
 		{
 			ReloadGkGloves(m_CurrentGkGloves);
@@ -201,7 +205,9 @@ public class GlovesForm : Form
 
 	private bool DeleteRx3GkGloves(object sender)
 	{
-		bool num = GkGloves.DeleteGkGlovesTextures(m_CurrentGkGloves.Id);
+		bool num = FifaEnvironment.Year == 26
+			? Fc26DirectAssetUi.Remove(this, GkGloves.GkGlovesTextureFileName(m_CurrentGkGloves.Id), "Goalkeeper glove texture container")
+			: GkGloves.DeleteGkGlovesTextures(m_CurrentGkGloves.Id);
 		if (num)
 		{
 			ReloadGkGloves(m_CurrentGkGloves);
