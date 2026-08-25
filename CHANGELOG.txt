@@ -10,6 +10,7 @@ Creation Master 26 v1.0.152 - 25 August 2026
 - Added a preview-first Batch Player Editor and internal ID/hash/date/XML/database utilities.
 - Kept automatic backup, transaction validation, reload verification and direct Data/Patch save.
 - FIFA Mod Manager export remains outside the normal CM26 workflow.
+- Corrected the classic UI executable metadata and About dialog to the public v1.0.152 version.
 
 This package contains no EA game content and requires the user's own installed FC26 files.
 

@@ -868,7 +868,7 @@ public class MainForm : Form
 	private void menuAbout_Click(object sender, EventArgs e)
 	{
 		m_AboutForm.labelProduct.Text = "Creation Master 26";
-		m_AboutForm.labelRelease.Text = "Version 3.7";
+		m_AboutForm.labelRelease.Text = "Version " + typeof(MainForm).Assembly.GetName().Version.ToString(3);
 		m_AboutForm.ShowDialog();
 	}
 
