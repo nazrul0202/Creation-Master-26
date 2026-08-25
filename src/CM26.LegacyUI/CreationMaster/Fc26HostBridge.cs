@@ -60,6 +60,30 @@ internal static class Fc26HostBridge
         return snapshotPath;
     }
 
+    internal static string OpenExtractedFolder(string folder)
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
+            throw new FileNotFoundException("CM26 FC26 host executable was not found.", s_HostPath);
+        if (!Directory.Exists(folder)) throw new DirectoryNotFoundException(folder);
+        var outputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Creation Master 26", "legacy");
+        Directory.CreateDirectory(outputDirectory);
+        var snapshotPath = Path.Combine(outputDirectory, "fc26-extracted-snapshot.json");
+        var start = new ProcessStartInfo
+        {
+            FileName = s_HostPath,
+            Arguments = "--legacy-open-folder \"" + folder.Replace("\"", string.Empty) + "\" \"" + snapshotPath + "\"",
+            UseShellExecute = false, CreateNoWindow = true,
+            RedirectStandardOutput = true, RedirectStandardError = true,
+            WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
+        };
+        var result = RunProcess(start, DatabaseCommandTimeoutMs, "extracted FC26 database loader");
+        if (result.ExitCode != 0) throw new InvalidOperationException(string.IsNullOrWhiteSpace(result.StandardError)
+            ? result.StandardOutput : result.StandardError);
+        if (!File.Exists(snapshotPath)) throw new FileNotFoundException("FC26 snapshot was not created.", snapshotPath);
+        return snapshotPath;
+    }
+
     internal static string? ExportAsset(string logicalPath)
     {
         if (string.IsNullOrWhiteSpace(logicalPath) || string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
@@ -167,6 +191,127 @@ internal static class Fc26HostBridge
         var result = RunProcess(start, AssetCommandTimeoutMs, "FC26 asset importer");
         if (result.ExitCode != 0) throw new InvalidOperationException(result.StandardError.Trim());
         return result.StandardOutput.Trim();
+    }
+
+    internal static string RemoveStagedAsset(string legacyPath)
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
+            throw new FileNotFoundException("CM26 FC26 host executable was not found.", s_HostPath);
+        var start = new ProcessStartInfo
+        {
+            FileName = s_HostPath,
+            Arguments = "--legacy-remove-asset \"" + legacyPath.Replace("\"", string.Empty) + "\"",
+            UseShellExecute = false, CreateNoWindow = true,
+            RedirectStandardOutput = true, RedirectStandardError = true,
+            WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
+        };
+        var result = RunProcess(start, AssetCommandTimeoutMs, "FC26 staged asset removal");
+        if (result.ExitCode != 0) throw new InvalidOperationException(result.StandardError.Trim());
+        s_AssetCache.Remove(legacyPath);
+        return result.StandardOutput.Trim();
+    }
+
+    internal static IndexedAsset[] SearchIndexedAssets(string query, string type)
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
+            throw new FileNotFoundException("CM26 FC26 host executable was not found.", s_HostPath);
+        var response = Path.Combine(Path.GetTempPath(), "cm26-search-" + Guid.NewGuid().ToString("N") + ".tsv");
+        try
+        {
+            var start = new ProcessStartInfo
+            {
+                FileName = s_HostPath,
+                Arguments = "--legacy-search-assets \"" + query.Replace("\"", string.Empty) + "\" " +
+                    (string.IsNullOrWhiteSpace(type) ? "All" : type) + " \"" + response + "\"",
+                UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardOutput = true, RedirectStandardError = true,
+                WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
+            };
+            var result = RunProcess(start, AssetCommandTimeoutMs, "FC26 asset catalog search");
+            if (result.ExitCode != 0) throw new InvalidOperationException(result.StandardError.Trim());
+            return File.Exists(response) ? File.ReadAllLines(response).Select(line => line.Split('\t'))
+                .Where(parts => parts.Length >= 6)
+                .Select(parts => new IndexedAsset(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]))
+                .ToArray() : Array.Empty<IndexedAsset>();
+        }
+        finally { try { if (File.Exists(response)) File.Delete(response); } catch { } }
+    }
+
+    internal static string ExportIndexedTexture(string resourceName)
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
+            throw new FileNotFoundException("CM26 FC26 host executable was not found.", s_HostPath);
+        var response = Path.Combine(Path.GetTempPath(), "cm26-texture-" + Guid.NewGuid().ToString("N") + ".txt");
+        try
+        {
+            var start = new ProcessStartInfo
+            {
+                FileName = s_HostPath,
+                Arguments = "--legacy-export-texture \"" + resourceName.Replace("\"", string.Empty) + "\" \"" + response + "\"",
+                UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardOutput = true, RedirectStandardError = true,
+                WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
+            };
+            var result = RunProcess(start, AssetCommandTimeoutMs, "FC26 texture exporter");
+            if (result.ExitCode != 0) throw new InvalidOperationException(result.StandardError.Trim());
+            var path = File.Exists(response) ? File.ReadAllText(response).Trim() : string.Empty;
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                throw new FileNotFoundException("The selected FC26 texture was not exported.");
+            return path;
+        }
+        finally { try { if (File.Exists(response)) File.Delete(response); } catch { } }
+    }
+
+    internal static string OpenCompdata(string sourcePath)
+    {
+        var response = Path.Combine(Path.GetTempPath(), "cm26-compdata-" + Guid.NewGuid().ToString("N") + ".json");
+        RunHost("--legacy-compdata-open \"" + sourcePath.Replace("\"", string.Empty) + "\" \"" + response + "\"",
+            DatabaseCommandTimeoutMs, "FC26 Compdata loader", allowValidationIssues: false);
+        if (!File.Exists(response)) throw new FileNotFoundException("Compdata snapshot was not created.");
+        return response;
+    }
+
+    internal static string ValidateCompdata(string snapshotPath)
+    {
+        var response = Path.Combine(Path.GetTempPath(), "cm26-compdata-report-" + Guid.NewGuid().ToString("N") + ".txt");
+        RunHost("--legacy-compdata-validate \"" + snapshotPath.Replace("\"", string.Empty) + "\" \"" + response + "\"",
+            DatabaseCommandTimeoutMs, "FC26 Compdata validator", allowValidationIssues: true);
+        return File.Exists(response) ? File.ReadAllText(response) : "Compdata validation did not return a report.";
+    }
+
+    internal static void SaveCompdata(string sourcePath, string snapshotPath, string outputPath, bool textFiles)
+    {
+        RunHost("--legacy-compdata-save \"" + sourcePath.Replace("\"", string.Empty) + "\" \"" +
+            snapshotPath.Replace("\"", string.Empty) + "\" \"" + outputPath.Replace("\"", string.Empty) + "\" " +
+            (textFiles ? "txt" : "xlsx"), DatabaseCommandTimeoutMs, "FC26 Compdata writer", allowValidationIssues: false);
+    }
+
+    private static ProcessResult RunHost(string arguments, int timeout, string description, bool allowValidationIssues)
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
+            throw new FileNotFoundException("CM26 FC26 host executable was not found.", s_HostPath);
+        var result = RunProcess(new ProcessStartInfo
+        {
+            FileName = s_HostPath, Arguments = arguments,
+            UseShellExecute = false, CreateNoWindow = true,
+            RedirectStandardOutput = true, RedirectStandardError = true,
+            WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
+        }, timeout, description);
+        if (result.ExitCode != 0 && !(allowValidationIssues && result.ExitCode == 2))
+            throw new InvalidOperationException(string.IsNullOrWhiteSpace(result.StandardError) ? result.StandardOutput : result.StandardError);
+        return result;
+    }
+
+    internal sealed class IndexedAsset
+    {
+        internal IndexedAsset(string type, string name, string resType, string originalSize, string compressedSize, string sha1)
+        { Type = type; Name = name; ResType = resType; OriginalSize = originalSize; CompressedSize = compressedSize; Sha1 = sha1; }
+        internal string Type { get; }
+        internal string Name { get; }
+        internal string ResType { get; }
+        internal string OriginalSize { get; }
+        internal string CompressedSize { get; }
+        internal string Sha1 { get; }
     }
 
     internal static string ExportFaceMesh(int playerId, int headAssetId)

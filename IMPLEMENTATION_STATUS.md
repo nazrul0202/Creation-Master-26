@@ -1,29 +1,40 @@
-# CM26 v1.0.151 implementation status
+# CM26 v1.0.152 implementation status
 
-This file states the shipped capability honestly. It does not treat a menu label as proof of support.
+This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
-## Complete and release-ready
+## Complete
 
-- Original Creation Master / CM16-style public interface, with the x64 FC26 host behind it.
-- Installed-FC26 database discovery and extraction from Frostbite CAS/TOC/SB sources.
-- Staged scalar database edits, validation, automatic backup, previewed change plan, direct save, verification and original-data restore.
-- Advanced all-table workspace: search, sort, copy/paste, bulk replace, TSV import/export and pending-change tracking.
-- Dependency impact scan and safe linked-reference replacement through one staged transaction.
-- Core player, team, roster, transfer, formation, league, country, competition, stadium, kit, ball, boot and manager editing supported by mapped FC26 fields.
-- Database Health Centre and safe roster/contract/shirt-number repairs.
+- Original v1.0.148-style Creation Master interface as the normal public shell.
+- Installed FC26 and extracted-database loading through the verified x64 native engine.
+- Main and locale table discovery, search/filter/sort, copy/paste, replace, TSV exchange, row clone/delete and unsaved-change tracking.
+- Dependency impact scan, linked-reference replacement, ID change/swap and transactional change plans.
+- XML descriptor range validation, automatic backup, direct save, rollback-on-failure and reload verification.
+- Internal FIFA hash/date/XML/ID/database-compare utilities.
+- Compdata XLSX/TXT load, table editing, validation, workbook-copy save and game-TXT export.
 
-## Functional with scope limits
+## Functional
 
-- Frostbite previews and staged image replacement for verified asset families; unsupported encodings remain read-only.
-- Transfermarkt/import helpers, appearance suggestions, compdata tools and career transfer-budget editing where a verified source is available.
-- Bulk table import is deliberately row/column preserving. Structural schema creation or deletion is not exposed.
-- The internal modern Studio remains available with `--studio` for diagnostics, but it is not the public design.
+- Existing classic player, team, roster, transfer, formation, league, country, competition, stadium, kit, ball, boot, glove, manager and career-budget editors for mapped FC26 fields.
+- Preview-first batch player field edits with team selection and safe field limits.
+- Indexed Frostbite catalog search plus supported texture preview/export.
+- Direct staged replacement for verified ChunkFileCollector image paths, including Player minifaces and kit assets.
+- Database Health Centre scans plus safe free-agent, contract and shirt-number repairs.
 
-## Experimental or unavailable
+## Partial
 
-- Unknown EBX schemas, unverified mesh/animation/audio encoders and unsafe arbitrary archive writes are not claimed as writable.
-- Full career-save coverage beyond verified fields is not claimed.
-- Automated face recognition/cranium generation is advisory or read-only unless a verified asset writer is available.
-- FIFA Mod Manager project export is intentionally not part of the CM26 direct-edit workflow.
+- Asset writes are limited to game-native legacy paths and formats with a verified encoder; arbitrary RES/EBX/mesh/audio writes are not exposed.
+- Transfermarkt and appearance helpers depend on available source data and remain suggestion-based.
+- Career saves remain separate and cover only structures already verified by CM26.
+- Compdata offers a complete raw table workflow; a fully visual bracket/calendar designer remains partial.
 
-All save operations require FC26 to be closed. Keep an independent backup of the game installation.
+## Experimental
+
+- Face/cranium recognition and unverified current-generation mesh formats are preview/advisory only.
+- Unknown title-update schemas may require updated descriptors after EA changes FC26.
+
+## Unavailable
+
+- Unsupported or unknown Frostbite encoders are not faked as writable.
+- FIFA Mod Manager project/package export is intentionally not part of the public CM26 direct-edit workflow.
+
+Close FC26 before saving and keep an independent backup of the installation.

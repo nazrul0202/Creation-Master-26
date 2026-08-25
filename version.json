@@ -1,6 +1,6 @@
 {
-  "version": "1.0.151",
+  "version": "1.0.152",
   "name": "Creation Master 26",
-  "notes": "v1.0.151 - restores the original Creation Master interface as the default and integrates an advanced FC26 database and dependency workspace into it.",
+  "notes": "v1.0.152 - completes the classic-shell database, localization, Compdata, asset catalog, batch-player and internal utility integration for direct FC26 editing.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

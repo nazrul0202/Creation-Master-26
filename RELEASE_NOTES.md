@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.152 - classic direct-edit completion pass (2026-08-25)
+
+- Preserved the original v1.0.148 Creation Master interface and added the remaining operational tools to its existing Tools menu.
+- Expanded the Advanced Database Workspace across main and localization tables with schema ranges, field expressions, database comparison, structural clone/delete and dependency-aware ID swaps.
+- Added extracted-database open/save, verified locale writes, a Frostbite catalog/asset manager, direct miniface staging, Compdata XLSX/TXT editing and a preview-first Batch Player Editor.
+- Added internal FIFA hash/date/XML/ID/database utilities and retained automatic backup, validation, direct Data/Patch commit and reload verification.
+- Unverified asset encoders and career structures remain explicitly partial instead of being represented by placeholder controls.
+
 ## Version 1.0.151 - original CM interface with integrated database workspace (2026-08-25)
 
 - Restored the v1.0.148 Creation Master / CM16-style desktop as the interface opened by a normal launch; the modern x64 Studio is now an explicit internal `--studio` surface.

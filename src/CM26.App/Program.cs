@@ -58,6 +58,42 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 2 && args[0] == "--legacy-remove-asset")
+        {
+            Environment.ExitCode = RemoveLegacyAsset(args[1]);
+            return;
+        }
+
+        if (args.Length >= 4 && args[0] == "--legacy-search-assets")
+        {
+            Environment.ExitCode = SearchLegacyAssets(args[1], args[2], args[3]);
+            return;
+        }
+
+        if (args.Length >= 3 && args[0] == "--legacy-export-texture")
+        {
+            Environment.ExitCode = ExportIndexedTexture(args[1], args[2]);
+            return;
+        }
+
+        if (args.Length >= 3 && args[0] == "--legacy-compdata-open")
+        {
+            Environment.ExitCode = OpenLegacyCompdata(args[1], args[2]);
+            return;
+        }
+
+        if (args.Length >= 5 && args[0] == "--legacy-compdata-save")
+        {
+            Environment.ExitCode = SaveLegacyCompdata(args[1], args[2], args[3], args[4]);
+            return;
+        }
+
+        if (args.Length >= 3 && args[0] == "--legacy-compdata-validate")
+        {
+            Environment.ExitCode = ValidateLegacyCompdata(args[1], args[2]);
+            return;
+        }
+
         if (args.Length >= 3 && args[0] == "--legacy-face-mesh")
         {
             Environment.ExitCode = ExportLegacyFaceMesh(args[1], args[2], args.Length >= 4 ? args[3] : null);
@@ -73,6 +109,14 @@ internal static class Program
         if (args.Length >= 2 && args[0] == "--legacy-scoreboards")
         {
             Environment.ExitCode = ExportLegacyScoreboardList(args[1]);
+            return;
+        }
+
+        // Opens a user-selected extracted FC26 database/localization folder.
+        // Unlike --legacy-open this never touches or requires installed archives.
+        if (args.Length >= 3 && args[0] == "--legacy-open-folder")
+        {
+            Environment.ExitCode = ExportLegacyFolderSnapshot(args[1], args[2]);
             return;
         }
 
@@ -786,6 +830,183 @@ internal static class Program
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int RemoveLegacyAsset(string legacyPath)
+    {
+        try
+        {
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot)) throw new InvalidOperationException("FC26 installation was not detected.");
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+            var mods = new LegacyAssetModService();
+            mods.Open(assets.Fingerprint);
+            Console.WriteLine(mods.Remove(legacyPath) ? "Removed" : "No staged replacement");
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int SearchLegacyAssets(string query, string assetType, string responsePath)
+    {
+        try
+        {
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot)) throw new InvalidOperationException("FC26 installation was not detected.");
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+            var type = assetType.Equals("All", StringComparison.OrdinalIgnoreCase) ? null : assetType;
+            var rows = assets.SearchAssets(query, type, 500)
+                .Select(item => string.Join("\t", item.Type, item.Name, item.ResType.ToString("X8"),
+                    item.OriginalSize, item.CompressedSize, item.Sha1))
+                .ToArray();
+            Directory.CreateDirectory(Path.GetDirectoryName(responsePath)!);
+            File.WriteAllLines(responsePath, rows);
+            Console.WriteLine(rows.Length);
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int ExportIndexedTexture(string resourceName, string responsePath)
+    {
+        try
+        {
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot)) throw new InvalidOperationException("FC26 installation was not detected.");
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+            var exported = assets.ExportTexture(resourceName);
+            if (string.IsNullOrWhiteSpace(exported) || !File.Exists(exported))
+                throw new FileNotFoundException("The selected FC26 resource is not a supported texture.");
+            Directory.CreateDirectory(Path.GetDirectoryName(responsePath)!);
+            File.WriteAllText(responsePath, exported);
+            Console.WriteLine(exported);
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int OpenLegacyCompdata(string sourcePath, string responsePath)
+    {
+        try
+        {
+            var service = new CompdataWorkbookService();
+            if (Directory.Exists(sourcePath)) service.OpenFromGameFolder(sourcePath);
+            else service.Open(sourcePath);
+            var snapshot = new LegacyCompdataSnapshot
+            {
+                SourcePath = Path.GetFullPath(sourcePath),
+                Sheets = service.SheetNames.Select(name => ToLegacySheet(service.ReadSheet(name))).ToList()
+            };
+            Directory.CreateDirectory(Path.GetDirectoryName(responsePath)!);
+            File.WriteAllText(responsePath, System.Text.Json.JsonSerializer.Serialize(snapshot,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = false }));
+            Console.WriteLine(snapshot.Sheets.Count);
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int SaveLegacyCompdata(string sourcePath, string snapshotPath, string outputPath, string mode)
+    {
+        try
+        {
+            var snapshot = System.Text.Json.JsonSerializer.Deserialize<LegacyCompdataSnapshot>(File.ReadAllText(snapshotPath))
+                ?? throw new InvalidDataException("Compdata edit snapshot is empty.");
+            var tables = snapshot.Sheets.ToDictionary(sheet => sheet.Name, FromLegacySheet, StringComparer.OrdinalIgnoreCase);
+            var errors = CompdataSchema.Validate(tables).Where(issue => issue.IsError).ToArray();
+            if (errors.Length > 0)
+                throw new InvalidDataException("Compdata validation failed: " + string.Join(" | ", errors.Take(8)
+                    .Select(issue => $"{issue.Sheet} row {issue.Row}: {issue.Message}")));
+            if (mode.Equals("txt", StringComparison.OrdinalIgnoreCase))
+            {
+                CompdataWorkbookService.ExportTextFiles(outputPath, tables);
+            }
+            else
+            {
+                var service = new CompdataWorkbookService();
+                service.Open(sourcePath);
+                service.SaveCopy(outputPath, tables);
+            }
+            Console.WriteLine(outputPath);
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int ValidateLegacyCompdata(string snapshotPath, string reportPath)
+    {
+        try
+        {
+            var snapshot = System.Text.Json.JsonSerializer.Deserialize<LegacyCompdataSnapshot>(File.ReadAllText(snapshotPath))
+                ?? throw new InvalidDataException("Compdata edit snapshot is empty.");
+            var tables = snapshot.Sheets.ToDictionary(sheet => sheet.Name, FromLegacySheet, StringComparer.OrdinalIgnoreCase);
+            var issues = CompdataSchema.Validate(tables);
+            var report = issues.Count == 0 ? "Compdata validation passed. No issues found."
+                : string.Join(Environment.NewLine, issues.Select(issue =>
+                    $"[{(issue.IsError ? "Error" : "Warning")}] {issue.Sheet} row {issue.Row}: {issue.Message}"));
+            Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
+            File.WriteAllText(reportPath, report);
+            Console.WriteLine(issues.Count);
+            return issues.Any(issue => issue.IsError) ? 2 : 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static LegacyCompdataSheet ToLegacySheet(System.Data.DataTable table) => new()
+    {
+        Name = table.TableName,
+        Columns = table.Columns.Cast<System.Data.DataColumn>().Select(column => column.ColumnName).ToList(),
+        Rows = table.Rows.Cast<System.Data.DataRow>().Select(row => table.Columns.Cast<System.Data.DataColumn>()
+            .Select(column => Convert.ToString(row[column], System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty).ToList()).ToList()
+    };
+
+    private static System.Data.DataTable FromLegacySheet(LegacyCompdataSheet sheet)
+    {
+        var table = new System.Data.DataTable(sheet.Name);
+        foreach (var column in sheet.Columns) table.Columns.Add(column, typeof(string));
+        foreach (var source in sheet.Rows)
+        {
+            var row = table.NewRow();
+            for (var index = 0; index < table.Columns.Count && index < source.Count; index++) row[index] = source[index] ?? string.Empty;
+            table.Rows.Add(row);
+        }
+        return table;
+    }
+
+    private sealed class LegacyCompdataSnapshot
+    {
+        public string SourcePath { get; set; } = string.Empty;
+        public List<LegacyCompdataSheet> Sheets { get; set; } = [];
+    }
+
+    private sealed class LegacyCompdataSheet
+    {
+        public string Name { get; set; } = string.Empty;
+        public List<string> Columns { get; set; } = [];
+        public List<List<string>> Rows { get; set; } = [];
+    }
+
+    private static int ExportLegacyFolderSnapshot(string folder, string outputPath)
+    {
+        try
+        {
+            using var database = new DatabaseSession();
+            database.Load(Path.GetFullPath(folder));
+            LegacySnapshotService.Write(database, outputPath, gameRoot: string.Empty);
+            Console.WriteLine(outputPath);
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
     }
 
     private static int WriteLegacyHealthReport(string responsePath)

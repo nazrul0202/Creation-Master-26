@@ -333,13 +333,31 @@ public class MainForm : Form
 	public MainForm()
 	{
 		InitializeComponent();
+		var openExtracted = new ToolStripMenuItem("Open extracted FC26 database...");
+		openExtracted.Click += (_, _) => OpenExtractedFc26Database();
+		// Keep the original File menu order and place the FC26 source directly
+		// after Open FC26 rather than creating a new launcher/dashboard.
+		var openFc26Index = menuFile.DropDownItems.IndexOf(menuOpenFifa16);
+		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 1), openExtracted);
 		var databaseWorkspace = new ToolStripMenuItem("FC26 Advanced Database Workspace...");
 		databaseWorkspace.Click += (_, _) => ShowFc26DatabaseWorkspace();
 		var healthCentre = new ToolStripMenuItem("FC26 Database Health Centre...");
 		healthCentre.Click += (_, _) => ShowFc26HealthCentre();
+		var moddingUtilities = new ToolStripMenuItem("FC26 Internal Modding Utilities...");
+		moddingUtilities.Click += (_, _) => ShowFc26ModdingUtilities();
+		var assetManager = new ToolStripMenuItem("FC26 Visual Asset Manager...");
+		assetManager.Click += (_, _) => ShowFc26AssetManager();
+		var compdataEditor = new ToolStripMenuItem("FC26 Competition / Compdata Editor...");
+		compdataEditor.Click += (_, _) => ShowFc26CompdataEditor();
+		var batchPlayers = new ToolStripMenuItem("FC26 Batch Player Editor...");
+		batchPlayers.Click += (_, _) => ShowFc26BatchPlayerEditor();
 		menuTools.DropDownItems.Add(new ToolStripSeparator());
 		menuTools.DropDownItems.Add(databaseWorkspace);
 		menuTools.DropDownItems.Add(healthCentre);
+		menuTools.DropDownItems.Add(moddingUtilities);
+		menuTools.DropDownItems.Add(assetManager);
+		menuTools.DropDownItems.Add(compdataEditor);
+		menuTools.DropDownItems.Add(batchPlayers);
 		buttonSponsor.Visible = true;
 		buttonTv.Visible = true;
 		m_SplitterDistanceBottom = splitHoriz.Height * 2 / 3;
@@ -349,6 +367,63 @@ public class MainForm : Form
 		CM = this;
 		EnablePanels(enable: false);
 		EnableMenus();
+	}
+
+	private void ShowFc26BatchPlayerEditor()
+	{
+		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
+		{
+			MessageBox.Show(this, "Open FC26 first.", "Batch Player Editor", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		using (var editor = new Fc26BatchPlayerForm()) editor.ShowDialog(this);
+	}
+
+	private void ShowFc26CompdataEditor()
+	{
+		using (var editor = new Fc26CompdataForm()) editor.ShowDialog(this);
+	}
+
+	private void ShowFc26AssetManager()
+	{
+		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
+		{
+			MessageBox.Show(this, "Open FC26 first.", "Visual Asset Manager", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		using (var manager = new Fc26AssetManagerForm()) manager.ShowDialog(this);
+	}
+
+	private void ShowFc26ModdingUtilities()
+	{
+		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
+		{
+			MessageBox.Show(this, "Open FC26 first.", "Internal Modding Utilities", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		using (var utilities = new Fc26ModdingUtilitiesForm()) utilities.ShowDialog(this);
+	}
+
+	private void OpenExtractedFc26Database()
+	{
+		using (var dialog = new FolderBrowserDialog
+		{
+			Description = "Select an extracted FC26 database folder containing fifa_ng_db and its XML descriptor"
+		})
+		{
+			if (dialog.ShowDialog(this) != DialogResult.OK) return;
+			try
+			{
+				Cursor.Current = Cursors.WaitCursor;
+				LoadFc26Snapshot(Fc26HostBridge.OpenExtractedFolder(dialog.SelectedPath), showCountry: true);
+				statusBar.Text = "Extracted FC26 database loaded: " + dialog.SelectedPath;
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show(this, ex.Message, "Open extracted FC26 database", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
+			finally { Cursor.Current = Cursors.Default; }
+		}
 	}
 
 	private void ShowFc26DatabaseWorkspace()

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Windows.Forms;
 using FifaControls;
 using FifaLibrary;
@@ -1197,12 +1198,36 @@ public class PlayerForm : Form
 
 	private bool ImportImageMiniface(object sender, Bitmap bitmap)
 	{
-		return m_CurrentPlayer.SetPhoto(bitmap);
+		if (FifaEnvironment.Year != 26) return m_CurrentPlayer.SetPhoto(bitmap);
+		string temporary = Path.Combine(Path.GetTempPath(), "cm26-miniface-" + Guid.NewGuid().ToString("N") + ".png");
+		try
+		{
+			bitmap.Save(temporary, System.Drawing.Imaging.ImageFormat.Png);
+			Fc26HostBridge.StageImage(m_CurrentPlayer.SpecificPhotoDdsFileName(), temporary,
+				Math.Max(1, bitmap.Width), Math.Max(1, bitmap.Height));
+			return true;
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show(this, ex.Message, "FC26 Miniface Import", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			return false;
+		}
+		finally { try { if (File.Exists(temporary)) File.Delete(temporary); } catch { } }
 	}
 
 	private bool DeleteMiniface(object sender)
 	{
-		return m_CurrentPlayer.DeletePhoto();
+		if (FifaEnvironment.Year != 26) return m_CurrentPlayer.DeletePhoto();
+		try
+		{
+			Fc26HostBridge.RemoveStagedAsset(m_CurrentPlayer.SpecificPhotoDdsFileName());
+			return true;
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show(this, ex.Message, "FC26 Miniface", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			return false;
+		}
 	}
 
 	private bool ImportImageTattoo(object sender, Bitmap bitmap)

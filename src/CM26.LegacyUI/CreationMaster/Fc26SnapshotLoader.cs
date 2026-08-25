@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using FifaLibrary;
 
@@ -38,6 +39,7 @@ internal static class Fc26SnapshotLoader
         new Dictionary<string, Change>(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, string> s_detailOriginalValues =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    private static readonly List<StructuralChange> s_structuralChanges = new List<StructuralChange>();
 
     internal static void Load(string path)
     {
@@ -53,6 +55,7 @@ internal static class Fc26SnapshotLoader
         s_loadedTeamSheets.Clear();
         s_detailChanges.Clear();
         s_detailOriginalValues.Clear();
+        s_structuralChanges.Clear();
 
         var countries = Build<CountryList, Country>(tables, "nations", "nationid");
         var leagues = Build<LeagueList, League>(tables, "leagues", "leagueid");
@@ -236,16 +239,17 @@ internal static class Fc26SnapshotLoader
             Version = 1,
             GameRoot = snapshot.GameRoot,
             DatabaseFolder = snapshot.DatabaseFolder,
+            StructuralChanges = s_structuralChanges,
             Changes = changes
         }));
-        return changes.Count;
+        return changes.Count + s_structuralChanges.Count;
     }
 
     internal static SnapshotDetailTable? DetailTable(string tableName)
     {
         var table = s_snapshot?.Tables.FirstOrDefault(value =>
             value.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
-        return table == null ? null : new SnapshotDetailTable(table.Name, table.Columns, table.Rows);
+        return table == null ? null : new SnapshotDetailTable(table.Name, table.Columns, table.ColumnDetails, table.Rows);
     }
 
     internal static IReadOnlyList<string> DetailTableNames => s_snapshot?.Tables
@@ -253,7 +257,71 @@ internal static class Fc26SnapshotLoader
         .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
         .ToArray() ?? Array.Empty<string>();
 
-    internal static int PendingDetailCount => s_detailChanges.Count;
+    internal static string CompareWithSnapshot(string path)
+    {
+        var current = s_snapshot ?? throw new InvalidOperationException("No FC26 database is loaded.");
+        using var stream = File.OpenRead(path);
+        var other = JsonSerializer.Deserialize<Snapshot>(stream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            ?? throw new InvalidDataException("Comparison snapshot is empty.");
+        var output = new StringBuilder();
+        var changedTables = 0; long changedCells = 0;
+        var otherTables = other.Tables.ToDictionary(table => table.Name, StringComparer.OrdinalIgnoreCase);
+        foreach (var table in current.Tables.OrderBy(value => value.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            if (!otherTables.TryGetValue(table.Name, out var compared))
+            {
+                output.AppendLine(table.Name + ": missing from comparison database"); changedTables++; continue;
+            }
+            var differences = 0L;
+            if (!table.Columns.SequenceEqual(compared.Columns, StringComparer.OrdinalIgnoreCase))
+            {
+                output.AppendLine(table.Name + ": schema/field order differs"); changedTables++; continue;
+            }
+            var rows = Math.Max(table.Rows.Count, compared.Rows.Count);
+            for (var row = 0; row < rows; row++)
+                for (var column = 0; column < table.Columns.Length; column++)
+                {
+                    var left = row < table.Rows.Count && column < table.Rows[row].Length ? table.Rows[row][column] : "<missing>";
+                    var right = row < compared.Rows.Count && column < compared.Rows[row].Length ? compared.Rows[row][column] : "<missing>";
+                    if (!string.Equals(left, right, StringComparison.Ordinal)) differences++;
+                }
+            if (differences == 0) continue;
+            changedTables++; changedCells += differences;
+            output.AppendLine(table.Name + ": " + differences.ToString("N0", CultureInfo.InvariantCulture) + " different cell(s), " +
+                table.Rows.Count.ToString("N0", CultureInfo.InvariantCulture) + " vs " + compared.Rows.Count.ToString("N0", CultureInfo.InvariantCulture) + " rows");
+        }
+        foreach (var table in other.Tables.Where(value => current.Tables.All(existing => !existing.Name.Equals(value.Name, StringComparison.OrdinalIgnoreCase))))
+        { output.AppendLine(table.Name + ": only in comparison database"); changedTables++; }
+        return changedTables == 0 ? "Databases match across all exported main and locale tables and cells." :
+            changedTables.ToString("N0", CultureInfo.InvariantCulture) + " changed table(s), " + changedCells.ToString("N0", CultureInfo.InvariantCulture) +
+            " changed cell(s).\r\n\r\n" + output;
+    }
+
+    internal static int PendingDetailCount => s_detailChanges.Count + s_structuralChanges.Count;
+
+    internal static bool IsDetailDeleted(string tableName, int rowIndex) => s_structuralChanges.Any(change =>
+        change.Kind == "delete" && change.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase) && change.RowIndex == rowIndex);
+
+    internal static int DuplicateDetailRow(string tableName, int rowIndex)
+    {
+        if (s_structuralChanges.Any(change => change.Kind == "delete"))
+            throw new InvalidOperationException("Save the pending deletion before cloning another record.");
+        var table = s_snapshot?.Tables.FirstOrDefault(candidate => candidate.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
+        if (table == null || rowIndex < 0 || rowIndex >= table.Rows.Count) throw new InvalidOperationException("Selected record is unavailable.");
+        var newIndex = table.Rows.Count;
+        table.Rows.Add((string[])table.Rows[rowIndex].Clone());
+        s_structuralChanges.Add(new StructuralChange { Kind = "duplicate", TableName = table.Name, RowIndex = rowIndex });
+        return newIndex;
+    }
+
+    internal static void DeleteDetailRow(string tableName, int rowIndex)
+    {
+        if (s_detailChanges.Count > 0 || s_structuralChanges.Count > 0)
+            throw new InvalidOperationException("Save or close the current staged edits first. A dependency-cleaned deletion is isolated so row indexes cannot shift under other edits.");
+        var table = s_snapshot?.Tables.FirstOrDefault(candidate => candidate.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
+        if (table == null || rowIndex < 0 || rowIndex >= table.Rows.Count) throw new InvalidOperationException("Selected record is unavailable.");
+        s_structuralChanges.Add(new StructuralChange { Kind = "delete", TableName = table.Name, RowIndex = rowIndex });
+    }
 
     internal static bool IsDetailChanged(string tableName, int rowIndex, string fieldName) =>
         s_detailChanges.ContainsKey(tableName + "\u001f" + rowIndex.ToString(CultureInfo.InvariantCulture) + "\u001f" + fieldName);
@@ -264,6 +332,7 @@ internal static class Fc26SnapshotLoader
             candidate.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
         if (table == null || rowIndex < 0 || rowIndex >= table.Rows.Count)
             throw new InvalidOperationException("The selected detail record is unavailable.");
+        if (IsDetailDeleted(tableName, rowIndex)) throw new InvalidOperationException("The selected record is staged for deletion.");
         var column = Column(table, fieldName);
         if (column < 0 || column >= table.Rows[rowIndex].Length)
             throw new InvalidOperationException("The selected detail field is unavailable.");
@@ -1245,7 +1314,18 @@ internal static class Fc26SnapshotLoader
     {
         public string Name { get; set; } = string.Empty;
         public string[] Columns { get; set; } = Array.Empty<string>();
+        public List<ColumnSnapshot> ColumnDetails { get; set; } = new();
         public List<string[]> Rows { get; set; } = new();
+    }
+
+    internal sealed class ColumnSnapshot
+    {
+        public string Name { get; set; } = string.Empty;
+        public bool IsWritable { get; set; } = true;
+        public int Kind { get; set; }
+        public int Depth { get; set; }
+        public long RangeLow { get; set; }
+        public long RangeHigh { get; set; }
     }
 
     private sealed class ChangePlan
@@ -1253,7 +1333,15 @@ internal static class Fc26SnapshotLoader
         public int Version { get; set; }
         public string GameRoot { get; set; } = string.Empty;
         public string DatabaseFolder { get; set; } = string.Empty;
+        public List<StructuralChange> StructuralChanges { get; set; } = new();
         public List<Change> Changes { get; set; } = new();
+    }
+
+    internal sealed class StructuralChange
+    {
+        public string Kind { get; set; } = string.Empty;
+        public string TableName { get; set; } = string.Empty;
+        public int RowIndex { get; set; }
     }
 
     private sealed class Change
@@ -1313,15 +1401,20 @@ internal static class Fc26SnapshotLoader
 
 internal sealed class SnapshotDetailTable
 {
-    internal SnapshotDetailTable(string name, string[] columns, List<string[]> rows)
+    internal SnapshotDetailTable(string name, string[] columns, List<Fc26SnapshotLoader.ColumnSnapshot> details, List<string[]> rows)
     {
         Name = name;
         Columns = columns;
+        ColumnDetails = columns.Select((column, index) => index < details.Count
+            ? new SnapshotDetailColumn(details[index].Name, details[index].IsWritable, details[index].Kind,
+                details[index].Depth, details[index].RangeLow, details[index].RangeHigh)
+            : new SnapshotDetailColumn(column, true, 0, 0, 0, 0)).ToArray();
         Rows = rows;
     }
 
     internal string Name { get; }
     internal string[] Columns { get; }
+    internal SnapshotDetailColumn[] ColumnDetails { get; }
     internal IReadOnlyList<string[]> Rows { get; }
 
     internal int Column(string fieldName) =>
@@ -1334,4 +1427,19 @@ internal sealed class SnapshotDetailTable
             ? Rows[rowIndex][column]
             : string.Empty;
     }
+}
+
+internal sealed class SnapshotDetailColumn
+{
+    internal SnapshotDetailColumn(string name, bool writable, int kind, int depth, long low, long high)
+    {
+        Name = name; IsWritable = writable; Kind = kind; Depth = depth; RangeLow = low; RangeHigh = high;
+    }
+    internal string Name { get; }
+    internal bool IsWritable { get; }
+    internal int Kind { get; }
+    internal int Depth { get; }
+    internal long RangeLow { get; }
+    internal long RangeHigh { get; }
+    internal string KindLabel => Kind == 3 ? "Integer" : Kind == 4 ? "Decimal" : Kind == 13 || Kind == 14 ? "Compressed text" : "Text";
 }

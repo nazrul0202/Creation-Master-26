@@ -21,6 +21,8 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
     private readonly DataGridView _grid = new DataGridView();
     private readonly TextBox _tableSearch = new TextBox();
     private readonly TextBox _rowSearch = new TextBox();
+    private readonly ComboBox _filterField = new ComboBox();
+    private readonly TextBox _filterExpression = new TextBox();
     private readonly Label _status = new Label();
     private SnapshotDetailTable _active;
     private bool _loading;
@@ -35,12 +37,17 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
 
         var tools = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden, Dock = DockStyle.Top };
         tools.Items.Add(Button("Refresh", (_, _) => LoadTable()));
+        tools.Items.Add(Button("Clone Row", (_, _) => CloneRow()));
+        tools.Items.Add(Button("Delete Row", (_, _) => DeleteRow()));
         tools.Items.Add(Button("Copy", (_, _) => CopySelection()));
         tools.Items.Add(Button("Paste", (_, _) => PasteSelection()));
         tools.Items.Add(Button("Replace", (_, _) => BulkReplace()));
+        tools.Items.Add(Button("Compare", (_, _) => CompareTsv()));
+        tools.Items.Add(Button("Validate XML Ranges", (_, _) => ValidateDescriptorRanges()));
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Button("Find References", (_, _) => ShowReferences(replace: false)));
         tools.Items.Add(Button("Replace References", (_, _) => ShowReferences(replace: true)));
+        tools.Items.Add(Button("Swap IDs", (_, _) => SwapIds()));
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Button("Import TSV", (_, _) => ImportTsv()));
         tools.Items.Add(Button("Export TSV", (_, _) => ExportTsv()));
@@ -51,6 +58,12 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         _rowSearch.Dock = DockStyle.Top;
         _rowSearch.AccessibleName = "Search all visible fields (accent-insensitive)";
         _rowSearch.TextChanged += (_, _) => LoadTable();
+        _filterField.DropDownStyle = ComboBoxStyle.DropDownList;
+        _filterField.Width = 170;
+        _filterField.SelectedIndexChanged += (_, _) => LoadTable();
+        _filterExpression.Width = 210;
+        _filterExpression.AccessibleName = "Field filter expression";
+        _filterExpression.TextChanged += (_, _) => LoadTable();
 
         _tables.Dock = DockStyle.Fill;
         _tables.IntegralHeight = false;
@@ -70,8 +83,14 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         _grid.CellEndEdit += GridCellEndEdit;
         _grid.SelectionChanged += (_, _) => UpdateStatus();
 
+        var filterPanel = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 29, WrapContents = false };
+        filterPanel.Controls.Add(new Label { Text = "Field filter:", AutoSize = true, Margin = new Padding(2, 6, 2, 0) });
+        filterPanel.Controls.Add(_filterField);
+        filterPanel.Controls.Add(new Label { Text = "Expression (=, !=, >, <, >=, <= or contains):", AutoSize = true, Margin = new Padding(8, 6, 2, 0) });
+        filterPanel.Controls.Add(_filterExpression);
         var dataPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(6) };
         dataPanel.Controls.Add(_grid);
+        dataPanel.Controls.Add(filterPanel);
         dataPanel.Controls.Add(_rowSearch);
 
         _status.Dock = DockStyle.Bottom;
@@ -108,17 +127,29 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
 
     private void LoadTable()
     {
+        if (_loading) return;
         if (_tables.SelectedItem == null) return;
         _active = Fc26SnapshotLoader.DetailTable(_tables.SelectedItem.ToString());
         if (_active == null) return;
+        var previousField = _filterField.SelectedItem as string;
+        _loading = true;
+        _filterField.BeginUpdate();
+        _filterField.Items.Clear();
+        _filterField.Items.Add("All fields");
+        _filterField.Items.AddRange(_active.Columns.Cast<object>().ToArray());
+        _filterField.SelectedItem = previousField != null && _filterField.Items.Contains(previousField) ? previousField : "All fields";
+        _filterField.EndUpdate();
+        _loading = false;
         var query = NormalizeText(_rowSearch.Text);
         var data = new DataTable(_active.Name);
         data.Columns.Add("__CM26_ROW", typeof(int));
         foreach (var column in _active.Columns) data.Columns.Add(UniqueColumnName(data, column), typeof(string));
         for (var rowIndex = 0; rowIndex < _active.Rows.Count; rowIndex++)
         {
+            if (Fc26SnapshotLoader.IsDetailDeleted(_active.Name, rowIndex)) continue;
             var source = _active.Rows[rowIndex];
             if (query.Length > 0 && !source.Any(value => NormalizeText(value).Contains(query))) continue;
+            if (!MatchesFieldFilter(source)) continue;
             var row = data.NewRow();
             row[0] = rowIndex;
             for (var column = 0; column < _active.Columns.Length; column++)
@@ -129,7 +160,13 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         _grid.DataSource = data;
         _grid.Columns[0].Visible = false;
         for (var column = 1; column < _grid.Columns.Count; column++)
+        {
             _grid.Columns[column].HeaderText = _active.Columns[column - 1];
+            var detail = _active.ColumnDetails[column - 1];
+            _grid.Columns[column].ReadOnly = !detail.IsWritable;
+            _grid.Columns[column].ToolTipText = detail.KindLabel + (detail.Kind == 3
+                ? " · XML range " + detail.RangeLow + ".." + detail.RangeHigh : string.Empty);
+        }
         _loading = false;
         UpdateStatus();
     }
@@ -149,7 +186,11 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         var rowIndex = Convert.ToInt32(_grid.Rows[e.RowIndex].Cells[0].Value, CultureInfo.InvariantCulture);
         var field = _active.Columns[e.ColumnIndex - 1];
         var value = Convert.ToString(_grid.Rows[e.RowIndex].Cells[e.ColumnIndex].Value, CultureInfo.InvariantCulture) ?? string.Empty;
-        try { Fc26SnapshotLoader.StageDetailValue(_active.Name, rowIndex, field, value); }
+        try
+        {
+            ValidateCandidate(_active.ColumnDetails[e.ColumnIndex - 1], value);
+            Fc26SnapshotLoader.StageDetailValue(_active.Name, rowIndex, field, value);
+        }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Stage database value", MessageBoxButtons.OK, MessageBoxIcon.Error); LoadTable(); }
         UpdateStatus();
     }
@@ -158,6 +199,44 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
     {
         var data = _grid.GetClipboardContent();
         if (data != null) Clipboard.SetDataObject(data);
+    }
+
+    private int CurrentSourceRow()
+    {
+        return _grid.CurrentRow == null ? -1 : Convert.ToInt32(_grid.CurrentRow.Cells[0].Value, CultureInfo.InvariantCulture);
+    }
+
+    private void CloneRow()
+    {
+        var row = CurrentSourceRow();
+        if (_active == null || row < 0) return;
+        try
+        {
+            var newIndex = Fc26SnapshotLoader.DuplicateDetailRow(_active.Name, row);
+            LoadTable();
+            foreach (DataGridViewRow gridRow in _grid.Rows)
+                if (Convert.ToInt32(gridRow.Cells[0].Value, CultureInfo.InvariantCulture) == newIndex)
+                { gridRow.Selected = true; _grid.CurrentCell = gridRow.Cells[Math.Min(1, gridRow.Cells.Count - 1)]; break; }
+            _status.Text = "Cloned " + _active.Name + "[" + row + "] to new row " + newIndex + ". Change its identity fields before File > Save.";
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Clone record", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+    }
+
+    private void DeleteRow()
+    {
+        var row = CurrentSourceRow();
+        if (_active == null || row < 0) return;
+        var field = _active.Columns.FirstOrDefault(name => name.EndsWith("id", StringComparison.OrdinalIgnoreCase));
+        var identity = field == null ? string.Empty : " (" + field + "=" + _active.Value(row, field) + ")";
+        if (MessageBox.Show(this, "Delete " + _active.Name + "[" + row + "]" + identity + "?\r\n\r\nCM26 will remove dependent link rows and clear optional references through the native relationship engine.",
+            "Dependency-aware delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        try
+        {
+            Fc26SnapshotLoader.DeleteDetailRow(_active.Name, row);
+            LoadTable();
+            _status.Text = "Deletion staged in isolation. Use File > Save to validate, back up and commit it.";
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Delete record", MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
     private void PasteSelection()
@@ -269,26 +348,141 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         using (var dialog = new OpenFileDialog { Filter = "TSV files (*.tsv)|*.tsv|All files (*.*)|*.*" })
         {
             if (dialog.ShowDialog(this) != DialogResult.OK) return;
-            var lines = File.ReadAllLines(dialog.FileName);
-            if (lines.Length == 0 || !lines[0].Split('\t').SequenceEqual(_active.Columns))
-                throw new InvalidDataException("TSV header does not match the selected FC26 table.");
-            if (lines.Length - 1 != _active.Rows.Count)
-                throw new InvalidDataException("TSV row count must match the selected table; structural imports are blocked by this safe workspace.");
-            var staged = 0;
-            for (var row = 0; row < _active.Rows.Count; row++)
+            try
             {
-                var values = lines[row + 1].Split('\t');
-                if (values.Length != _active.Columns.Length) throw new InvalidDataException("TSV column count mismatch at row " + (row + 2) + ".");
-                for (var column = 0; column < values.Length; column++)
+                var lines = File.ReadAllLines(dialog.FileName);
+                if (lines.Length == 0 || !lines[0].Split('\t').SequenceEqual(_active.Columns))
+                    throw new InvalidDataException("TSV header does not match the selected FC26 table.");
+                if (lines.Length - 1 != _active.Rows.Count)
+                    throw new InvalidDataException("TSV row count must match the selected table. Use Clone/Delete for structural changes.");
+                var staged = 0;
+                for (var row = 0; row < _active.Rows.Count; row++)
                 {
-                    if (values[column] == _active.Rows[row][column]) continue;
-                    Fc26SnapshotLoader.StageDetailValue(_active.Name, row, _active.Columns[column], values[column]);
-                    staged++;
+                    var values = lines[row + 1].Split('\t');
+                    if (values.Length != _active.Columns.Length) throw new InvalidDataException("TSV column count mismatch at row " + (row + 2) + ".");
+                    for (var column = 0; column < values.Length; column++)
+                    {
+                        if (!_active.ColumnDetails[column].IsWritable || values[column] == _active.Rows[row][column]) continue;
+                        ValidateCandidate(_active.ColumnDetails[column], values[column]);
+                        Fc26SnapshotLoader.StageDetailValue(_active.Name, row, _active.Columns[column], values[column]);
+                        staged++;
+                    }
+                }
+                LoadTable();
+                _status.Text = staged + " imported value(s) staged; source files are still untouched.";
+            }
+            catch (Exception ex) { MessageBox.Show(this, ex.Message, "Import table", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        }
+    }
+
+    private bool MatchesFieldFilter(string[] row)
+    {
+        var expression = _filterExpression.Text.Trim();
+        if (expression.Length == 0 || _filterField.SelectedItem == null || _filterField.SelectedItem.ToString() == "All fields") return true;
+        var column = _active.Column(_filterField.SelectedItem.ToString());
+        if (column < 0 || column >= row.Length) return false;
+        var value = row[column] ?? string.Empty;
+        foreach (var op in new[] { ">=", "<=", "!=", "=", ">", "<" })
+        {
+            if (!expression.StartsWith(op, StringComparison.Ordinal)) continue;
+            var operand = expression.Substring(op.Length).Trim();
+            if (op == "=") return value.Equals(operand, StringComparison.OrdinalIgnoreCase);
+            if (op == "!=") return !value.Equals(operand, StringComparison.OrdinalIgnoreCase);
+            double left, right;
+            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out left) ||
+                !double.TryParse(operand, NumberStyles.Float, CultureInfo.InvariantCulture, out right)) return false;
+            return op == ">=" ? left >= right : op == "<=" ? left <= right : op == ">" ? left > right : left < right;
+        }
+        return NormalizeText(value).Contains(NormalizeText(expression));
+    }
+
+    private static void ValidateCandidate(SnapshotDetailColumn column, string value)
+    {
+        if (!column.IsWritable) throw new InvalidOperationException(column.Name + " is read-only in the FC26 XML descriptor.");
+        if (column.Kind != 3) return;
+        long parsed;
+        if (!long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed))
+            throw new InvalidOperationException(column.Name + " requires an integer.");
+        if (parsed < column.RangeLow || parsed > column.RangeHigh)
+            throw new InvalidOperationException(column.Name + " must be within XML range " + column.RangeLow + ".." + column.RangeHigh + ".");
+    }
+
+    private void ValidateDescriptorRanges()
+    {
+        var issues = new List<string>();
+        foreach (var tableName in Fc26SnapshotLoader.DetailTableNames)
+        {
+            var table = Fc26SnapshotLoader.DetailTable(tableName);
+            if (table == null) continue;
+            for (var column = 0; column < table.ColumnDetails.Length; column++)
+            {
+                var detail = table.ColumnDetails[column];
+                if (detail.Kind != 3) continue;
+                for (var row = 0; row < table.Rows.Count; row++)
+                {
+                    long value;
+                    if (column >= table.Rows[row].Length || !long.TryParse(table.Rows[row][column], out value) ||
+                        value < detail.RangeLow || value > detail.RangeHigh)
+                        issues.Add(table.Name + "[" + row + "]." + detail.Name + " = " + (column < table.Rows[row].Length ? table.Rows[row][column] : "<missing>") +
+                            " (expected " + detail.RangeLow + ".." + detail.RangeHigh + ")");
                 }
             }
-            LoadTable();
-            _status.Text = staged + " imported value(s) staged; source files are still untouched.";
         }
+        MessageBox.Show(this, issues.Count == 0 ? "All integer values pass the loaded FC26 XML descriptor ranges." :
+            issues.Count + " XML range issue(s):\r\n\r\n" + string.Join("\r\n", issues.Take(300)),
+            "FC26 XML descriptor validation", MessageBoxButtons.OK, issues.Count == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+    }
+
+    private void CompareTsv()
+    {
+        if (_active == null) return;
+        using (var dialog = new OpenFileDialog { Filter = "TSV files (*.tsv)|*.tsv|All files (*.*)|*.*" })
+        {
+            if (dialog.ShowDialog(this) != DialogResult.OK) return;
+            try
+            {
+                var lines = File.ReadAllLines(dialog.FileName);
+                if (lines.Length == 0 || !lines[0].Split('\t').SequenceEqual(_active.Columns))
+                    throw new InvalidDataException("Comparison header does not match " + _active.Name + ".");
+                var differences = new List<string>();
+                var rows = Math.Max(_active.Rows.Count, lines.Length - 1);
+                for (var row = 0; row < rows; row++)
+                {
+                    var other = row + 1 < lines.Length ? lines[row + 1].Split('\t') : Array.Empty<string>();
+                    for (var column = 0; column < _active.Columns.Length; column++)
+                    {
+                        var current = row < _active.Rows.Count && column < _active.Rows[row].Length ? _active.Rows[row][column] : "<missing>";
+                        var compared = column < other.Length ? other[column] : "<missing>";
+                        if (current != compared) differences.Add("[" + row + "]." + _active.Columns[column] + ": '" + current + "' -> '" + compared + "'");
+                    }
+                }
+                MessageBox.Show(this, differences.Count == 0 ? "No differences." : differences.Count + " different cell(s):\r\n\r\n" +
+                    string.Join("\r\n", differences.Take(300)), "Compare " + _active.Name, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex) { MessageBox.Show(this, ex.Message, "Compare table", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        }
+    }
+
+    private void SwapIds()
+    {
+        if (_grid.CurrentCell == null || _grid.CurrentCell.ColumnIndex <= 0) return;
+        var field = _active.Columns[_grid.CurrentCell.ColumnIndex - 1];
+        if (!field.EndsWith("id", StringComparison.OrdinalIgnoreCase))
+        {
+            MessageBox.Show(this, "Select an ID field first.", "Swap IDs", MessageBoxButtons.OK, MessageBoxIcon.Information); return;
+        }
+        var first = Convert.ToString(_grid.CurrentCell.Value, CultureInfo.InvariantCulture) ?? string.Empty;
+        string second;
+        if (!Prompt("Swap linked IDs", "Other existing " + field + " value:", string.Empty, out second) || second == first) return;
+        var firstHits = FindReferences(field, first);
+        var secondHits = FindReferences(field, second);
+        if (secondHits.Count == 0) { MessageBox.Show(this, "The other ID does not exist.", "Swap IDs", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+        if (MessageBox.Show(this, "Swap " + firstHits.Count + " reference(s) for " + first + " with " + secondHits.Count + " reference(s) for " + second + "?",
+            "Dependency-aware ID swap", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        foreach (var hit in firstHits) Fc26SnapshotLoader.StageDetailValue(hit.Table, hit.Row, hit.Field, second);
+        foreach (var hit in secondHits) Fc26SnapshotLoader.StageDetailValue(hit.Table, hit.Row, hit.Field, first);
+        LoadTable();
+        _status.Text = (firstHits.Count + secondHits.Count) + " linked ID values staged for atomic save.";
     }
 
     private void UpdateStatus()

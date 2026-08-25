@@ -1,3 +1,20 @@
+Creation Master 26 v1.0.152 - 25 August 2026
+
+- Kept the original v1.0.148-style Creation Master interface as the normal launcher.
+- Expanded the Advanced Database Workspace to every indexed main and localization table.
+- Added range validation, structural clone/delete, database compare, field filters and dependency-aware ID swaps.
+- Added direct opening and verified saving of extracted FC26 database folders.
+- Added a classic Visual Asset Manager with indexed Frostbite search, texture preview/export and staged direct replacements.
+- Connected Player miniface import/removal to the direct FC26 asset transaction.
+- Added a classic Compdata editor for XLSX/TXT sources with edit, validation, workbook save and game-TXT export.
+- Added a preview-first Batch Player Editor and internal ID/hash/date/XML/database utilities.
+- Kept automatic backup, transaction validation, reload verification and direct Data/Patch save.
+- FIFA Mod Manager export remains outside the normal CM26 workflow.
+
+This package contains no EA game content and requires the user's own installed FC26 files.
+
+Previous release:
+
 Creation Master 26 v1.0.151 - 25 August 2026
 
 - Restored the original Creation Master / CM16-style interface as the normal launcher.

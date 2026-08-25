@@ -60,12 +60,27 @@ public static class LegacySnapshotService
         // legacy process never receives EA's encoded placeholder bytes.
         var playerNames = new DatabasePlayerNameSource(session);
 
-        foreach (var table in session.Tables.Where(t => !t.IsLocale && IncludedTables.Contains(t.Name)))
+        // The named set above is still the curated set consumed by the strongly
+        // typed CM16 editors. The Advanced Database Workspace sees every table
+        // exposed by the verified native engine. Locale tables use an explicit
+        // display prefix so names shared with the main DB can never collide.
+        foreach (var table in session.Tables)
         {
             var target = new LegacyTable
             {
-                Name = table.Name,
+                Name = table.IsLocale ? "locale::" + table.Name : table.Name,
+                SourceName = table.Name,
+                IsLocale = table.IsLocale,
                 Columns = table.Columns.Select(c => c.Name).ToArray(),
+                ColumnDetails = table.Columns.Select(c => new LegacyColumn
+                {
+                    Name = c.Name,
+                    IsWritable = c.IsWritable,
+                    Kind = c.Kind,
+                    Depth = c.Depth,
+                    RangeLow = c.RangeLow,
+                    RangeHigh = c.RangeHigh,
+                }).ToList(),
                 Rows = new List<string[]>(table.RowCount)
             };
             for (var row = 0; row < table.RowCount; row++)
@@ -73,7 +88,7 @@ public static class LegacySnapshotService
                 var record = session.GetRecord(table.Name, row);
                 if (record is null) continue;
                 var values = record.Values.ToArray();
-                if (table.Name.Equals("playernames", StringComparison.OrdinalIgnoreCase))
+                if (!table.IsLocale && table.Name.Equals("playernames", StringComparison.OrdinalIgnoreCase))
                 {
                     var idColumn = Array.FindIndex(target.Columns,
                         column => column.Equals("nameid", StringComparison.OrdinalIgnoreCase));
@@ -107,6 +122,19 @@ public sealed class LegacySnapshot
 public sealed class LegacyTable
 {
     public string Name { get; set; } = string.Empty;
+    public string SourceName { get; set; } = string.Empty;
+    public bool IsLocale { get; set; }
     public string[] Columns { get; set; } = Array.Empty<string>();
+    public List<LegacyColumn> ColumnDetails { get; set; } = new();
     public List<string[]> Rows { get; set; } = new();
+}
+
+public sealed class LegacyColumn
+{
+    public string Name { get; set; } = string.Empty;
+    public bool IsWritable { get; set; }
+    public int Kind { get; set; }
+    public int Depth { get; set; }
+    public long RangeLow { get; set; }
+    public long RangeHigh { get; set; }
 }

@@ -1,5 +1,13 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.152 - classic direct-edit completion pass (2026-08-25)
+
+- **PASS:** Release build completes with zero errors for the x64 host and x86 classic shell.
+- **PASS:** normal launch remains the original v1.0.148-style Creation Master shell.
+- **PASS:** database workspace now includes structural edits, localization, range validation, compare and dependency-aware ID operations.
+- **PASS:** Compdata, indexed asset browsing/direct legacy replacement, batch player editing and internal utilities have real backend paths.
+- **Boundary:** unverified Frostbite encoders and career structures remain Partial/Experimental in `IMPLEMENTATION_STATUS.md`.
+
 ## Version 1.0.151 - original Creation Master shell integration (2026-08-25)
 
 - Normal launch opens the original Creation Master / CM16-style interface retained from v1.0.148.
