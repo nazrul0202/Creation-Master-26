@@ -1,6 +1,6 @@
 # Release Notes — Creation Master 26
 
-## Unreleased - integrated DBM / RDM / Deco workflows
+## Version 1.0.148 - complete direct Frostbite three-tool integration (2026-08-25)
 
 - Expanded the advanced Database Browser with transactional multi-cell paste, single-table and all-table TSV/CSV export, row-index-safe table import with a change preview, automatic rollback when any staged value fails, and a readable pending-change list.
 - Added dependency-impact inspection for the selected entity, reporting exact matching references across tables that share its identity field.
@@ -10,6 +10,11 @@
 - Added safe dependency replacement: linked IDs are only staged when the replacement parent exists, and the whole operation rolls back if any field fails validation.
 - Added known asset-usage reports across faces/minifaces, crests, league/competition logos, stadiums, balls, boots, gloves, flags, manager faces and kits.
 - Added FC26 roster repair tools for broken/duplicate team-player links, missing default-team-sheet players and invalid/duplicate jersey numbers, plus direct primary/foreign-key integrity reporting.
+- Completed the source-aware launcher for installed FC26 and extracted database/localization folders, including recent sources, unsaved-change prompts and clean session close.
+- Added complete-operation undo/redo and automatic scalar rollback when a multi-field repair or workflow fails.
+- Added the public-shell Database Health Centre with engine integrity, roster, free-agent, loan, teamsheet, stadium, kit, league and national-team checks plus user-confirmed staged safe repairs.
+- Added a preview-first Appearance Assistant to Player > Face with local portrait analysis, confidence scoring, fallback handling, multiple hair/head/beard choices and manual overrides.
+- Removed the obsolete CM26/FIFA project import/export code. CM26 now exposes only direct Frostbite save and playable mod export workflows.
 
 ## Version 1.0.147 - club, roster and asset workflow polish (2026-08-25)
 

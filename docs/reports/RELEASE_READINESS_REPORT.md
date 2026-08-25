@@ -1,5 +1,17 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.148 — direct Frostbite three-tool integration (2026-08-25)
+
+- **PASS:** release metadata, managed build and 135/135 regression tests.
+- **PASS:** 24/24 section navigation and 600/600 responsive layout operations against the local FC26 database.
+- **PASS:** Full Portable and Lite report FileVersion/ProductVersion 1.0.148.0 for both public entry points.
+- **PASS:** package release self-test and Studio shell smoke for Full Portable and Lite.
+- **PASS:** package guard found no EA-derived database, archive, texture or other game payload.
+- **PASS:** Full Portable and Lite were rebuilt sequentially, zipped and SHA-256 checksummed in `D:\CM 26 Final\Release`.
+- **Implemented:** source-aware direct launcher, operation-level undo/redo with rollback, public Database Health Centre with staged safe repairs, and preview-first Appearance Assistant with confidence, alternatives and manual overrides.
+- **Scope decision:** CM26/FIFA editable-project import/export was removed. CM26 uses direct Frostbite save; playable mod export remains available.
+- **Boundary:** unsupported Frostbite resource families remain preview/read-only until an encode/write/reload path is verified. They are not represented as writable features.
+
 ## Version 1.0.18 update â€” 2026-08-02
 
 - **PASS:** Full managed build (0 errors) plus the native engine smoke test

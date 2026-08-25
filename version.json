@@ -1,6 +1,6 @@
 {
-  "version": "1.0.147",
+  "version": "1.0.148",
   "name": "Creation Master 26",
-  "notes": "v1.0.147 - polished club and roster layouts, fixed flags and kit workflows, and added real ball, boot and scoreboard asset previews.",
+  "notes": "v1.0.148 - completes the direct Frostbite three-tool integration with operation rollback, database health repairs and a preview-first appearance assistant.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

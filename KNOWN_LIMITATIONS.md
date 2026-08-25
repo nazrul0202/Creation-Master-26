@@ -1,6 +1,6 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.147 (MIT License), 2026-08-25.
+Status: Version 1.0.148 (MIT License), 2026-08-25.
 
 ## User interface
 
