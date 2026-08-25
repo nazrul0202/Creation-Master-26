@@ -1,5 +1,12 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.160 - mapped CM26 interface correction (2026-08-25)
+
+- **PASS:** no raw database workspace, ID/hash/XML utility or embedded full-form tab is exposed in the public classic interface.
+- **PASS:** original section dimensions and navigation are restored.
+- **PASS:** friendly mapped surfaces remain available for club, player-career, association and league relationships.
+- **PASS:** Player miniface remains inside the classic 128 x 153 control boundary.
+
 ## Version 1.0.159 - in-section classic integration (2026-08-25)
 
 - **PASS:** the v1.0.158 global toolbar and Player floating panel are absent.

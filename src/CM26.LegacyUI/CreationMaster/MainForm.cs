@@ -332,9 +332,7 @@ public class MainForm : Form
 
 	public MainForm()
 	{
-		TraceInlineSetup("MainForm start");
 		InitializeComponent();
-		TraceInlineSetup("InitializeComponent complete");
 		var projectLauncher = new ToolStripMenuItem("FC26 Project Launcher...");
 		projectLauncher.Click += (_, _) => ShowFc26ProjectLauncher();
 		var openExtracted = new ToolStripMenuItem("Open extracted FC26 database...");
@@ -350,12 +348,8 @@ public class MainForm : Form
 		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 2), openExtracted);
 		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 3), openSession);
 		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 4), saveSession);
-		var databaseWorkspace = new ToolStripMenuItem("FC26 Advanced Database Workspace...");
-		databaseWorkspace.Click += (_, _) => ShowFc26DatabaseWorkspace();
 		var healthCentre = new ToolStripMenuItem("FC26 Database Health Centre...");
 		healthCentre.Click += (_, _) => ShowFc26HealthCentre();
-		var moddingUtilities = new ToolStripMenuItem("FC26 Player ID, Names & Internal Utilities...");
-		moddingUtilities.Click += (_, _) => ShowFc26ModdingUtilities();
 		var assetManager = new ToolStripMenuItem("FC26 Visual Asset Manager...");
 		assetManager.Click += (_, _) => ShowFc26AssetManager();
 		var compdataEditor = new ToolStripMenuItem("FC26 Competition / Compdata Editor...");
@@ -368,115 +362,30 @@ public class MainForm : Form
 		rosterTools.Click += (_, _) => ShowFc26RosterTools();
 		var careerTools = new ToolStripMenuItem("FC26 Career Save Module...");
 		careerTools.Click += (_, _) => ShowFc26CareerSaveModule();
-		var workflowTools = new ToolStripMenuItem("FC26 Workflow, History & Performance Tools...");
-		workflowTools.Click += (_, _) => ShowFc26WorkflowUtilities();
 		menuTools.DropDownItems.Add(new ToolStripSeparator());
-		menuTools.DropDownItems.Add(databaseWorkspace);
 		menuTools.DropDownItems.Add(healthCentre);
-		menuTools.DropDownItems.Add(moddingUtilities);
 		menuTools.DropDownItems.Add(assetManager);
 		menuTools.DropDownItems.Add(compdataEditor);
 		menuTools.DropDownItems.Add(batchPlayers);
 		menuTools.DropDownItems.Add(faceTools);
 		menuTools.DropDownItems.Add(rosterTools);
 		menuTools.DropDownItems.Add(careerTools);
-		menuTools.DropDownItems.Add(workflowTools);
 		buttonSponsor.Visible = true;
 		buttonTv.Visible = true;
 		m_SplitterDistanceBottom = splitHoriz.Height * 2 / 3;
 		m_SplitterDistanceRight = splitVert.Width * 3 / 4;
 		FifaEnvironment.InitializeDefault();
-		TraceInlineSetup("CreateForms start");
 		CreateForms();
-		TraceInlineSetup("CreateForms complete");
-		ConfigureFc26InlineSections();
-		TraceInlineSetup("inline sections complete");
 		CM = this;
 		EnablePanels(enable: false);
 		EnableMenus();
-	}
-
-	private static void TraceInlineSetup(string message)
-	{
-		if (!Array.Exists(Environment.GetCommandLineArgs(), value => string.Equals(value, "--cm26-ui-integration-test", StringComparison.OrdinalIgnoreCase))) return;
-		File.AppendAllText(Path.Combine(Path.GetTempPath(), "cm26-ui-integration.log"), message + Environment.NewLine);
-	}
-
-	private void ConfigureFc26InlineSections()
-	{
-		var tab = new Func<string, string, Func<Form>, Fc26InlineSectionHost.Module>(Fc26InlineSectionHost.Tab);
-
-		TraceInlineSetup("integrate Player");
-		Fc26InlineSectionHost.Integrate(m_PlayerForm, "Player Editor",
-			tab("Player ID & Names", "Player IDs, linked references and all FC26 name records.", () => new Fc26ModdingUtilitiesForm()),
-			tab("Face & Miniface", "Miniface, face, hair, facial-hair and cranium workflows.", () => new Fc26FaceToolsForm()),
-			tab("Batch Player Matrix", "Preview-first multi-player attributes, roles, PlayStyles and equipment editing.", () => new Fc26BatchPlayerForm()));
-
-		TraceInlineSetup("integrate Team");
-		Fc26InlineSectionHost.Integrate(m_TeamForm, "Team Editor",
-			tab("Transfer, Loan & Roster", "Transfers, loans, contracts, national teams, youth squads and roster repair.", () => new Fc26RosterToolsForm()),
-			tab("Advanced Team Data", "Direct table editing and dependency-aware reference operations.", () => new Fc26DatabaseWorkspaceForm()));
-
-		TraceInlineSetup("integrate Formation");
-		Fc26InlineSectionHost.Integrate(m_FormationForm, "Formation Editor",
-			tab("XI, Roster & Repair", "Starting XI, substitutes, reserves, Auto Best XI and roster repair.", () => new Fc26RosterToolsForm()));
-
-		TraceInlineSetup("integrate Country");
-		Fc26InlineSectionHost.Integrate(m_CountryForm, "Country Editor",
-			tab("National Team Manager", "Call-ups, removals, squad validation, nationality checks and team-nation repair.", () => new Fc26RosterToolsForm()),
-			tab("Flags & Country Assets", "Direct flag, banner and related country-asset editing.", () => new Fc26AssetManagerForm("Country flag")));
-
-		TraceInlineSetup("integrate League");
-		Fc26InlineSectionHost.Integrate(m_LeagueForm, "League Editor",
-			tab("Advanced League Data", "League links, teams, promotion/relegation and dependency-aware editing.", () => new Fc26DatabaseWorkspaceForm()),
-			tab("League Presentation Assets", "League logos, balls, broadcasts and presentation assets.", () => new Fc26AssetManagerForm("Competition graphics")));
-
-		TraceInlineSetup("integrate Competition");
-		Fc26InlineSectionHost.Integrate(m_TrophyForm, "Competition Editor",
-			tab("Tournament & Compdata", "Structure, groups, knockout stages, schedules, advancement and validation.", () => new Fc26CompdataForm()),
-			tab("Competition Assets", "Trophies, wipes, logos, balls, fonts and presentation assets.", () => new Fc26AssetManagerForm("Competition graphics")));
-
-		TraceInlineSetup("integrate Assets");
-		Fc26InlineSectionHost.Integrate(m_StadiumForm, "Stadium Editor",
-			tab("Stadium Asset Library", "Stadium previews, models, presentation and missing-asset checks.", () => new Fc26AssetManagerForm("Stadium image")));
-		TraceInlineSetup("integrated Stadium");
-		Fc26InlineSectionHost.Integrate(m_KitForm, "Kit Editor",
-			tab("Kit Folder & Assets", "Direct kit textures, minikits, fonts, numbers and verified native files.", () => new Fc26AssetManagerForm("Kit textures / models")));
-		TraceInlineSetup("integrated Kit");
-		Fc26InlineSectionHost.Integrate(m_BallForm, "Ball Editor",
-			tab("Ball Asset Library", "Ball models, textures, menu images and assignment assets.", () => new Fc26AssetManagerForm("Ball model / texture")));
-		TraceInlineSetup("integrated Ball");
-		Fc26InlineSectionHost.Integrate(m_ShoesForm, "Boot Editor",
-			tab("Boot Asset Library", "Boot models, textures, availability and player-assignment assets.", () => new Fc26AssetManagerForm("Boot texture (brand_design)")));
-		TraceInlineSetup("integrated Shoes");
-		Fc26InlineSectionHost.Integrate(m_GlovesForm, "GK Gloves Editor",
-			tab("Glove Asset Library", "Goalkeeper glove models, textures and player-assignment assets.", () => new Fc26AssetManagerForm("Goalkeeper gloves")));
-		TraceInlineSetup("integrated Gloves");
-
-		TraceInlineSetup("integrate Manager");
-		Fc26InlineSectionHost.Integrate(m_ManagerForm, "Manager Editor",
-			tab("Manager IDs & Records", "Manager IDs, linked records and database utilities.", () => new Fc26ModdingUtilitiesForm()),
-			tab("Career Save", "Manager Career budget editing with CRC/recompression and automatic backup.", () => new Fc26CareerSaveForm()));
-
-		TraceInlineSetup("integrate Presentation");
-		Fc26InlineSectionHost.Integrate(m_GameGraphicForm, "Graphics Editor",
-			tab("Visual Asset Library", "Crests, flags, banners, scoreboards and presentation graphics.", () => new Fc26AssetManagerForm("Presentation graphics")));
-		Fc26InlineSectionHost.Integrate(m_TvForm, "Broadcast Editor",
-			tab("Broadcast Asset Library", "Scoreboards, TV overlays, adboards and presentation files.", () => new Fc26AssetManagerForm("Presentation graphics")));
-		Fc26InlineSectionHost.Integrate(m_NewspapersForm, "Newspaper Editor",
-			tab("Presentation Asset Library", "News, menu and presentation graphics.", () => new Fc26AssetManagerForm("Presentation graphics")));
-		Fc26InlineSectionHost.Integrate(m_RefereeForm, "Referee Editor",
-			tab("Competition Kit Assets", "Referee kits, competition fonts and presentation assets.", () => new Fc26AssetManagerForm("Kit textures / models")));
-		TraceInlineSetup("integrate Audio");
-		Fc26InlineSectionHost.Integrate(m_AudioForm, "Audio Editor",
-			tab("Advanced Audio Records", "Direct database inspection for mapped audio and commentary records.", () => new Fc26DatabaseWorkspaceForm()));
 	}
 
 	private void ShowFc26ProjectLauncher()
 	{
 		using (var launcher = new Fc26ProjectLauncherForm(
 			() => menuOpenFifa16_Click(this, EventArgs.Empty), OpenExtractedFc26Database,
-			OpenFc26ProjectSession, SaveFc26ProjectSession, ShowFc26DatabaseWorkspace,
+			OpenFc26ProjectSession, SaveFc26ProjectSession, OpenExtractedFc26Database,
 			ShowFc26RosterTools, ShowFc26CareerSaveModule, ShowFc26CompdataEditor))
 		{
 			var result = launcher.ShowDialog(this);

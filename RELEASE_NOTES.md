@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.160 - mapped CM26 interface correction (2026-08-25)
+
+- Removed the raw database grids and whole-form embeddings introduced in v1.0.159.
+- Restored the native CM26 layout for Player, Team, Formation, Country, League, Competition and every visual-asset editor.
+- Public editing now uses only friendly mapped controls and relationship selectors; raw schema fields remain internal and are not exposed through the public menus.
+- Restored the classic miniface footprint and prevented specialist tools from resizing the owning editor section.
+
 ## Version 1.0.159 - in-section classic integration (2026-08-25)
 
 - Removed the global Direct Tools bar and floating Player Tools panel introduced in v1.0.158.

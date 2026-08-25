@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Diagnostics;
-using System.Linq;
 using System.Windows.Forms;
 
 namespace CreationMaster;
@@ -165,44 +164,30 @@ internal static class Program
 			try
 			{
 				var main = new MainForm();
-				File.AppendAllText(uiLog, "main constructed" + Environment.NewLine);
+				File.AppendAllText(uiLog, "classic shell constructed" + Environment.NewLine);
 				if (FindControl(main, "fc26DirectToolsStrip") != null)
 					throw new InvalidDataException("The obsolete global Direct Tools bar is still present.");
-				var required = new[]
+				foreach (var forbidden in new[]
 				{
-					new { Form = (Control)main.m_PlayerForm, Name = "cm26Inline_PlayerIDNames" },
-					new { Form = (Control)main.m_PlayerForm, Name = "cm26Inline_FaceMiniface" },
-					new { Form = (Control)main.m_PlayerForm, Name = "cm26Inline_BatchPlayerMatrix" },
-					new { Form = (Control)main.m_TeamForm, Name = "cm26Inline_TransferLoanRoster" },
-					new { Form = (Control)main.m_FormationForm, Name = "cm26Inline_XIRosterRepair" },
-					new { Form = (Control)main.m_CountryForm, Name = "cm26Inline_NationalTeamManager" },
-					new { Form = (Control)main.m_LeagueForm, Name = "cm26Inline_AdvancedLeagueData" },
-					new { Form = (Control)main.m_TrophyForm, Name = "cm26Inline_TournamentCompdata" },
-					new { Form = (Control)main.m_StadiumForm, Name = "cm26Inline_StadiumAssetLibrary" },
-					new { Form = (Control)main.m_KitForm, Name = "cm26Inline_KitFolderAssets" },
-					new { Form = (Control)main.m_BallForm, Name = "cm26Inline_BallAssetLibrary" },
-					new { Form = (Control)main.m_ShoesForm, Name = "cm26Inline_BootAssetLibrary" },
-					new { Form = (Control)main.m_GlovesForm, Name = "cm26Inline_GloveAssetLibrary" },
-					new { Form = (Control)main.m_ManagerForm, Name = "cm26Inline_ManagerIDsRecords" },
-					new { Form = (Control)main.m_TvForm, Name = "cm26Inline_BroadcastAssetLibrary" }
-				};
-				foreach (var item in required)
+					"cm26InlineSectionTabs", "cm26Inline_PlayerIDNames", "cm26Inline_FaceMiniface",
+					"cm26Inline_BatchPlayerMatrix", "cm26Inline_AdvancedTeamData",
+					"cm26Inline_AdvancedLeagueData", "cm26Inline_AdvancedAudioRecords"
+				})
 				{
-					File.AppendAllText(uiLog, "checking " + item.Name + Environment.NewLine);
-					if (FindControl(item.Form, item.Name) == null)
-						throw new InvalidDataException("Missing integrated CM26 section: " + item.Name);
+					if (FindControl(main, forbidden) != null)
+						throw new InvalidDataException("Raw/embedded section remains visible: " + forbidden);
 				}
-				foreach (var loadName in new[] { "cm26Inline_PlayerIDNames", "cm26Inline_FlagsCountryAssets", "cm26Inline_TournamentCompdata" })
-				{
-					var page = FindControl(main, loadName) as TabPage;
-					if (page?.Parent is TabControl tabs)
-					{
-						tabs.SelectedTab = page;
-						Fc26InlineSectionHost.LoadForSmoke(page);
-						if (!page.Controls.OfType<Form>().Any())
-							throw new InvalidDataException("Integrated section did not load inside its CM26 tab: " + loadName);
-					}
-				}
+				if (ContainsMenuText(main.MainMenuStrip?.Items, "Advanced Database Workspace") ||
+					ContainsMenuText(main.MainMenuStrip?.Items, "Internal Utilities"))
+					throw new InvalidDataException("A raw database/internal utility entry is still exposed in the public menu.");
+				if (!ContainsControlText(main.m_TeamForm, "Club Relations") ||
+					!ContainsControlText(main.m_PlayerForm, "Career Details") ||
+					!ContainsControlText(main.m_CountryForm, "Association Details") ||
+					!ContainsControlText(main.m_LeagueForm, "League Details"))
+					throw new InvalidDataException("A mapped, friendly CM26 details surface is missing.");
+				var miniface = FindControl(main.m_PlayerForm, "viewer2DPhoto");
+				if (miniface == null || miniface.Width > 128 || miniface.Height > 153)
+					throw new InvalidDataException("Player miniface exceeds the classic CM26 layout boundary.");
 				File.AppendAllText(uiLog, "passed" + Environment.NewLine);
 				Environment.Exit(0);
 			}
@@ -297,5 +282,25 @@ internal static class Program
 			if (match != null) return match;
 		}
 		return null;
+	}
+
+	private static bool ContainsMenuText(ToolStripItemCollection items, string text)
+	{
+		if (items == null) return false;
+		foreach (ToolStripItem item in items)
+		{
+			if (item.Text?.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+			if (item is ToolStripDropDownItem dropDown && ContainsMenuText(dropDown.DropDownItems, text)) return true;
+		}
+		return false;
+	}
+
+	private static bool ContainsControlText(Control root, string text)
+	{
+		if (root == null) return false;
+		if (string.Equals(root.Text, text, StringComparison.OrdinalIgnoreCase)) return true;
+		foreach (Control child in root.Controls)
+			if (ContainsControlText(child, text)) return true;
+		return false;
 	}
 }

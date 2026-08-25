@@ -1,6 +1,6 @@
 {
-  "version": "1.0.159",
+  "version": "1.0.160",
   "name": "Creation Master 26",
-  "notes": "v1.0.159 - embeds the implemented DBM Studio, RDM26 and Deco-derived workflows inside their matching classic CM26 editor sections.",
+  "notes": "v1.0.160 - restores the native CM26 section layouts and exposes only friendly, mapped football controls in the public interface.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

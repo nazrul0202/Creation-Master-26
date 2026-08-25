@@ -29,7 +29,7 @@ internal sealed class Fc26ProjectLauncherForm : Form
         grid.Controls.Add(ActionButton("Open extracted database", "Database folder with XML descriptor", openExtracted), 1, 0);
         grid.Controls.Add(ActionButton("Open CM26 project/session", "Reopen a saved direct-edit source", openSession), 0, 1);
         grid.Controls.Add(ActionButton("Save CM26 project/session", "Store source path; data remains direct", saveSession), 1, 1);
-        grid.Controls.Add(ActionButton("Database + localization", "Tables, locale fields, dependency workspace", openDatabase), 0, 2);
+        grid.Controls.Add(ActionButton("Database + localization", "Load data and edit mapped names in each CM26 section", openDatabase), 0, 2);
         grid.Controls.Add(ActionButton("Squads / roster", "XI, bench, reserves, transfers and loans", openRoster), 1, 2);
         grid.Controls.Add(ActionButton("Manager / Player Career", "Separate FC26 Career save module", openCareer), 0, 3);
         grid.Controls.Add(ActionButton("Tournament / Compdata", "Competition structure and schedule", openCompdata), 1, 3);

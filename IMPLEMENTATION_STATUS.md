@@ -1,11 +1,12 @@
-# CM26 v1.0.159 implementation status
+# CM26 v1.0.160 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
 ## Complete
 
 - Original v1.0.148-style Creation Master interface as the normal public shell.
-- Implemented DBM Studio, RDM26 and Deco-derived workflows embedded inside their matching original Player, Team, Formation, Country, League, Competition, Stadium, Kit, Ball, Boots, Gloves, Manager and presentation sections.
+- DBM Studio, RDM26 and Deco-derived logic mapped behind the original Player, Team, Formation, Country, League, Competition, Stadium, Kit, Ball, Boots, Gloves, Manager and presentation controls.
+- Public UI exposes friendly football concepts and relationship selectors only; raw database, XML, hash and schema fields are not exposed.
 - Installed FC26 and extracted-database loading through the verified x64 native engine.
 - Main and locale table discovery, search/filter/sort, copy/paste, replace, TSV exchange, row clone/delete and unsaved-change tracking.
 - Dependency impact scan, linked-reference replacement, ID change/swap and transactional change plans.

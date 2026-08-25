@@ -1,3 +1,11 @@
+Creation Master 26 v1.0.160 - 25 August 2026
+
+- Removed every v1.0.159 embedded raw-form tab and restored the original CM26 section dimensions.
+- Removed Advanced Database Workspace, raw ID/hash/XML and internal-utility entry points from the public menu.
+- Kept database columns and schema operations internal; public editors now expose only mapped football labels, selectors, group boxes and safe actions.
+- Restored contextual CM26 surfaces such as Club Details, Club Relations, Career Details, Association Details and League Details.
+- Enforced the classic 128 x 153 miniface control boundary and removed oversized embedded face/asset panels.
+
 Creation Master 26 v1.0.159 - 25 August 2026
 
 - Removed the v1.0.158 global Direct Tools bar and floating Player Tools panel.
