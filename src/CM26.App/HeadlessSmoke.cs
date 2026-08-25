@@ -1872,6 +1872,7 @@ internal static class HeadlessSmoke
             var factories = new (string key, Func<SectionBase> make)[]
             {
                 ("dashboard", () => new DashboardSection(services)),
+                ("toolhub", () => new ComprehensiveToolsSection(services)),
                 ("countries", () => new CountriesSection(services)),
                 ("leagues", () => new LeaguesSection(services)),
                 ("teams", () => new TeamsSection(services)),
@@ -1882,7 +1883,7 @@ internal static class HeadlessSmoke
                 ("kits", () => new KitsSection(services)),
                 ("competitions", () => new CompetitionsSection(services)),
                 ("formations", () => new FormationsSection(services)),
-                ("transfermarkt", () => new TransfersSection(services)),
+                ("transfers", () => new TransfersSection(services)),
                 ("modmanager", () => new ModManagerSection(services)),
                 ("balls", () => new BallsSection(services)),
                 ("boots", () => new BootsSection(services)),
@@ -2969,6 +2970,7 @@ internal static class HeadlessSmoke
             var factories = new (string key, Func<SectionBase> make)[]
             {
                 ("dashboard", () => new DashboardSection(services)),
+                ("toolhub", () => new ComprehensiveToolsSection(services)),
                 ("countries", () => new CountriesSection(services)),
                 ("leagues", () => new LeaguesSection(services)),
                 ("teams", () => new TeamsSection(services)),
@@ -2979,7 +2981,7 @@ internal static class HeadlessSmoke
                 ("kits", () => new KitsSection(services)),
                 ("competitions", () => new CompetitionsSection(services)),
                 ("formations", () => new FormationsSection(services)),
-                ("transfermarkt", () => new TransfersSection(services)),
+                ("transfers", () => new TransfersSection(services)),
                 ("modmanager", () => new ModManagerSection(services)),
                 ("balls", () => new BallsSection(services)),
                 ("boots", () => new BootsSection(services)),

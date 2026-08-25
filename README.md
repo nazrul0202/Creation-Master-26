@@ -33,13 +33,15 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.149.txt` is included with the v1.0.149 release assets.
+Checksums: `SHA256SUMS_v1.0.150.txt` is included with the v1.0.150 release assets.
 
 ---
 
 ## ✨ Features
 
-### Core editors (23 modules)
+### Core editors and workflow hub
+
+- **Comprehensive Tools** — one searchable launch point for all 38 accepted CM26 workflow areas, routed to the real Direct Frostbite editors and validators
 - **Players** — Full FC-style player card: OVR/POT tiles, PAC/SHO/PAS/DRI/DEF/PHY rating bars, playstyles, roles, contract, face preview + **3D FBX viewer** with optional F3D launch
 - **Teams** — FC Tools Hub-style club profile: crest, overall tile, ATT/MID/DEF bars, kits, squad roster with drag-drop lineups, formation board, FC26 build-up style, defensive line/height and three-context team traits
 - **Leagues** — Profile header with logo/OVR bars, clubs grid, settings flags, country assignment

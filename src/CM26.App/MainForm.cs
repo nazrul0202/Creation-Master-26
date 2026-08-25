@@ -31,7 +31,7 @@ public sealed class MainForm : Form
 
     public MainForm(string? initialDatabaseFolder = null)
     {
-        Text = "Creation Master 26  |  FC26 Database Studio";
+        Text = $"Creation Master 26 v{Program.ProductVersion}  |  Direct Frostbite Studio";
         MinimumSize = new Size(1180, 700);
         Size = new Size(1600, 940);
         StartPosition = FormStartPosition.CenterScreen;
@@ -67,6 +67,11 @@ public sealed class MainForm : Form
         _menu = new MenuStrip { Dock = DockStyle.Top, BackColor = Theme.Background, ForeColor = Theme.Text, Font = Theme.Body, Renderer = new DarkToolStripRenderer() };
         var fileMenu = new ToolStripMenuItem("File");
         fileMenu.DropDownItems.Add("Open Game", null, (_, _) => SafeFire(OpenFc26Async));
+        fileMenu.DropDownItems.Add("Open Extracted Database…", null, (_, _) => SafeFire(ChooseDatabaseFolderAsync));
+        var recentMenu = new ToolStripMenuItem("Open Recent");
+        recentMenu.DropDownOpening += (_, _) => PopulateRecentFolders(recentMenu);
+        fileMenu.DropDownItems.Add(recentMenu);
+        fileMenu.DropDownItems.Add(new ToolStripSeparator());
         fileMenu.DropDownItems.Add("Save", null, (_, _) => SafeFire(SaveDirectAsync));
         fileMenu.DropDownItems.Add("Save Draft for FIFA Mod...", null, (_, _) => SafeFire(SaveAsync));
         fileMenu.DropDownItems.Add("Export FIFA Mod (.fifamod)...", null, (_, _) => SafeFire(ExportModAsync));
@@ -130,6 +135,7 @@ public sealed class MainForm : Form
         _sidebar.AddGroup(string.Empty, new[]
         {
             new StudioSidebarItemModel("dashboard", "Dashboard", IconService.Get("dashboard", 18), "Ctrl+1"),
+            new StudioSidebarItemModel("toolhub", "Comprehensive Tools", IconService.Get("browser", 18)),
         });
         _sidebar.AddGroup("World", new[]
         {
@@ -212,6 +218,7 @@ public sealed class MainForm : Form
     private List<(string, string, Func<AppServices, SectionBase>)> BuildRegistry() => new()
     {
         ("dashboard", "Dashboard", s => new DashboardSection(s)),
+        ("toolhub", "Comprehensive Tools", s => new ComprehensiveToolsSection(s)),
         ("countries", "Countries", s => new CountriesSection(s)),
         ("leagues", "Leagues", s => new LeaguesSection(s)),
         ("teams", "Teams", s => new TeamsSection(s)),
@@ -266,7 +273,12 @@ public sealed class MainForm : Form
 
     public void NavigateTo(string key)
     {
-        if (!_services.Session.IsLoaded && key is not ("settings" or "dashboard"))
+        if (key.Equals("$health", StringComparison.OrdinalIgnoreCase))
+        {
+            ShowDatabaseHealthCentre();
+            return;
+        }
+        if (!_services.Session.IsLoaded && key is not ("settings" or "dashboard" or "toolhub"))
         {
             SetStatus("Open game data first (Ctrl+O).");
             return;
@@ -901,6 +913,51 @@ if (choice == DialogResult.No)
                 s.ActivateSection();
         }
         else SetStatus("Nothing to undo.");
+    }
+
+    private async Task ChooseDatabaseFolderAsync()
+    {
+        if (!ConfirmSourceChange()) return;
+        using var dialog = new FolderBrowserDialog
+        {
+            Description = "Select an extracted FC26 database folder. CM26 detects the main database, metadata and localisation files automatically.",
+            UseDescriptionForTitle = true,
+            ShowNewFolderButton = false,
+            InitialDirectory = Directory.Exists(SettingsService.LastFolder)
+                ? SettingsService.LastFolder
+                : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        await LoadDatabaseFolderAsync(dialog.SelectedPath);
+    }
+
+    private void PopulateRecentFolders(ToolStripMenuItem menu)
+    {
+        menu.DropDownItems.Clear();
+        var recent = SettingsService.RecentFolders.Where(Directory.Exists).ToArray();
+        if (recent.Length == 0)
+        {
+            menu.DropDownItems.Add(new ToolStripMenuItem("No recent databases") { Enabled = false });
+            return;
+        }
+        foreach (var folder in recent)
+        {
+            var item = new ToolStripMenuItem(folder) { ToolTipText = folder };
+            item.Click += (_, _) =>
+            {
+                if (ConfirmSourceChange()) SafeFire(() => LoadDatabaseFolderAsync(folder));
+            };
+            menu.DropDownItems.Add(item);
+        }
+    }
+
+    private bool ConfirmSourceChange()
+    {
+        if (!_services.Pending.HasChanges && !_services.LegacyMods.HasChanges) return true;
+        var count = _services.Pending.Count + _services.LegacyMods.Count;
+        return MessageBox.Show(this,
+            $"There are {count} unsaved staged change(s). Opening another source will discard them.\n\nContinue?",
+            "Unsaved changes", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
     }
 
     private void UndoCompleteOperation()

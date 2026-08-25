@@ -436,7 +436,7 @@ internal static class Program
                 Log("CM26 mod recovery: " + recovery.Message);
         }
 
-        // Automated Studio smoke has no interactive desktop for the EULA dialog;
+        // Automated public-shell smoke has no interactive desktop for the EULA dialog;
         // normal launches retain the acknowledgement requirement unchanged.
         var isStudioSmoke = args.Length >= 1 && args[0] is "--ui-smoke" or "--ui-shell-smoke";
         if (!SettingsService.EulaAccepted && !isStudioSmoke)
@@ -461,10 +461,10 @@ internal static class Program
 
         try
         {
-            // CM26 Studio is the public interface.  The classic CM16-compatible
-            // shell remains available for diagnostics and compatibility through
-            // an explicit --classic switch, but must not hide the implemented
-            // Studio modules during a normal launch.
+            // The feature-complete x64 database Studio is the public interface.
+            // Both CM16-compatible shells remain available only through explicit
+            // switches; they must never hide the implemented database, asset,
+            // transfer, validation and modding workspaces during a normal launch.
             var legacyExe = Path.Combine(AppContext.BaseDirectory, "CM26.LegacyUI", "CM26.LegacyUI.exe");
             var useClassicShell = args.Length >= 1 &&
                 (args[0].Equals("--classic", StringComparison.OrdinalIgnoreCase) ||
@@ -480,11 +480,28 @@ internal static class Program
                 });
                 legacy?.WaitForExit();
             }
-            else
+            else if (args.Length >= 1 &&
+                     args[0].Equals("--cm16-studio", StringComparison.OrdinalIgnoreCase))
             {
                 var studio = new CM26.Studio.App();
                 studio.InitializeForHost();
                 Environment.ExitCode = studio.Run();
+            }
+            else
+            {
+                // A normal folder argument starts the portable Studio with that
+                // extracted database already loaded.
+                var initialDatabaseFolder = args.Length == 1 && Directory.Exists(args[0]) ? args[0] : null;
+                using var mainForm = new MainForm(initialDatabaseFolder);
+                if (isStudioSmoke)
+                {
+                    mainForm.Shown += (_, _) =>
+                    {
+                        Console.WriteLine("SHELL SMOKE OK: feature-complete x64 Studio");
+                        mainForm.Close();
+                    };
+                }
+                WinApp.Run(mainForm);
             }
         }
         catch (Exception ex)

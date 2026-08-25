@@ -1,5 +1,14 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.150 - Direct Frostbite Studio and comprehensive workflow hub (2026-08-25)
+
+- **PASS:** normal launch opens the feature-complete x64 Direct Frostbite Studio; the CM16 compatibility shell is only available with `--cm16-studio`, `--classic` or `--legacy-ui`.
+- **PASS:** Comprehensive Tools contains every accepted module number 1-38 exactly once and every card targets a registered operational editor, validator or launcher.
+- **PASS:** 137/137 managed regression tests.
+- **PASS:** real FC26 database smoke loaded 281 tables, 20,268 players and 808 teams; staged edit, integrity validation, transactional save, backup and reload verification succeeded on an isolated copy.
+- **PASS:** 25/25 modern Studio sections instantiate and navigate against the local FC26 database.
+- **Boundary:** career-runtime-only data and unverified Frostbite encoders remain explicitly separated; CM26 does not fabricate those values or expose unsafe writes.
+
 ## Version 1.0.149 - public Studio shell and data integrity hotfix (2026-08-25)
 
 - **PASS:** normal `CM26_by_Rizco98.exe` launch opens the Studio interface; the classic shell requires the explicit `--classic` switch.
