@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.150 - Direct Frostbite Studio and complete workflow access (2026-08-25)
+
+- Changed the normal public launch to the feature-complete x64 Direct Frostbite Studio; the two CM16 compatibility shells now require explicit command-line switches.
+- Added a searchable Comprehensive Tools workspace that exposes all 38 accepted workflow areas and routes each one into its operational editor, launcher or validator.
+- Added Open Extracted Database and Open Recent commands with an unsaved-change safeguard.
+- Added release tests proving that module numbers 1-38 are complete and every module route is registered.
+- Expanded the real-database navigation gate to all 25 modern Studio sections and changed package shell smoke to test the actual public interface.
+- Kept career-runtime-only data and Frostbite asset types without a verified encoder outside the direct database writer rather than fabricating unsafe support.
+
 ## Version 1.0.149 - public Studio shell and FC26 data integrity fixes (2026-08-25)
 
 - Made CM26 Studio the interface opened by a normal `CM26_by_Rizco98.exe` launch, exposing the implemented modern modules instead of silently routing every user into the classic CM16 shell.

@@ -63,9 +63,9 @@ gate CI runs; it must exit `0`.
 src\CM26.App\bin\Release\net8.0-windows\CM26_by_Rizco98.exe --ui-shell-smoke
 ```
 
-Constructs the WPF shell and renders every visible section. This catches missing
-XAML resources and section-construction regressions without indexing FC26. The
-full `--ui-smoke` mode remains an installed-game integration test.
+Constructs and closes the public x64 Direct Frostbite Studio. This catches missing
+resources and public-startup regressions without indexing FC26. The separate
+`--cm16-studio` switch remains available for compatibility-shell diagnostics.
 
 ### Native engine smoke test
 
