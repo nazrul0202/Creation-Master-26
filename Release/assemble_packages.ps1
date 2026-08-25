@@ -182,8 +182,12 @@ function Assemble-Package {
 
     # Stale-output guard: a publish tree older than the newest source file means
     # the packaged binaries do not match the current code.
-    $newestSource = Get-ChildItem (Join-Path $root 'src') -Recurse -File -Include *.cs, *.csproj, *.resx |
-        Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
+    # Ask Git for the source manifest instead of recursively walking src. Apart
+    # from being faster, this never enters generated bin/obj trees (which may
+    # contain stale or damaged build-cache folders after an interrupted publish).
+    $trackedSourcePaths = @(& git -C $root ls-files -- 'src/**/*.cs' 'src/**/*.csproj' 'src/**/*.resx')
+    $newestSource = $trackedSourcePaths |
+        ForEach-Object { Get-Item -LiteralPath (Join-Path $root $_) } |
         Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
     $newestPublish = Get-ChildItem $PublishDir -Recurse -File |
         Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1

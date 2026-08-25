@@ -1535,7 +1535,7 @@ public class PlayerForm : Form
 		m_Fc26RoleGroup = new GroupBox
 		{
 			Name = "groupFc26TacticalRoles",
-			Text = "Tactical Roles",
+			Text = "Tactical Roles · Familiarity",
 			Size = new Size(360, 174),
 			BackColor = SystemColors.Control
 		};
@@ -1707,7 +1707,7 @@ public class PlayerForm : Form
 			var playstyle = new CheckBox
 			{
 				AutoSize = false,
-				Width = 238,
+				Width = 264,
 				Height = 22,
 				Text = c_Fc26PlaystyleNames[index],
 				Tag = index,
@@ -1717,11 +1717,13 @@ public class PlayerForm : Form
 			{
 				Appearance = Appearance.Button,
 				AutoSize = false,
-				Text = "PlayStyle+",
+				Text = "+",
+				AccessibleName = c_Fc26PlaystyleNames[index] + " Plus",
 				Tag = index,
-				Location = new Point(241, 1),
-				Size = new Size(61, 22),
+				Location = new Point(268, 1),
+				Size = new Size(30, 22),
 				FlatStyle = FlatStyle.Flat,
+				Font = new Font(Font, FontStyle.Bold),
 				TextAlign = ContentAlignment.MiddleCenter
 			};
 			playstyle.CheckedChanged += Fc26Playstyle_CheckedChanged;
@@ -1746,8 +1748,12 @@ public class PlayerForm : Form
 		{
 			for (int index = 0; index < c_Fc26PlaystyleNames.Length; index++)
 			{
-				m_Fc26PlaystyleChecks[index].Checked = GetFc26Playstyle(index, plus: false);
-				m_Fc26PlaystylePlusChecks[index].Checked = GetFc26Playstyle(index, plus: true);
+				bool plus = GetFc26Playstyle(index, plus: true);
+				bool standard = GetFc26Playstyle(index, plus: false) || plus;
+				m_Fc26PlaystyleChecks[index].Checked = standard;
+				m_Fc26PlaystylePlusChecks[index].Checked = plus;
+				m_Fc26PlaystylePlusChecks[index].Enabled = standard;
+				m_Fc26PlaystylePlusChecks[index].BackColor = plus ? Color.Gold : SystemColors.Control;
 			}
 		}
 		finally
@@ -1789,6 +1795,7 @@ public class PlayerForm : Form
 		if (m_Fc26PlaystylesLoading || m_CurrentPlayer == null || sender is not CheckBox check) return;
 		int index = (int)check.Tag;
 		SetFc26Playstyle(index, plus: false, check.Checked);
+		m_Fc26PlaystylePlusChecks[index].Enabled = check.Checked;
 		if (!check.Checked && m_Fc26PlaystylePlusChecks[index].Checked)
 			m_Fc26PlaystylePlusChecks[index].Checked = false;
 	}
@@ -2088,9 +2095,7 @@ public class PlayerForm : Form
 	private void trackMarking_ValueChanged(object sender, EventArgs e)
 	{
 		m_CurrentPlayer.marking = trackMarking.Value;
-		labelMarking.Text = labelMarking.Text.Substring(0, labelMarking.Text.IndexOf(' '));
-		Label label = labelMarking;
-		label.Text = label.Text + " " + m_CurrentPlayer.marking;
+		labelMarking.Text = "Def. Awareness " + m_CurrentPlayer.marking;
 		if (m_AttributesSema)
 		{
 			m_AttributesSema = false;
@@ -4803,7 +4808,7 @@ public class PlayerForm : Form
 		this.viewer2DPhoto.RemoveButton = false;
 		this.viewer2DPhoto.ShowButton = false;
 		this.viewer2DPhoto.ShowButtonChecked = true;
-		this.viewer2DPhoto.Size = new System.Drawing.Size(104, 129);
+		this.viewer2DPhoto.Size = new System.Drawing.Size(80, 105);
 		this.viewer2DPhoto.TabIndex = 125;
 		this.viewer2DPhoto.TabStop = false;
 		this.numericPlayerId.Location = new System.Drawing.Point(248, 19);

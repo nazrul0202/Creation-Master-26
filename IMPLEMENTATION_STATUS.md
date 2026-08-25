@@ -1,4 +1,4 @@
-# CM26 v1.0.163 implementation status
+# CM26 v1.0.164 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
@@ -12,10 +12,10 @@ This status is intentionally conservative: a visible control is not counted as w
 - Dependency impact scan, linked-reference replacement, ID change/swap and transactional change plans.
 - XML descriptor range validation, automatic backup, direct save, rollback-on-failure and reload verification.
 - Internal FIFA hash/date/XML/ID/database-compare utilities.
-- Compdata XLSX/TXT load, friendly Competition Structure tree, Tournament Calendar, League/Cup Wizard, advancement editing, validation, workbook-copy save and game-TXT export inside the original Competition section.
+- Compdata XLSX/TXT load, friendly Competition Structure tree, Tournament Calendar, League/Cup Wizard, advancement editing, validation, workbook-copy save and game-TXT export inside the original Competition section, plus direct Create League/Team/Nation/Player actions.
 - Direct CM26 project/session save, recent-project history and deterministic reopening of the stored installed-game or extracted-database source.
 - Full-transfer, transfer-all, loan, loan-to-buy, loan termination, loan-end, join-date and contract-year workflows with roster/formation/set-piece repair.
-- Read-only Deco-style Club Worth and Transfer Budget information in Team Generic, with career-save writing kept outside the public database-field surface.
+- Deco-style Transfer Budget shown read-only directly below Club Worth in Team Generic, with career-save writing kept outside the public database-field surface.
 - Action history, source/table performance profile, diagnostic export and safe preview-cache management.
 
 ## Functional

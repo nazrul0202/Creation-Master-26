@@ -1,3 +1,10 @@
+Creation Master 26 v1.0.164 - 25 August 2026
+
+- Moved read-only Transfer Budget directly below Club Worth and removed raw-looking Team finance/trait panels.
+- Added guided Create League, Team, Nation and Player actions to Tournament/Compdata.
+- Cleaned Player miniface, Tactical Roles, Defensive Awareness and PlayStyle+ presentation.
+- Fixed Referee startup metadata handling and added memory-safe Kit preview fallback.
+
 Creation Master 26 v1.0.163 - 25 August 2026
 
 - Separated Club Worth and Transfer Budget and added a Deco-style read-only Career Money display to Team Generic.

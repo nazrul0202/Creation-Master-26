@@ -215,10 +215,13 @@ internal static class Program
 				var miniface = FindControl(main.m_PlayerForm, "viewer2DPhoto");
 				if (miniface == null || miniface.Width > 104 || miniface.Height > 129)
 					throw new InvalidDataException("Player miniface exceeds the classic CM26 layout boundary.");
-				if (!ContainsControlText(main.m_TeamForm, "Career Money (Dollars)") ||
+				if (ContainsControlText(main.m_TeamForm, "Career Money (Dollars)") ||
 					!ContainsControlText(main.m_TeamForm, "Transfer Budget") ||
 					!ContainsControlText(main.m_TeamForm, "Matchday Presentation") ||
-					!ContainsControlText(main.m_TrophyForm, "Compdata"))
+					!ContainsControlText(main.m_TrophyForm, "Create League") ||
+					!ContainsControlText(main.m_TrophyForm, "Create Team") ||
+					!ContainsControlText(main.m_TrophyForm, "Create Nation") ||
+					!ContainsControlText(main.m_TrophyForm, "Create Player"))
 					throw new InvalidDataException("A mapped FC26 team or Compdata surface is missing.");
 				File.AppendAllText(uiLog, "passed" + Environment.NewLine);
 				Environment.Exit(0);
@@ -331,6 +334,7 @@ internal static class Program
 	{
 		if (root == null) return false;
 		if (root.Text?.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		if (root is ToolStrip toolStrip && ContainsMenuText(toolStrip.Items, text)) return true;
 		foreach (Control child in root.Controls)
 			if (ContainsControlText(child, text)) return true;
 		return false;

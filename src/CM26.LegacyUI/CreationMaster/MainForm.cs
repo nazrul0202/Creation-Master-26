@@ -348,7 +348,7 @@ public class MainForm : Form
 		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 2), openExtracted);
 		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 3), openSession);
 		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 4), saveSession);
-		var healthCentre = new ToolStripMenuItem("FC26 Database Health Centre...");
+		var healthCentre = new ToolStripMenuItem("Database Health Centre...");
 		healthCentre.Click += (_, _) => ShowFc26HealthCentre();
 		menuTools.DropDownItems.Add(new ToolStripSeparator());
 		menuTools.DropDownItems.Add(healthCentre);
@@ -3090,6 +3090,29 @@ public class MainForm : Form
 			default: form = m_CountryForm; break;
 		}
 		ShowFormOnPanel(form, panelMain);
+	}
+
+	internal void CreateFriendlyEntity(string section)
+	{
+		if (!m_OpenFileFlag)
+		{
+			MessageBox.Show(this, "Open a database before creating a new item.", "Create",
+				MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+
+		Form form;
+		FifaControls.PickUpControl pickUp;
+		switch ((section ?? string.Empty).ToLowerInvariant())
+		{
+			case "league": form = m_LeagueForm; pickUp = m_LeagueForm.pickUpControl; break;
+			case "team": form = m_TeamForm; pickUp = m_TeamForm.pickUpControl; break;
+			case "nation": form = m_CountryForm; pickUp = m_CountryForm.pickUpControl; break;
+			case "player": form = m_PlayerForm; pickUp = m_PlayerForm.pickUpControl; break;
+			default: return;
+		}
+		ShowFormOnPanel(form, panelMain);
+		pickUp.buttonNew.PerformClick();
 	}
 
 	internal void ClickFc26SectionForSmoke(string section)

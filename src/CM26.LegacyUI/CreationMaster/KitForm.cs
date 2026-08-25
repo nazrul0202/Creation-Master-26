@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.IO;
@@ -537,7 +538,7 @@ public class KitForm : Form
 		string key = Fc26KitTextureKey(kit);
 		viewer3DKit.ShowEmpty();
 		viewer3DMinikit.ShowEmpty();
-		SetFc26Kit3dStatus("Loading real FC26 kit texture...", Color.Gold);
+		SetFc26Kit3dStatus("Loading kit preview...", Color.Gold);
 		Bitmap[] cached;
 		if (!m_Fc26TextureCache.TryGetValue(key, out cached))
 		{
@@ -546,38 +547,65 @@ public class KitForm : Form
 			{
 				path = await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.ExportKitTexture(kit.teamid, kit.kittype));
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
 				if (request == m_Fc26TextureRequest && m_CurrentKit == kit && !IsDisposed)
-					SetFc26Kit3dStatus("FC26 kit export failed: " + ex.Message, Color.OrangeRed);
+					SetFc26Kit3dStatus("Kit preview is unavailable.", Color.OrangeRed);
 				return;
 			}
 			if (request != m_Fc26TextureRequest || m_CurrentKit != kit || IsDisposed) return;
 			if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
 			{
-				SetFc26Kit3dStatus("No indexed FC26 texture is available for this kit.", Color.OrangeRed);
+				SetFc26Kit3dStatus("No kit preview is available.", Color.OrangeRed);
 				return;
 			}
 			try
 			{
-				using (Image source = Image.FromFile(path))
-				{
-					Bitmap texture = new Bitmap(source);
-					cached = new[] { texture, texture, texture, texture };
-				}
+				Bitmap texture = LoadMemorySafePreview(path, 2048);
+				cached = new[] { texture, texture, texture, texture };
 				CacheFc26KitTextures(key, cached);
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
-				SetFc26Kit3dStatus("FC26 kit texture could not be decoded: " + ex.Message, Color.OrangeRed);
+				SetFc26Kit3dStatus("Kit preview could not be decoded safely.", Color.OrangeRed);
 				return;
 			}
 		}
 		if (request != m_Fc26TextureRequest || m_CurrentKit != kit || IsDisposed) return;
 		if (multiViewer2DKit.buttonShow.Checked) multiViewer2DKit.Bitmaps = cached;
-		SetFc26Kit3dStatus("Real FC26 texture loaded — team " + kit.teamid + ", kit " + kit.kittype + ".", Color.LightGreen);
-		Show3DKit();
-		Show3DMinikit();
+		SetFc26Kit3dStatus("Kit preview loaded.", Color.LightGreen);
+		try
+		{
+			Show3DKit();
+			Show3DMinikit();
+		}
+		catch (OutOfMemoryException)
+		{
+			viewer3DKit.ShowEmpty();
+			viewer3DMinikit.ShowEmpty();
+			SetFc26Kit3dStatus("2D preview loaded. 3D preview needs more available memory.", Color.Gold);
+		}
+	}
+
+	private static Bitmap LoadMemorySafePreview(string path, int maximumSide)
+	{
+		using Image source = Image.FromFile(path);
+		int width = source.Width;
+		int height = source.Height;
+		if (width <= 0 || height <= 0) throw new InvalidDataException("Invalid image size.");
+		double scale = Math.Min(1d, maximumSide / (double)Math.Max(width, height));
+		int targetWidth = Math.Max(1, (int)Math.Round(width * scale));
+		int targetHeight = Math.Max(1, (int)Math.Round(height * scale));
+		var preview = new Bitmap(targetWidth, targetHeight, PixelFormat.Format32bppPArgb);
+		using (Graphics graphics = Graphics.FromImage(preview))
+		{
+			graphics.CompositingMode = CompositingMode.SourceCopy;
+			graphics.CompositingQuality = CompositingQuality.HighSpeed;
+			graphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
+			graphics.PixelOffsetMode = PixelOffsetMode.HighSpeed;
+			graphics.DrawImage(source, new Rectangle(0, 0, targetWidth, targetHeight));
+		}
+		return preview;
 	}
 
 	private void SetFc26Kit3dStatus(string text, Color color)

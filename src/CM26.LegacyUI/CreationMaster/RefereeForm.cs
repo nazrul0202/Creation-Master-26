@@ -511,8 +511,18 @@ public class RefereeForm : Form
 			FifaEnvironment.Leagues
 		};
 		pickUpControl.FilterValues = filterValues;
-		numericShoesBrand.Maximum = FifaEnvironment.FifaDb.Table[TI.referee].TableDescriptor.MaxValues[FI.referee_shoetypecode];
-		numericRefereeId.Maximum = FifaEnvironment.FifaDb.Table[TI.referee].TableDescriptor.MaxValues[FI.referee_refereeid];
+		// The FC26 friendly snapshot does not carry the legacy descriptor array.
+		// Use the real editor ranges instead of dereferencing missing metadata.
+		if (FifaEnvironment.Year == 26)
+		{
+			numericShoesBrand.Maximum = 9999;
+			numericRefereeId.Maximum = 9999999;
+		}
+		else
+		{
+			numericShoesBrand.Maximum = FifaEnvironment.FifaDb.Table[TI.referee].TableDescriptor.MaxValues[FI.referee_shoetypecode];
+			numericRefereeId.Maximum = FifaEnvironment.FifaDb.Table[TI.referee].TableDescriptor.MaxValues[FI.referee_refereeid];
+		}
 		comboLeague0.Items.Clear();
 		comboLeague0.BeginUpdate();
 		comboLeague0.Items.Add(m_NotPresent);

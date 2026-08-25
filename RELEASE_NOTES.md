@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.164 - strict friendly mapping and stability pass (2026-08-25)
+
+- Moved the read-only Deco-mapped Transfer Budget directly below Club Worth and removed the separate raw-looking Career Money and Team Traits panels.
+- Added DBM-style Create League, Team, Nation and Player actions to Tournament/Compdata while keeping structure, calendar, wizard, advancement and validation guided.
+- Reduced Player and Roster minifaces, clarified Tactical Role familiarity, repaired Defensive Awareness text and replaced clipped PlayStyle+ buttons with compact linked `+` controls.
+- Fixed Referee startup against missing current-generation descriptors and made Kit previews memory-bounded with a safe 2D fallback instead of an out-of-memory crash.
+
 ## Version 1.0.163 - mapped finance, Generic and Compdata completion (2026-08-25)
 
 - Separated FC26 Club Worth from Transfer Budget and added Deco-style read-only dollar information to Team Generic; Transfer Budget is no longer exposed as an editable raw value.

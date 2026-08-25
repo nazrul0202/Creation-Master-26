@@ -1,6 +1,6 @@
 {
-  "version": "1.0.163",
+  "version": "1.0.164",
   "name": "Creation Master 26",
-  "notes": "v1.0.163 - separates Club Worth and Transfer Budget, adds mapped matchday presentation controls, embeds friendly Compdata tools in Competition and reduces miniface size.",
+  "notes": "v1.0.164 - completes friendly Team finance and Compdata actions, fixes player mapping visuals, and hardens Kit and Referee sections.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

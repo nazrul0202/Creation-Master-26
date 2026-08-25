@@ -72,15 +72,9 @@ public class TeamForm : Form
 
 	private GroupBox groupFc26Honours;
 
-	private GroupBox groupFc26CareerBudget;
-
 	private GroupBox groupFc26MatchdayPresentation;
 
-	private Label labelFc26ClubWorthValue;
-
 	private Label labelFc26TransferBudgetValue;
-
-	private Label labelFc26CareerBudgetStatus;
 
 	private ComboBox comboTraitContext;
 
@@ -1328,6 +1322,10 @@ public class TeamForm : Form
 		groupTeamTraits.Controls.Add(contextLabel);
 		groupTeamTraits.Controls.Add(comboTraitContext);
 		comboTraitContext.SelectedIndex = 1;
+		// The legacy trait masks are implementation details, not a friendly club editor.
+		// Keep their mapping available internally but remove the raw-looking panel.
+		groupTeamTraits.Visible = false;
+		flowPanelTeamGeneric.Controls.Remove(groupTeamTraits);
 
 		// Replace the removed CM16 custom-tactic fields with the real FC26 values.
 		comboBUSPositioning.DataBindings.Clear();
@@ -1493,48 +1491,24 @@ public class TeamForm : Form
 
 	private void ConfigureFc26CareerBudgetUi()
 	{
-		groupFc26CareerBudget = new GroupBox
-		{
-			Name = "groupFc26CareerBudget",
-			Text = "Career Money (Dollars)",
-			Size = new Size(300, 126),
-			TabStop = false
-		};
-		var clubWorthLabel = new Label
-		{
-			Text = "Club Worth",
-			Location = new Point(14, 25),
-			Size = new Size(110, 21),
-			TextAlign = ContentAlignment.MiddleLeft
-		};
-		labelFc26ClubWorthValue = new Label
-		{
-			Location = new Point(126, 25), Size = new Size(158, 21),
-			TextAlign = ContentAlignment.MiddleRight, Font = new Font(Font, FontStyle.Bold)
-		};
 		var transferBudgetLabel = new Label
 		{
 			Text = "Transfer Budget",
-			Location = new Point(14, 52), Size = new Size(110, 21),
+			Location = new Point(6, 231), Size = new Size(86, 20),
 			TextAlign = ContentAlignment.MiddleLeft
 		};
 		labelFc26TransferBudgetValue = new Label
 		{
-			Location = new Point(126, 52), Size = new Size(158, 21),
-			TextAlign = ContentAlignment.MiddleRight, Font = new Font(Font, FontStyle.Bold)
+			Name = "labelFc26TransferBudgetValue",
+			Location = new Point(92, 228), Size = new Size(167, 21),
+			BorderStyle = BorderStyle.Fixed3D,
+			TextAlign = ContentAlignment.MiddleRight,
+			Font = new Font(Font, FontStyle.Bold),
+			BackColor = SystemColors.ControlLightLight
 		};
-		labelFc26CareerBudgetStatus = new Label
-		{
-			Text = "Information only — edited through the club database.",
-			Location = new Point(14, 82), Size = new Size(270, 30),
-			ForeColor = Color.DimGray, BackColor = Color.Transparent
-		};
-		groupFc26CareerBudget.Controls.Add(clubWorthLabel);
-		groupFc26CareerBudget.Controls.Add(labelFc26ClubWorthValue);
-		groupFc26CareerBudget.Controls.Add(transferBudgetLabel);
-		groupFc26CareerBudget.Controls.Add(labelFc26TransferBudgetValue);
-		groupFc26CareerBudget.Controls.Add(labelFc26CareerBudgetStatus);
-		flowPanelTeamGeneric.Controls.Add(groupFc26CareerBudget);
+		groupBox3.Controls.Add(transferBudgetLabel);
+		groupBox3.Controls.Add(labelFc26TransferBudgetValue);
+		labelFc26TransferBudgetValue.BringToFront();
 		RefreshFc26CareerBudgetUi();
 	}
 
@@ -1561,7 +1535,7 @@ public class TeamForm : Form
 		AddFc26PresentationCheck(groupFc26MatchdayPresentation, "Skinny Flags", "skinnyflags", 218, 150);
 		groupFc26MatchdayPresentation.Controls.Add(new Label
 		{
-			Text = "Friendly controls mapped to the FC26 team presentation settings.",
+			Text = "Matchday presentation controls used by this team.",
 			Location = new Point(10, 258), Size = new Size(275, 44),
 			ForeColor = Color.DimGray, BackColor = Color.Transparent
 		});
@@ -1609,19 +1583,15 @@ public class TeamForm : Form
 
 	private void RefreshFc26CareerBudgetUi()
 	{
-		if (groupFc26CareerBudget == null) return;
-		if (labelFc26ClubWorthValue == null || labelFc26TransferBudgetValue == null) return;
+		if (labelFc26TransferBudgetValue == null) return;
 		if (m_CurrentTeam == null)
 		{
-			labelFc26ClubWorthValue.Text = "—";
 			labelFc26TransferBudgetValue.Text = "—";
 			return;
 		}
 		var usd = System.Globalization.CultureInfo.GetCultureInfo("en-US");
-		decimal clubWorthDollars = m_CurrentTeam.clubworth * 1000m * 1.08m;
 		decimal transferBudgetDollars = m_CurrentTeam.transferbudget * 1.08m;
-		labelFc26ClubWorthValue.Text = clubWorthDollars.ToString("C0", usd);
-		labelFc26TransferBudgetValue.Text = transferBudgetDollars.ToString("C2", usd);
+		labelFc26TransferBudgetValue.Text = transferBudgetDollars.ToString("C0", usd);
 	}
 
 	private void ConfigureFc26RosterFormationUi()
@@ -8082,7 +8052,8 @@ public class TeamForm : Form
 		this.imageListStars.Images.SetKeyName(9, "Stars_5.PNG");
 		this.pictureAvailablePlayer.Location = new System.Drawing.Point(164, 7);
 		this.pictureAvailablePlayer.Name = "pictureAvailablePlayer";
-		this.pictureAvailablePlayer.Size = new System.Drawing.Size(128, 128);
+		this.pictureAvailablePlayer.Size = new System.Drawing.Size(80, 80);
+		this.pictureAvailablePlayer.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
 		this.pictureAvailablePlayer.TabIndex = 146;
 		this.pictureAvailablePlayer.TabStop = false;
 		this.groupTeamPlayers.BackColor = System.Drawing.SystemColors.Control;
@@ -8308,7 +8279,7 @@ public class TeamForm : Form
 		this.viewer2DPhoto.RemoveButton = false;
 		this.viewer2DPhoto.ShowButton = false;
 		this.viewer2DPhoto.ShowButtonChecked = true;
-		this.viewer2DPhoto.Size = new System.Drawing.Size(104, 129);
+		this.viewer2DPhoto.Size = new System.Drawing.Size(80, 105);
 		this.viewer2DPhoto.TabIndex = 162;
 		this.viewer2DPhoto.TabStop = false;
 		this.labelJoiningDate.AutoSize = true;

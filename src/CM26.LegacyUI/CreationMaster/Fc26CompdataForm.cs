@@ -26,11 +26,17 @@ internal sealed class Fc26CompdataPanel : UserControl
         Dock = DockStyle.Fill;
         MinimumSize = new Size(720, 480);
         var tools = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden, Dock = DockStyle.Top };
-        tools.Items.Add(Item("Open workbook", (_, _) => OpenWorkbook()));
-        tools.Items.Add(Item("Open TXT folder", (_, _) => OpenFolder()));
+        tools.Items.Add(Item("Open Tournament Files", (_, _) => OpenFolder()));
+        tools.Items.Add(Item("Open Workbook", (_, _) => OpenWorkbook()));
         tools.Items.Add(new ToolStripSeparator());
-        tools.Items.Add(Item("Tournament Wizard", (_, _) => TournamentWizard()));
+        tools.Items.Add(Item("Create Tournament", (_, _) => TournamentWizard()));
         tools.Items.Add(Item("Add Advancement", (_, _) => AddAdvancement()));
+        tools.Items.Add(new ToolStripSeparator());
+        tools.Items.Add(Item("Create League", (_, _) => MainForm.CM?.CreateFriendlyEntity("league")));
+        tools.Items.Add(Item("Create Team", (_, _) => MainForm.CM?.CreateFriendlyEntity("team")));
+        tools.Items.Add(Item("Create Nation", (_, _) => MainForm.CM?.CreateFriendlyEntity("nation")));
+        tools.Items.Add(Item("Create Player", (_, _) => MainForm.CM?.CreateFriendlyEntity("player")));
+        tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Item("Validate", (_, _) => ValidateTables()));
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Item("Save workbook copy", (_, _) => SaveWorkbook()));
@@ -51,13 +57,13 @@ internal sealed class Fc26CompdataPanel : UserControl
         var sheetPanel = new Panel { Dock = DockStyle.Fill };
         var sheetLabel = new Label
         {
-            Text = "Compdata Sections", Dock = DockStyle.Top, Height = 27,
+            Text = "Tournament Sections", Dock = DockStyle.Top, Height = 27,
             Padding = new Padding(6, 7, 0, 0), Font = new Font(Font, FontStyle.Bold)
         };
         sheetPanel.Controls.Add(_sheets); sheetPanel.Controls.Add(sheetLabel);
         split.Panel1.Controls.Add(sheetPanel); split.Panel2.Controls.Add(_views);
         _status.Dock = DockStyle.Bottom; _status.Height = 24; _status.Padding = new Padding(6, 4, 0, 0);
-        _status.Text = "Open an FC26 Compdata workbook or extracted TXT folder. No raw database fields are shown.";
+        _status.Text = "Open tournament files to edit the structure and calendar with guided controls.";
         Controls.Add(split); Controls.Add(_status); Controls.Add(tools);
     }
 
@@ -69,7 +75,7 @@ internal sealed class Fc26CompdataPanel : UserControl
 
     private void OpenFolder()
     {
-        using var dialog = new FolderBrowserDialog { Description = "Select the extracted FC26 Compdata folder" };
+        using var dialog = new FolderBrowserDialog { Description = "Select the extracted tournament data folder" };
         if (dialog.ShowDialog(this) == DialogResult.OK) LoadSource(dialog.SelectedPath);
     }
 
@@ -218,7 +224,7 @@ internal sealed class Fc26CompdataPanel : UserControl
             try
             {
                 var report = Fc26HostBridge.ValidateCompdata(snapshot);
-                using var viewer = new Form { Text = "FC26 Compdata Validation", Size = new Size(850, 580), StartPosition = FormStartPosition.CenterParent, Icon = Form.ActiveForm?.Icon };
+                using var viewer = new Form { Text = "Tournament Validation", Size = new Size(850, 580), StartPosition = FormStartPosition.CenterParent, Icon = Form.ActiveForm?.Icon };
                 viewer.Controls.Add(new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, WordWrap = false, Text = report });
                 viewer.ShowDialog(this);
                 return report.StartsWith("Compdata validation passed", StringComparison.OrdinalIgnoreCase) ? "Compdata validation passed." : "Compdata validation completed with findings.";
@@ -238,7 +244,7 @@ internal sealed class Fc26CompdataPanel : UserControl
     private void ExportTxt()
     {
         if (_tables.Count == 0) { MessageBox.Show(this, "Open Compdata first.", Text); return; }
-        using var dialog = new FolderBrowserDialog { Description = "Select an output folder for validated FC26 Compdata TXT files" };
+        using var dialog = new FolderBrowserDialog { Description = "Select an output folder for validated tournament files" };
         if (dialog.ShowDialog(this) == DialogResult.OK) Save(dialog.SelectedPath, true);
     }
 
