@@ -5,6 +5,22 @@ namespace CM26.Tests;
 public sealed class TableWorkspaceTests
 {
     [Fact]
+    public void PendingSessionResetClearsUndoRedoStructuralAndHistoryState()
+    {
+        using var session = new DatabaseSession();
+        var pending = new PendingChangesService(session);
+        pending.MarkStructuralChange();
+
+        pending.ResetSession("Opened a new source.");
+
+        Assert.False(pending.HasChanges);
+        Assert.False(pending.CanUndo);
+        Assert.False(pending.CanRedo);
+        Assert.Single(pending.History);
+        Assert.Equal("Opened a new source.", pending.History[0].Description);
+    }
+
+    [Fact]
     public void DelimitedCodecRoundTripsQuotesTabsAndNewlines()
     {
         var values = new[] { "plain", "has\ttab", "has \"quote\"", "two\r\nlines", string.Empty };

@@ -23,17 +23,17 @@
                         <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuOpenFifa16_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem x:Name="MenuOpenLang16" Header="Open - FC 26 Database" Click="MenuOpenGame_Click">
+                <MenuItem x:Name="MenuOpenLang16" Header="Open Extracted Database + Localization…" Click="MenuOpenDatabaseFolder_Click">
                     <MenuItem.Icon>
                         <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuOpenLang16_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem x:Name="MenuOpenAll" Header="Open - FC 26 Data / Patch" Click="MenuOpenGame_Click">
+                <MenuItem x:Name="MenuOpenAll" Header="Open FC26 Data / Patch" Click="MenuOpenGame_Click">
                     <MenuItem.Icon>
                         <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuOpenAll_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem x:Name="MenuReopen" Header="Open - Recent FC 26" Click="MenuOpenGame_Click" />
+                <MenuItem x:Name="MenuReopen" Header="Open Recent" SubmenuOpened="MenuRecent_SubmenuOpened" />
                 <MenuItem x:Name="MenuSave" Header="Save" IsEnabled="False" Click="MenuTool_Click" Tag="save">
                     <MenuItem.Icon>
                         <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuSave_Image.png" Width="16" Height="16" />

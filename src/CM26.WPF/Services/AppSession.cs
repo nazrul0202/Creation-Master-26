@@ -1,3 +1,4 @@
+using System.IO;
 using CM26.Application;
 using CM26.Application.Services;
 using CM26.EngineBridge;
@@ -20,6 +21,8 @@ public sealed class AppSession : IDisposable
     public ValidationService Validation { get; }
     public SaveService Save { get; }
     public LegacyAssetModService LegacyMods { get; } = new();
+    public string SourcePath { get; private set; } = string.Empty;
+    public bool IsDirectGameSource { get; private set; } = true;
 
     public AppSession()
     {
@@ -64,8 +67,12 @@ public sealed class AppSession : IDisposable
             SettingsService.FC26GameFolder = workspace.GameRoot;
             progress?.Report("Building editor indexes.");
             Database.Load(workspace.DatabaseFolder);
+            Pending.ResetSession("Opened installed FC26 Data/Patch database.");
             RebuildSections();
             LegacyMods.Open(FrostbiteAssets.Fingerprint);
+            IsDirectGameSource = true;
+            SourcePath = workspace.GameRoot;
+            SettingsService.PushRecentFolder(workspace.GameRoot);
             message = "FC26 database loaded for direct editing: " + workspace.GameRoot;
             return true;
         }
@@ -74,6 +81,37 @@ public sealed class AppSession : IDisposable
             message = "Open FC26 failed: " + ex.Message;
             return false;
         }
+    }
+
+    /// <summary>Opens a user-owned extracted DB/meta/localisation folder without touching FC26.</summary>
+    public bool TryOpenDatabaseFolder(string folder, out string message)
+    {
+        try
+        {
+            var fullPath = Path.GetFullPath(folder);
+            Database.Load(fullPath);
+            Pending.ResetSession("Opened extracted database folder.");
+            RebuildSections();
+            IsDirectGameSource = false;
+            SourcePath = fullPath;
+            SettingsService.LastFolder = fullPath;
+            SettingsService.PushRecentFolder(fullPath);
+            message = "Extracted FC26 database and localisation loaded: " + fullPath;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            message = "Open extracted database failed: " + ex.Message;
+            return false;
+        }
+    }
+
+    public void CloseDatabase()
+    {
+        Database.Close();
+        Pending.ResetSession("Database closed.");
+        SourcePath = string.Empty;
+        RebuildSections();
     }
 
     /// <summary>Reloads the live database from the game archives (after direct edits).</summary>

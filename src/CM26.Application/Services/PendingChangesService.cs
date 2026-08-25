@@ -122,6 +122,17 @@ public sealed class PendingChangesService
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>Starts a clean history/tracking scope after opening or closing a database.</summary>
+    public void ResetSession(string description = "Database session reset.")
+    {
+        _changes.Clear();
+        _redo.Clear();
+        _history.Clear();
+        _hasStructuralChanges = false;
+        AddHistory("Session", description);
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
     private void AddHistory(string action, string description)
     {
         _history.Add(new WorkspaceHistoryEntry(DateTime.Now, action, description));

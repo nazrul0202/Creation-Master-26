@@ -69,8 +69,6 @@ public sealed class MainForm : Form
         fileMenu.DropDownItems.Add("Open Game", null, (_, _) => SafeFire(OpenFc26Async));
         fileMenu.DropDownItems.Add("Save", null, (_, _) => SafeFire(SaveDirectAsync));
         fileMenu.DropDownItems.Add("Save Draft for FIFA Mod...", null, (_, _) => SafeFire(SaveAsync));
-        fileMenu.DropDownItems.Add("Export CM26 Project (.fifaproject)...", null, (_, _) => SafeFire(ExportProjectAsync));
-        fileMenu.DropDownItems.Add("Import CM26 Project (.fifaproject)...", null, (_, _) => SafeFire(ImportProjectAsync));
         fileMenu.DropDownItems.Add("Export FIFA Mod (.fifamod)...", null, (_, _) => SafeFire(ExportModAsync));
         fileMenu.DropDownItems.Add("Restore Original Data…", null, (_, _) => SafeFire(RestoreOriginalAsync));
         fileMenu.DropDownItems.Add(new ToolStripSeparator());

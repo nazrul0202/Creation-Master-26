@@ -60,7 +60,6 @@ Checksums: `SHA256SUMS_v1.0.147.txt` is included with the v1.0.147 release asset
 ### Safety & workflow
 - **Transactional saves** — CAS data is append-only; TOCs verified before replacement; failed commits roll back
 - **CmModData backup** — immutable copy of your original game state on first open, restorable anytime
-- **CM26 Project files** (`.fifaproject`) — share editable snapshots without touching live game files
 - **FIFA Mod Manager export** — generate `.fifamod` packages for the mod-manager workflow
 - **Lightweight CM26ModData overlay** — NTFS symlinks mirror unchanged FC26 archives; copy-on-write materialises only modified CAS/TOC files
 - **Automated quality gate** — xUnit regression suite, all-section multi-resolution layout smoke test and GitHub Actions CI

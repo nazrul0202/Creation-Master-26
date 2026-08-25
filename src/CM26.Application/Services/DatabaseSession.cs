@@ -62,6 +62,20 @@ public sealed class DatabaseSession : IDisposable
         DatabaseChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>Closes the current parser session and clears every cached table/name view.</summary>
+    public void Close()
+    {
+        var old = _session;
+        _session = null;
+        _tables = null;
+        _byName.Clear();
+        _pendingNameTexts.Clear();
+        _playerNames = null;
+        LoadedFolder = null;
+        old?.Dispose();
+        DatabaseChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     private void BuildSchema()
     {
         _tables = new List<DbTable>();
@@ -249,7 +263,6 @@ public sealed class DatabaseSession : IDisposable
 
     public void Dispose()
     {
-        _session?.Dispose();
-        _session = null;
+        Close();
     }
 }

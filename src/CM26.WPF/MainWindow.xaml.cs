@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using CM26.Application.Services;
 using CM26.Studio.Services;
 using CM26.Studio.Views;
+using Microsoft.Win32;
 
 namespace CM26.Studio;
 
@@ -244,7 +245,12 @@ public partial class MainWindow : Window
 
     private async void MenuOpenGame_Click(object sender, RoutedEventArgs e)
     {
-        var menuItem = sender as MenuItem;
+        if (!ConfirmDiscardPendingChanges()) return;
+        await OpenGameAsync(sender as MenuItem);
+    }
+
+    private async Task OpenGameAsync(MenuItem? menuItem = null)
+    {
         if (menuItem != null) menuItem.IsEnabled = false;
         try
         {
@@ -272,6 +278,81 @@ public partial class MainWindow : Window
         }
     }
 
+    private bool ConfirmDiscardPendingChanges()
+    {
+        if (!_session.Pending.HasChanges && !_session.LegacyMods.HasChanges) return true;
+        return MessageBox.Show(this,
+            "There are staged changes that have not been saved. Open another source and discard them?",
+            "Unsaved changes", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
+    }
+
+    private async void MenuOpenDatabaseFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ConfirmDiscardPendingChanges()) return;
+        var dialog = new OpenFolderDialog
+        {
+            Title = "Select extracted FC26 database folder",
+            InitialDirectory = Directory.Exists(SettingsService.LastFolder)
+                ? SettingsService.LastFolder
+                : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+        };
+        if (dialog.ShowDialog(this) != true) return;
+        await OpenDatabaseFolderAsync(dialog.FolderName);
+    }
+
+    private async Task OpenDatabaseFolderAsync(string folder)
+    {
+        ProgressBar.Visibility = Visibility.Visible;
+        StatusBarText.Text = "Validating extracted database and localization...";
+        try
+        {
+            string message = string.Empty;
+            var loaded = await Task.Run(() => _session.TryOpenDatabaseFolder(folder, out message));
+            StatusBarText.Text = message;
+            if (!loaded)
+            {
+                MessageBox.Show(this, message, "Open database", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            ApplyDatabaseState(true);
+            OpenDefaultCm16Section();
+        }
+        finally
+        {
+            ProgressBar.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private async void MenuRecent_SubmenuOpened(object sender, RoutedEventArgs e)
+    {
+        MenuReopen.Items.Clear();
+        var recent = SettingsService.RecentFolders.Where(path => Directory.Exists(path)).ToArray();
+        if (recent.Length == 0)
+        {
+            MenuReopen.Items.Add(new MenuItem { Header = "No recent sources", IsEnabled = false });
+            return;
+        }
+        foreach (var path in recent)
+        {
+            var item = new MenuItem { Header = path, Tag = path };
+            item.Click += async (_, _) =>
+            {
+                if (!ConfirmDiscardPendingChanges()) return;
+                if (FrostbiteAssetSession.IsGameRoot(path))
+                {
+                    SettingsService.FC26GameFolder = path;
+                    await OpenGameAsync(item);
+                }
+                else
+                {
+                    await OpenDatabaseFolderAsync(path);
+                }
+            };
+            MenuReopen.Items.Add(item);
+        }
+        await Task.CompletedTask;
+    }
+
     private void OpenDefaultCm16Section()
     {
         // CM16 opens directly on an editor section. A dashboard is not part of
@@ -295,6 +376,16 @@ public partial class MainWindow : Window
         if (key == "save")
         {
             await SaveDirectToGameAsync();
+            return;
+        }
+        if (key == "close")
+        {
+            if (!ConfirmDiscardPendingChanges()) return;
+            _session.CloseDatabase();
+            ContentHost.Content = null;
+            RightPanelHost.Content = null;
+            ApplyDatabaseState(false);
+            StatusBarText.Text = "Database closed.";
             return;
         }
 
@@ -339,6 +430,32 @@ public partial class MainWindow : Window
             StatusBarText.Text = "Resolve validation errors before saving.";
             MessageBox.Show(this, "Resolve validation errors before saving a direct edit.", "Save",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        if (!_session.IsDirectGameSource)
+        {
+            ProgressBar.Visibility = Visibility.Visible;
+            StatusBarText.Text = "Backing up and saving extracted database...";
+            try
+            {
+                var saved = await Task.Run(() => _session.Save.SaveToSourceFolder());
+                if (saved.Success)
+                {
+                    _session.Pending.MarkSaved();
+                    var sourcePath = _session.SourcePath;
+                    string reloadMessage = string.Empty;
+                    await Task.Run(() => _session.TryOpenDatabaseFolder(sourcePath, out reloadMessage));
+                    if (_activeSectionKey != null) ShowSection(_activeSectionKey);
+                    RefreshDashboardCounts();
+                }
+                StatusBarText.Text = saved.Message;
+                MessageBox.Show(this, saved.Message, saved.Success ? "Save complete" : "Save failed",
+                    MessageBoxButton.OK, saved.Success ? MessageBoxImage.Information : MessageBoxImage.Error);
+            }
+            finally
+            {
+                ProgressBar.Visibility = Visibility.Collapsed;
+            }
             return;
         }
         var gameRoot = !string.IsNullOrWhiteSpace(_session.FrostbiteAssets.GameRoot)
@@ -455,8 +572,6 @@ public partial class MainWindow : Window
                 return DbToolsService.ConvertMiniheadsToPng(FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder));
             case "enable-messages":
                 return new ToolRunResult(true, "All messages are enabled.");
-            case "close":
-                return new ToolRunResult(true, "Close is not needed for direct editing; changes are staged until you save.");
             case "regenerate":
             case "expand-db":
             case "align-langdb":
