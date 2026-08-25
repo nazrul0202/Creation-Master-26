@@ -44,4 +44,29 @@ public sealed class TableWorkspaceTests
             Directory.Delete(root, recursive: true);
         }
     }
+
+    [Theory]
+    [InlineData("Arsenal", "senal", true)]
+    [InlineData("Arsenal", "=arsenal", true)]
+    [InlineData("Arsenal", "!=Chelsea", true)]
+    [InlineData("87", ">= 85", true)]
+    [InlineData("87", "< 80", false)]
+    [InlineData("text", "> 2", false)]
+    public void WorkspaceFilterSupportsTextExactAndNumericExpressions(string value, string expression, bool expected)
+    {
+        Assert.Equal(expected, TableWorkspaceService.MatchesFilter(value, expression));
+    }
+
+    [Fact]
+    public void AssetDependencyCatalogCoversEveryPublicVisualEditorFamily()
+    {
+        var types = AssetDependencyService.SupportedTypes;
+
+        Assert.Contains(types, value => value.Contains("face", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(types, value => value.Contains("crest", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(types, value => value.Contains("stadium", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(types, value => value.Contains("ball", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(types, value => value.Contains("boot", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(types, value => value.Contains("kit", StringComparison.OrdinalIgnoreCase));
+    }
 }

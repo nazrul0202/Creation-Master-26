@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using CM26.Application.Models;
 
 namespace CM26.Application.Services;
@@ -71,6 +72,64 @@ public static class TableWorkspaceService
         return edits;
     }
 
+    public static void ExportRowTemplate(DatabaseSession session, string tableName, int rowIndex, string path)
+    {
+        var table = session.GetTable(tableName)
+            ?? throw new InvalidOperationException($"Table '{tableName}' was not found.");
+        if (rowIndex < 0 || rowIndex >= table.RowCount) throw new ArgumentOutOfRangeException(nameof(rowIndex));
+        var fields = table.Columns
+            .Where(column => column.IsWritable && !IsIdentityField(table, column))
+            .ToDictionary(column => column.Name, column => session.GetCell(table.Name, rowIndex, column.Name));
+        var template = new RowTemplate(table.Name, fields);
+        File.WriteAllText(path, JsonSerializer.Serialize(template, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    public static IReadOnlyList<TableImportEdit> BuildTemplatePlan(
+        DatabaseSession session, string tableName, int rowIndex, string path)
+    {
+        var table = session.GetTable(tableName)
+            ?? throw new InvalidOperationException($"Table '{tableName}' was not found.");
+        if (rowIndex < 0 || rowIndex >= table.RowCount) throw new ArgumentOutOfRangeException(nameof(rowIndex));
+        var template = JsonSerializer.Deserialize<RowTemplate>(File.ReadAllText(path))
+            ?? throw new InvalidDataException("The row template is empty or invalid.");
+        if (!template.TableName.Equals(table.Name, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"This template is for '{template.TableName}', not '{table.Name}'.");
+
+        var edits = new List<TableImportEdit>();
+        foreach (var (fieldName, newValue) in template.Fields)
+        {
+            var column = table.FindColumn(fieldName);
+            if (column == null || !column.IsWritable || IsIdentityField(table, column)) continue;
+            var oldValue = session.GetCell(table.Name, rowIndex, column.Name);
+            if (oldValue != newValue)
+                edits.Add(new(table.Name, rowIndex, column.Name, oldValue, newValue));
+        }
+        return edits;
+    }
+
+    public static bool MatchesFilter(string value, string expression)
+    {
+        expression = expression.Trim();
+        if (expression.Length == 0) return true;
+        foreach (var op in new[] { ">=", "<=", "!=", "=", ">", "<" })
+        {
+            if (!expression.StartsWith(op, StringComparison.Ordinal)) continue;
+            var operand = expression[op.Length..].Trim();
+            if (op == "=") return value.Equals(operand, StringComparison.OrdinalIgnoreCase);
+            if (op == "!=") return !value.Equals(operand, StringComparison.OrdinalIgnoreCase);
+            if (!double.TryParse(value, out var left) || !double.TryParse(operand, out var right)) return false;
+            return op switch
+            {
+                ">=" => left >= right,
+                "<=" => left <= right,
+                ">" => left > right,
+                "<" => left < right,
+                _ => false,
+            };
+        }
+        return value.Contains(expression, StringComparison.OrdinalIgnoreCase);
+    }
+
     public static IReadOnlyList<IReadOnlyList<string>> Parse(string text, char delimiter)
     {
         var rows = new List<IReadOnlyList<string>>();
@@ -139,6 +198,13 @@ public static class TableWorkspaceService
 
     private static char DelimiterFor(string path) =>
         Path.GetExtension(path).Equals(".csv", StringComparison.OrdinalIgnoreCase) ? ',' : '\t';
+
+    private static bool IsIdentityField(DbTable table, DbColumn column)
+    {
+        var singular = table.Name.EndsWith("s", StringComparison.OrdinalIgnoreCase) ? table.Name[..^1] : table.Name;
+        return column.Name.Equals(singular + "id", StringComparison.OrdinalIgnoreCase) ||
+               column.Name.Equals("artificialkey", StringComparison.OrdinalIgnoreCase);
+    }
 }
 
 public sealed record TableImportEdit(
@@ -147,3 +213,5 @@ public sealed record TableImportEdit(
     string FieldName,
     string OldValue,
     string NewValue);
+
+public sealed record RowTemplate(string TableName, Dictionary<string, string> Fields);

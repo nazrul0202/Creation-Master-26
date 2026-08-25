@@ -12,6 +12,7 @@ public sealed class PendingChangesService
     private readonly DatabaseSession _session;
     private readonly List<PendingChange> _changes = new();
     private readonly Stack<PendingChange> _redo = new();
+    private readonly List<WorkspaceHistoryEntry> _history = new();
     private bool _hasStructuralChanges;
 
     public PendingChangesService(DatabaseSession session) => _session = session;
@@ -21,6 +22,7 @@ public sealed class PendingChangesService
     public bool HasChanges => _changes.Count > 0 || _hasStructuralChanges;
     public bool CanUndo => _changes.Count > 0;
     public bool CanRedo => _redo.Count > 0;
+    public IReadOnlyList<WorkspaceHistoryEntry> History => _history;
 
     public event EventHandler? Changed;
 
@@ -30,6 +32,7 @@ public sealed class PendingChangesService
         _hasStructuralChanges = true;
         _changes.Clear();
         _redo.Clear();
+        AddHistory("Structure", "A record was inserted or deleted; structural undo is unavailable.");
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -53,6 +56,7 @@ public sealed class PendingChangesService
             OldValue = oldValue,
             NewValue = newValue,
         });
+        AddHistory("Edit", $"{tableName}[{rowIndex}].{fieldName}: '{oldValue}' → '{newValue}'");
         _redo.Clear();
         Changed?.Invoke(this, EventArgs.Empty);
         return outcome;
@@ -67,6 +71,7 @@ public sealed class PendingChangesService
         if (!outcome.Success) return false;
         _changes.RemoveAt(_changes.Count - 1);
         _redo.Push(change);
+        AddHistory("Undo", change.Describe());
         Changed?.Invoke(this, EventArgs.Empty);
         return true;
     }
@@ -78,6 +83,7 @@ public sealed class PendingChangesService
         var outcome = _session.StageEdit(change.TableName, change.RowIndex, change.FieldName, change.NewValue);
         if (!outcome.Success) return false;
         _changes.Add(change);
+        AddHistory("Redo", change.Describe());
         Changed?.Invoke(this, EventArgs.Empty);
         return true;
     }
@@ -101,17 +107,28 @@ public sealed class PendingChangesService
             _session.StageEdit(change.TableName, change.RowIndex, change.FieldName, change.OldValue);
         _changes.RemoveAll(c => c.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase) && c.RowIndex == rowIndex);
         _redo.Clear();
+        AddHistory("Revert row", $"Restored {affected.Count} field(s) in {tableName}[{rowIndex}].");
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Clears tracked state after a successful save (staged values remain in memory).</summary>
     public void MarkSaved()
     {
+        var savedCount = Count;
         _changes.Clear();
         _redo.Clear();
         _hasStructuralChanges = false;
+        AddHistory("Save", $"Committed {savedCount} staged change group(s) and reload-verified the database.");
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void AddHistory(string action, string description)
+    {
+        _history.Add(new WorkspaceHistoryEntry(DateTime.Now, action, description));
+        if (_history.Count > 2000) _history.RemoveRange(0, _history.Count - 2000);
     }
 
     private static EditOutcome Ok() => new EditOutcome { Success = true, Message = "No change" };
 }
+
+public sealed record WorkspaceHistoryEntry(DateTime Timestamp, string Action, string Description);

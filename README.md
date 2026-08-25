@@ -46,7 +46,8 @@ Checksums: `SHA256SUMS_v1.0.147.txt` is included with the v1.0.147 release asset
 - **Countries** — Nation profile, flags, national-team linking, regional audio mappings
 - **Managers · Stadiums · Kits · Competitions · Formations · Balls · Boots · Gloves · Referees · Transfers** — full FC26 schema coverage
 - **Sponsors · Adboards · Audio** — FC26-only tables with artwork preview & NewWave bank browser
-- **Advanced Database Workspace** — browse/edit every table, copy/paste in bulk, preview pending changes, inspect linked-table impact, and import/export one or all tables as TSV/CSV
+- **Advanced Database Workspace** — browse/edit every table; all-row text/numeric filters and saved searches; transactional copy/paste and bulk replace; file comparison; row templates; pending/history views; dependency and asset-usage reports; safe linked-ID replacement; and TSV/CSV import/export for one or all tables
+- **Roster integrity tools** — repair broken/duplicate club links and missing team-sheet players, assign unique shirt numbers, and run the engine's full key/relationship validator
 - **Restored specialist tabs** — Players includes Info, Skills, Face, Details and Callname; Teams includes Sponsors, Adboards, Flags and Audio
 
 ### Data & assets

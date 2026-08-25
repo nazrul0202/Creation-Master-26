@@ -95,6 +95,9 @@ public partial class MainWindow : Window
         MenuRemoveFakePlayers.IsEnabled = open;
         MenuPlayerNameRules.IsEnabled = open;
         MenuFixProblems.IsEnabled = open;
+        MenuRepairRoster.IsEnabled = open;
+        MenuRepairTeamSheets.IsEnabled = open;
+        MenuUniqueJerseys.IsEnabled = open;
         MenuEnableSpecificFaces.IsEnabled = open;
         MenuFixLoanDates.IsEnabled = open;
         MenuRemoveFreeAgentWithClub.IsEnabled = open;
@@ -440,6 +443,14 @@ public partial class MainWindow : Window
                 return DbToolsService.SimplifyPlayerNameUsingCountryRules(_session.Database, _session.Pending);
             case "commentary-reset":
                 return DbToolsService.ResetCommentaryNames(_session.Database, _session.Pending);
+            case "repair-roster":
+                return DbToolsService.RepairRosterLinks(_session.Database, _session.Pending);
+            case "repair-teamsheets":
+                return DbToolsService.RepairTeamSheets(_session.Database, _session.Pending);
+            case "unique-jerseys":
+                return DbToolsService.AssignUniqueJerseyNumbers(_session.Database, _session.Pending);
+            case "validate-integrity":
+                return DbToolsService.ValidateDatabase(_session.Database);
             case "convert-minheads":
                 return DbToolsService.ConvertMiniheadsToPng(FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder));
             case "enable-messages":
@@ -453,7 +464,6 @@ public partial class MainWindow : Window
             case "preserve-names":
             case "revmod":
             case "specific-faces":
-            case "fix-problems":
             case "dbentry-kits":
             case "dummy-kit":
             case "randomize-legends":

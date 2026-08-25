@@ -6,6 +6,10 @@
 - Added dependency-impact inspection for the selected entity, reporting exact matching references across tables that share its identity field.
 - Added direct discovery of an `FC Editor by decoruiz Alpha v21` folder in Downloads and support for using that folder itself as the configured asset root for ball, stadium, boot, glove, flag and crest previews.
 - Kept all database imports on CM26's existing staged validation/save path; no third-party source or executable is embedded.
+- Completed the database workspace with all-table row search, exact/numeric filters, saved filter presets, transactional bulk replace, compare-with-export, reusable row templates and session action history.
+- Added safe dependency replacement: linked IDs are only staged when the replacement parent exists, and the whole operation rolls back if any field fails validation.
+- Added known asset-usage reports across faces/minifaces, crests, league/competition logos, stadiums, balls, boots, gloves, flags, manager faces and kits.
+- Added FC26 roster repair tools for broken/duplicate team-player links, missing default-team-sheet players and invalid/duplicate jersey numbers, plus direct primary/foreign-key integrity reporting.
 
 ## Version 1.0.147 - club, roster and asset workflow polish (2026-08-25)
 

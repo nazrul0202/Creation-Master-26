@@ -75,7 +75,10 @@
                 <MenuItem x:Name="MenuInstallRevModPatch" Header="Install RevMod Patch (simplified version)" IsEnabled="False" Click="MenuTool_Click" Tag="revmod" />
                 <MenuItem x:Name="MenuRemoveFakePlayers" Header="Remove Fake Players from Database" IsEnabled="False" Click="MenuTool_Click" Tag="remove-fake" />
                 <MenuItem x:Name="MenuPlayerNameRules" Header="Simplify Player Name using Country Rules" IsEnabled="False" Click="MenuTool_Click" Tag="name-rules" />
-                <MenuItem x:Name="MenuFixProblems" Header="Fix Common Problems" IsEnabled="False" Click="MenuTool_Click" Tag="fix-problems" />
+                <MenuItem x:Name="MenuFixProblems" Header="Validate Database Integrity" IsEnabled="False" Click="MenuTool_Click" Tag="validate-integrity" />
+                <MenuItem x:Name="MenuRepairRoster" Header="Repair Broken / Duplicate Roster Links" IsEnabled="False" Click="MenuTool_Click" Tag="repair-roster" />
+                <MenuItem x:Name="MenuRepairTeamSheets" Header="Repair Missing Team-Sheet Players" IsEnabled="False" Click="MenuTool_Click" Tag="repair-teamsheets" />
+                <MenuItem x:Name="MenuUniqueJerseys" Header="Assign Unique Jersey Numbers" IsEnabled="False" Click="MenuTool_Click" Tag="unique-jerseys" />
                 <MenuItem x:Name="MenuEnableSpecificFaces" Header="Enable Existing Specific Faces" IsEnabled="False" Click="MenuTool_Click" Tag="specific-faces" />
                 <MenuItem x:Name="MenuFixLoanDates" Header="Set Contract End after Loan End Date" IsEnabled="False" Click="MenuTool_Click" Tag="loan-dates" />
                 <MenuItem x:Name="MenuRemoveFreeAgentWithClub" Header="Remove from Free Agent players with club" IsEnabled="False" Click="MenuTool_Click" Tag="freeagent-remove" />

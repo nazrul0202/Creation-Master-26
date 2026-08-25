@@ -163,6 +163,111 @@ public static class DbToolsService
             : $"Reset commentary IDs to {DefaultCommentaryId} for {reset} player name(s).");
     }
 
+    public static ToolRunResult RepairRosterLinks(DatabaseSession session, PendingChangesService pending)
+    {
+        var links = session.GetTable("teamplayerlinks");
+        var players = session.GetTable("players");
+        var teams = session.GetTable("teams");
+        if (links == null || players == null || teams == null) return NotLoaded();
+
+        var playerIds = ReadIdSet(session, players, "playerid");
+        var teamIds = ReadIdSet(session, teams, "teamid");
+        var seen = new HashSet<(int TeamId, int PlayerId)>();
+        var deleteRows = new List<int>();
+        for (var row = 0; row < links.RowCount; row++)
+        {
+            var playerId = ParseInt(session.GetCell("teamplayerlinks", row, "playerid"));
+            var teamId = ParseInt(session.GetCell("teamplayerlinks", row, "teamid"));
+            var invalid = !playerIds.Contains(playerId) || (teamId != FreeAgentTeamId && !teamIds.Contains(teamId));
+            var duplicate = !invalid && !seen.Add((teamId, playerId));
+            if (invalid || duplicate) deleteRows.Add(row);
+        }
+        foreach (var row in deleteRows.OrderByDescending(value => value))
+        {
+            var outcome = session.DeleteRow("teamplayerlinks", row);
+            if (!outcome.Success) return new ToolRunResult(false, outcome.Message);
+        }
+        if (deleteRows.Count > 0)
+        {
+            session.RefreshSchema();
+            pending.MarkStructuralChange();
+        }
+        return new ToolRunResult(true, deleteRows.Count == 0
+            ? "Roster links are valid and contain no duplicate team/player pair."
+            : $"Removed {deleteRows.Count} broken or duplicate roster link(s). Save will run the full integrity validator.");
+    }
+
+    public static ToolRunResult RepairTeamSheets(DatabaseSession session, PendingChangesService pending)
+    {
+        var sheets = session.GetTable("default_teamsheets");
+        var players = session.GetTable("players");
+        var teams = session.GetTable("teams");
+        if (sheets == null || players == null || teams == null) return NotLoaded();
+        var playerIds = ReadIdSet(session, players, "playerid");
+        var teamIds = ReadIdSet(session, teams, "teamid");
+        var fixedCells = 0;
+        for (var row = 0; row < sheets.RowCount; row++)
+        {
+            var teamId = ParseInt(session.GetCell("default_teamsheets", row, "teamid"));
+            if (teamId > 0 && !teamIds.Contains(teamId)) continue; // parent cleanup is structural; report via integrity validation
+            foreach (var column in sheets.Columns.Where(column =>
+                         column.Name.StartsWith("playerid", StringComparison.OrdinalIgnoreCase) && column.IsWritable))
+            {
+                var playerId = ParseInt(session.GetCell("default_teamsheets", row, column.Name));
+                if (playerId <= 0 || playerIds.Contains(playerId)) continue;
+                var outcome = pending.Stage("default_teamsheets", row, column.Name, "0");
+                if (!outcome.Success) return new ToolRunResult(false, outcome.Message);
+                fixedCells++;
+            }
+        }
+        return new ToolRunResult(true, fixedCells == 0
+            ? "Default team sheets contain no missing player references."
+            : $"Cleared {fixedCells} missing player reference(s) from default team sheets.");
+    }
+
+    public static ToolRunResult AssignUniqueJerseyNumbers(DatabaseSession session, PendingChangesService pending)
+    {
+        var links = session.GetTable("teamplayerlinks");
+        if (links == null || links.FindColumn("jerseynumber")?.IsWritable != true) return NotLoaded();
+        var byTeam = new Dictionary<int, List<int>>();
+        for (var row = 0; row < links.RowCount; row++)
+        {
+            var teamId = ParseInt(session.GetCell("teamplayerlinks", row, "teamid"));
+            if (teamId <= 0) continue;
+            if (!byTeam.TryGetValue(teamId, out var rows)) byTeam[teamId] = rows = new List<int>();
+            rows.Add(row);
+        }
+        var changed = 0;
+        foreach (var rows in byTeam.Values)
+        {
+            var used = new HashSet<int>();
+            foreach (var row in rows)
+            {
+                var current = ParseInt(session.GetCell("teamplayerlinks", row, "jerseynumber"));
+                if (current is >= 1 and <= 99 && used.Add(current)) continue;
+                var available = Enumerable.Range(1, 99).FirstOrDefault(number => !used.Contains(number));
+                if (available == 0) continue;
+                var outcome = pending.Stage("teamplayerlinks", row, "jerseynumber", available.ToString(CultureInfo.InvariantCulture));
+                if (!outcome.Success) return new ToolRunResult(false, outcome.Message);
+                used.Add(available);
+                changed++;
+            }
+        }
+        return new ToolRunResult(true, changed == 0
+            ? "All club squads already use unique valid jersey numbers."
+            : $"Assigned {changed} unique jersey number(s) across club squads.");
+    }
+
+    public static ToolRunResult ValidateDatabase(DatabaseSession session)
+    {
+        var issues = session.ValidateIntegrity();
+        return new ToolRunResult(issues.Count == 0,
+            issues.Count == 0
+                ? "Database integrity validation passed: no primary-key or foreign-key violations were found."
+                : $"Database integrity validation found {issues.Count} issue(s):\n\n" + string.Join("\n", issues.Take(100)) +
+                  (issues.Count > 100 ? $"\n… and {issues.Count - 100} more." : string.Empty));
+    }
+
     public static ToolRunResult ConvertMiniheadsToPng(string? gameRoot)
     {
         if (string.IsNullOrWhiteSpace(gameRoot) || !Directory.Exists(gameRoot))
@@ -243,6 +348,17 @@ public static class DbToolsService
         for (var row = 0; row < players.RowCount; row++)
             if (ParseInt(session.GetCell("players", row, "playerid")) == playerId) return row;
         return -1;
+    }
+
+    private static HashSet<int> ReadIdSet(DatabaseSession session, CM26.Application.Models.DbTable table, string fieldName)
+    {
+        var values = new HashSet<int>();
+        for (var row = 0; row < table.RowCount; row++)
+        {
+            var value = ParseInt(session.GetCell(table.Name, row, fieldName));
+            if (value >= 0) values.Add(value);
+        }
+        return values;
     }
 
     private static int ParseInt(string value) =>
