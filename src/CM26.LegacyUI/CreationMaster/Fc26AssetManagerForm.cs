@@ -15,8 +15,10 @@ internal sealed class Fc26AssetManagerForm : Form
 {
     private const string TextureResType = "6BDE20BA";
     private readonly ComboBox _family = new ComboBox();
-    private readonly NumericUpDown _id = new NumericUpDown();
+    private readonly TextBox _id = new TextBox();
     private readonly ComboBox _logicalPath = new ComboBox();
+    private readonly ComboBox _savedPaths = new ComboBox();
+    private readonly Label _assetState = new Label();
     private readonly PictureBox _legacyPreview = PreviewBox();
     private readonly TextBox _query = new TextBox();
     private readonly ComboBox _type = new ComboBox();
@@ -25,6 +27,10 @@ internal sealed class Fc26AssetManagerForm : Form
     private readonly Label _status = new Label();
     private string _legacySource = string.Empty;
     private string _catalogSource = string.Empty;
+    private readonly HashSet<string> _favourites = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private readonly List<string> _recent = new List<string>();
+    private readonly string _libraryStatePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "Creation Master 26", "asset-library.txt");
 
     private static readonly LegacyFamily[] Families =
     {
@@ -38,7 +44,7 @@ internal sealed class Fc26AssetManagerForm : Form
         }),
         new LegacyFamily("Country flag", new[]
         {
-            "data/ui/imgassets/flags512x512/light/f_{id}.dds",
+            "data/ui/imgassets/flags512x512/f_{id}.dds",
             "data/ui/artassets/countryflags/f_{id}.big",
             "data/ui/artassets/miniflags/flag_{id}.big"
         }),
@@ -47,49 +53,39 @@ internal sealed class Fc26AssetManagerForm : Form
             "data/ui/imgassets/stadium/stadium_{id}_0.dds",
             "data/ui/imgassets/clubinfo/stadium/st_{id}.dds"
         }),
-        new LegacyFamily("Ball image", new[] { "data/ui/game/settingsimg/ball_{id}.dds" }),
-        new LegacyFamily("Boot image", new[] { "data/ui/imgassets/shoe/shoe_{id}.dds" }),
+        new LegacyFamily("Ball image", new[] { "data/ui/imgassets/settingsimg/ball_{id}.dds" }),
         new LegacyFamily("Player face / head", new[]
         {
-            "data/sceneassets/faces/head_{id}_0_0.rx3",
-            "data/sceneassets/faces/head_{id}_0_0_textures.rx3"
+            "data/sceneassets/heads/head_{id}_0.rx3",
+            "data/sceneassets/faces/face_{id}_0_0_0_0_0_0_0_0_textures.rx3"
         }),
         new LegacyFamily("Player hair", new[]
         {
-            "data/sceneassets/hair/hair_{id}_0.rx3",
+            "data/sceneassets/hair/hair_{id}_0_0.rx3",
+            "data/sceneassets/hairlod/hairlod_{id}_0_0.rx3",
             "data/sceneassets/hair/hair_{id}_0_textures.rx3"
         }),
         new LegacyFamily("Player eyes / skin / tattoo", new[]
         {
-            "data/sceneassets/faces/eyes_{id}.dds",
-            "data/sceneassets/faces/skin_{id}.dds",
-            "data/sceneassets/tattoos/tattoo_{id}.dds"
+            "data/sceneassets/heads/eyes_{id}_0_textures.rx3",
+            "data/sceneassets/body/playerskin_{id}_textures.rx3",
+            "data/sceneassets/tattoo/tattoo_{id}_0.rx3"
         }),
         new LegacyFamily("Ball model / texture", new[]
         {
             "data/sceneassets/ball/ball_{id}.rx3",
             "data/sceneassets/ball/ball_{id}_textures.rx3"
         }),
-        new LegacyFamily("Boot model / texture", new[]
-        {
-            "data/sceneassets/shoe/shoe_{id}.rx3",
-            "data/sceneassets/shoe/shoe_{id}_textures.rx3"
-        }),
+        new LegacyFamily("Boot model (brand ID)", new[] { "data/sceneassets/shoe/shoe_{id}.rx3" }),
+        new LegacyFamily("Boot texture (brand_design)", new[] { "data/sceneassets/shoe/shoe_{id}_textures.rx3" }),
         new LegacyFamily("Goalkeeper gloves", new[]
         {
             "data/sceneassets/gkglove/gkglove_{id}.rx3",
             "data/sceneassets/gkglove/gkglove_{id}_textures.rx3"
         }),
-        new LegacyFamily("Stadium model / texture", new[]
-        {
-            "data/sceneassets/stadium/stadium_{id}.rx3",
-            "data/sceneassets/stadium/stadium_{id}_textures.rx3"
-        }),
-        new LegacyFamily("Kit / minikit", new[]
-        {
-            "data/sceneassets/kit/kit_{id}.rx3",
-            "data/ui/imgassets/minikits/kit_{id}.dds"
-        }),
+        new LegacyFamily("Stadium model (ID)", new[] { "data/sceneassets/stadium/stadium_{id}.rx3" }),
+        new LegacyFamily("Stadium texture (ID_time)", new[] { "data/sceneassets/stadium/stadium_{id}_textures.rx3" }),
+        new LegacyFamily("Kit (team_type_year)", new[] { "data/sceneassets/kit/kit_{id}.rx3" }),
         new LegacyFamily("Competition / presentation graphic", new[]
         {
             "data/ui/imgassets/compbadges/comp_{id}.dds",
@@ -111,6 +107,7 @@ internal sealed class Fc26AssetManagerForm : Form
         Size = new Size(1180, 760);
         MinimumSize = new Size(900, 600);
         Icon = Form.ActiveForm?.Icon;
+        LoadLibraryState();
 
         var tabs = new TabControl { Dock = DockStyle.Fill };
         tabs.TabPages.Add(CreateDirectPage());
@@ -131,16 +128,22 @@ internal sealed class Fc26AssetManagerForm : Form
         _family.Width = 170;
         _family.Items.AddRange(Families.Cast<object>().ToArray());
         _family.SelectedIndexChanged += (_, _) => RebuildPaths();
-        _id.Minimum = 0; _id.Maximum = 999999999; _id.Width = 100;
-        _id.ValueChanged += (_, _) => RebuildPaths();
+        _id.Width = 120;
+        _id.Text = "0";
+        _id.TextChanged += (_, _) => RebuildPaths();
         _logicalPath.Width = 500; _logicalPath.DropDownStyle = ComboBoxStyle.DropDown;
+        _savedPaths.Width = 330; _savedPaths.DropDownStyle = ComboBoxStyle.DropDownList;
+        _savedPaths.SelectedIndexChanged += (_, _) => SelectSavedPath();
+        _assetState.AutoSize = true; _assetState.Padding = new Padding(8, 6, 0, 0);
         top.Controls.AddRange(new Control[]
         {
             new Label { Text = "Asset family", AutoSize = true, Padding = new Padding(0, 6, 0, 0) }, _family,
-            new Label { Text = "ID", AutoSize = true, Padding = new Padding(8, 6, 0, 0) }, _id,
+            new Label { Text = "ID / compound key", AutoSize = true, Padding = new Padding(8, 6, 0, 0) }, _id,
             new Label { Text = "Verified logical path", AutoSize = true, Padding = new Padding(8, 6, 0, 0) }, _logicalPath,
             Button("Load / Preview", LoadLegacy), Button("Import image", ImportLegacy), Button("Import native file", ImportFile),
-            Button("Export", ExportLegacy), Button("Remove staged", RemoveLegacy)
+            Button("Export", ExportLegacy), Button("Remove staged", RemoveLegacy), Button("Check family", CheckFamily),
+            Button("Favourite", ToggleFavourite), new Label { Text = "Favourites / recent", AutoSize = true, Padding = new Padding(8, 6, 0, 0) },
+            _savedPaths, _assetState
         });
         var note = new Label
         {
@@ -151,6 +154,7 @@ internal sealed class Fc26AssetManagerForm : Form
         page.Controls.Add(note);
         page.Controls.Add(top);
         _family.SelectedIndex = 0;
+        RefreshSavedPaths();
         return page;
     }
 
@@ -190,7 +194,12 @@ internal sealed class Fc26AssetManagerForm : Form
     private void RebuildPaths()
     {
         if (_family.SelectedItem is not LegacyFamily family) return;
-        var id = Decimal.ToInt32(_id.Value).ToString();
+        var id = (_id.Text ?? string.Empty).Trim();
+        if (id.Length == 0 || id.Any(character => !char.IsDigit(character) && character != '_'))
+        {
+            _logicalPath.Items.Clear();
+            return;
+        }
         var current = _logicalPath.Text;
         _logicalPath.Items.Clear();
         foreach (var path in family.Paths.Select(path => path.Replace("{id}", id))) _logicalPath.Items.Add(path);
@@ -209,6 +218,8 @@ internal sealed class Fc26AssetManagerForm : Form
                 throw new FileNotFoundException("The logical path was not found in this FC26 installation.", path);
             _legacySource = exported;
             if (!TryShowImage(_legacyPreview, exported)) _legacyPreview.Image = null;
+            AddRecent(path);
+            _assetState.Text = "Installed · " + UsageStatus();
             return "Loaded " + path;
         });
     }
@@ -230,6 +241,8 @@ internal sealed class Fc26AssetManagerForm : Form
                 throw new InvalidDataException("Replacement extension must match the target asset (" + targetExtension + ").");
             Fc26HostBridge.StageFile(logicalPath, dialog.FileName);
             TryShowImage(_legacyPreview, dialog.FileName);
+            AddRecent(logicalPath);
+            _assetState.Text = "Staged replacement · " + UsageStatus();
             return "Native replacement staged for direct Save: " + logicalPath;
         });
     }
@@ -251,8 +264,111 @@ internal sealed class Fc26AssetManagerForm : Form
             Fc26HostBridge.StageImage(path, dialog.FileName, Math.Max(1, width), Math.Max(1, height));
             if (!Path.GetExtension(dialog.FileName).Equals(".dds", StringComparison.OrdinalIgnoreCase))
                 ShowImage(_legacyPreview, dialog.FileName);
+            AddRecent(path);
+            _assetState.Text = "Staged replacement · " + UsageStatus();
             return "Replacement staged. Use File > Save to validate, back up and apply.";
         });
+    }
+
+    private void CheckFamily(object sender, EventArgs e)
+    {
+        Run("Checking selected FC26 asset family...", () =>
+        {
+            if (_family.SelectedItem is not LegacyFamily family) throw new InvalidOperationException("Select an asset family first.");
+            var id = AssetKey();
+            var paths = family.Paths.Select(path => path.Replace("{id}", id)).ToArray();
+            var installed = paths.Where(path => !string.IsNullOrWhiteSpace(Fc26HostBridge.ExportAsset(path))).ToArray();
+            var missing = paths.Except(installed, StringComparer.OrdinalIgnoreCase).ToArray();
+            _assetState.Text = installed.Length + " installed / " + missing.Length + " missing · " + UsageStatus();
+            return missing.Length == 0 ? "All known paths for this family are installed." :
+                "Missing: " + string.Join(", ", missing.Select(Path.GetFileName));
+        });
+    }
+
+    private string UsageStatus()
+    {
+        var idText = AssetKey().Split('_')[0];
+        if (!int.TryParse(idText, out var id)) return "custom path";
+        var family = (_family.SelectedItem as LegacyFamily)?.Name ?? string.Empty;
+        if (family.StartsWith("Player", StringComparison.OrdinalIgnoreCase))
+            return FifaLibrary.FifaEnvironment.Players.SearchId(id) == null ? "unlinked ID" : "used by player";
+        if (family.StartsWith("Team", StringComparison.OrdinalIgnoreCase))
+            return FifaLibrary.FifaEnvironment.Teams.SearchId(id) == null ? "unlinked ID" : "used by team";
+        if (family.StartsWith("Country", StringComparison.OrdinalIgnoreCase))
+            return FifaLibrary.FifaEnvironment.Countries.SearchId(id) == null ? "unlinked ID" : "used by country";
+        if (family.StartsWith("Stadium", StringComparison.OrdinalIgnoreCase))
+            return FifaLibrary.FifaEnvironment.Stadiums.SearchId(id) == null ? "unlinked ID" : "used by stadium";
+        if (family.StartsWith("Ball", StringComparison.OrdinalIgnoreCase))
+            return FifaLibrary.FifaEnvironment.Balls.SearchId(id) == null ? "unlinked ID" : "used by ball";
+        if (family.StartsWith("Boot", StringComparison.OrdinalIgnoreCase))
+            return FifaLibrary.FifaEnvironment.Shoes.SearchId(id) == null ? "unlinked ID" : "used by boot record";
+        return "usage requires dependency scan";
+    }
+
+    private string AssetKey()
+    {
+        var value = (_id.Text ?? string.Empty).Trim();
+        if (value.Length == 0 || value.Any(character => !char.IsDigit(character) && character != '_'))
+            throw new InvalidOperationException("Use a numeric ID or an underscore-separated compound key, for example 11_0_0.");
+        return value;
+    }
+
+    private void ToggleFavourite(object sender, EventArgs e)
+    {
+        try
+        {
+            var path = RequireLogicalPath();
+            if (!_favourites.Add(path)) _favourites.Remove(path);
+            SaveLibraryState(); RefreshSavedPaths();
+            _status.Text = _favourites.Contains(path) ? "Added to favourites: " + path : "Removed from favourites: " + path;
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+    }
+
+    private void AddRecent(string path)
+    {
+        _recent.RemoveAll(value => value.Equals(path, StringComparison.OrdinalIgnoreCase));
+        _recent.Insert(0, path);
+        if (_recent.Count > 20) _recent.RemoveRange(20, _recent.Count - 20);
+        SaveLibraryState(); RefreshSavedPaths();
+    }
+
+    private void SelectSavedPath()
+    {
+        var item = _savedPaths.SelectedItem as SavedPath;
+        if (item != null) _logicalPath.Text = item.Path;
+    }
+
+    private void RefreshSavedPaths()
+    {
+        _savedPaths.BeginUpdate(); _savedPaths.Items.Clear();
+        foreach (var path in _favourites.OrderBy(value => value)) _savedPaths.Items.Add(new SavedPath("★", path));
+        foreach (var path in _recent.Where(path => !_favourites.Contains(path))) _savedPaths.Items.Add(new SavedPath("Recent", path));
+        _savedPaths.EndUpdate();
+    }
+
+    private void LoadLibraryState()
+    {
+        try
+        {
+            if (!File.Exists(_libraryStatePath)) return;
+            foreach (var line in File.ReadAllLines(_libraryStatePath))
+            {
+                if (line.StartsWith("F|", StringComparison.Ordinal)) _favourites.Add(line.Substring(2));
+                else if (line.StartsWith("R|", StringComparison.Ordinal) && _recent.Count < 20) _recent.Add(line.Substring(2));
+            }
+        }
+        catch { }
+    }
+
+    private void SaveLibraryState()
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_libraryStatePath));
+            File.WriteAllLines(_libraryStatePath, _favourites.Select(path => "F|" + path).Concat(_recent.Select(path => "R|" + path)));
+        }
+        catch { }
     }
 
     private void ExportLegacy(object sender, EventArgs e)
@@ -391,5 +507,11 @@ internal sealed class Fc26AssetManagerForm : Form
         internal string Name { get; }
         internal string[] Paths { get; }
         public override string ToString() => Name;
+    }
+    private sealed class SavedPath
+    {
+        internal SavedPath(string kind, string path) { Kind = kind; Path = path; }
+        internal string Kind { get; } internal string Path { get; }
+        public override string ToString() => Kind + " · " + Path;
     }
 }

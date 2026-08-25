@@ -1,6 +1,6 @@
 {
-  "version": "1.0.154",
+  "version": "1.0.155",
   "name": "Creation Master 26",
-  "notes": "v1.0.154 - connects the classic specialist asset editors to direct FC26 Frostbite staging while preserving the v1.0.148 interface.",
+  "notes": "v1.0.155 - completes the classic Transfermarkt, Batch Player and unified direct-asset workflows while preserving the v1.0.148 interface.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

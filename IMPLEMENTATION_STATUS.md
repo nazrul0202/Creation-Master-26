@@ -1,4 +1,4 @@
-# CM26 v1.0.154 implementation status
+# CM26 v1.0.155 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
@@ -15,11 +15,12 @@ This status is intentionally conservative: a visible control is not counted as w
 ## Functional
 
 - Existing classic player, team, roster, transfer, formation, league, country, competition, stadium, kit, ball, boot, glove, manager and career-budget editors for mapped FC26 fields.
-- Preview-first Batch Player Matrix with team/age/position selection, equipment/style fields and multi-field development, star, positional, physical and technical presets.
-- Indexed Frostbite catalog search plus supported texture preview/export.
+- Preview-first Batch Player Matrix with team/league/name-or-ID grouping, age/position selection, equipment/style fields, PlayStyles/PlayStyles+, FC26 tactical roles, age curves and multi-field development, star, positional, physical and technical presets.
+- Indexed Frostbite catalog search plus supported texture preview/export, installed/missing family checks, dependency usage labels and persistent favourites/recent paths.
 - Direct staged replacement for verified ChunkFileCollector paths: encoded images and format-compatible native RX3/DDS/BIG/binary payloads for player, kit, stadium, ball, boot, glove, trophy and presentation asset families.
 - The classic Stadium, Ball, Boots, GK Gloves, Kit and Competition/Trophy forms route their existing native import/export/remove controls into the FC26 Frostbite transaction.
 - Database Health Centre scans plus safe free-agent, contract and shirt-number repairs.
+- Classic Player Editor Transfermarkt search/URL import with editable biodata mapping, position/nationality/team assignment, optional position-based attribute generation, Before/Apply confirmation and a local source/date audit log.
 
 ## Partial
 

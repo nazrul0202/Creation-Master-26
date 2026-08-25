@@ -448,6 +448,18 @@ public class Player : IdObject
 
 	private int m_icontrait2;
 
+	// FC26 database-native tactical player-role slots. Older titles simply do
+	// not expose these columns, while the snapshot bridge maps them by name.
+	private int m_role1;
+
+	private int m_role2;
+
+	private int m_role3;
+
+	private int m_role4;
+
+	private int m_role5;
+
 	private bool m_Inflexible;
 
 	private bool m_GkOneOnOne;
@@ -1355,6 +1367,16 @@ public class Player : IdObject
 		get { return m_icontrait2; }
 		set { m_icontrait2 = value; }
 	}
+
+	public int role1 { get { return m_role1; } set { m_role1 = value; } }
+
+	public int role2 { get { return m_role2; } set { m_role2 = value; } }
+
+	public int role3 { get { return m_role3; } set { m_role3 = value; } }
+
+	public int role4 { get { return m_role4; } set { m_role4 = value; } }
+
+	public int role5 { get { return m_role5; } set { m_role5 = value; } }
 
 	public int weakfootabilitytypecode
 	{
@@ -3948,6 +3970,8 @@ public class Player : IdObject
 		m_preferredposition3 = -1;
 		m_preferredposition4 = -1;
 		m_preferredfoot = 0;
+		m_trait1 = m_trait2 = m_icontrait1 = m_icontrait2 = 0;
+		m_role1 = m_role2 = m_role3 = m_role4 = m_role5 = 0;
 		m_jerseysleevelengthcode = 0;
 		m_jerseystylecode = 0;
 		m_hasseasonaljersey = 0;
@@ -4142,6 +4166,11 @@ public class Player : IdObject
 		clone.m_trait2 = m_trait2;
 		clone.m_icontrait1 = m_icontrait1;
 		clone.m_icontrait2 = m_icontrait2;
+		clone.m_role1 = m_role1;
+		clone.m_role2 = m_role2;
+		clone.m_role3 = m_role3;
+		clone.m_role4 = m_role4;
+		clone.m_role5 = m_role5;
 		clone.m_acceleration = m_acceleration;
 		clone.m_aggression = m_aggression;
 		clone.m_sprintspeed = m_sprintspeed;

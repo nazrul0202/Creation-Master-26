@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.155 - comprehensive classic workflow completion (2026-08-25)
+
+- Preserved the v1.0.148 classic Creation Master design and normal launch path.
+- Added Transfermarkt player-name/profile search, editable biodata mapping, nationality/position/team selection, suggested attribute generation, preview/apply confirmation and source audit logging inside Player Info.
+- Completed Batch Player Matrix league and player-group filters, age-curve modifiers, PlayStyle/PlayStyle+ masks and FC26 tactical-role fields on the normal staged Direct Save path.
+- Completed Visual Asset Manager installed/missing checks, linked usage status, favourites/recent history and exact compound-key paths for player, ball, boot, glove, stadium, kit and presentation assets.
+
 ## Version 1.0.154 - classic direct-asset editor completion (2026-08-25)
 
 - Preserved the v1.0.148 classic interface while connecting its existing asset buttons to the FC26 Frostbite transaction.

@@ -12,14 +12,17 @@ namespace CreationMaster;
 internal sealed class Fc26BatchPlayerForm : Form
 {
     private readonly ComboBox _team = new ComboBox();
+    private readonly ComboBox _league = new ComboBox();
     private readonly ComboBox _ageGroup = new ComboBox();
     private readonly ComboBox _positionGroup = new ComboBox();
+    private readonly TextBox _playerGroup = new TextBox();
     private readonly ComboBox _field = new ComboBox();
     private readonly ComboBox _operation = new ComboBox();
     private readonly NumericUpDown _value = new NumericUpDown();
     private readonly DataGridView _preview = new DataGridView();
     private readonly Label _status = new Label();
     private readonly CheckBox _onlyChanged = new CheckBox();
+    private readonly ComboBox _playstyle = new ComboBox();
     private List<PreviewRow> _pending = new List<PreviewRow>();
 
     private static readonly FieldSpec[] Fields =
@@ -49,6 +52,19 @@ internal sealed class Fc26BatchPlayerForm : Form
         new FieldSpec("Running style 1", "runningcode1", 0, 255),
         new FieldSpec("Running style 2", "runningcode2", 0, 255),
         new FieldSpec("Jersey style", "jerseystylecode", 0, 255)
+        ,new FieldSpec("Tactical role 1", "role1", 0, 23)
+        ,new FieldSpec("Tactical role 2", "role2", 0, 23)
+        ,new FieldSpec("Tactical role 3", "role3", 0, 23)
+        ,new FieldSpec("Tactical role 4", "role4", 0, 23)
+        ,new FieldSpec("Tactical role 5", "role5", 0, 23)
+    };
+
+    private static readonly string[] Playstyles =
+    {
+        "Finesse Shot", "Power Shot", "Dead Ball", "Chip Shot", "Power Header", "Pinged Pass", "Long Ball Pass", "Tiki Taka",
+        "Incisive Pass", "Whipped Pass", "First Touch", "Technical", "Rapid", "Quick Step", "Trickster", "Press Proven",
+        "Flair", "Relentless", "Trivela", "Block", "Intercept", "Anticipate", "Slide Tackle", "Bruiser", "Jockey", "Aerial",
+        "Acrobatic", "Far Reach", "Footwork", "Cross Claimer", "Rush Out", "Deflector", "1v1 Close Down", "Long Throw"
     };
 
     internal Fc26BatchPlayerForm()
@@ -63,22 +79,33 @@ internal sealed class Fc26BatchPlayerForm : Form
         _team.Items.Add(new TeamChoice(null));
         foreach (Team team in FifaEnvironment.Teams.Cast<Team>().OrderBy(team => team.TeamNameFull)) _team.Items.Add(new TeamChoice(team));
         _team.SelectedIndex = 0;
+        _league.Width = 190; _league.DropDownStyle = ComboBoxStyle.DropDownList;
+        _league.Items.Add(new LeagueChoice(null));
+        foreach (League league in FifaEnvironment.Leagues.Cast<League>().OrderBy(league => league.ToString())) _league.Items.Add(new LeagueChoice(league));
+        _league.SelectedIndex = 0;
         _ageGroup.Width = 105; _ageGroup.DropDownStyle = ComboBoxStyle.DropDownList;
         _ageGroup.Items.AddRange(new object[] { "All ages", "Under 21", "21–29", "30 and over" }); _ageGroup.SelectedIndex = 0;
         _positionGroup.Width = 115; _positionGroup.DropDownStyle = ComboBoxStyle.DropDownList;
         _positionGroup.Items.AddRange(new object[] { "All positions", "Goalkeepers", "Defenders", "Midfielders", "Attackers" }); _positionGroup.SelectedIndex = 0;
+        _playerGroup.Width = 145;
         _field.Width = 170; _field.DropDownStyle = ComboBoxStyle.DropDownList; _field.Items.AddRange(Fields.Cast<object>().ToArray()); _field.SelectedIndex = 0;
         _operation.Width = 90; _operation.DropDownStyle = ComboBoxStyle.DropDownList; _operation.Items.AddRange(new object[] { "Set", "Add", "Subtract" }); _operation.SelectedIndex = 0;
         _value.Minimum = -9999; _value.Maximum = 9999; _value.Width = 85;
         _onlyChanged.Text = "Show changed only"; _onlyChanged.AutoSize = true; _onlyChanged.Padding = new Padding(8, 5, 0, 0);
         _onlyChanged.CheckedChanged += (_, _) => BindPreview();
+        _playstyle.Width = 145; _playstyle.DropDownStyle = ComboBoxStyle.DropDownList;
+        _playstyle.Items.AddRange(Playstyles.Cast<object>().ToArray()); _playstyle.SelectedIndex = 0;
         top.Controls.AddRange(new Control[]
         {
-            Label("Players"), _team, Label("Age"), _ageGroup, Label("Position"), _positionGroup,
+            Label("Team"), _team, Label("League"), _league, Label("Group"), _playerGroup,
+            Label("Age"), _ageGroup, Label("Position"), _positionGroup,
             Label("Field"), _field, Label("Operation"), _operation, Label("Value"), _value,
             Button("Preview field", Preview), Button("Young preset", (_, _) => PreviewPreset("young")),
             Button("Star preset", (_, _) => PreviewPreset("star")), Button("Position preset", (_, _) => PreviewPreset("position")),
-            Button("Physical +5", (_, _) => PreviewPreset("physical")), Button("Technical +5", (_, _) => PreviewPreset("technical")),
+            Button("Age curve", (_, _) => PreviewPreset("age")), Button("Physical +5", (_, _) => PreviewPreset("physical")),
+            Button("Technical +5", (_, _) => PreviewPreset("technical")), Label("PlayStyle"), _playstyle,
+            Button("Add", (_, _) => PreviewPlaystyle(true, false)), Button("Remove", (_, _) => PreviewPlaystyle(false, false)),
+            Button("Add +", (_, _) => PreviewPlaystyle(true, true)), Button("Remove +", (_, _) => PreviewPlaystyle(false, true)),
             Button("Apply staged", Apply), _onlyChanged
         });
         _preview.Dock = DockStyle.Fill; _preview.ReadOnly = true; _preview.AllowUserToAddRows = false;
@@ -114,8 +141,13 @@ internal sealed class Fc26BatchPlayerForm : Form
     private Player[] SelectedPlayers()
     {
         var selectedTeam = ((TeamChoice)_team.SelectedItem).Team;
+        var selectedLeague = ((LeagueChoice)_league.SelectedItem).League;
+        var query = _playerGroup.Text.Trim();
         return FifaEnvironment.Players.Cast<Player>()
             .Where(player => selectedTeam == null || player.GetClub() == selectedTeam)
+            .Where(player => selectedLeague == null || player.GetClub()?.League == selectedLeague)
+            .Where(player => string.IsNullOrWhiteSpace(query) || player.Id.ToString().Contains(query) ||
+                player.ToString().IndexOf(query, StringComparison.CurrentCultureIgnoreCase) >= 0)
             .Where(player => AgeMatches(player) && PositionMatches(player.preferredposition1)).ToArray();
     }
 
@@ -154,11 +186,47 @@ internal sealed class Fc26BatchPlayerForm : Form
                     foreach (var field in new[] { "acceleration", "sprintspeed", "stamina", "strength", "aggression" }) Delta(player, field, 5, "Physical +5");
                 else if (preset == "technical")
                     foreach (var field in new[] { "ballcontrol", "dribbling", "shortpassing", "longpassing", "crossing", "finishing" }) Delta(player, field, 5, "Technical +5");
+                else if (preset == "age")
+                {
+                    var age = DateTime.Today.Year - player.birthdate.Year;
+                    if (player.birthdate.Date > DateTime.Today.AddYears(-age)) age--;
+                    if (age <= 20)
+                    {
+                        Target(player, "potential", Math.Max(player.potential, Math.Min(99, player.overallrating + 10)), "Age curve");
+                        foreach (var field in new[] { "acceleration", "sprintspeed", "stamina", "reactions" }) Delta(player, field, 3, "Age curve");
+                    }
+                    else if (age >= 31)
+                    {
+                        foreach (var field in new[] { "acceleration", "sprintspeed", "stamina" }) Delta(player, field, -2, "Age curve");
+                        foreach (var field in new[] { "reactions", "shortpassing" }) Delta(player, field, 1, "Age experience");
+                    }
+                }
                 else PositionPreset(player);
             }
             BindPreview();
             _status.Text = _pending.Select(row => row.Player.Id).Distinct().Count().ToString("N0") + " player(s), " +
                 _pending.Count(row => row.Before != row.After).ToString("N0") + " field change(s) previewed.";
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+    }
+
+    private void PreviewPlaystyle(bool add, bool plus)
+    {
+        try
+        {
+            var index = Math.Max(0, _playstyle.SelectedIndex);
+            var propertyName = plus ? (index < 32 ? "icontrait1" : "icontrait2") : (index < 32 ? "trait1" : "trait2");
+            var property = typeof(Player).GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)
+                ?? throw new MissingMemberException("FC26 PlayStyle mask is unavailable: " + propertyName);
+            var bit = unchecked((int)(1u << (index % 32)));
+            _pending = SelectedPlayers().Select(player =>
+            {
+                var before = Convert.ToInt32(property.GetValue(player, null));
+                var after = add ? before | bit : before & ~bit;
+                return new PreviewRow(player, (plus ? "PlayStyle+ · " : "PlayStyle · ") + Playstyles[index], property, before, after);
+            }).ToList();
+            BindPreview();
+            _status.Text = _pending.Count(row => row.Before != row.After).ToString("N0") + " PlayStyle mask change(s) previewed.";
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
@@ -235,5 +303,10 @@ internal sealed class Fc26BatchPlayerForm : Form
     {
         internal TeamChoice(Team team) { Team = team; } internal Team Team { get; }
         public override string ToString() => Team == null ? "All loaded players" : Team.TeamNameFull;
+    }
+    private sealed class LeagueChoice
+    {
+        internal LeagueChoice(League league) { League = league; } internal League League { get; }
+        public override string ToString() => League == null ? "All leagues" : League.ToString();
     }
 }

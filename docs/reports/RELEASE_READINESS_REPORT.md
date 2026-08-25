@@ -1,5 +1,12 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.155 - comprehensive classic workflow completion (2026-08-25)
+
+- **PASS:** x86 classic shell and x64 host build with zero errors.
+- **PASS:** Transfermarkt preview/apply, expanded Batch Player Matrix and unified Asset Library are integrated into the original v1.0.148-style interface.
+- **PASS:** database and asset edits stay staged behind validation, automatic backup and direct Frostbite Save.
+- **Boundary:** unknown Frostbite encoders and undocumented career structures remain unavailable rather than being represented by placeholders.
+
 ## Version 1.0.154 - classic specialist asset integration (2026-08-25)
 
 - **PASS:** x86 classic shell builds with zero errors after direct-asset integration.

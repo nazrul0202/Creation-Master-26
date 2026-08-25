@@ -825,11 +825,14 @@ public class PlayerForm : Form
 
 	private Button m_AppearanceAssistantButton;
 
+	private Button m_TransfermarktButton;
+
 	public PlayerForm()
 	{
 		base.Visible = false;
 		InitializeComponent();
 		InitializeAppearanceAssistant();
+		InitializeTransfermarktImporter();
 		var careerPage = new TabPage("Career Details") { BackColor = SystemColors.Control };
 		m_CareerDetails = new CmStyleDetailsPanel(DetailSection.Player);
 		careerPage.Controls.Add(m_CareerDetails);
@@ -1039,6 +1042,37 @@ public class PlayerForm : Form
 					"Appearance Assistant", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 			}
 		}
+	}
+
+	private void InitializeTransfermarktImporter()
+	{
+		m_TransfermarktButton = new Button
+		{
+			Text = "Transfermarkt Import...",
+			AutoSize = true,
+			Location = new Point(pageInfo.ClientSize.Width - 178, 10),
+			Anchor = AnchorStyles.Top | AnchorStyles.Right,
+			BackColor = Color.FromArgb(28, 82, 137),
+			ForeColor = Color.White,
+			FlatStyle = FlatStyle.Flat
+		};
+		m_TransfermarktButton.FlatAppearance.BorderSize = 0;
+		m_TransfermarktButton.Click += (_, _) =>
+		{
+			if (m_CurrentPlayer == null)
+			{
+				MessageBox.Show(this, "Select a player first.", "Transfermarkt Import",
+					MessageBoxButtons.OK, MessageBoxIcon.Information);
+				return;
+			}
+			using (var importer = new Fc26TransfermarktForm(m_CurrentPlayer))
+			{
+				if (importer.ShowDialog(this) == DialogResult.OK)
+					ReloadPlayer(m_CurrentPlayer);
+			}
+		};
+		pageInfo.Controls.Add(m_TransfermarktButton);
+		m_TransfermarktButton.BringToFront();
 	}
 
 	private Player CreatePlayer(object sender, object obj)

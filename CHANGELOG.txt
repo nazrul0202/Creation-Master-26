@@ -1,3 +1,10 @@
+Creation Master 26 v1.0.155 - 25 August 2026
+
+- Added classic Player Transfermarkt search/URL preview and staged apply with local source audit.
+- Completed Batch Player Matrix league/group filters, age curves, PlayStyles/PlayStyles+ and tactical roles.
+- Completed Asset Manager installed/missing, usage, favourites/recent and verified compound path families.
+- Preserved the original v1.0.148 interface and direct validated Frostbite save workflow.
+
 Creation Master 26 v1.0.154 - 25 August 2026
 
 - Connected the classic Stadium, Ball, Boots, GK Gloves, Kit and Trophy controls to direct FC26 asset staging.
