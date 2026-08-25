@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Diagnostics;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace CreationMaster;
@@ -157,25 +158,58 @@ internal static class Program
 		Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
 		if (args.Length >= 1 && string.Equals(args[0], "--cm26-ui-integration-test", StringComparison.OrdinalIgnoreCase))
 		{
+			var uiLog = Path.Combine(Path.GetTempPath(), "cm26-ui-integration.log");
+			var errorLog = Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log");
+			File.WriteAllText(uiLog, "starting" + Environment.NewLine);
+			if (File.Exists(errorLog)) File.Delete(errorLog);
 			try
 			{
-				using var main = new MainForm();
-				main.Show();
-				Application.DoEvents();
-				var directTools = FindControl(main, "fc26DirectToolsStrip") as ToolStrip
-					?? throw new InvalidDataException("The CM26 Direct Tools bar is not visible in MainForm.");
-				if (directTools.Items.Count < 12)
-					throw new InvalidDataException("The CM26 Direct Tools bar is incomplete.");
-				var playerTools = FindControl(main.m_PlayerForm, "fc26PlayerToolsPanel")
-					?? throw new InvalidDataException("The CM26 Player Tools panel is not present in Player Info.");
-				if (playerTools.Controls.Count < 7)
-					throw new InvalidDataException("The CM26 Player Tools panel is incomplete.");
-				Environment.ExitCode = 0;
+				var main = new MainForm();
+				File.AppendAllText(uiLog, "main constructed" + Environment.NewLine);
+				if (FindControl(main, "fc26DirectToolsStrip") != null)
+					throw new InvalidDataException("The obsolete global Direct Tools bar is still present.");
+				var required = new[]
+				{
+					new { Form = (Control)main.m_PlayerForm, Name = "cm26Inline_PlayerIDNames" },
+					new { Form = (Control)main.m_PlayerForm, Name = "cm26Inline_FaceMiniface" },
+					new { Form = (Control)main.m_PlayerForm, Name = "cm26Inline_BatchPlayerMatrix" },
+					new { Form = (Control)main.m_TeamForm, Name = "cm26Inline_TransferLoanRoster" },
+					new { Form = (Control)main.m_FormationForm, Name = "cm26Inline_XIRosterRepair" },
+					new { Form = (Control)main.m_CountryForm, Name = "cm26Inline_NationalTeamManager" },
+					new { Form = (Control)main.m_LeagueForm, Name = "cm26Inline_AdvancedLeagueData" },
+					new { Form = (Control)main.m_TrophyForm, Name = "cm26Inline_TournamentCompdata" },
+					new { Form = (Control)main.m_StadiumForm, Name = "cm26Inline_StadiumAssetLibrary" },
+					new { Form = (Control)main.m_KitForm, Name = "cm26Inline_KitFolderAssets" },
+					new { Form = (Control)main.m_BallForm, Name = "cm26Inline_BallAssetLibrary" },
+					new { Form = (Control)main.m_ShoesForm, Name = "cm26Inline_BootAssetLibrary" },
+					new { Form = (Control)main.m_GlovesForm, Name = "cm26Inline_GloveAssetLibrary" },
+					new { Form = (Control)main.m_ManagerForm, Name = "cm26Inline_ManagerIDsRecords" },
+					new { Form = (Control)main.m_TvForm, Name = "cm26Inline_BroadcastAssetLibrary" }
+				};
+				foreach (var item in required)
+				{
+					File.AppendAllText(uiLog, "checking " + item.Name + Environment.NewLine);
+					if (FindControl(item.Form, item.Name) == null)
+						throw new InvalidDataException("Missing integrated CM26 section: " + item.Name);
+				}
+				foreach (var loadName in new[] { "cm26Inline_PlayerIDNames", "cm26Inline_FlagsCountryAssets", "cm26Inline_TournamentCompdata" })
+				{
+					var page = FindControl(main, loadName) as TabPage;
+					if (page?.Parent is TabControl tabs)
+					{
+						tabs.SelectedTab = page;
+						Fc26InlineSectionHost.LoadForSmoke(page);
+						if (!page.Controls.OfType<Form>().Any())
+							throw new InvalidDataException("Integrated section did not load inside its CM26 tab: " + loadName);
+					}
+				}
+				File.AppendAllText(uiLog, "passed" + Environment.NewLine);
+				Environment.Exit(0);
 			}
 			catch (Exception ex)
 			{
-				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
-				Environment.ExitCode = 1;
+				File.WriteAllText(errorLog, ex.ToString());
+				Environment.Exit(1);
 			}
 			return;
 		}

@@ -1,3 +1,10 @@
+Creation Master 26 v1.0.159 - 25 August 2026
+
+- Removed the v1.0.158 global Direct Tools bar and floating Player Tools panel.
+- Embedded the implemented specialist workflows directly into their matching original CM26 editor sections.
+- Added in-section Player identity/names, face/miniface and batch tabs; Team/Formation roster tabs; Country national-team/flag tabs; League/Competition data tabs; and contextual asset tabs for Stadium, Kit, Ball, Boots, Gloves and presentation editors.
+- Embedded each workflow as part of the owning CM26 form without opening a separate window, while preserving the classic v1.0.148 design and validated direct Frostbite save pipeline.
+
 Creation Master 26 v1.0.158 - 25 August 2026
 
 - Added a permanently visible CM26 Direct Tools bar to the classic interface.

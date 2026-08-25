@@ -1,5 +1,12 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.159 - in-section classic integration (2026-08-25)
+
+- **PASS:** the v1.0.158 global toolbar and Player floating panel are absent.
+- **PASS:** specialist workflows are present as owned tabs/panels in the relevant original CM26 forms.
+- **PASS:** representative Player, Country asset and Competition modules instantiate inside their section tabs rather than as top-level windows.
+- **PASS:** original section controls remain in place and the validated direct Frostbite save path is unchanged.
+
 ## Version 1.0.158 - visible classic-interface integration (2026-08-25)
 
 - **PASS:** release build exposes the integrated specialist workflows through a permanent Direct Tools bar and Player Tools panel.

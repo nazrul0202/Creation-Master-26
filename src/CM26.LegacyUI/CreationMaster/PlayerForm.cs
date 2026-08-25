@@ -827,8 +827,6 @@ public class PlayerForm : Form
 
 	private Button m_TransfermarktButton;
 
-	private Panel m_Fc26PlayerToolsPanel;
-
 	public PlayerForm()
 	{
 		base.Visible = false;
@@ -1048,32 +1046,12 @@ public class PlayerForm : Form
 
 	private void InitializeTransfermarktImporter()
 	{
-		m_Fc26PlayerToolsPanel = new Panel
-		{
-			Name = "fc26PlayerToolsPanel",
-			Size = new Size(235, 270),
-			Location = new Point(pageInfo.ClientSize.Width - 247, 10),
-			Anchor = AnchorStyles.Top | AnchorStyles.Right,
-			BackColor = Color.FromArgb(236, 248, 255),
-			BorderStyle = BorderStyle.FixedSingle
-		};
-		var heading = new Label
-		{
-			Text = "CM26 PLAYER TOOLS",
-			Dock = DockStyle.Top,
-			Height = 32,
-			TextAlign = ContentAlignment.MiddleCenter,
-			BackColor = Color.FromArgb(20, 80, 140),
-			ForeColor = Color.White,
-			Font = new Font(Font, FontStyle.Bold)
-		};
-		m_Fc26PlayerToolsPanel.Controls.Add(heading);
-
 		m_TransfermarktButton = new Button
 		{
-			Text = "Transfermarkt Import",
-			Size = new Size(207, 30),
-			Location = new Point(13, 43),
+			Text = "Transfermarkt Import...",
+			AutoSize = true,
+			Location = new Point(pageInfo.ClientSize.Width - 178, 10),
+			Anchor = AnchorStyles.Top | AnchorStyles.Right,
 			BackColor = Color.FromArgb(28, 82, 137),
 			ForeColor = Color.White,
 			FlatStyle = FlatStyle.Flat
@@ -1093,32 +1071,8 @@ public class PlayerForm : Form
 					ReloadPlayer(m_CurrentPlayer);
 			}
 		};
-		m_Fc26PlayerToolsPanel.Controls.Add(m_TransfermarktButton);
-		AddFc26PlayerToolButton("Player ID & Names", 79, () => MainForm.CM?.ShowFc26ModdingUtilities());
-		AddFc26PlayerToolButton("Transfer / Loan / Roster", 115, () => MainForm.CM?.ShowFc26RosterTools());
-		AddFc26PlayerToolButton("Miniface & Face Tools", 151, () => MainForm.CM?.ShowFc26FaceTools());
-		AddFc26PlayerToolButton("Batch Player Editor", 187, () => MainForm.CM?.ShowFc26BatchPlayerEditor());
-		AddFc26PlayerToolButton("Visual Asset Manager", 223, () => MainForm.CM?.ShowFc26AssetManager());
-		pageInfo.Controls.Add(m_Fc26PlayerToolsPanel);
-		m_Fc26PlayerToolsPanel.BringToFront();
+		pageInfo.Controls.Add(m_TransfermarktButton);
 		m_TransfermarktButton.BringToFront();
-	}
-
-	private void AddFc26PlayerToolButton(string text, int top, Action action)
-	{
-		var button = new Button
-		{
-			Text = text,
-			Size = new Size(207, 30),
-			Location = new Point(13, top),
-			FlatStyle = FlatStyle.Flat,
-			BackColor = Color.White,
-			ForeColor = Color.FromArgb(15, 65, 110)
-		};
-		button.FlatAppearance.BorderColor = Color.FromArgb(120, 165, 200);
-		button.Click += (_, _) => action();
-		m_Fc26PlayerToolsPanel.Controls.Add(button);
-		button.BringToFront();
 	}
 
 	private Player CreatePlayer(object sender, object obj)

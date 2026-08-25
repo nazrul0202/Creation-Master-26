@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.159 - in-section classic integration (2026-08-25)
+
+- Removed the global Direct Tools bar and floating Player Tools panel introduced in v1.0.158.
+- Embedded the implemented DBM Studio, RDM26 and Deco-derived workflows as tabs/panels owned by their relevant original CM26 sections.
+- Player now owns identity/names, face/miniface and batch-player workflows; Team/Formation/Country own roster and national-team workflows; League/Competition own their advanced data tools; asset editors own context-filtered Frostbite asset libraries.
+- Embedded modules use the existing CM26 staged validation, backup and direct-save path and do not open separate workflow windows from the section tabs.
+
 ## Version 1.0.158 - visible classic-interface integration (2026-08-25)
 
 - Added a permanently visible CM26 Direct Tools bar to every classic editor screen.

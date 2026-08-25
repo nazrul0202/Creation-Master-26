@@ -1,6 +1,6 @@
 {
-  "version": "1.0.158",
+  "version": "1.0.159",
   "name": "Creation Master 26",
-  "notes": "v1.0.158 - exposes the integrated DBM Studio, RDM26 and Deco-derived workflows directly in the classic CM26 interface and Player Editor.",
+  "notes": "v1.0.159 - embeds the implemented DBM Studio, RDM26 and Deco-derived workflows inside their matching classic CM26 editor sections.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

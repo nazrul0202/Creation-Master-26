@@ -100,7 +100,7 @@ internal sealed class Fc26AssetManagerForm : Form
         new LegacyFamily("Custom verified path", new[] { "data/ui/imgassets/" })
     };
 
-    internal Fc26AssetManagerForm()
+    internal Fc26AssetManagerForm(string initialFamily = null)
     {
         Text = "FC26 Visual Asset Manager";
         StartPosition = FormStartPosition.CenterParent;
@@ -118,6 +118,15 @@ internal sealed class Fc26AssetManagerForm : Form
         _status.Text = "Asset changes are staged. File > Save validates, backs up and commits them directly to FC26.";
         Controls.Add(tabs);
         Controls.Add(_status);
+        if (!string.IsNullOrWhiteSpace(initialFamily))
+        {
+            for (var i = 0; i < _family.Items.Count; i++)
+            {
+                if (_family.Items[i].ToString().IndexOf(initialFamily, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                _family.SelectedIndex = i;
+                break;
+            }
+        }
     }
 
     private TabPage CreateDirectPage()
