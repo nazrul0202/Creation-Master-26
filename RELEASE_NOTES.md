@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.161 - classic-section-only public workflow (2026-08-25)
+
+- Removed every remaining public shortcut to standalone specialist windows.
+- The Project Launcher now opens only FC26 sources and CM26 project sessions.
+- Player, team, roster, country, league, competition and visual-asset editing remains in the original CM26 sections through mapped football controls.
+- Added automated guards against exposing raw database/ID/hash/XML utilities or separate specialist launch actions.
+
 ## Version 1.0.160 - mapped CM26 interface correction (2026-08-25)
 
 - Removed the raw database grids and whole-form embeddings introduced in v1.0.159.

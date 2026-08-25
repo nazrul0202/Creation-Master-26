@@ -350,26 +350,8 @@ public class MainForm : Form
 		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 4), saveSession);
 		var healthCentre = new ToolStripMenuItem("FC26 Database Health Centre...");
 		healthCentre.Click += (_, _) => ShowFc26HealthCentre();
-		var assetManager = new ToolStripMenuItem("FC26 Visual Asset Manager...");
-		assetManager.Click += (_, _) => ShowFc26AssetManager();
-		var compdataEditor = new ToolStripMenuItem("FC26 Competition / Compdata Editor...");
-		compdataEditor.Click += (_, _) => ShowFc26CompdataEditor();
-		var batchPlayers = new ToolStripMenuItem("FC26 Batch Player Editor...");
-		batchPlayers.Click += (_, _) => ShowFc26BatchPlayerEditor();
-		var faceTools = new ToolStripMenuItem("FC26 Miniface & Face Tools...");
-		faceTools.Click += (_, _) => ShowFc26FaceTools();
-		var rosterTools = new ToolStripMenuItem("FC26 Roster, National Team & Youth Tools...");
-		rosterTools.Click += (_, _) => ShowFc26RosterTools();
-		var careerTools = new ToolStripMenuItem("FC26 Career Save Module...");
-		careerTools.Click += (_, _) => ShowFc26CareerSaveModule();
 		menuTools.DropDownItems.Add(new ToolStripSeparator());
 		menuTools.DropDownItems.Add(healthCentre);
-		menuTools.DropDownItems.Add(assetManager);
-		menuTools.DropDownItems.Add(compdataEditor);
-		menuTools.DropDownItems.Add(batchPlayers);
-		menuTools.DropDownItems.Add(faceTools);
-		menuTools.DropDownItems.Add(rosterTools);
-		menuTools.DropDownItems.Add(careerTools);
 		buttonSponsor.Visible = true;
 		buttonTv.Visible = true;
 		m_SplitterDistanceBottom = splitHoriz.Height * 2 / 3;
@@ -385,8 +367,7 @@ public class MainForm : Form
 	{
 		using (var launcher = new Fc26ProjectLauncherForm(
 			() => menuOpenFifa16_Click(this, EventArgs.Empty), OpenExtractedFc26Database,
-			OpenFc26ProjectSession, SaveFc26ProjectSession, OpenExtractedFc26Database,
-			ShowFc26RosterTools, ShowFc26CareerSaveModule, ShowFc26CompdataEditor))
+			OpenFc26ProjectSession, SaveFc26ProjectSession))
 		{
 			var result = launcher.ShowDialog(this);
 			if (result == DialogResult.Retry && launcher.Tag is string recentPath)

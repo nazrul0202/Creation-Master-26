@@ -178,8 +178,26 @@ internal static class Program
 						throw new InvalidDataException("Raw/embedded section remains visible: " + forbidden);
 				}
 				if (ContainsMenuText(main.MainMenuStrip?.Items, "Advanced Database Workspace") ||
-					ContainsMenuText(main.MainMenuStrip?.Items, "Internal Utilities"))
-					throw new InvalidDataException("A raw database/internal utility entry is still exposed in the public menu.");
+					ContainsMenuText(main.MainMenuStrip?.Items, "Internal Utilities") ||
+					ContainsMenuText(main.MainMenuStrip?.Items, "Visual Asset Manager") ||
+					ContainsMenuText(main.MainMenuStrip?.Items, "Compdata Editor") ||
+					ContainsMenuText(main.MainMenuStrip?.Items, "Batch Player Editor") ||
+					ContainsMenuText(main.MainMenuStrip?.Items, "Miniface & Face Tools") ||
+					ContainsMenuText(main.MainMenuStrip?.Items, "Roster, National Team") ||
+					ContainsMenuText(main.MainMenuStrip?.Items, "Career Save Module"))
+					throw new InvalidDataException("A raw or separate specialist editor is still exposed in the public menu.");
+				using (var launcher = new Fc26ProjectLauncherForm(() => { }, () => { }, () => { }, () => { }))
+				{
+					foreach (var forbiddenLauncherAction in new[]
+					{
+						"Database + localization", "Squads / roster",
+						"Manager / Player Career", "Tournament / Compdata"
+					})
+					{
+						if (ContainsControlText(launcher, forbiddenLauncherAction))
+							throw new InvalidDataException("A separate specialist launcher action remains visible: " + forbiddenLauncherAction);
+					}
+				}
 				if (!ContainsControlText(main.m_TeamForm, "Club Relations") ||
 					!ContainsControlText(main.m_PlayerForm, "Career Details") ||
 					!ContainsControlText(main.m_CountryForm, "Association Details") ||

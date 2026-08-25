@@ -1,3 +1,9 @@
+Creation Master 26 v1.0.161 - 25 August 2026
+
+- Removed the remaining standalone specialist editor entries from Tools and Project Launcher.
+- Kept public editing inside the original mapped Player, Team, Country, League, Competition and asset sections.
+- Added a release test that fails if raw utilities or separate specialist launch actions return.
+
 Creation Master 26 v1.0.160 - 25 August 2026
 
 - Removed every v1.0.159 embedded raw-form tab and restored the original CM26 section dimensions.

@@ -1,5 +1,11 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.161 - classic-section-only public workflow (2026-08-25)
+
+- Public Tools and Project Launcher no longer expose standalone specialist editors.
+- All visible editing stays in mapped classic CM26 sections; raw database/ID/hash/XML fields remain internal.
+- Automated UI guard covers forbidden raw utilities, specialist shortcuts, embedded forms and miniface dimensions.
+
 ## Version 1.0.160 - mapped CM26 interface correction (2026-08-25)
 
 - **PASS:** no raw database workspace, ID/hash/XML utility or embedded full-form tab is exposed in the public classic interface.

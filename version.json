@@ -1,6 +1,6 @@
 {
-  "version": "1.0.160",
+  "version": "1.0.161",
   "name": "Creation Master 26",
-  "notes": "v1.0.160 - restores the native CM26 section layouts and exposes only friendly, mapped football controls in the public interface.",
+  "notes": "v1.0.161 - removes every remaining separate specialist entry point so the public workflow stays inside mapped classic CM26 sections.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
