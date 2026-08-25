@@ -461,15 +461,16 @@ internal static class Program
 
         try
         {
-            // The feature-complete x64 database Studio is the public interface.
-            // Both CM16-compatible shells remain available only through explicit
-            // switches; they must never hide the implemented database, asset,
-            // transfer, validation and modding workspaces during a normal launch.
+            // Preserve the familiar Creation Master / CM16 desktop as CM26's public
+            // interface.  Its FC26 commands call back into this x64 host for direct
+            // Frostbite database and asset work.  The newer internal Studio remains
+            // available only through an explicit switch for diagnostics/development.
             var legacyExe = Path.Combine(AppContext.BaseDirectory, "CM26.LegacyUI", "CM26.LegacyUI.exe");
-            var useClassicShell = args.Length >= 1 &&
-                (args[0].Equals("--classic", StringComparison.OrdinalIgnoreCase) ||
-                 args[0].Equals("--legacy-ui", StringComparison.OrdinalIgnoreCase));
-            if (useClassicShell && File.Exists(legacyExe))
+            var useInternalStudio = args.Length >= 1 &&
+                args[0].Equals("--studio", StringComparison.OrdinalIgnoreCase);
+            var useWpfCompatibility = args.Length >= 1 &&
+                args[0].Equals("--cm16-studio", StringComparison.OrdinalIgnoreCase);
+            if (!useInternalStudio && !useWpfCompatibility && !isStudioSmoke && File.Exists(legacyExe))
             {
                 using var legacy = Process.Start(new ProcessStartInfo
                 {
@@ -480,8 +481,7 @@ internal static class Program
                 });
                 legacy?.WaitForExit();
             }
-            else if (args.Length >= 1 &&
-                     args[0].Equals("--cm16-studio", StringComparison.OrdinalIgnoreCase))
+            else if (useWpfCompatibility)
             {
                 var studio = new CM26.Studio.App();
                 studio.InitializeForHost();
@@ -489,9 +489,9 @@ internal static class Program
             }
             else
             {
-                // A normal folder argument starts the portable Studio with that
-                // extracted database already loaded.
-                var initialDatabaseFolder = args.Length == 1 && Directory.Exists(args[0]) ? args[0] : null;
+                var initialDatabaseFolder = args.Length >= 2 &&
+                    args[0].Equals("--studio", StringComparison.OrdinalIgnoreCase) &&
+                    Directory.Exists(args[1]) ? args[1] : null;
                 using var mainForm = new MainForm(initialDatabaseFolder);
                 if (isStudioSmoke)
                 {

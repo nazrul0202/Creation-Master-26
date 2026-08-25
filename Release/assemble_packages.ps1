@@ -57,6 +57,7 @@ $vcrt = @('msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')
 
 # Shared documentation set (main docs at repo root, reports under docs/reports).
 $rootDocs = @('README.md', 'INSTALLATION.md', 'RELEASE_NOTES.md',
+              'CHANGELOG.txt', 'IMPLEMENTATION_STATUS.md', 'BUILD_INFO.txt',
               'KNOWN_LIMITATIONS.md', 'THIRD_PARTY_NOTICES.md',
               'LICENSE', 'EULA.md', 'version.json',
               'docs\reports\ASSET_INVENTORY.md', 'docs\reports\ASSET_SUPPORT_MATRIX.md',

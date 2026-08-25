@@ -297,7 +297,6 @@ public sealed class DashboardSection : SectionBase
         flow.Controls.Add(ActionButton("Browse players", StudioColors.Green, () => Services.RequestNavigation("players")));
         flow.Controls.Add(ActionButton("Browse teams", StudioColors.CyanAccent, () => Services.RequestNavigation("teams")));
         flow.Controls.Add(ActionButton("Data sync", StudioColors.Purple, () => Services.RequestNavigation("transfers")));
-        flow.Controls.Add(ActionButton("Mod manager", StudioColors.Yellow, () => Services.RequestNavigation("modmanager")));
         flow.Controls.Add(ActionButton("Validate database", StudioColors.Green, ValidateDatabase));
         flow.Controls.Add(ActionButton("Settings", StudioColors.MutedText, () => Services.RequestNavigation("settings")));
 

@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.151 - original CM interface with integrated database workspace (2026-08-25)
+
+- Restored the v1.0.148 Creation Master / CM16-style desktop as the interface opened by a normal launch; the modern x64 Studio is now an explicit internal `--studio` surface.
+- Added **Tools > FC26 Advanced Database Workspace** directly to the original interface with all-table browsing, accent-insensitive search, sortable columns, rectangular copy/paste, bulk replace and TSV import/export.
+- Added dependency-impact preview and transactional reference replacement across FC26 snapshot tables. Every edit is staged into the same validated change plan used by **File > Save**.
+- Kept automatic backup, pre-save validation, direct Frostbite commit, rollback/restore and the Database Health Centre on the existing safe save path.
+- Removed FIFA Mod Manager export and mod-manager navigation from the internal Studio's primary workflow; CM26 remains a direct Frostbite editor.
+- Retained the working player, team, roster, formation, competition, asset preview/import, career-budget and integrity tools already integrated from the three audited references.
+
 ## Version 1.0.150 - Direct Frostbite Studio and complete workflow access (2026-08-25)
 
 - Changed the normal public launch to the feature-complete x64 Direct Frostbite Studio; the two CM16 compatibility shells now require explicit command-line switches.

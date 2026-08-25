@@ -333,9 +333,12 @@ public class MainForm : Form
 	public MainForm()
 	{
 		InitializeComponent();
+		var databaseWorkspace = new ToolStripMenuItem("FC26 Advanced Database Workspace...");
+		databaseWorkspace.Click += (_, _) => ShowFc26DatabaseWorkspace();
 		var healthCentre = new ToolStripMenuItem("FC26 Database Health Centre...");
 		healthCentre.Click += (_, _) => ShowFc26HealthCentre();
 		menuTools.DropDownItems.Add(new ToolStripSeparator());
+		menuTools.DropDownItems.Add(databaseWorkspace);
 		menuTools.DropDownItems.Add(healthCentre);
 		buttonSponsor.Visible = true;
 		buttonTv.Visible = true;
@@ -346,6 +349,18 @@ public class MainForm : Form
 		CM = this;
 		EnablePanels(enable: false);
 		EnableMenus();
+	}
+
+	private void ShowFc26DatabaseWorkspace()
+	{
+		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
+		{
+			MessageBox.Show(this, "Open FC26 first.", "Advanced Database Workspace",
+				MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		using (var workspace = new Fc26DatabaseWorkspaceForm())
+			workspace.ShowDialog(this);
 	}
 
 	private void ShowFc26HealthCentre()

@@ -19,7 +19,7 @@ public sealed class ComprehensiveToolsSection : SectionBase
     private static readonly Module[] Modules =
     [
         new(1, "A. Database & Project Core", "Project Launcher", "$open-game", "Installed FC26, extracted databases and recent sources"),
-        new(2, "A. Database & Project Core", "Direct Frostbite Workflow", "modmanager", "Stage, validate, backup, direct save, restore and mod output"),
+        new(2, "A. Database & Project Core", "Direct Frostbite Workflow", "$direct-save", "Stage, validate, backup, direct save and restore"),
         new(3, "A. Database & Project Core", "Advanced Database Workspace", "browser", "All tables, filters, bulk edit, compare and import/export"),
         new(4, "A. Database & Project Core", "Dependency-Aware Editing", "browser", "Impact preview, linked names and transactional reference repair"),
         new(5, "B. Player Management", "Complete Player Editor", "players", "Create, clone, delete, import, attributes, roles and appearance"),
@@ -178,6 +178,7 @@ public sealed class ComprehensiveToolsSection : SectionBase
     {
         if (sender is not Button { Tag: Module module }) return;
         if (module.Route == "$open-game") Services.RequestOpenGame();
+        else if (module.Route == "$direct-save") Services.RequestSaveDraft();
         else Services.RequestNavigation(module.Route);
     }
 }

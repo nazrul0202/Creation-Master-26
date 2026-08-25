@@ -1,0 +1,11 @@
+Product: Creation Master 26
+Version: 1.0.151
+Configuration: Release
+Release date: 2026-08-25
+Public interface: Original Creation Master / CM16-style WinForms shell
+Legacy UI target: .NET Framework 4.8, x86
+FC26 host target: .NET 8 Windows, x64
+Save model: Validated direct Frostbite Data/Patch editing with automatic backup
+Baseline retained: v1.0.148 Full Portable design and workflow
+Source repository: https://github.com/nazrul0202/Creation-Master-26
+EA game content included: No

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.150",
+  "version": "1.0.151",
   "name": "Creation Master 26",
-  "notes": "v1.0.150 - launches the feature-complete Direct Frostbite Studio by default and exposes all 38 accepted workflows from Comprehensive Tools.",
+  "notes": "v1.0.151 - restores the original Creation Master interface as the default and integrates an advanced FC26 database and dependency workspace into it.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

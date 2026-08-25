@@ -248,6 +248,16 @@ internal static class Fc26SnapshotLoader
         return table == null ? null : new SnapshotDetailTable(table.Name, table.Columns, table.Rows);
     }
 
+    internal static IReadOnlyList<string> DetailTableNames => s_snapshot?.Tables
+        .Select(table => table.Name)
+        .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+        .ToArray() ?? Array.Empty<string>();
+
+    internal static int PendingDetailCount => s_detailChanges.Count;
+
+    internal static bool IsDetailChanged(string tableName, int rowIndex, string fieldName) =>
+        s_detailChanges.ContainsKey(tableName + "\u001f" + rowIndex.ToString(CultureInfo.InvariantCulture) + "\u001f" + fieldName);
+
     internal static void StageDetailValue(string tableName, int rowIndex, string fieldName, string value)
     {
         var table = s_snapshot?.Tables.FirstOrDefault(candidate =>

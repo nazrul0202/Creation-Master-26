@@ -1,0 +1,11 @@
+Creation Master 26 v1.0.151 - 25 August 2026
+
+- Restored the original Creation Master / CM16-style interface as the normal launcher.
+- Added an FC26 Advanced Database Workspace to the original Tools menu.
+- Added all-table browsing, filtering, sorting, copy/paste, bulk replace and TSV exchange.
+- Added dependency impact preview and safe reference replacement across linked tables.
+- Routed workspace changes through CM26's existing validation, backup and direct Frostbite save pipeline.
+- Retained the integrated player, roster, formation, team, competition, asset and career-budget tools.
+- Removed FIFA Mod Manager export from the primary workflow. Use File > Save for direct FC26 editing.
+
+This package contains no EA game content and requires the user's own installed FC26 files.

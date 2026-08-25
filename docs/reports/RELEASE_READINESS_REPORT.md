@@ -1,6 +1,11 @@
 ﻿# CM26 Release Readiness Report
 
-## Version 1.0.150 - Direct Frostbite Studio and comprehensive workflow hub (2026-08-25)
+## Version 1.0.151 - original Creation Master shell integration (2026-08-25)
+
+- Normal launch opens the original Creation Master / CM16-style interface retained from v1.0.148.
+- The original Tools menu now contains the FC26 Advanced Database Workspace and Database Health Centre.
+- Workspace edits use the existing validated, backed-up direct Frostbite save plan; dependency replacement is previewed before staging.
+- Release and Legacy UI builds complete successfully. Full/Lite package self-tests remain the release assembly gate.
 
 - **PASS:** normal launch opens the feature-complete x64 Direct Frostbite Studio; the CM16 compatibility shell is only available with `--cm16-studio`, `--classic` or `--legacy-ui`.
 - **PASS:** Comprehensive Tools contains every accepted module number 1-38 exactly once and every card targets a registered operational editor, validator or launcher.
