@@ -76,6 +76,9 @@ public sealed class MainForm : Form
         var toolsMenu = new ToolStripMenuItem("Tools");
         toolsMenu.DropDownItems.Add("Database Browser", null, (_, _) => NavigateTo("browser"));
         toolsMenu.DropDownItems.Add("Diagnostics", null, (_, _) => NavigateTo("diagnostics"));
+        toolsMenu.DropDownItems.Add(new ToolStripSeparator());
+        toolsMenu.DropDownItems.Add("Undo Last Complete Operation", null, (_, _) => UndoCompleteOperation());
+        toolsMenu.DropDownItems.Add("Redo Last Complete Operation", null, (_, _) => RedoCompleteOperation());
         var patchMenu = new ToolStripMenuItem("Patch");
         patchMenu.DropDownItems.Add("Validate staged changes", null, (_, _) => ValidateAll());
         var helpMenu = new ToolStripMenuItem("Help");
@@ -1031,6 +1034,26 @@ if (choice == DialogResult.No)
                 s.ActivateSection();
         }
         else SetStatus("Nothing to undo.");
+    }
+
+    private void UndoCompleteOperation()
+    {
+        if (_services.Pending.UndoLastOperation())
+        {
+            SetStatus("Undid the last complete scalar operation.");
+            if (_activeKey != null && _sections.TryGetValue(_activeKey, out var section)) section.ActivateSection();
+        }
+        else SetStatus("No complete scalar operation is available to undo.");
+    }
+
+    private void RedoCompleteOperation()
+    {
+        if (_services.Pending.RedoLastOperation())
+        {
+            SetStatus("Restored the last complete scalar operation.");
+            if (_activeKey != null && _sections.TryGetValue(_activeKey, out var section)) section.ActivateSection();
+        }
+        else SetStatus("No complete scalar operation is available to redo.");
     }
 
     private void Redo()

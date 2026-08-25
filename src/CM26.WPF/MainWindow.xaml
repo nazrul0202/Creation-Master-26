@@ -54,6 +54,9 @@
 
             <!-- ===== Tools (CM16 menuTools - 31 items, hidden ones omitted) ===== -->
             <MenuItem x:Name="MenuTools" Header="_Tools">
+                <MenuItem Header="Undo Last Complete Operation" Click="MenuTool_Click" Tag="undo-operation" />
+                <MenuItem Header="Redo Last Complete Operation" Click="MenuTool_Click" Tag="redo-operation" />
+                <Separator />
                 <MenuItem Header="Enable all messages" IsEnabled="False" Click="MenuTool_Click" Tag="enable-messages">
                     <MenuItem.Icon>
                         <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuEnableAllMessages_Image.png" Width="16" Height="16" />

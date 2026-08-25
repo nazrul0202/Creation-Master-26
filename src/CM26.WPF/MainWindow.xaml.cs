@@ -388,6 +388,17 @@ public partial class MainWindow : Window
             StatusBarText.Text = "Database closed.";
             return;
         }
+        if (key == "undo-operation" || key == "redo-operation")
+        {
+            var changed = key == "undo-operation"
+                ? _session.Pending.UndoLastOperation()
+                : _session.Pending.RedoLastOperation();
+            StatusBarText.Text = changed
+                ? (key == "undo-operation" ? "Complete operation undone." : "Complete operation restored.")
+                : "No complete scalar operation is available.";
+            if (changed && _activeSectionKey != null) ShowSection(_activeSectionKey);
+            return;
+        }
 
         var result = RunDbTool(key);
         if (result == null) return; // handled by UI state, nothing to report

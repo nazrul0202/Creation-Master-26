@@ -43,6 +43,7 @@ public static class DbToolsService
     {
         var loans = session.GetTable("playerloans");
         if (loans == null) return NotLoaded();
+        using var operation = pending.BeginOperation("Extend contracts beyond loan end dates");
         var updated = 0;
         for (var row = 0; row < loans.RowCount; row++)
         {
@@ -58,6 +59,7 @@ public static class DbToolsService
             if (!outcome.Success) return new ToolRunResult(false, outcome.Message);
             updated++;
         }
+        operation.Commit();
         return new ToolRunResult(true, updated == 0
             ? "No loaned players needed a contract extension."
             : $"Set contract end (loan end + 1 year) for {updated} loaned player(s).");
@@ -117,6 +119,7 @@ public static class DbToolsService
         var nations = session.GetTable("nations");
         var players = session.GetTable("players");
         if (nations == null || players == null) return NotLoaded();
+        using var operation = pending.BeginOperation("Apply country player-name rules");
         var targetNations = new HashSet<int>();
         for (var row = 0; row < nations.RowCount; row++)
         {
@@ -141,6 +144,7 @@ public static class DbToolsService
             if (!outcome.Success) return new ToolRunResult(false, outcome.Message);
             simplified++;
         }
+        operation.Commit();
         return new ToolRunResult(true, simplified == 0
             ? "No England/Scotland player needed a name simplification."
             : $"Set the jersey name to the common name for {simplified} England/Scotland player(s).");
@@ -150,6 +154,7 @@ public static class DbToolsService
     {
         var names = session.GetTable("playernames");
         if (names == null) return NotLoaded();
+        using var operation = pending.BeginOperation("Reset commentary name IDs");
         var reset = 0;
         for (var row = 0; row < names.RowCount; row++)
         {
@@ -158,6 +163,7 @@ public static class DbToolsService
             if (!outcome.Success) return new ToolRunResult(false, outcome.Message);
             reset++;
         }
+        operation.Commit();
         return new ToolRunResult(true, reset == 0
             ? "Commentary IDs are already at the default."
             : $"Reset commentary IDs to {DefaultCommentaryId} for {reset} player name(s).");
@@ -203,6 +209,7 @@ public static class DbToolsService
         var players = session.GetTable("players");
         var teams = session.GetTable("teams");
         if (sheets == null || players == null || teams == null) return NotLoaded();
+        using var operation = pending.BeginOperation("Repair missing team-sheet players");
         var playerIds = ReadIdSet(session, players, "playerid");
         var teamIds = ReadIdSet(session, teams, "teamid");
         var fixedCells = 0;
@@ -220,6 +227,7 @@ public static class DbToolsService
                 fixedCells++;
             }
         }
+        operation.Commit();
         return new ToolRunResult(true, fixedCells == 0
             ? "Default team sheets contain no missing player references."
             : $"Cleared {fixedCells} missing player reference(s) from default team sheets.");
@@ -229,6 +237,7 @@ public static class DbToolsService
     {
         var links = session.GetTable("teamplayerlinks");
         if (links == null || links.FindColumn("jerseynumber")?.IsWritable != true) return NotLoaded();
+        using var operation = pending.BeginOperation("Assign unique jersey numbers");
         var byTeam = new Dictionary<int, List<int>>();
         for (var row = 0; row < links.RowCount; row++)
         {
@@ -253,6 +262,7 @@ public static class DbToolsService
                 changed++;
             }
         }
+        operation.Commit();
         return new ToolRunResult(true, changed == 0
             ? "All club squads already use unique valid jersey numbers."
             : $"Assigned {changed} unique jersey number(s) across club squads.");
