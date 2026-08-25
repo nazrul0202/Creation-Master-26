@@ -459,11 +459,6 @@ public class MainForm : Form
 		using (var editor = new Fc26BatchPlayerForm()) editor.ShowDialog(this);
 	}
 
-	private void ShowFc26CompdataEditor()
-	{
-		using (var editor = new Fc26CompdataForm()) editor.ShowDialog(this);
-	}
-
 	internal void ShowFc26AssetManager()
 	{
 		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)

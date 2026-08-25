@@ -72,25 +72,15 @@ public class TeamForm : Form
 
 	private GroupBox groupFc26Honours;
 
-	private CareerBudgetEditor m_Fc26CareerBudgetEditor;
-
 	private GroupBox groupFc26CareerBudget;
 
+	private GroupBox groupFc26MatchdayPresentation;
+
+	private Label labelFc26ClubWorthValue;
+
+	private Label labelFc26TransferBudgetValue;
+
 	private Label labelFc26CareerBudgetStatus;
-
-	private NumericUpDown numericFc26CareerTransferBudget;
-
-	private NumericUpDown numericFc26CareerStartBudget;
-
-	private Button buttonFc26OpenCareer;
-
-	private Button buttonFc26LoadLatestCareer;
-
-	private Button buttonFc26SaveCareerBudget;
-
-	private bool m_Fc26CareerBudgetBusy;
-
-	private bool m_Fc26CareerAutoLoadAttempted;
 
 	private ComboBox comboTraitContext;
 
@@ -892,6 +882,7 @@ public class TeamForm : Form
 		m_WebPlayerTable.Columns.Add("previousteam");
 		m_WebPlayerTable.Columns.Add("loanedfrom");
 		m_WebPlayerTable.Columns.Add("loanenddate");
+		EnsureFc26TeamUi();
 	}
 
 	private void tableEditTeam_SelectedIndexChanged(object sender, EventArgs e)
@@ -1167,6 +1158,20 @@ public class TeamForm : Form
 			team.objective = m_CurrentTeam.objective;
 			team.previousyeartableposition = m_CurrentTeam.previousyeartableposition;
 			team.transferbudget = m_CurrentTeam.transferbudget;
+			team.clubworth = m_CurrentTeam.clubworth;
+			team.gender = m_CurrentTeam.gender;
+			team.ethnicity = m_CurrentTeam.ethnicity;
+			team.crowdskintonecode = m_CurrentTeam.crowdskintonecode;
+			team.hasvikingclap = m_CurrentTeam.hasvikingclap;
+			team.isbannerenabled = m_CurrentTeam.isbannerenabled;
+			team.hastifo = m_CurrentTeam.hastifo;
+			team.hasstandingcrowd = m_CurrentTeam.hasstandingcrowd;
+			team.iscompetitioncrowdcardsenabled = m_CurrentTeam.iscompetitioncrowdcardsenabled;
+			team.iscompetitionpoleflagenabled = m_CurrentTeam.iscompetitionpoleflagenabled;
+			team.iscompetitionscarfenabled = m_CurrentTeam.iscompetitionscarfenabled;
+			team.haslargeflag = m_CurrentTeam.haslargeflag;
+			team.hassubstitutionboard = m_CurrentTeam.hassubstitutionboard;
+			team.skinnyflags = m_CurrentTeam.skinnyflags;
 		}
 		DialogResult dialogResult2 = FifaEnvironment.UserMessages.ShowMessage(15);
 		if (dialogResult2 != DialogResult.No && dialogResult2 != DialogResult.Cancel)
@@ -1290,7 +1295,7 @@ public class TeamForm : Form
 
 	private void EnsureFc26TeamUi()
 	{
-		if (m_Fc26TeamUiConfigured || FifaEnvironment.Year != 26) return;
+		if (m_Fc26TeamUiConfigured) return;
 		m_Fc26TeamUiConfigured = true;
 
 		// FC26 keeps three trait masks. Reuse the familiar CM16 check boxes, add
@@ -1364,6 +1369,7 @@ public class TeamForm : Form
 		comboProbObjective.Visible = labelProbObjective.Visible = false;
 		ConfigureFc26ClubRecordUi();
 		ConfigureFc26CareerBudgetUi();
+		ConfigureFc26MatchdayPresentationUi();
 
 		ConfigureFc26RosterFormationUi();
 		ConfigureFc26PlayerCreationUi();
@@ -1466,6 +1472,7 @@ public class TeamForm : Form
 	{
 		if (FifaEnvironment.Year != 26 || m_CurrentTeam == null) return;
 		teamBindingSource.ResetBindings(metadataChanged: false);
+		RefreshFc26CareerBudgetUi();
 	}
 
 	private void ConfigureFc26PlayerCreationUi()
@@ -1489,224 +1496,132 @@ public class TeamForm : Form
 		groupFc26CareerBudget = new GroupBox
 		{
 			Name = "groupFc26CareerBudget",
-			Text = "Career Transfer Budget",
-			Size = new Size(540, 213),
+			Text = "Career Money (Dollars)",
+			Size = new Size(300, 126),
 			TabStop = false
 		};
-
+		var clubWorthLabel = new Label
+		{
+			Text = "Club Worth",
+			Location = new Point(14, 25),
+			Size = new Size(110, 21),
+			TextAlign = ContentAlignment.MiddleLeft
+		};
+		labelFc26ClubWorthValue = new Label
+		{
+			Location = new Point(126, 25), Size = new Size(158, 21),
+			TextAlign = ContentAlignment.MiddleRight, Font = new Font(Font, FontStyle.Bold)
+		};
+		var transferBudgetLabel = new Label
+		{
+			Text = "Transfer Budget",
+			Location = new Point(14, 52), Size = new Size(110, 21),
+			TextAlign = ContentAlignment.MiddleLeft
+		};
+		labelFc26TransferBudgetValue = new Label
+		{
+			Location = new Point(126, 52), Size = new Size(158, 21),
+			TextAlign = ContentAlignment.MiddleRight, Font = new Font(Font, FontStyle.Bold)
+		};
 		labelFc26CareerBudgetStatus = new Label
 		{
-			Location = new Point(14, 20),
-			Size = new Size(506, 34),
-			ForeColor = Color.DarkSlateBlue,
-			BackColor = Color.Transparent
+			Text = "Information only — edited through the club database.",
+			Location = new Point(14, 82), Size = new Size(270, 30),
+			ForeColor = Color.DimGray, BackColor = Color.Transparent
 		};
-		var currentBudgetLabel = new Label
-		{
-			Text = "Current Transfer Budget",
-			Location = new Point(14, 60),
-			Size = new Size(165, 21),
-			TextAlign = ContentAlignment.MiddleLeft
-		};
-		numericFc26CareerTransferBudget = CreateFc26BudgetControl(new Point(184, 58));
-		var startBudgetLabel = new Label
-		{
-			Text = "Start-of-season Budget",
-			Location = new Point(14, 91),
-			Size = new Size(165, 21),
-			TextAlign = ContentAlignment.MiddleLeft
-		};
-		numericFc26CareerStartBudget = CreateFc26BudgetControl(new Point(184, 89));
-		buttonFc26OpenCareer = new Button
-		{
-			Text = "Open Career Save...",
-			Location = new Point(354, 57),
-			Size = new Size(166, 27)
-		};
-		buttonFc26LoadLatestCareer = new Button
-		{
-			Text = "Load Latest Career",
-			Location = new Point(354, 88),
-			Size = new Size(166, 27)
-		};
-		buttonFc26SaveCareerBudget = new Button
-		{
-			Text = "Save Budget + Backup",
-			Location = new Point(354, 119),
-			Size = new Size(166, 27)
-		};
-		var hint = new Label
-		{
-			Text = "Budget is stored in the Career save, separate from this team's Club Worth. A timestamped .bak file is created before every save.",
-			Location = new Point(14, 154),
-			Size = new Size(506, 43),
-			ForeColor = Color.DimGray,
-			BackColor = Color.Transparent
-		};
-
-		buttonFc26OpenCareer.Click += OpenFc26CareerBudget_Click;
-		buttonFc26LoadLatestCareer.Click += LoadLatestFc26CareerBudget_Click;
-		buttonFc26SaveCareerBudget.Click += SaveFc26CareerBudget_Click;
+		groupFc26CareerBudget.Controls.Add(clubWorthLabel);
+		groupFc26CareerBudget.Controls.Add(labelFc26ClubWorthValue);
+		groupFc26CareerBudget.Controls.Add(transferBudgetLabel);
+		groupFc26CareerBudget.Controls.Add(labelFc26TransferBudgetValue);
 		groupFc26CareerBudget.Controls.Add(labelFc26CareerBudgetStatus);
-		groupFc26CareerBudget.Controls.Add(currentBudgetLabel);
-		groupFc26CareerBudget.Controls.Add(numericFc26CareerTransferBudget);
-		groupFc26CareerBudget.Controls.Add(startBudgetLabel);
-		groupFc26CareerBudget.Controls.Add(numericFc26CareerStartBudget);
-		groupFc26CareerBudget.Controls.Add(buttonFc26OpenCareer);
-		groupFc26CareerBudget.Controls.Add(buttonFc26LoadLatestCareer);
-		groupFc26CareerBudget.Controls.Add(buttonFc26SaveCareerBudget);
-		groupFc26CareerBudget.Controls.Add(hint);
 		flowPanelTeamGeneric.Controls.Add(groupFc26CareerBudget);
 		RefreshFc26CareerBudgetUi();
-		BeginInvoke(new Action(AutoLoadLatestFc26CareerBudget));
 	}
 
-	private static NumericUpDown CreateFc26BudgetControl(Point location)
+	private void ConfigureFc26MatchdayPresentationUi()
 	{
-		return new NumericUpDown
+		groupFc26MatchdayPresentation = new GroupBox
 		{
-			Location = location,
-			Size = new Size(151, 20),
-			Minimum = 0m,
-			Maximum = 2147483520m,
-			ThousandsSeparator = true,
-			TextAlign = HorizontalAlignment.Right
+			Name = "groupFc26MatchdayPresentation", Text = "Matchday Presentation",
+			Size = new Size(300, 326), TabStop = false
 		};
+		AddFc26ChoiceField(groupFc26MatchdayPresentation, "Team", "gender", 24,
+			new object[] { "Men", "Women" });
+		AddFc26NumberField(groupFc26MatchdayPresentation, "Supporter Profile", "ethnicity", 51, 1, 11);
+		AddFc26NumberField(groupFc26MatchdayPresentation, "Crowd Appearance", "crowdskintonecode", 78, 0, 64);
+		AddFc26PresentationCheck(groupFc26MatchdayPresentation, "Viking Clap", "hasvikingclap", 110, 10);
+		AddFc26PresentationCheck(groupFc26MatchdayPresentation, "Banners", "isbannerenabled", 110, 150);
+		AddFc26PresentationCheck(groupFc26MatchdayPresentation, "Tifo", "hastifo", 137, 10);
+		AddFc26PresentationCheck(groupFc26MatchdayPresentation, "Standing Crowd", "hasstandingcrowd", 137, 150);
+		AddFc26PresentationCheck(groupFc26MatchdayPresentation, "Crowd Cards", "iscompetitioncrowdcardsenabled", 164, 10);
+		AddFc26PresentationCheck(groupFc26MatchdayPresentation, "Flags", "iscompetitionpoleflagenabled", 164, 150);
+		AddFc26PresentationCheck(groupFc26MatchdayPresentation, "Scarves", "iscompetitionscarfenabled", 191, 10);
+		AddFc26PresentationCheck(groupFc26MatchdayPresentation, "Large Flag", "haslargeflag", 191, 150);
+		AddFc26PresentationCheck(groupFc26MatchdayPresentation, "Substitution Board", "hassubstitutionboard", 218, 10);
+		AddFc26PresentationCheck(groupFc26MatchdayPresentation, "Skinny Flags", "skinnyflags", 218, 150);
+		groupFc26MatchdayPresentation.Controls.Add(new Label
+		{
+			Text = "Friendly controls mapped to the FC26 team presentation settings.",
+			Location = new Point(10, 258), Size = new Size(275, 44),
+			ForeColor = Color.DimGray, BackColor = Color.Transparent
+		});
+		flowPanelTeamGeneric.Controls.Add(groupFc26MatchdayPresentation);
 	}
 
-	private async void OpenFc26CareerBudget_Click(object sender, EventArgs e)
+	private void AddFc26ChoiceField(GroupBox group, string labelText, string propertyName, int top, object[] choices)
 	{
-		using var dialog = new OpenFileDialog
+		group.Controls.Add(new Label { Text = labelText, Location = new Point(10, top + 3), Size = new Size(128, 17) });
+		var combo = new ComboBox
 		{
-			Title = "Open an EA SPORTS FC 26 Career save",
-			Filter = "FC26 Career saves (Career*;*.sav)|Career*;*.sav|All files (*.*)|*.*",
-			CheckFileExists = true,
-			Multiselect = false
+			Name = "comboFc26" + propertyName, Location = new Point(145, top), Size = new Size(140, 21),
+			DropDownStyle = ComboBoxStyle.DropDownList
 		};
-		string settingsFolder = System.IO.Path.Combine(
-			System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments),
-			"EA SPORTS FC 26", "settings");
-		if (System.IO.Directory.Exists(settingsFolder)) dialog.InitialDirectory = settingsFolder;
-		if (dialog.ShowDialog(this) != DialogResult.OK) return;
-
-		await LoadFc26CareerBudgetAsync(dialog.FileName, showErrors: true);
+		combo.Items.AddRange(choices);
+		combo.DataBindings.Add(new Binding("SelectedIndex", teamBindingSource, propertyName, true,
+			DataSourceUpdateMode.OnPropertyChanged));
+		group.Controls.Add(combo);
 	}
 
-	private async void LoadLatestFc26CareerBudget_Click(object sender, EventArgs e)
+	private void AddFc26NumberField(GroupBox group, string labelText, string propertyName, int top, decimal minimum, decimal maximum)
 	{
-		await LoadLatestFc26CareerBudgetAsync(showErrors: true);
+		group.Controls.Add(new Label { Text = labelText, Location = new Point(10, top + 3), Size = new Size(128, 17) });
+		var numeric = new NumericUpDown
+		{
+			Name = "numericFc26" + propertyName, Location = new Point(197, top), Size = new Size(88, 20),
+			Minimum = minimum, Maximum = maximum, TextAlign = HorizontalAlignment.Center
+		};
+		numeric.DataBindings.Add(new Binding("Value", teamBindingSource, propertyName, true,
+			DataSourceUpdateMode.OnPropertyChanged));
+		group.Controls.Add(numeric);
 	}
 
-	private async void AutoLoadLatestFc26CareerBudget()
+	private void AddFc26PresentationCheck(GroupBox group, string text, string propertyName, int top, int left)
 	{
-		if (m_Fc26CareerAutoLoadAttempted || IsDisposed) return;
-		m_Fc26CareerAutoLoadAttempted = true;
-		await LoadLatestFc26CareerBudgetAsync(showErrors: false);
-	}
-
-	private async System.Threading.Tasks.Task LoadLatestFc26CareerBudgetAsync(bool showErrors)
-	{
-		var candidates = CareerBudgetEditor.FindCareerSaveCandidates();
-		if (candidates.Count == 0)
+		var check = new CheckBox
 		{
-			if (showErrors)
-				MessageBox.Show(this, "No FC26 Career save was found in the EA SPORTS FC 26 settings folder.",
-					"FC26 Career Budget", MessageBoxButtons.OK, MessageBoxIcon.Information);
-			RefreshFc26CareerBudgetUi();
-			return;
-		}
-		await LoadFc26CareerBudgetAsync(candidates[0], showErrors);
-	}
-
-	private async System.Threading.Tasks.Task LoadFc26CareerBudgetAsync(string fileName, bool showErrors)
-	{
-		SetFc26CareerBudgetBusy(true, "Loading Career save...");
-		try
-		{
-			string schemaFile = FifaEnvironment.FifaXmlFileName;
-			m_Fc26CareerBudgetEditor = await System.Threading.Tasks.Task.Run(
-				() => CareerBudgetEditor.Open(fileName, schemaFile));
-		}
-		catch (Exception ex)
-		{
-			m_Fc26CareerBudgetEditor = null;
-			if (showErrors)
-				MessageBox.Show(this, "The Career budget could not be loaded.\r\n\r\n" + ex.Message,
-					"FC26 Career Budget", MessageBoxButtons.OK, MessageBoxIcon.Error);
-		}
-		finally
-		{
-			SetFc26CareerBudgetBusy(false, null);
-			RefreshFc26CareerBudgetUi();
-		}
-	}
-
-	private async void SaveFc26CareerBudget_Click(object sender, EventArgs e)
-	{
-		if (m_Fc26CareerBudgetEditor == null) return;
-		int transferBudget = Decimal.ToInt32(numericFc26CareerTransferBudget.Value);
-		int startBudget = Decimal.ToInt32(numericFc26CareerStartBudget.Value);
-		SetFc26CareerBudgetBusy(true, "Saving Career budget and backup...");
-		try
-		{
-			string backupFile = await System.Threading.Tasks.Task.Run(
-				() => m_Fc26CareerBudgetEditor.Save(transferBudget, startBudget));
-			MessageBox.Show(this,
-				"Transfer budget saved to the Career file.\r\n\r\nBackup: " + backupFile,
-				"FC26 Career Budget", MessageBoxButtons.OK, MessageBoxIcon.Information);
-		}
-		catch (Exception ex)
-		{
-			MessageBox.Show(this, "The Career budget could not be saved.\r\n\r\n" + ex.Message,
-				"FC26 Career Budget", MessageBoxButtons.OK, MessageBoxIcon.Error);
-		}
-		finally
-		{
-			SetFc26CareerBudgetBusy(false, null);
-			RefreshFc26CareerBudgetUi();
-		}
-	}
-
-	private void SetFc26CareerBudgetBusy(bool busy, string status)
-	{
-		m_Fc26CareerBudgetBusy = busy;
-		UseWaitCursor = busy;
-		if (buttonFc26OpenCareer != null) buttonFc26OpenCareer.Enabled = !busy;
-		if (buttonFc26LoadLatestCareer != null) buttonFc26LoadLatestCareer.Enabled = !busy;
-		if (buttonFc26SaveCareerBudget != null) buttonFc26SaveCareerBudget.Enabled = !busy && m_Fc26CareerBudgetEditor != null;
-		if (numericFc26CareerTransferBudget != null) numericFc26CareerTransferBudget.Enabled = !busy && m_Fc26CareerBudgetEditor != null;
-		if (numericFc26CareerStartBudget != null) numericFc26CareerStartBudget.Enabled = !busy && m_Fc26CareerBudgetEditor != null;
-		if (busy && labelFc26CareerBudgetStatus != null) labelFc26CareerBudgetStatus.Text = status;
+			Name = "checkFc26" + propertyName, Text = text, Location = new Point(left, top),
+			Size = new Size(135, 21), UseVisualStyleBackColor = true
+		};
+		check.DataBindings.Add(new Binding("Checked", teamBindingSource, propertyName, true,
+			DataSourceUpdateMode.OnPropertyChanged));
+		group.Controls.Add(check);
 	}
 
 	private void RefreshFc26CareerBudgetUi()
 	{
 		if (groupFc26CareerBudget == null) return;
-		bool loaded = m_Fc26CareerBudgetEditor != null;
-		buttonFc26OpenCareer.Enabled = !m_Fc26CareerBudgetBusy;
-		buttonFc26LoadLatestCareer.Enabled = !m_Fc26CareerBudgetBusy;
-		buttonFc26SaveCareerBudget.Enabled = loaded && !m_Fc26CareerBudgetBusy;
-		numericFc26CareerTransferBudget.Enabled = loaded && !m_Fc26CareerBudgetBusy;
-		numericFc26CareerStartBudget.Enabled = loaded && !m_Fc26CareerBudgetBusy;
-		if (!loaded)
+		if (labelFc26ClubWorthValue == null || labelFc26TransferBudgetValue == null) return;
+		if (m_CurrentTeam == null)
 		{
-			labelFc26CareerBudgetStatus.Text = "No Career save loaded. Open a save to edit its real ingame budget.";
+			labelFc26ClubWorthValue.Text = "—";
+			labelFc26TransferBudgetValue.Text = "—";
 			return;
 		}
-
-		Team careerTeam = FifaEnvironment.Teams.SearchId(m_Fc26CareerBudgetEditor.ClubTeamId) as Team;
-		string teamName = careerTeam?.DatabaseName ?? "Unknown team";
-		string saveName = string.IsNullOrWhiteSpace(m_Fc26CareerBudgetEditor.InGameName)
-			? System.IO.Path.GetFileName(m_Fc26CareerBudgetEditor.FileName)
-			: m_Fc26CareerBudgetEditor.InGameName;
-		labelFc26CareerBudgetStatus.Text = "Loaded: " + saveName + "  |  Active club: " + teamName
-			+ " (Team ID " + m_Fc26CareerBudgetEditor.ClubTeamId + ")";
-		if (m_CurrentTeam != null && m_CurrentTeam.Id != m_Fc26CareerBudgetEditor.ClubTeamId)
-		{
-			labelFc26CareerBudgetStatus.Text += "\r\nSelected squads team differs from the Career club.";
-		}
-		SetNumericValue(numericFc26CareerTransferBudget, m_Fc26CareerBudgetEditor.TransferBudget);
-		SetNumericValue(numericFc26CareerStartBudget, m_Fc26CareerBudgetEditor.StartOfSeasonTransferBudget);
+		var usd = System.Globalization.CultureInfo.GetCultureInfo("en-US");
+		decimal clubWorthDollars = m_CurrentTeam.clubworth * 1000m * 1.08m;
+		decimal transferBudgetDollars = m_CurrentTeam.transferbudget * 1.08m;
+		labelFc26ClubWorthValue.Text = clubWorthDollars.ToString("C0", usd);
+		labelFc26TransferBudgetValue.Text = transferBudgetDollars.ToString("C2", usd);
 	}
 
 	private void ConfigureFc26RosterFormationUi()
@@ -6238,7 +6153,7 @@ public class TeamForm : Form
 		this.labelInternationalPrestige.TabIndex = 101;
 		this.labelInternationalPrestige.Text = "International";
 		this.labelInternationalPrestige.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-		this.numericInitialBudget.DataBindings.Add(new System.Windows.Forms.Binding("Value", this.teamBindingSource, "transferbudget", true));
+		this.numericInitialBudget.DataBindings.Add(new System.Windows.Forms.Binding("Value", this.teamBindingSource, "clubworth", true));
 		this.numericInitialBudget.Increment = new decimal(new int[4] { 100000, 0, 0, 0 });
 		this.numericInitialBudget.Location = new System.Drawing.Point(92, 202);
 		this.numericInitialBudget.Maximum = new decimal(new int[4] { 900000000, 0, 0, 0 });
@@ -8387,13 +8302,13 @@ public class TeamForm : Form
 		this.viewer2DPhoto.ImageLayout = System.Windows.Forms.ImageLayout.Zoom;
 		this.viewer2DPhoto.ImageSize = new System.Drawing.Size(128, 128);
 		this.viewer2DPhoto.ImageSizeMultiplier = FifaControls.Viewer2D.SizeMultiplier.MiniFace;
-		this.viewer2DPhoto.Location = new System.Drawing.Point(5, 4);
+		this.viewer2DPhoto.Location = new System.Drawing.Point(17, 8);
 		this.viewer2DPhoto.Margin = new System.Windows.Forms.Padding(4);
 		this.viewer2DPhoto.Name = "viewer2DPhoto";
 		this.viewer2DPhoto.RemoveButton = false;
 		this.viewer2DPhoto.ShowButton = false;
 		this.viewer2DPhoto.ShowButtonChecked = true;
-		this.viewer2DPhoto.Size = new System.Drawing.Size(128, 153);
+		this.viewer2DPhoto.Size = new System.Drawing.Size(104, 129);
 		this.viewer2DPhoto.TabIndex = 162;
 		this.viewer2DPhoto.TabStop = false;
 		this.labelJoiningDate.AutoSize = true;

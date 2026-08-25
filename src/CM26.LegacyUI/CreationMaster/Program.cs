@@ -213,8 +213,13 @@ internal static class Program
 					ContainsControlText(main.m_RefereeForm, "Competition Kits"))
 					throw new InvalidDataException("A disconnected details popup is still exposed.");
 				var miniface = FindControl(main.m_PlayerForm, "viewer2DPhoto");
-				if (miniface == null || miniface.Width > 128 || miniface.Height > 153)
+				if (miniface == null || miniface.Width > 104 || miniface.Height > 129)
 					throw new InvalidDataException("Player miniface exceeds the classic CM26 layout boundary.");
+				if (!ContainsControlText(main.m_TeamForm, "Career Money (Dollars)") ||
+					!ContainsControlText(main.m_TeamForm, "Transfer Budget") ||
+					!ContainsControlText(main.m_TeamForm, "Matchday Presentation") ||
+					!ContainsControlText(main.m_TrophyForm, "Compdata"))
+					throw new InvalidDataException("A mapped FC26 team or Compdata surface is missing.");
 				File.AppendAllText(uiLog, "passed" + Environment.NewLine);
 				Environment.Exit(0);
 			}
@@ -325,7 +330,7 @@ internal static class Program
 	private static bool ContainsControlText(Control root, string text)
 	{
 		if (root == null) return false;
-		if (string.Equals(root.Text, text, StringComparison.OrdinalIgnoreCase)) return true;
+		if (root.Text?.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0) return true;
 		foreach (Control child in root.Controls)
 			if (ContainsControlText(child, text)) return true;
 		return false;

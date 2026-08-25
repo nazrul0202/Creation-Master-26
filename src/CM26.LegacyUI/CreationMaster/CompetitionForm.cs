@@ -1377,13 +1377,17 @@ public class CompetitionForm : Form
 	{
 		base.Visible = false;
 		InitializeComponent();
-		if (FifaEnvironment.Year == 26)
+		// Creation Master 26 constructs its section forms before the FC26 database
+		// is opened, so FC26 surfaces must be present from the initial shell build.
+		// Their data actions remain guarded until a project is loaded.
+		textUniqueId.Visible = false;
+		label66.Visible = false;
+		var compdataPage = new TabPage
 		{
-			// The competition ID remains available in Competition Details; keep the
-			// main header focused on the resolved competition name.
-			textUniqueId.Visible = false;
-			label66.Visible = false;
-		}
+			Name = "pageFc26Compdata", Text = "Compdata", UseVisualStyleBackColor = true
+		};
+		compdataPage.Controls.Add(new Fc26CompdataPanel());
+		tabCompetitions.TabPages.Add(compdataPage);
 		CmStyleDetailsWindow.Attach(this, "Competition Details", DetailSection.Competition,
 			() => m_CurrentCompobj?.Id ?? -1);
 		viewer3DTrophy = new Viewer3D();

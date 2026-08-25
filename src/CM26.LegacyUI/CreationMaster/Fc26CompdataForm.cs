@@ -9,11 +9,11 @@ using System.Windows.Forms;
 
 namespace CreationMaster;
 
-/// <summary>Classic CM26 Compdata workspace with raw, structure and calendar views.</summary>
-internal sealed class Fc26CompdataForm : Form
+/// <summary>Classic CM26 Compdata workspace embedded in the Competition section.</summary>
+internal sealed class Fc26CompdataPanel : UserControl
 {
     private readonly ListBox _sheets = new ListBox();
-    private readonly DataGridView _grid = Grid(true);
+    private readonly DataGridView _grid = Grid(false);
     private readonly TreeView _structure = new TreeView();
     private readonly DataGridView _calendar = Grid(false);
     private readonly Label _status = new Label();
@@ -21,21 +21,16 @@ internal sealed class Fc26CompdataForm : Form
     private readonly Dictionary<string, DataTable> _tables = new Dictionary<string, DataTable>(StringComparer.OrdinalIgnoreCase);
     private string _sourcePath = string.Empty;
 
-    internal Fc26CompdataForm()
+    internal Fc26CompdataPanel()
     {
-        Text = "FC26 Competition / Compdata Editor";
-        StartPosition = FormStartPosition.CenterParent;
-        Size = new Size(1240, 760);
-        MinimumSize = new Size(900, 560);
-        Icon = Form.ActiveForm?.Icon;
+        Dock = DockStyle.Fill;
+        MinimumSize = new Size(720, 480);
         var tools = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden, Dock = DockStyle.Top };
         tools.Items.Add(Item("Open workbook", (_, _) => OpenWorkbook()));
         tools.Items.Add(Item("Open TXT folder", (_, _) => OpenFolder()));
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Item("Tournament Wizard", (_, _) => TournamentWizard()));
         tools.Items.Add(Item("Add Advancement", (_, _) => AddAdvancement()));
-        tools.Items.Add(Item("Add row", (_, _) => AddRow()));
-        tools.Items.Add(Item("Delete row", (_, _) => DeleteRow()));
         tools.Items.Add(Item("Validate", (_, _) => ValidateTables()));
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Item("Save workbook copy", (_, _) => SaveWorkbook()));
@@ -46,15 +41,23 @@ internal sealed class Fc26CompdataForm : Form
         _grid.DataError += (_, e) => e.ThrowException = false;
         _structure.Dock = DockStyle.Fill;
         _structure.HideSelection = false;
-        _structure.AfterSelect += (_, e) => SelectObjectInRawView(e.Node?.Tag);
+        _structure.AfterSelect += (_, e) =>
+            _status.Text = e.Node == null ? "Select a competition object." : "Selected: " + e.Node.Text;
         _views.Dock = DockStyle.Fill;
-        _views.TabPages.Add(new TabPage("Simple Structure") { Controls = { _structure } });
+        var structurePage = new TabPage("Competition Structure") { Controls = { _structure } };
+        _views.TabPages.Add(structurePage);
         _views.TabPages.Add(new TabPage("Tournament Calendar") { Controls = { _calendar } });
-        _views.TabPages.Add(new TabPage("Advanced Raw Tables") { Controls = { _grid } });
         var split = new SplitContainer { Dock = DockStyle.Fill, SplitterDistance = 210 };
-        split.Panel1.Controls.Add(_sheets); split.Panel2.Controls.Add(_views);
+        var sheetPanel = new Panel { Dock = DockStyle.Fill };
+        var sheetLabel = new Label
+        {
+            Text = "Compdata Sections", Dock = DockStyle.Top, Height = 27,
+            Padding = new Padding(6, 7, 0, 0), Font = new Font(Font, FontStyle.Bold)
+        };
+        sheetPanel.Controls.Add(_sheets); sheetPanel.Controls.Add(sheetLabel);
+        split.Panel1.Controls.Add(sheetPanel); split.Panel2.Controls.Add(_views);
         _status.Dock = DockStyle.Bottom; _status.Height = 24; _status.Padding = new Padding(6, 4, 0, 0);
-        _status.Text = "Open an FC26 Compdata workbook or extracted Compdata TXT folder.";
+        _status.Text = "Open an FC26 Compdata workbook or extracted TXT folder. No raw database fields are shown.";
         Controls.Add(split); Controls.Add(_status); Controls.Add(tools);
     }
 
@@ -105,14 +108,15 @@ internal sealed class Fc26CompdataForm : Form
             }
             _tables[table.TableName] = table;
         }
-        _sheets.DataSource = _tables.Keys.OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToArray();
+        _sheets.DataSource = _tables.Keys.OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .Select(name => new CompdataSheetChoice(name, FriendlySectionName(name))).ToArray();
         if (_sheets.Items.Count > 0) _sheets.SelectedIndex = 0;
         RefreshSimpleViews();
     }
 
     private void ShowSheet()
     {
-        var name = Convert.ToString(_sheets.SelectedItem);
+        var name = (_sheets.SelectedItem as CompdataSheetChoice)?.Name;
         _grid.DataSource = !string.IsNullOrWhiteSpace(name) && _tables.TryGetValue(name, out var table) ? table : null;
         if (_grid.Columns.Count > 0) _grid.Columns[_grid.Columns.Count - 1].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
     }
@@ -206,28 +210,6 @@ internal sealed class Fc26CompdataForm : Form
             .OrderBy(choice => choice.Name, StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
-    private void SelectObjectInRawView(object tag)
-    {
-        if (!(tag is int id) || !_tables.ContainsKey("compobj")) return;
-        _sheets.SelectedItem = _tables.Keys.First(name => name.Equals("compobj", StringComparison.OrdinalIgnoreCase)); _views.SelectedIndex = 2;
-        foreach (DataGridViewRow row in _grid.Rows)
-            if (Convert.ToString(row.Cells[0].Value) == id.ToString()) { row.Selected = true; _grid.CurrentCell = row.Cells[0]; break; }
-    }
-
-    private void AddRow()
-    {
-        if (_grid.DataSource is not DataTable table) return;
-        table.Rows.Add(table.NewRow()); RefreshSimpleViews(); _status.Text = "Row added to " + table.TableName + ".";
-    }
-
-    private void DeleteRow()
-    {
-        if (_grid.CurrentRow?.DataBoundItem is DataRowView row)
-        {
-            var table = row.Row.Table.TableName; row.Row.Delete(); RefreshSimpleViews(); _status.Text = "Row deleted from " + table + ".";
-        }
-    }
-
     private void ValidateTables()
     {
         Run("Validating competition structure, references and calendar fields...", () =>
@@ -236,7 +218,7 @@ internal sealed class Fc26CompdataForm : Form
             try
             {
                 var report = Fc26HostBridge.ValidateCompdata(snapshot);
-                using var viewer = new Form { Text = "FC26 Compdata Validation", Size = new Size(850, 580), StartPosition = FormStartPosition.CenterParent, Icon = Icon };
+                using var viewer = new Form { Text = "FC26 Compdata Validation", Size = new Size(850, 580), StartPosition = FormStartPosition.CenterParent, Icon = Form.ActiveForm?.Icon };
                 viewer.Controls.Add(new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, WordWrap = false, Text = report });
                 viewer.ShowDialog(this);
                 return report.StartsWith("Compdata validation passed", StringComparison.OrdinalIgnoreCase) ? "Compdata validation passed." : "Compdata validation completed with findings.";
@@ -298,6 +280,18 @@ internal sealed class Fc26CompdataForm : Form
         return "OK";
     }
     private static string FormatKickoff(string value) => int.TryParse(value, out var time) ? (time / 100).ToString("00") + ":" + (time % 100).ToString("00") : value;
+    private static string FriendlySectionName(string value) => value.ToLowerInvariant() switch
+    {
+        "compobj" => "Competition Objects",
+        "schedule" => "Tournament Calendar",
+        "advancement" => "Advancement Paths",
+        "advancements" => "Advancement Paths",
+        "settings" => "Competition Settings",
+        "teams" => "Competition Teams",
+        "standings" => "Standings Rules",
+        "rules" => "Competition Rules",
+        _ => "Competition Data"
+    };
     private static string TypeName(int value) => value switch { 0 => "World", 1 => "Confederation", 2 => "Country", 3 => "Competition", 4 => "Stage", 5 => "Group", 6 => "Special Group", _ => "Unknown" };
     private static string Value(DataRow row, int index) => index < row.Table.Columns.Count ? Convert.ToString(row[index]) ?? string.Empty : string.Empty;
     private static bool Int(DataRow row, int index, out int value) => int.TryParse(Value(row, index), out value);
@@ -355,6 +349,12 @@ internal sealed class Fc26CompdataForm : Form
     {
         internal GroupChoice(int id, string description, string shortName) { Id = id; Name = string.IsNullOrWhiteSpace(description) ? shortName : description; }
         internal int Id { get; } internal string Name { get; } public override string ToString() => Id + " · " + Name;
+    }
+    private sealed class CompdataSheetChoice
+    {
+        internal CompdataSheetChoice(string name, string label) { Name = name; Label = label; }
+        internal string Name { get; } internal string Label { get; }
+        public override string ToString() => Label;
     }
     private sealed class CompdataSnapshot { public string SourcePath { get; set; } = string.Empty; public List<CompdataSheet> Sheets { get; set; } = new List<CompdataSheet>(); }
     private sealed class CompdataSheet { public string Name { get; set; } = string.Empty; public List<string> Columns { get; set; } = new List<string>(); public List<List<string>> Rows { get; set; } = new List<List<string>>(); }

@@ -165,6 +165,30 @@ public class Team : IdObject
 
 	private int m_ethnicity;
 
+	private int m_gender;
+
+	private int m_crowdskintonecode;
+
+	private bool m_hasvikingclap;
+
+	private bool m_isbannerenabled;
+
+	private bool m_hastifo;
+
+	private bool m_hasstandingcrowd;
+
+	private bool m_iscompetitioncrowdcardsenabled;
+
+	private bool m_iscompetitionpoleflagenabled;
+
+	private bool m_iscompetitionscarfenabled;
+
+	private bool m_haslargeflag;
+
+	private bool m_hassubstitutionboard;
+
+	private bool m_skinnyflags;
+
 	private int m_powid;
 
 	public bool m_genericbanner;
@@ -172,6 +196,8 @@ public class Team : IdObject
 	private int m_assetid;
 
 	private int m_transferbudget;
+
+	private int m_clubworth;
 
 	private int m_internationalprestige;
 
@@ -1021,6 +1047,78 @@ public class Team : IdObject
 		}
 	}
 
+	public int gender
+	{
+		get { return m_gender; }
+		set { m_gender = value; }
+	}
+
+	public int crowdskintonecode
+	{
+		get { return m_crowdskintonecode; }
+		set { m_crowdskintonecode = value; }
+	}
+
+	public bool hasvikingclap
+	{
+		get { return m_hasvikingclap; }
+		set { m_hasvikingclap = value; }
+	}
+
+	public bool isbannerenabled
+	{
+		get { return m_isbannerenabled; }
+		set { m_isbannerenabled = value; }
+	}
+
+	public bool hastifo
+	{
+		get { return m_hastifo; }
+		set { m_hastifo = value; }
+	}
+
+	public bool hasstandingcrowd
+	{
+		get { return m_hasstandingcrowd; }
+		set { m_hasstandingcrowd = value; }
+	}
+
+	public bool iscompetitioncrowdcardsenabled
+	{
+		get { return m_iscompetitioncrowdcardsenabled; }
+		set { m_iscompetitioncrowdcardsenabled = value; }
+	}
+
+	public bool iscompetitionpoleflagenabled
+	{
+		get { return m_iscompetitionpoleflagenabled; }
+		set { m_iscompetitionpoleflagenabled = value; }
+	}
+
+	public bool iscompetitionscarfenabled
+	{
+		get { return m_iscompetitionscarfenabled; }
+		set { m_iscompetitionscarfenabled = value; }
+	}
+
+	public bool haslargeflag
+	{
+		get { return m_haslargeflag; }
+		set { m_haslargeflag = value; }
+	}
+
+	public bool hassubstitutionboard
+	{
+		get { return m_hassubstitutionboard; }
+		set { m_hassubstitutionboard = value; }
+	}
+
+	public bool skinnyflags
+	{
+		get { return m_skinnyflags; }
+		set { m_skinnyflags = value; }
+	}
+
 	public int assetid
 	{
 		get
@@ -1043,6 +1141,12 @@ public class Team : IdObject
 		{
 			m_transferbudget = value;
 		}
+	}
+
+	public int clubworth
+	{
+		get { return m_clubworth; }
+		set { m_clubworth = value; }
 	}
 
 	public int internationalprestige
@@ -2394,6 +2498,7 @@ public class Team : IdObject
 		m_rivalteam = 1;
 		m_assetid = base.Id;
 		m_transferbudget = 1000000;
+		m_clubworth = 1000;
 		m_internationalprestige = 10;
 		m_domesticprestige = 10;
 		m_profitability = 5;
@@ -2444,6 +2549,18 @@ public class Team : IdObject
 		m_suittypeid = 0;
 		m_bodytypeid = 1;
 		m_ethnicity = 2;
+		m_gender = 0;
+		m_crowdskintonecode = 2;
+		m_hasvikingclap = false;
+		m_isbannerenabled = true;
+		m_hastifo = false;
+		m_hasstandingcrowd = false;
+		m_iscompetitioncrowdcardsenabled = false;
+		m_iscompetitionpoleflagenabled = true;
+		m_iscompetitionscarfenabled = true;
+		m_haslargeflag = false;
+		m_hassubstitutionboard = true;
+		m_skinnyflags = false;
 		m_personalityid = 0;
 		m_countryid_IfNationalTeam = 0;
 		m_countryid_IfRowTeam = 0;
@@ -2504,17 +2621,80 @@ public class Team : IdObject
 		m_maxvariationsstd = 0;
 	}
 
+	private void LoadFc26Presentation19(Record r, TableDescriptor td)
+	{
+		m_gender = ReadOptional(r, td, "gender", m_gender);
+		m_crowdskintonecode = ReadOptional(r, td, "crowdskintonecode", m_crowdskintonecode);
+		m_hasvikingclap = ReadOptional(r, td, "hasvikingclap", m_hasvikingclap ? 1 : 0) != 0;
+		m_isbannerenabled = ReadOptional(r, td, "isbannerenabled", m_isbannerenabled ? 1 : 0) != 0;
+		m_hastifo = ReadOptional(r, td, "hastifo", m_hastifo ? 1 : 0) != 0;
+		m_hasstandingcrowd = ReadOptional(r, td, "hasstandingcrowd", m_hasstandingcrowd ? 1 : 0) != 0;
+		m_iscompetitioncrowdcardsenabled = ReadOptional(r, td, "iscompetitioncrowdcardsenabled", m_iscompetitioncrowdcardsenabled ? 1 : 0) != 0;
+		m_iscompetitionpoleflagenabled = ReadOptional(r, td, "iscompetitionpoleflagenabled", m_iscompetitionpoleflagenabled ? 1 : 0) != 0;
+		m_iscompetitionscarfenabled = ReadOptional(r, td, "iscompetitionscarfenabled", m_iscompetitionscarfenabled ? 1 : 0) != 0;
+		m_haslargeflag = ReadOptional(r, td, "haslargeflag", m_haslargeflag ? 1 : 0) != 0;
+		m_hassubstitutionboard = ReadOptional(r, td, "hassubstitutionboard", m_hassubstitutionboard ? 1 : 0) != 0;
+		m_skinnyflags = ReadOptional(r, td, "skinnyflags", m_skinnyflags ? 1 : 0) != 0;
+	}
+
+	private static int ReadOptional(Record r, TableDescriptor td, string fieldName, int fallback)
+	{
+		int index = td.GetFieldIndex(fieldName);
+		return index >= 0 ? r.GetAndCheckIntField(index) : fallback;
+	}
+
+	private void LoadFc26Presentation(Record r)
+	{
+		m_gender = ReadOptional(r, FI.teams_gender, m_gender);
+		m_crowdskintonecode = ReadOptional(r, FI.teams_crowdskintonecode, m_crowdskintonecode);
+		m_hasvikingclap = ReadOptional(r, FI.teams_hasvikingclap, m_hasvikingclap ? 1 : 0) != 0;
+		m_isbannerenabled = ReadOptional(r, FI.teams_isbannerenabled, m_isbannerenabled ? 1 : 0) != 0;
+		m_hastifo = ReadOptional(r, FI.teams_hastifo, m_hastifo ? 1 : 0) != 0;
+		m_hasstandingcrowd = ReadOptional(r, FI.teams_hasstandingcrowd, m_hasstandingcrowd ? 1 : 0) != 0;
+		m_iscompetitioncrowdcardsenabled = ReadOptional(r, FI.teams_iscompetitioncrowdcardsenabled, m_iscompetitioncrowdcardsenabled ? 1 : 0) != 0;
+		m_iscompetitionpoleflagenabled = ReadOptional(r, FI.teams_iscompetitionpoleflagenabled, m_iscompetitionpoleflagenabled ? 1 : 0) != 0;
+		m_iscompetitionscarfenabled = ReadOptional(r, FI.teams_iscompetitionscarfenabled, m_iscompetitionscarfenabled ? 1 : 0) != 0;
+		m_haslargeflag = ReadOptional(r, FI.teams_haslargeflag, m_haslargeflag ? 1 : 0) != 0;
+		m_hassubstitutionboard = ReadOptional(r, FI.teams_hassubstitutionboard, m_hassubstitutionboard ? 1 : 0) != 0;
+		m_skinnyflags = ReadOptional(r, FI.teams_skinnyflags, m_skinnyflags ? 1 : 0) != 0;
+	}
+
+	private static int ReadOptional(Record r, int index, int fallback)
+	{
+		return index >= 0 ? r.GetAndCheckIntField(index) : fallback;
+	}
+
+	private void SaveFc26Presentation(Record r)
+	{
+		WriteOptional(r, FI.teams_gender, m_gender);
+		WriteOptional(r, FI.teams_crowdskintonecode, m_crowdskintonecode);
+		WriteOptional(r, FI.teams_hasvikingclap, m_hasvikingclap ? 1 : 0);
+		WriteOptional(r, FI.teams_isbannerenabled, m_isbannerenabled ? 1 : 0);
+		WriteOptional(r, FI.teams_hastifo, m_hastifo ? 1 : 0);
+		WriteOptional(r, FI.teams_hasstandingcrowd, m_hasstandingcrowd ? 1 : 0);
+		WriteOptional(r, FI.teams_iscompetitioncrowdcardsenabled, m_iscompetitioncrowdcardsenabled ? 1 : 0);
+		WriteOptional(r, FI.teams_iscompetitionpoleflagenabled, m_iscompetitionpoleflagenabled ? 1 : 0);
+		WriteOptional(r, FI.teams_iscompetitionscarfenabled, m_iscompetitionscarfenabled ? 1 : 0);
+		WriteOptional(r, FI.teams_haslargeflag, m_haslargeflag ? 1 : 0);
+		WriteOptional(r, FI.teams_hassubstitutionboard, m_hassubstitutionboard ? 1 : 0);
+		WriteOptional(r, FI.teams_skinnyflags, m_skinnyflags ? 1 : 0);
+	}
+
+	private static void WriteOptional(Record r, int index, int value)
+	{
+		if (index >= 0) r.IntField[index] = value;
+	}
+
 	public void Load19(Record r, TableDescriptor td)
 	{
 		m_assetid = base.Id;
 		m_teamname = r.StringField[td.GetFieldIndex("teamname")];
-		// The legacy model calls this property transferbudget. FC26 does not:
-		// clubworth is a club valuation, and the FC26 UI labels it accordingly.
 		int transferBudgetIndex = td.GetFieldIndex("transferbudget");
 		if (transferBudgetIndex >= 0)
 			m_transferbudget = r.GetAndCheckIntField(transferBudgetIndex);
-		else
-			m_transferbudget = r.GetAndCheckIntField(td.GetFieldIndex("clubworth"));
+		int clubWorthIndex = td.GetFieldIndex("clubworth");
+		if (clubWorthIndex >= 0)
+			m_clubworth = r.GetAndCheckIntField(clubWorthIndex);
 		m_domesticprestige = r.GetAndCheckIntField(td.GetFieldIndex("domesticprestige"));
 		m_internationalprestige = r.GetAndCheckIntField(td.GetFieldIndex("internationalprestige"));
 		int profitabilityIndex = td.GetFieldIndex("profitability");
@@ -2590,6 +2770,7 @@ public class Team : IdObject
 		m_suittypeid = r.GetAndCheckIntField(td.GetFieldIndex("suittypeid"));
 		m_bodytypeid = r.GetAndCheckIntField(td.GetFieldIndex("bodytypeid"));
 		m_ethnicity = r.GetAndCheckIntField(td.GetFieldIndex("ethnicity"));
+		LoadFc26Presentation19(r, td);
 		m_personalityid = r.GetAndCheckIntField(td.GetFieldIndex("personalityid"));
 		m_trait1vweak = r.GetAndCheckIntField(td.GetFieldIndex("trait1vweak"));
 		m_trait1vequal = r.GetAndCheckIntField(td.GetFieldIndex("trait1vequal"));
@@ -2634,16 +2815,13 @@ public class Team : IdObject
 	{
 		m_assetid = base.Id;
 		m_teamname = r.StringField[FI.teams_teamname];
-		// Keep the legacy property populated from FC26 clubworth for compatibility.
-		// The editor labels this value Club Worth; it is not a career budget.
 		if (FI.teams_transferbudget >= 0)
 		{
 			m_transferbudget = r.GetAndCheckIntField(FI.teams_transferbudget);
-			m_transferbudget = m_transferbudget / 1000 * 1000;
 		}
-		else if (FI.teams_clubworth >= 0)
+		if (FI.teams_clubworth >= 0)
 		{
-			m_transferbudget = r.GetAndCheckIntField(FI.teams_clubworth);
+			m_clubworth = r.GetAndCheckIntField(FI.teams_clubworth);
 		}
 		if (FI.teams_buildupplay >= 0)
 			m_buildupplay = r.GetAndCheckIntField(FI.teams_buildupplay);
@@ -2734,6 +2912,7 @@ public class Team : IdObject
 		m_suittypeid = r.GetAndCheckIntField(FI.teams_suittypeid);
 		m_bodytypeid = r.GetAndCheckIntField(FI.teams_bodytypeid);
 		m_ethnicity = r.GetAndCheckIntField(FI.teams_ethnicity);
+		LoadFc26Presentation(r);
 		m_personalityid = r.GetAndCheckIntField(FI.teams_personalityid);
 		// FC26 replaced the single legacy trait1 column with three opponent-
 		// context masks. The legacy checkbox panel represents the equal-team
@@ -3054,12 +3233,10 @@ public class Team : IdObject
 		r.IntField[FI.teams_assetid] = m_assetid;
 		_ = m_assetid;
 		_ = base.Id;
-		// Preserve legacy-schema support, but write FC26's club valuation only to
-		// clubworth. The UI does not mislabel this value as a career budget.
 		if (FI.teams_transferbudget >= 0)
 			r.IntField[FI.teams_transferbudget] = m_transferbudget;
-		else if (FI.teams_clubworth >= 0)
-			r.IntField[FI.teams_clubworth] = m_transferbudget;
+		if (FI.teams_clubworth >= 0)
+			r.IntField[FI.teams_clubworth] = m_clubworth;
 		if (FI.teams_buildupplay >= 0)
 			r.IntField[FI.teams_buildupplay] = m_buildupplay;
 		if (FI.teams_defensivedepth >= 0)
@@ -3124,6 +3301,7 @@ public class Team : IdObject
 		r.IntField[FI.teams_suittypeid] = m_suittypeid;
 		r.IntField[FI.teams_bodytypeid] = m_bodytypeid;
 		r.IntField[FI.teams_ethnicity] = m_ethnicity;
+		SaveFc26Presentation(r);
 		r.IntField[FI.teams_personalityid] = m_personalityid;
 		int knownTraitBits = 0;
 		knownTraitBits |= (m_ImpatientBoard ? 1 : 0);

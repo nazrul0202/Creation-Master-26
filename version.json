@@ -1,6 +1,6 @@
 {
-  "version": "1.0.162",
+  "version": "1.0.163",
   "name": "Creation Master 26",
-  "notes": "v1.0.162 - maps FC26 composure and tactical roles into the original Player editor, removes duplicate tabs and repairs kit texture cache decoding.",
+  "notes": "v1.0.163 - separates Club Worth and Transfer Budget, adds mapped matchday presentation controls, embeds friendly Compdata tools in Competition and reduces miniface size.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

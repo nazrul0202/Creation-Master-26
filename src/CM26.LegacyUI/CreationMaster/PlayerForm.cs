@@ -1531,8 +1531,6 @@ public class PlayerForm : Form
 
 	private void InitializeFc26FriendlyPlayerFields()
 	{
-		if (FifaEnvironment.Year != 26) return;
-
 		labelMarking.Text = "Def. Awareness ";
 		m_Fc26RoleGroup = new GroupBox
 		{
@@ -1680,8 +1678,6 @@ public class PlayerForm : Form
 
 	private void InitializeFc26PlaystyleControls()
 	{
-		if (FifaEnvironment.Year != 26) return;
-
 		groupTraits.SuspendLayout();
 		groupTraits.Controls.Clear();
 		groupTraits.Text = "PlayStyles";
@@ -4802,12 +4798,12 @@ public class PlayerForm : Form
 		this.viewer2DPhoto.ImageLayout = System.Windows.Forms.ImageLayout.Zoom;
 		this.viewer2DPhoto.ImageSize = new System.Drawing.Size(128, 128);
 		this.viewer2DPhoto.ImageSizeMultiplier = FifaControls.Viewer2D.SizeMultiplier.MiniFace;
-		this.viewer2DPhoto.Location = new System.Drawing.Point(6, 16);
+		this.viewer2DPhoto.Location = new System.Drawing.Point(16, 16);
 		this.viewer2DPhoto.Name = "viewer2DPhoto";
 		this.viewer2DPhoto.RemoveButton = false;
 		this.viewer2DPhoto.ShowButton = false;
 		this.viewer2DPhoto.ShowButtonChecked = true;
-		this.viewer2DPhoto.Size = new System.Drawing.Size(128, 153);
+		this.viewer2DPhoto.Size = new System.Drawing.Size(104, 129);
 		this.viewer2DPhoto.TabIndex = 125;
 		this.viewer2DPhoto.TabStop = false;
 		this.numericPlayerId.Location = new System.Drawing.Point(248, 19);

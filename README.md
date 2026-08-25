@@ -33,7 +33,7 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.162.txt` is included with the v1.0.162 release assets.
+Checksums: `SHA256SUMS_v1.0.163.txt` is included with the v1.0.163 release assets.
 
 ---
 
@@ -42,14 +42,14 @@ Checksums: `SHA256SUMS_v1.0.162.txt` is included with the v1.0.162 release asset
 ### Original CM26 editors with FC26 mapping
 
 - **Players** — classic Info, Skills and Face pages with contracts, appearance, named tactical roles, Composure, Defensive Awareness, PlayStyles/PlayStyles+ and direct miniface/face assets
-- **Teams** — classic Generic and Roster pages with crest, club profile, career transfer budget, transfers/loans, real XI/substitutes/reserves, formations and set pieces
+- **Teams** — classic Generic and Roster pages with crest, club profile, separate Club Worth and read-only Transfer Budget display, matchday presentation, transfers/loans, real XI/substitutes/reserves, formations and set pieces
 - **Leagues and countries** — original logo/flag, club/national-team and presentation controls with relationship-aware FC26 selectors
 - **Managers · Stadiums · Kits · Competitions · Formations · Balls · Boots · Gloves · Referees · Transfers** — mapped football controls in their owning original editor sections
 - **Sponsors · Adboards · Audio** — mapped artwork and assignment workflows; low-level database/schema tools remain internal
 - **Roster integrity tools** — repair broken/duplicate club links and missing team-sheet players, assign unique shirt numbers, and run the engine's full key/relationship validator
 
 ### Data & assets
-- **Compdata editor** — Simple structure tree, visual calendar/conflict view, league/cup wizard, advancement links, raw XLSX/TXT editing and validated TXT export
+- **Compdata in Competition** — friendly structure tree, visual calendar/conflict view, league/cup wizard, advancement links and validated XLSX/TXT export without exposing raw database fields
 - **Direct native asset import/remove** — images plus format-compatible RX3/DDS/BIG payloads for verified player, kit, stadium, ball, boot, glove and presentation paths
 - **Deco asset-pack discovery** — automatically uses a local `FC Editor by decoruiz Alpha v21` folder (including the standard Downloads location) for supported visual previews
 - **Frostbite asset search** — RES/Ebx search, NewWave audio bank metadata inspection

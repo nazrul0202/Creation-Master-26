@@ -1364,6 +1364,18 @@ public class FI
 
 	public static int teams_ethnicity = -1;
 
+	public static int teams_gender = -1;
+
+	public static int teams_haslargeflag = -1;
+
+	public static int teams_hasstandingcrowd = -1;
+
+	public static int teams_hassubstitutionboard = -1;
+
+	public static int teams_hastifo = -1;
+
+	public static int teams_hasvikingclap = -1;
+
 	public static int teams_form = -1;
 
 	public static int teams_foundationyear = -1;
@@ -1379,6 +1391,8 @@ public class FI
 	public static int teams_internationalprestige = -1;
 
 	public static int teams_isbannerenabled = -1;
+
+	public static int teams_iscompetitioncrowdcardsenabled = -1;
 
 	public static int teams_iscompetitionpoleflagenabled = -1;
 
@@ -5985,6 +5999,12 @@ public class FI
 			teams_domesticcups = table2.TableDescriptor.GetFieldIndex("domesticcups");
 			teams_domesticprestige = table2.TableDescriptor.GetFieldIndex("domesticprestige");
 			teams_ethnicity = table2.TableDescriptor.GetFieldIndex("ethnicity");
+			teams_gender = table2.TableDescriptor.GetFieldIndex("gender");
+			teams_haslargeflag = table2.TableDescriptor.GetFieldIndex("haslargeflag");
+			teams_hasstandingcrowd = table2.TableDescriptor.GetFieldIndex("hasstandingcrowd");
+			teams_hassubstitutionboard = table2.TableDescriptor.GetFieldIndex("hassubstitutionboard");
+			teams_hastifo = table2.TableDescriptor.GetFieldIndex("hastifo");
+			teams_hasvikingclap = table2.TableDescriptor.GetFieldIndex("hasvikingclap");
 			teams_form = table2.TableDescriptor.GetFieldIndex("form");
 			teams_foundationyear = table2.TableDescriptor.GetFieldIndex("foundationyear");
 			teams_freekicktakerid = table2.TableDescriptor.GetFieldIndex("freekicktakerid");
@@ -5993,6 +6013,7 @@ public class FI
 			teams_genericint2 = table2.TableDescriptor.GetFieldIndex("genericint2");
 			teams_internationalprestige = table2.TableDescriptor.GetFieldIndex("internationalprestige");
 			teams_isbannerenabled = table2.TableDescriptor.GetFieldIndex("isbannerenabled");
+			teams_iscompetitioncrowdcardsenabled = table2.TableDescriptor.GetFieldIndex("iscompetitioncrowdcardsenabled");
 			teams_iscompetitionpoleflagenabled = table2.TableDescriptor.GetFieldIndex("iscompetitionpoleflagenabled");
 			teams_iscompetitionscarfenabled = table2.TableDescriptor.GetFieldIndex("iscompetitionscarfenabled");
 			teams_jerseytype = table2.TableDescriptor.GetFieldIndex("jerseytype");

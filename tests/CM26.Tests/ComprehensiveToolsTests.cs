@@ -15,7 +15,7 @@ public sealed class ComprehensiveToolsTests
     {
         var registeredRoutes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "$open-game", "$health", "countries", "leagues", "teams", "players",
+            "$open-game", "$direct-save", "$health", "countries", "leagues", "teams", "players",
             "managers", "stadiums", "kits", "competitions", "formations", "transfers",
             "modmanager", "balls", "boots", "gloves", "adboards", "scoreboard",
             "browser", "diagnostics", "settings",
