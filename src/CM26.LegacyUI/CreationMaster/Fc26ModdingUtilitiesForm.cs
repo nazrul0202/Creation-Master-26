@@ -167,7 +167,8 @@ internal sealed class Fc26ModdingUtilitiesForm : Form
         if (newHits.Count > 0) { MessageBox.Show(this, "Target ID already exists. Use Swap IDs."); return; }
         if (MessageBox.Show(this, "Stage " + oldHits.Count + " linked ID update(s)?", "Dependency-aware ID change", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
         foreach (var hit in oldHits) Fc26SnapshotLoader.StageDetailValue(hit.Table, hit.Row, hit.Field, newValue);
-        _idReport.Text = oldHits.Count + " update(s) staged. File > Save validates and commits them.";
+        var assets = _entity.Text == "Player" ? MovePlayerAssets((int)_oldId.Value, (int)_newId.Value) : 0;
+        _idReport.Text = oldHits.Count + " update(s) and " + assets + " staged linked asset(s) prepared. File > Save validates and commits them.";
     }
 
     private void SwapIds(object sender, EventArgs e)
@@ -178,7 +179,42 @@ internal sealed class Fc26ModdingUtilitiesForm : Form
         if (MessageBox.Show(this, "Swap all linked references for these two IDs?", "Dependency-aware ID swap", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
         foreach (var hit in firstHits) Fc26SnapshotLoader.StageDetailValue(hit.Table, hit.Row, hit.Field, second);
         foreach (var hit in secondHits) Fc26SnapshotLoader.StageDetailValue(hit.Table, hit.Row, hit.Field, first);
-        _idReport.Text = (firstHits.Count + secondHits.Count) + " linked values staged for swap.";
+        var assets = _entity.Text == "Player" ? SwapPlayerAssets((int)_oldId.Value, (int)_newId.Value) : 0;
+        _idReport.Text = (firstHits.Count + secondHits.Count) + " linked values and " + assets + " staged linked asset(s) prepared for swap.";
+    }
+
+    private static int MovePlayerAssets(int sourceId, int targetId)
+    {
+        var moved = 0;
+        foreach (var pair in PlayerAssetPairs(sourceId, targetId))
+            if (Fc26HostBridge.MoveStagedAsset(pair.Item1, pair.Item2).StartsWith("Moved", StringComparison.OrdinalIgnoreCase)) moved++;
+        return moved;
+    }
+
+    private static int SwapPlayerAssets(int firstId, int secondId)
+    {
+        var moved = 0; var temporaryId = 900000000 + firstId % 99999999;
+        var firstToTemp = PlayerAssetPairs(firstId, temporaryId).ToArray();
+        var secondToFirst = PlayerAssetPairs(secondId, firstId).ToArray();
+        var tempToSecond = PlayerAssetPairs(temporaryId, secondId).ToArray();
+        for (var i = 0; i < firstToTemp.Length; i++)
+        {
+            var firstMoved = Fc26HostBridge.MoveStagedAsset(firstToTemp[i].Item1, firstToTemp[i].Item2).StartsWith("Moved", StringComparison.OrdinalIgnoreCase);
+            var secondMoved = Fc26HostBridge.MoveStagedAsset(secondToFirst[i].Item1, secondToFirst[i].Item2).StartsWith("Moved", StringComparison.OrdinalIgnoreCase);
+            var finalMoved = Fc26HostBridge.MoveStagedAsset(tempToSecond[i].Item1, tempToSecond[i].Item2).StartsWith("Moved", StringComparison.OrdinalIgnoreCase);
+            if (firstMoved) moved++; if (secondMoved) moved++; if (finalMoved) moved++;
+        }
+        return moved;
+    }
+
+    private static IEnumerable<Tuple<string, string>> PlayerAssetPairs(int sourceId, int targetId)
+    {
+        yield return Tuple.Create(Player.SpecificPhotoDdsFileName(sourceId), Player.SpecificPhotoDdsFileName(targetId));
+        yield return Tuple.Create(Player.SpecificFaceTextureFileName(sourceId), Player.SpecificFaceTextureFileName(targetId));
+        yield return Tuple.Create(Player.SpecificHeadModelFileName(sourceId), Player.SpecificHeadModelFileName(targetId));
+        yield return Tuple.Create(Player.SpecificHairTexturesFileName(sourceId), Player.SpecificHairTexturesFileName(targetId));
+        yield return Tuple.Create(Player.SpecificHairModelFileName(sourceId), Player.SpecificHairModelFileName(targetId));
+        yield return Tuple.Create(Player.SpecificHairLodModelFileName(sourceId), Player.SpecificHairLodModelFileName(targetId));
     }
 
     private void AuditDuplicates(object sender, EventArgs e)

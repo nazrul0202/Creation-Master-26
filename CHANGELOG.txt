@@ -1,3 +1,14 @@
+Creation Master 26 v1.0.153 - 25 August 2026
+
+- Kept the original v1.0.148-style Creation Master interface as the normal launcher.
+- Added direct staging/export/removal for format-compatible native RX3, DDS, BIG and binary assets on verified FC26 logical paths.
+- Expanded Visual Asset Manager families for player heads/hair, balls, boots, gloves, stadiums, kits, fonts/numbers and presentation graphics.
+- Added Compdata Simple Structure, Tournament Calendar, conflict warnings, Tournament Wizard and advancement-path editing.
+- Expanded Batch Player Matrix with age/position groups, equipment/style fields and multi-field young, star, position, physical and technical presets.
+- Strengthened schedule and advancement validation while retaining validated direct Save and automatic backup.
+
+Previous release:
+
 Creation Master 26 v1.0.152 - 25 August 2026
 
 - Kept the original v1.0.148-style Creation Master interface as the normal launcher.

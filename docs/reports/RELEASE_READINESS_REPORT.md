@@ -1,5 +1,14 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.153 - remaining classic workflow completion (2026-08-25)
+
+- **PASS:** Release builds complete with zero errors for the x64 host and x86 classic shell.
+- **PASS:** normal launch remains the original v1.0.148-style Creation Master shell.
+- **PASS:** exact logical-path native-file staging is connected to the direct asset transaction.
+- **PASS:** Compdata structure, calendar, wizard and advancement workflows use real workbook/TXT tables and validation.
+- **PASS:** Batch Player Matrix supports multi-field presets and Before/After preview.
+- **Boundary:** unknown Frostbite encoders and undocumented title-update formats remain unavailable rather than being faked.
+
 ## Version 1.0.152 - classic direct-edit completion pass (2026-08-25)
 
 - **PASS:** Release build completes with zero errors for the x64 host and x86 classic shell.

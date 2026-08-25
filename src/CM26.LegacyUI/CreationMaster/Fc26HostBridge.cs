@@ -193,6 +193,25 @@ internal static class Fc26HostBridge
         return result.StandardOutput.Trim();
     }
 
+    internal static string StageFile(string legacyPath, string sourcePath)
+    {
+        var result = RunHost("--legacy-stage-file \"" + legacyPath.Replace("\"", string.Empty) + "\" \"" +
+            sourcePath.Replace("\"", string.Empty) + "\"", AssetCommandTimeoutMs,
+            "FC26 direct asset importer", allowValidationIssues: false);
+        s_AssetCache.Remove(legacyPath);
+        return result.StandardOutput.Trim();
+    }
+
+    internal static string MoveStagedAsset(string sourceLegacyPath, string targetLegacyPath)
+    {
+        var result = RunHost("--legacy-move-asset \"" + sourceLegacyPath.Replace("\"", string.Empty) + "\" \"" +
+            targetLegacyPath.Replace("\"", string.Empty) + "\"", AssetCommandTimeoutMs,
+            "FC26 linked asset rename", allowValidationIssues: false);
+        s_AssetCache.Remove(sourceLegacyPath);
+        s_AssetCache.Remove(targetLegacyPath);
+        return result.StandardOutput.Trim();
+    }
+
     internal static string RemoveStagedAsset(string legacyPath)
     {
         if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
@@ -284,6 +303,23 @@ internal static class Fc26HostBridge
         RunHost("--legacy-compdata-save \"" + sourcePath.Replace("\"", string.Empty) + "\" \"" +
             snapshotPath.Replace("\"", string.Empty) + "\" \"" + outputPath.Replace("\"", string.Empty) + "\" " +
             (textFiles ? "txt" : "xlsx"), DatabaseCommandTimeoutMs, "FC26 Compdata writer", allowValidationIssues: false);
+    }
+
+    internal static string BuildCompdata(string snapshotPath, string name, int databaseCompetitionId, int stages, int groupsPerStage)
+    {
+        var result = RunHost("--legacy-compdata-build \"" + snapshotPath.Replace("\"", string.Empty) + "\" \"" +
+            name.Replace("\"", string.Empty) + "\" " + databaseCompetitionId + " " + stages + " " + groupsPerStage,
+            DatabaseCommandTimeoutMs, "FC26 tournament wizard", allowValidationIssues: false);
+        return result.StandardOutput.Trim();
+    }
+
+    internal static string AddCompdataAdvancement(string snapshotPath, int sourceGroup, int sourceRank,
+        int destinationGroup, int destinationRank)
+    {
+        var result = RunHost("--legacy-compdata-advance \"" + snapshotPath.Replace("\"", string.Empty) + "\" " +
+            sourceGroup + " " + sourceRank + " " + destinationGroup + " " + destinationRank,
+            DatabaseCommandTimeoutMs, "FC26 Compdata advancement editor", allowValidationIssues: false);
+        return result.StandardOutput.Trim();
     }
 
     private static ProcessResult RunHost(string arguments, int timeout, string description, bool allowValidationIssues)

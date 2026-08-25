@@ -58,6 +58,18 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 3 && args[0] == "--legacy-stage-file")
+        {
+            Environment.ExitCode = StageLegacyFile(args[1], args[2]);
+            return;
+        }
+
+        if (args.Length >= 3 && args[0] == "--legacy-move-asset")
+        {
+            Environment.ExitCode = MoveLegacyAsset(args[1], args[2]);
+            return;
+        }
+
         if (args.Length >= 2 && args[0] == "--legacy-remove-asset")
         {
             Environment.ExitCode = RemoveLegacyAsset(args[1]);
@@ -91,6 +103,18 @@ internal static class Program
         if (args.Length >= 3 && args[0] == "--legacy-compdata-validate")
         {
             Environment.ExitCode = ValidateLegacyCompdata(args[1], args[2]);
+            return;
+        }
+
+        if (args.Length >= 6 && args[0] == "--legacy-compdata-build")
+        {
+            Environment.ExitCode = BuildLegacyCompdata(args[1], args[2], args[3], args[4], args[5]);
+            return;
+        }
+
+        if (args.Length >= 6 && args[0] == "--legacy-compdata-advance")
+        {
+            Environment.ExitCode = AdvanceLegacyCompdata(args[1], args[2], args[3], args[4], args[5]);
             return;
         }
 
@@ -832,6 +856,42 @@ internal static class Program
         catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
     }
 
+    private static int StageLegacyFile(string legacyPath, string sourcePath)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(legacyPath) || !legacyPath.Replace('\\', '/').StartsWith("data/", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("A verified FC26 logical path beginning with data/ is required.");
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot)) throw new InvalidOperationException("FC26 installation was not detected.");
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+            var mods = new LegacyAssetModService();
+            mods.Open(assets.Fingerprint);
+            Console.WriteLine(mods.StageFile(legacyPath, sourcePath));
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int MoveLegacyAsset(string sourcePath, string targetPath)
+    {
+        try
+        {
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot)) throw new InvalidOperationException("FC26 installation was not detected.");
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+            var mods = new LegacyAssetModService();
+            mods.Open(assets.Fingerprint);
+            Console.WriteLine(mods.MoveReplacement(sourcePath, targetPath) ? "Moved" : "No staged source replacement");
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
     private static int RemoveLegacyAsset(string legacyPath)
     {
         try
@@ -954,6 +1014,46 @@ internal static class Program
             File.WriteAllText(reportPath, report);
             Console.WriteLine(issues.Count);
             return issues.Any(issue => issue.IsError) ? 2 : 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int BuildLegacyCompdata(string snapshotPath, string name, string databaseIdText,
+        string stagesText, string groupsText)
+    {
+        try
+        {
+            if (!int.TryParse(databaseIdText, out var databaseId) || !int.TryParse(stagesText, out var stages) ||
+                !int.TryParse(groupsText, out var groups)) throw new ArgumentException("Invalid tournament wizard values.");
+            var snapshot = System.Text.Json.JsonSerializer.Deserialize<LegacyCompdataSnapshot>(File.ReadAllText(snapshotPath))
+                ?? throw new InvalidDataException("Compdata edit snapshot is empty.");
+            var tables = snapshot.Sheets.ToDictionary(sheet => sheet.Name, FromLegacySheet, StringComparer.OrdinalIgnoreCase);
+            var result = CompdataBuilder.CreateLeagueOrCup(tables,
+                new CompdataLeagueBuildRequest(name, databaseId, stages, groups));
+            snapshot.Sheets = tables.Values.Select(ToLegacySheet).ToList();
+            File.WriteAllText(snapshotPath, System.Text.Json.JsonSerializer.Serialize(snapshot));
+            Console.WriteLine($"Created competition object {result.CompetitionObjectId}, {result.StageIds.Count} stage(s), {result.GroupIds.Count} group(s)");
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int AdvanceLegacyCompdata(string snapshotPath, string sourceGroupText, string sourceRankText,
+        string destinationGroupText, string destinationRankText)
+    {
+        try
+        {
+            if (!int.TryParse(sourceGroupText, out var sourceGroup) || !int.TryParse(sourceRankText, out var sourceRank) ||
+                !int.TryParse(destinationGroupText, out var destinationGroup) || !int.TryParse(destinationRankText, out var destinationRank))
+                throw new ArgumentException("Invalid advancement values.");
+            var snapshot = System.Text.Json.JsonSerializer.Deserialize<LegacyCompdataSnapshot>(File.ReadAllText(snapshotPath))
+                ?? throw new InvalidDataException("Compdata edit snapshot is empty.");
+            var tables = snapshot.Sheets.ToDictionary(sheet => sheet.Name, FromLegacySheet, StringComparer.OrdinalIgnoreCase);
+            CompdataBuilder.AddAdvancement(tables, sourceGroup, sourceRank, destinationGroup, destinationRank);
+            snapshot.Sheets = tables.Values.Select(ToLegacySheet).ToList();
+            File.WriteAllText(snapshotPath, System.Text.Json.JsonSerializer.Serialize(snapshot));
+            Console.WriteLine("Advancement path created");
+            return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
     }

@@ -33,7 +33,7 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.152.txt` is included with the v1.0.152 release assets.
+Checksums: `SHA256SUMS_v1.0.153.txt` is included with the v1.0.153 release assets.
 
 ---
 
@@ -53,8 +53,8 @@ Checksums: `SHA256SUMS_v1.0.152.txt` is included with the v1.0.152 release asset
 - **Restored specialist tabs** — Players includes Info, Skills, Face, Details and Callname; Teams includes Sponsors, Adboards, Flags and Audio
 
 ### Data & assets
-- **Compdata workbook editor** — league/cup builder, promotion & relegation links, TXT export
-- **Legacy asset import/remove** — crests, flags, logos, minifaces, kit textures (DDS/PNG)
+- **Compdata editor** — Simple structure tree, visual calendar/conflict view, league/cup wizard, advancement links, raw XLSX/TXT editing and validated TXT export
+- **Direct native asset import/remove** — images plus format-compatible RX3/DDS/BIG payloads for verified player, kit, stadium, ball, boot, glove and presentation paths
 - **Deco asset-pack discovery** — automatically uses a local `FC Editor by decoruiz Alpha v21` folder (including the standard Downloads location) for supported visual previews
 - **Frostbite asset search** — RES/Ebx search, NewWave audio bank metadata inspection
 - **Data Sync** — import squads from CM26 Scraper or Transfermarkt CSV
@@ -62,7 +62,7 @@ Checksums: `SHA256SUMS_v1.0.152.txt` is included with the v1.0.152 release asset
 ### Safety & workflow
 - **Transactional saves** — CAS data is append-only; TOCs verified before replacement; failed commits roll back
 - **CmModData backup** — immutable copy of your original game state on first open, restorable anytime
-- **FIFA Mod Manager export** — generate `.fifamod` packages for the mod-manager workflow
+- **Direct FC26 Save** — validates, backs up and commits database and staged native assets without a FIFA Mod Manager package
 - **Lightweight CM26ModData overlay** — NTFS symlinks mirror unchanged FC26 archives; copy-on-write materialises only modified CAS/TOC files
 - **Automated quality gate** — xUnit regression suite, all-section multi-resolution layout smoke test and GitHub Actions CI
 

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.152",
+  "version": "1.0.153",
   "name": "Creation Master 26",
-  "notes": "v1.0.152 - completes the classic-shell database, localization, Compdata, asset catalog, batch-player and internal utility integration for direct FC26 editing.",
+  "notes": "v1.0.153 - completes native-file direct asset staging, visual Compdata structure/calendar workflows and multi-field Batch Player Matrix presets in the classic CM26 shell.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

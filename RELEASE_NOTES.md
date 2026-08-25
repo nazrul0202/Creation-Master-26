@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.153 - direct asset, Compdata and batch completion pass (2026-08-25)
+
+- Preserved the classic v1.0.148 visual shell and its normal launch path.
+- Added exact-path staging of format-compatible native FC26 asset files alongside the existing image encoder and direct save transaction.
+- Added a visual Compdata structure tree, tournament calendar/conflict view, tournament wizard and group advancement editor.
+- Added multi-field Batch Player Matrix presets plus age, position, equipment, work-rate and running-style controls.
+- Added stricter calendar and advancement validation before Compdata export.
+
 ## Version 1.0.152 - classic direct-edit completion pass (2026-08-25)
 
 - Preserved the original v1.0.148 Creation Master interface and added the remaining operational tools to its existing Tools menu.

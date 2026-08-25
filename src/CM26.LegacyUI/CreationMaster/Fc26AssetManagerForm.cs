@@ -49,6 +49,58 @@ internal sealed class Fc26AssetManagerForm : Form
         }),
         new LegacyFamily("Ball image", new[] { "data/ui/game/settingsimg/ball_{id}.dds" }),
         new LegacyFamily("Boot image", new[] { "data/ui/imgassets/shoe/shoe_{id}.dds" }),
+        new LegacyFamily("Player face / head", new[]
+        {
+            "data/sceneassets/faces/head_{id}_0_0.rx3",
+            "data/sceneassets/faces/head_{id}_0_0_textures.rx3"
+        }),
+        new LegacyFamily("Player hair", new[]
+        {
+            "data/sceneassets/hair/hair_{id}_0.rx3",
+            "data/sceneassets/hair/hair_{id}_0_textures.rx3"
+        }),
+        new LegacyFamily("Player eyes / skin / tattoo", new[]
+        {
+            "data/sceneassets/faces/eyes_{id}.dds",
+            "data/sceneassets/faces/skin_{id}.dds",
+            "data/sceneassets/tattoos/tattoo_{id}.dds"
+        }),
+        new LegacyFamily("Ball model / texture", new[]
+        {
+            "data/sceneassets/ball/ball_{id}.rx3",
+            "data/sceneassets/ball/ball_{id}_textures.rx3"
+        }),
+        new LegacyFamily("Boot model / texture", new[]
+        {
+            "data/sceneassets/shoe/shoe_{id}.rx3",
+            "data/sceneassets/shoe/shoe_{id}_textures.rx3"
+        }),
+        new LegacyFamily("Goalkeeper gloves", new[]
+        {
+            "data/sceneassets/gkglove/gkglove_{id}.rx3",
+            "data/sceneassets/gkglove/gkglove_{id}_textures.rx3"
+        }),
+        new LegacyFamily("Stadium model / texture", new[]
+        {
+            "data/sceneassets/stadium/stadium_{id}.rx3",
+            "data/sceneassets/stadium/stadium_{id}_textures.rx3"
+        }),
+        new LegacyFamily("Kit / minikit", new[]
+        {
+            "data/sceneassets/kit/kit_{id}.rx3",
+            "data/ui/imgassets/minikits/kit_{id}.dds"
+        }),
+        new LegacyFamily("Competition / presentation graphic", new[]
+        {
+            "data/ui/imgassets/compbadges/comp_{id}.dds",
+            "data/ui/imgassets/scoreboards/scoreboard_{id}.dds",
+            "data/ui/imgassets/adboards/adboard_{id}.dds"
+        }),
+        new LegacyFamily("Kit fonts / numbers", new[]
+        {
+            "data/sceneassets/kitnumbers/number_{id}.rx3",
+            "data/sceneassets/kitfonts/font_{id}.rx3"
+        }),
         new LegacyFamily("Custom verified path", new[] { "data/ui/imgassets/" })
     };
 
@@ -87,7 +139,7 @@ internal sealed class Fc26AssetManagerForm : Form
             new Label { Text = "Asset family", AutoSize = true, Padding = new Padding(0, 6, 0, 0) }, _family,
             new Label { Text = "ID", AutoSize = true, Padding = new Padding(8, 6, 0, 0) }, _id,
             new Label { Text = "Verified logical path", AutoSize = true, Padding = new Padding(8, 6, 0, 0) }, _logicalPath,
-            Button("Load", LoadLegacy), Button("Import image", ImportLegacy),
+            Button("Load / Preview", LoadLegacy), Button("Import image", ImportLegacy), Button("Import native file", ImportFile),
             Button("Export", ExportLegacy), Button("Remove staged", RemoveLegacy)
         });
         var note = new Label
@@ -156,8 +208,29 @@ internal sealed class Fc26AssetManagerForm : Form
             if (string.IsNullOrWhiteSpace(exported) || !File.Exists(exported))
                 throw new FileNotFoundException("The logical path was not found in this FC26 installation.", path);
             _legacySource = exported;
-            ShowImage(_legacyPreview, exported);
+            if (!TryShowImage(_legacyPreview, exported)) _legacyPreview.Image = null;
             return "Loaded " + path;
+        });
+    }
+
+    private void ImportFile(object sender, EventArgs e)
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Filter = "FC26 native assets|*.rx3;*.dds;*.big;*.bin|All files|*.*",
+            Title = "Select a format-compatible FC26 native replacement"
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        Run("Staging native FC26 asset...", () =>
+        {
+            var logicalPath = RequireLogicalPath();
+            var targetExtension = Path.GetExtension(logicalPath);
+            var sourceExtension = Path.GetExtension(dialog.FileName);
+            if (!string.IsNullOrWhiteSpace(targetExtension) && !targetExtension.Equals(sourceExtension, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Replacement extension must match the target asset (" + targetExtension + ").");
+            Fc26HostBridge.StageFile(logicalPath, dialog.FileName);
+            TryShowImage(_legacyPreview, dialog.FileName);
+            return "Native replacement staged for direct Save: " + logicalPath;
         });
     }
 
@@ -256,7 +329,7 @@ internal sealed class Fc26AssetManagerForm : Form
     {
         using var dialog = new SaveFileDialog
         {
-            FileName = Path.GetFileName(source), Filter = "Texture files|*.png;*.dds|All files|*.*"
+            FileName = Path.GetFileName(source), Filter = "FC26 asset files|*.dds;*.rx3;*.big;*.bin;*.png|All files|*.*"
         };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         File.Copy(source, dialog.FileName, true);
@@ -298,6 +371,12 @@ internal sealed class Fc26AssetManagerForm : Form
         var old = preview.Image;
         preview.Image = clone;
         old?.Dispose();
+    }
+
+    private static bool TryShowImage(PictureBox preview, string path)
+    {
+        try { ShowImage(preview, path); return true; }
+        catch { return false; }
     }
 
     protected override void Dispose(bool disposing)

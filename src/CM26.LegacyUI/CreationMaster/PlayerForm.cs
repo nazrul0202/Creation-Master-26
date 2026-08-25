@@ -1123,6 +1123,7 @@ public class PlayerForm : Form
 
 	private bool ExportRx3HairTextures(object sender, string exportDir)
 	{
+		if (FifaEnvironment.Year == 26) return ExportFc26NativeAsset(m_CurrentPlayer.SpecificHairTexturesFileName(), exportDir);
 		return FifaEnvironment.ExportFileFromZdata(m_CurrentPlayer.HairTexturesFileName(), exportDir);
 	}
 
@@ -1141,6 +1142,11 @@ public class PlayerForm : Form
 
 	private bool ImportRx3HairTextures(object sender, string rx3FileName)
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			try { Fc26HostBridge.StageFile(m_CurrentPlayer.SpecificHairTexturesFileName(), rx3FileName); return true; }
+			catch (Exception ex) { MessageBox.Show(this, ex.Message, "FC26 Hair Import", MessageBoxButtons.OK, MessageBoxIcon.Error); return false; }
+		}
 		bool num = m_CurrentPlayer.SetHairTextures(rx3FileName);
 		if (num)
 		{
@@ -1153,11 +1159,17 @@ public class PlayerForm : Form
 
 	private bool DeleteRx3HairTextures(object sender)
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			try { Fc26HostBridge.RemoveStagedAsset(m_CurrentPlayer.SpecificHairTexturesFileName()); return true; }
+			catch (Exception ex) { MessageBox.Show(this, ex.Message, "FC26 Hair", MessageBoxButtons.OK, MessageBoxIcon.Error); return false; }
+		}
 		return m_CurrentPlayer.DeleteHairTextures();
 	}
 
 	private bool ExportRx3FaceTextures(object sender, string exportDir)
 	{
+		if (FifaEnvironment.Year == 26) return ExportFc26NativeAsset(m_CurrentPlayer.SpecificFaceTextureFileName(), exportDir);
 		return FifaEnvironment.ExportFileFromZdata(m_CurrentPlayer.FaceTextureFileName(), exportDir);
 	}
 
@@ -1175,6 +1187,11 @@ public class PlayerForm : Form
 
 	private bool ImportRx3FaceTextures(object sender, string rx3FileName)
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			try { Fc26HostBridge.StageFile(m_CurrentPlayer.SpecificFaceTextureFileName(), rx3FileName); return true; }
+			catch (Exception ex) { MessageBox.Show(this, ex.Message, "FC26 Face Import", MessageBoxButtons.OK, MessageBoxIcon.Error); return false; }
+		}
 		bool num = m_CurrentPlayer.SetFaceTextures(rx3FileName);
 		if (num)
 		{
@@ -1187,6 +1204,11 @@ public class PlayerForm : Form
 
 	private bool DeleteRx3FaceTextures(object sender)
 	{
+		if (FifaEnvironment.Year == 26)
+		{
+			try { Fc26HostBridge.RemoveStagedAsset(m_CurrentPlayer.SpecificFaceTextureFileName()); return true; }
+			catch (Exception ex) { MessageBox.Show(this, ex.Message, "FC26 Face", MessageBoxButtons.OK, MessageBoxIcon.Error); return false; }
+		}
 		bool num = m_CurrentPlayer.DeleteFaceTexture();
 		if (num)
 		{
@@ -1194,6 +1216,23 @@ public class PlayerForm : Form
 			UpdateAndShowHead3D();
 		}
 		return num;
+	}
+
+	private bool ExportFc26NativeAsset(string logicalPath, string exportDir)
+	{
+		try
+		{
+			var source = Fc26HostBridge.ExportAsset(logicalPath);
+			if (string.IsNullOrWhiteSpace(source) || !File.Exists(source)) return false;
+			Directory.CreateDirectory(exportDir);
+			File.Copy(source, Path.Combine(exportDir, Path.GetFileName(logicalPath)), true);
+			return true;
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show(this, ex.Message, "FC26 Asset Export", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			return false;
+		}
 	}
 
 	private bool ImportImageMiniface(object sender, Bitmap bitmap)

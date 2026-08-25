@@ -102,7 +102,48 @@ internal static class CompdataSchema
         ValidateReference(tables, "initteams", 0, types, 3, "Competition Object ID", issues);
         ValidateReference(tables, "advancement", 0, types, 5, "Source Group ID", issues);
         ValidateReference(tables, "advancement", 2, types, 5, "Destination Group ID", issues);
+        ValidateCalendar(tables, issues);
+        ValidateAdvancement(tables, issues);
         return issues;
+    }
+
+    private static void ValidateCalendar(IReadOnlyDictionary<string, DataTable> tables,
+        ICollection<CompdataValidationIssue> issues)
+    {
+        if (!tables.TryGetValue("schedule", out var table)) return;
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var row = 0; row < table.Rows.Count; row++)
+        {
+            var data = table.Rows[row];
+            if (!TryInt(data, 0, out var objectId) || !TryInt(data, 1, out var day) ||
+                !TryInt(data, 2, out var round) || !TryInt(data, 3, out var minimum) ||
+                !TryInt(data, 4, out var maximum) || !TryInt(data, 5, out var kickoff))
+            {
+                issues.Add(CompdataValidationIssue.Error("schedule", row + 1, "Object, day, round, game range and kick-off must be integers."));
+                continue;
+            }
+            if (day < 0 || round < 0) issues.Add(CompdataValidationIssue.Error("schedule", row + 1, "Day and round cannot be negative."));
+            if (minimum < 0 || maximum < minimum) issues.Add(CompdataValidationIssue.Error("schedule", row + 1, "Maximum games must be greater than or equal to minimum games."));
+            if (kickoff < 0 || kickoff > 2359 || kickoff % 100 > 59) issues.Add(CompdataValidationIssue.Error("schedule", row + 1, "Kick-off must use a valid FC HHMM value (0000–2359)."));
+            if (!keys.Add($"{objectId}|{day}|{round}")) issues.Add(CompdataValidationIssue.Error("schedule", row + 1, "Duplicate object/day/round creates a schedule conflict."));
+        }
+    }
+
+    private static void ValidateAdvancement(IReadOnlyDictionary<string, DataTable> tables,
+        ICollection<CompdataValidationIssue> issues)
+    {
+        if (!tables.TryGetValue("advancement", out var table)) return;
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var row = 0; row < table.Rows.Count; row++)
+        {
+            var data = table.Rows[row];
+            if (!TryInt(data, 0, out var source) || !TryInt(data, 1, out var sourceRank) ||
+                !TryInt(data, 2, out var destination) || !TryInt(data, 3, out var destinationRank)) continue;
+            if (source == destination && sourceRank == destinationRank)
+                issues.Add(CompdataValidationIssue.Error("advancement", row + 1, "An advancement path cannot point back to the same group and rank."));
+            if (!keys.Add($"{source}|{sourceRank}|{destination}|{destinationRank}"))
+                issues.Add(CompdataValidationIssue.Error("advancement", row + 1, "Duplicate advancement path."));
+        }
     }
 
     private static void ValidateReference(IReadOnlyDictionary<string, DataTable> tables, string sheet, int column,
