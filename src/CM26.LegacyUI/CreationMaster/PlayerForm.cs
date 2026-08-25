@@ -1026,6 +1026,7 @@ public class PlayerForm : Form
 					if (!AppearanceAssistant.ConfirmApply(this, portrait, suggestion)) return;
 					m_CurrentPlayer.skintonecode = suggestion.SkinToneCode;
 					m_CurrentPlayer.hairtypecode = suggestion.HairTypeCode;
+					m_CurrentPlayer.headtypecode = suggestion.HeadTypeCode;
 					m_CurrentPlayer.facialhairtypecode = suggestion.FacialHairTypeCode;
 					m_CurrentPlayer.headclasscode = 1;
 					LoadPlayerFace();
