@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -362,7 +363,18 @@ public class MainForm : Form
 			var report = Fc26HostBridge.LoadHealthReport();
 			MessageBox.Show(this, report, "FC26 Database Health Centre",
 				MessageBoxButtons.OK, report.Contains("[Error]") ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
-			statusBar.Text = "Database health scan completed.";
+			if (report.Contains("repairable") && MessageBox.Show(this,
+				"Apply the safe roster, free-agent, contract and shirt-number repairs now?\r\n\r\n" +
+				"Changes stay staged in CM26. Use File > Save to run validation, create the automatic backup and commit them to Frostbite.",
+				"Database Health Centre — Safe Repair", MessageBoxButtons.YesNo,
+				MessageBoxIcon.Question) == DialogResult.Yes)
+			{
+				int repaired = ApplySafeHealthRepairs();
+				statusBar.Text = "Database health repair staged: " + repaired + " correction(s).";
+				MessageBox.Show(this, repaired + " safe correction(s) staged. Review the affected teams, then use File > Save.",
+					"Database Health Centre", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			}
+			else statusBar.Text = "Database health scan completed.";
 		}
 		catch (Exception ex)
 		{
@@ -371,6 +383,42 @@ public class MainForm : Form
 			statusBar.Text = "Database health scan failed.";
 		}
 		finally { Cursor.Current = Cursors.Default; }
+	}
+
+	private int ApplySafeHealthRepairs()
+	{
+		int repaired = 0;
+		Team freeAgents = (Team)FifaEnvironment.Teams.SearchId(111592);
+		foreach (Player player in FifaEnvironment.Players)
+		{
+			bool hadClubAndFreeAgent = freeAgents != null && player.GetClub() != null && player.IsPlayingFor(freeAgents);
+			player.RemoveFromFreeAgentIfHasClub();
+			if (hadClubAndFreeAgent && !player.IsPlayingFor(freeAgents)) repaired++;
+			bool hadNoLink = freeAgents != null && player.GetClub() == null && !player.IsPlayingFor(freeAgents);
+			if (freeAgents != null) player.AddToFreeAgentIfWithoutClub();
+			if (hadNoLink && player.IsPlayingFor(freeAgents)) repaired++;
+			int oldContract = player.contractvaliduntil;
+			player.ExtendContractAfterLoanEnd();
+			if (oldContract != player.contractvaliduntil) repaired++;
+		}
+
+		foreach (Team team in FifaEnvironment.Teams)
+		{
+			var used = new HashSet<int>();
+			foreach (TeamPlayer link in team.Roster)
+			{
+				int number = link.jerseynumber;
+				if (number >= 1 && number <= 99 && used.Add(number)) continue;
+				for (int candidate = 1; candidate <= 99; candidate++)
+				{
+					if (!used.Add(candidate)) continue;
+					link.jerseynumber = candidate;
+					repaired++;
+					break;
+				}
+			}
+		}
+		return repaired;
 	}
 
 	private void CreateForms()
