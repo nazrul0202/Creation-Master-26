@@ -822,10 +822,13 @@ public class PlayerForm : Form
 
 	private CmStyleDetailsPanel m_CareerDetails;
 
+	private Button m_AppearanceAssistantButton;
+
 	public PlayerForm()
 	{
 		base.Visible = false;
 		InitializeComponent();
+		InitializeAppearanceAssistant();
 		var careerPage = new TabPage("Career Details") { BackColor = SystemColors.Control };
 		m_CareerDetails = new CmStyleDetailsPanel(DetailSection.Player);
 		careerPage.Controls.Add(m_CareerDetails);
@@ -978,6 +981,62 @@ public class PlayerForm : Form
 		viewer2DTattoos.ShowButton = true;
 		viewer2DTattoos.ShowButtonChecked = true;
 		tool3D.Visible = true;
+	}
+
+	private void InitializeAppearanceAssistant()
+	{
+		m_AppearanceAssistantButton = new Button
+		{
+			Text = "Appearance Assistant...",
+			AutoSize = true,
+			Location = new Point(pageFace.ClientSize.Width - 178, 10),
+			Anchor = AnchorStyles.Top | AnchorStyles.Right,
+			BackColor = Color.FromArgb(28, 112, 57),
+			ForeColor = Color.White,
+			FlatStyle = FlatStyle.Flat
+		};
+		m_AppearanceAssistantButton.FlatAppearance.BorderSize = 0;
+		m_AppearanceAssistantButton.Click += appearanceAssistant_Click;
+		pageFace.Controls.Add(m_AppearanceAssistantButton);
+		m_AppearanceAssistantButton.BringToFront();
+	}
+
+	private void appearanceAssistant_Click(object sender, EventArgs e)
+	{
+		if (m_CurrentPlayer == null)
+		{
+			MessageBox.Show(this, "Select a player first.", "Appearance Assistant", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+
+		using (var picker = new OpenFileDialog
+		{
+			Title = "Choose a front-facing player portrait",
+			Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp|All files|*.*",
+			CheckFileExists = true
+		})
+		{
+			if (picker.ShowDialog(this) != DialogResult.OK) return;
+			try
+			{
+				using (var loaded = Image.FromFile(picker.FileName))
+				using (var portrait = new Bitmap(loaded))
+				{
+					var suggestion = AppearanceAssistant.Analyze(portrait);
+					if (!AppearanceAssistant.ConfirmApply(this, portrait, suggestion)) return;
+					m_CurrentPlayer.skintonecode = suggestion.SkinToneCode;
+					m_CurrentPlayer.hairtypecode = suggestion.HairTypeCode;
+					m_CurrentPlayer.facialhairtypecode = suggestion.FacialHairTypeCode;
+					m_CurrentPlayer.headclasscode = 1;
+					LoadPlayerFace();
+				}
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show(this, "The portrait could not be analysed.\r\n\r\n" + ex.Message,
+					"Appearance Assistant", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+			}
+		}
 	}
 
 	private Player CreatePlayer(object sender, object obj)
