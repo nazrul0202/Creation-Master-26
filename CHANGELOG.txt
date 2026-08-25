@@ -1,3 +1,7 @@
+Creation Master 26 v1.0.165 - 25 August 2026
+- Matched Club Worth and Transfer Budget to Deco's calculated read-only displays.
+- Moved kit texture scaling into the 64-bit host and reduced the legacy preview cache to 1024px.
+
 Creation Master 26 v1.0.164 - 25 August 2026
 
 - Moved read-only Transfer Budget directly below Club Worth and removed raw-looking Team finance/trait panels.

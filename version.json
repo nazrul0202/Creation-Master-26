@@ -1,6 +1,6 @@
 {
-  "version": "1.0.164",
+  "version": "1.0.165",
   "name": "Creation Master 26",
-  "notes": "v1.0.164 - completes friendly Team finance and Compdata actions, fixes player mapping visuals, and hardens Kit and Referee sections.",
+  "notes": "v1.0.165 - matches Deco club finance calculations and moves kit decoding to a compact 64-bit preview cache.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

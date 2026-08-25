@@ -74,6 +74,8 @@ public class TeamForm : Form
 
 	private GroupBox groupFc26MatchdayPresentation;
 
+	private Label labelFc26ClubWorthValue;
+
 	private Label labelFc26TransferBudgetValue;
 
 	private ComboBox comboTraitContext;
@@ -1491,6 +1493,18 @@ public class TeamForm : Form
 
 	private void ConfigureFc26CareerBudgetUi()
 	{
+		// Deco presents both figures as calculated information. Do not expose the
+		// compact database value (for example 162100) as money users can edit.
+		numericInitialBudget.Visible = false;
+		labelFc26ClubWorthValue = new Label
+		{
+			Name = "labelFc26ClubWorthValue",
+			Location = new Point(92, 202), Size = new Size(167, 20),
+			BorderStyle = BorderStyle.Fixed3D,
+			TextAlign = ContentAlignment.MiddleRight,
+			Font = new Font(Font, FontStyle.Bold),
+			BackColor = SystemColors.ControlLightLight
+		};
 		var transferBudgetLabel = new Label
 		{
 			Text = "Transfer Budget",
@@ -1506,8 +1520,10 @@ public class TeamForm : Form
 			Font = new Font(Font, FontStyle.Bold),
 			BackColor = SystemColors.ControlLightLight
 		};
+		groupBox3.Controls.Add(labelFc26ClubWorthValue);
 		groupBox3.Controls.Add(transferBudgetLabel);
 		groupBox3.Controls.Add(labelFc26TransferBudgetValue);
+		labelFc26ClubWorthValue.BringToFront();
 		labelFc26TransferBudgetValue.BringToFront();
 		RefreshFc26CareerBudgetUi();
 	}
@@ -1583,15 +1599,75 @@ public class TeamForm : Form
 
 	private void RefreshFc26CareerBudgetUi()
 	{
-		if (labelFc26TransferBudgetValue == null) return;
+		if (labelFc26ClubWorthValue == null || labelFc26TransferBudgetValue == null) return;
 		if (m_CurrentTeam == null)
 		{
+			labelFc26ClubWorthValue.Text = "—";
 			labelFc26TransferBudgetValue.Text = "—";
 			return;
 		}
 		var usd = System.Globalization.CultureInfo.GetCultureInfo("en-US");
-		decimal transferBudgetDollars = m_CurrentTeam.transferbudget * 1.08m;
-		labelFc26TransferBudgetValue.Text = transferBudgetDollars.ToString("C0", usd);
+		decimal clubWorthDollars = m_CurrentTeam.clubworth * 1000m * 1.08m;
+		decimal transferBudgetDollars = CalculateDecoTransferBudget(
+			m_CurrentTeam.clubworth, m_CurrentTeam.profitability);
+		labelFc26ClubWorthValue.Text = clubWorthDollars.ToString("C2", usd);
+		labelFc26TransferBudgetValue.Text = transferBudgetDollars.ToString("C2", usd);
+	}
+
+	internal static decimal CalculateDecoTransferBudget(int clubWorth, int profitability)
+	{
+		int tier = Math.Max(1, Math.Min(10, profitability)) - 1;
+		decimal[] baseOne = { 975, 880, 815, 785, 770, 750, 650, 600, 580, 560 };
+		decimal[] baseThousand = { 960120, 866160, 801360, 772200, 757080, 737640, 639360, 590760, 570240, 550800 };
+		if (clubWorth <= 0) return 0;
+		if (clubWorth <= 1000)
+		{
+			if (clubWorth == 1) return baseOne[tier];
+			if (clubWorth == 1000) return baseThousand[tier];
+			decimal position = DecimalLog(clubWorth) / DecimalLog(1000m);
+			return baseOne[tier] + (baseThousand[tier] - baseOne[tier]) * position;
+		}
+
+		int[] points = { 50000, 100000, 250000, 500000 };
+		decimal[][] values =
+		{
+			new decimal[] { 17280432, 13860288, 12015296, 10080234, 9270261, 7920180, 7200144, 6030126, 5760126, 5310144 },
+			new decimal[] { 22920432, 20520432, 17820324, 15120270, 13500243, 11880216, 11016195, 10260054, 9180108, 8100108 },
+			new decimal[] { 48600808, 40500476, 35100540, 30240216, 25650270, 22140250, 19980432, 18090486, 16740417, 14580298 },
+			new decimal[] { 75602160, 62101888, 54001616, 48601192, 44550676, 38880540, 35640432, 30224059, 25380808, 19980918 }
+		};
+		if (clubWorth > points[3])
+			return values[3][tier] * (clubWorth / (decimal)points[3]) * 0.85m;
+
+		int upperIndex = 0;
+		while (upperIndex < points.Length && clubWorth > points[upperIndex]) upperIndex++;
+		int upperPoint = points[upperIndex];
+		int lowerPoint = upperIndex == 0 ? 1000 : points[upperIndex - 1];
+		decimal lowerValue = upperIndex == 0
+			? values[0][tier] * (lowerPoint / (decimal)points[0])
+			: values[upperIndex - 1][tier];
+		decimal upperValue = values[upperIndex][tier];
+		decimal logPosition = (DecimalLog(clubWorth) - DecimalLog(lowerPoint)) /
+			(DecimalLog(upperPoint) - DecimalLog(lowerPoint));
+		return lowerValue + (upperValue - lowerValue) * logPosition;
+	}
+
+	private static decimal DecimalLog(decimal value)
+	{
+		if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value));
+		int exponent = 0;
+		while (value >= 2m) { value /= 2m; exponent++; }
+		while (value < 1m) { value *= 2m; exponent--; }
+		decimal z = (value - 1m) / (value + 1m);
+		decimal zSquared = z * z;
+		decimal term = z;
+		decimal sum = 0m;
+		for (int divisor = 1; divisor <= 61; divisor += 2)
+		{
+			sum += term / divisor;
+			term *= zSquared;
+		}
+		return 2m * sum + exponent * 0.6931471805599453094172321215m;
 	}
 
 	private void ConfigureFc26RosterFormationUi()

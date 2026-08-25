@@ -1,5 +1,11 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.165 - Deco finance parity and compact kit cache (2026-08-25)
+
+- Club Worth is now a read-only currency display using Deco's `clubworth × 1000 × 1.08` conversion instead of exposing the compact database value.
+- Transfer Budget now uses Deco's exact club-worth/profitability reference table and logarithmic interpolation.
+- Kit textures are pre-scaled to a new 1024px cache by the 64-bit host, preventing the 32-bit classic shell from exhausting its GDI heap.
+
 ## Version 1.0.164 - strict friendly mapping and stability pass (2026-08-25)
 
 - Moved the read-only Deco-mapped Transfer Budget directly below Club Worth and removed the separate raw-looking Career Money and Team Traits panels.

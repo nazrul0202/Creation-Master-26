@@ -667,7 +667,7 @@ internal static class Program
             };
             var cached = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Creation Master 26", "legacy-kit-textures-v1", $"{teamId}_{kitType}.png");
+                "Creation Master 26", "legacy-kit-textures-v2", $"{teamId}_{kitType}.png");
             if (File.Exists(cached) && new FileInfo(cached).Length > 0 && IsReadableRaster(cached))
             {
                 Console.WriteLine(cached);
@@ -693,7 +693,10 @@ internal static class Program
             var source = assets.ExportTexture(selected.Name);
             if (string.IsNullOrWhiteSpace(source) || !File.Exists(source))
                 throw new InvalidOperationException("FC26 kit texture extraction failed.");
-            using var preview = new TexturePreviewService().CreatePreview(source, 2048, 2048);
+            // The classic shell is a 32-bit process. A 2048x2048 ARGB bitmap can
+            // exhaust its GDI heap after the database and image lists are loaded.
+            // Generate a compact cache in the 64-bit host before WinForms opens it.
+            using var preview = new TexturePreviewService().CreatePreview(source, 1024, 1024);
             if (preview is null) throw new InvalidOperationException("FC26 kit texture could not be decoded.");
             Directory.CreateDirectory(Path.GetDirectoryName(cached)!);
             preview.Save(cached, System.Drawing.Imaging.ImageFormat.Png);

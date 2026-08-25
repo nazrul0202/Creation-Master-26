@@ -223,6 +223,10 @@ internal static class Program
 					!ContainsControlText(main.m_TrophyForm, "Create Nation") ||
 					!ContainsControlText(main.m_TrophyForm, "Create Player"))
 					throw new InvalidDataException("A mapped FC26 team or Compdata surface is missing.");
+				decimal decoBudget = TeamForm.CalculateDecoTransferBudget(162100, 6);
+				if (Math.Abs(decoBudget - 17289023.40328413m) > 0.01m)
+					throw new InvalidDataException("Deco Transfer Budget mapping has drifted: " +
+						decoBudget.ToString("G29", System.Globalization.CultureInfo.InvariantCulture));
 				File.AppendAllText(uiLog, "passed" + Environment.NewLine);
 				Environment.Exit(0);
 			}

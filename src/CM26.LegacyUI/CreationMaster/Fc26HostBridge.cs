@@ -167,7 +167,7 @@ internal static class Fc26HostBridge
 			}
             var diskCache = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Creation Master 26", "legacy-kit-textures-v1", teamId + "_" + kitType + ".png");
+                "Creation Master 26", "legacy-kit-textures-v2", teamId + "_" + kitType + ".png");
             if (File.Exists(diskCache) && new FileInfo(diskCache).Length > 0 && IsReadableRaster(diskCache))
             {
                 s_AssetCache[cacheKey] = diskCache;

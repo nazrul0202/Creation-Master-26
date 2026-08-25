@@ -561,7 +561,7 @@ public class KitForm : Form
 			}
 			try
 			{
-				Bitmap texture = LoadMemorySafePreview(path, 2048);
+				Bitmap texture = LoadMemorySafePreview(path, 1024);
 				cached = new[] { texture, texture, texture, texture };
 				CacheFc26KitTextures(key, cached);
 			}
@@ -593,6 +593,8 @@ public class KitForm : Form
 		int width = source.Width;
 		int height = source.Height;
 		if (width <= 0 || height <= 0) throw new InvalidDataException("Invalid image size.");
+		if (width <= maximumSide && height <= maximumSide)
+			return new Bitmap(source);
 		double scale = Math.Min(1d, maximumSide / (double)Math.Max(width, height));
 		int targetWidth = Math.Max(1, (int)Math.Round(width * scale));
 		int targetHeight = Math.Max(1, (int)Math.Round(height * scale));
