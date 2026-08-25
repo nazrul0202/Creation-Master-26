@@ -77,7 +77,7 @@
        to the x64 Frostbite host. The two processes communicate through the
        FC26 snapshot bridge because the native game engine is x64-only. -->
   <Target Name="BuildLegacyCm16Shell" AfterTargets="Build">
-    <MSBuild Projects="..\CM26.LegacyUI\CM26.LegacyUI.csproj" Targets="Build" Properties="Configuration=$(Configuration)" RemoveProperties="RuntimeIdentifier;SelfContained" />
+    <MSBuild Projects="..\CM26.LegacyUI\CM26.LegacyUI.csproj" Targets="Build" Properties="Configuration=$(Configuration)" RemoveProperties="RuntimeIdentifier;SelfContained;Platform;PlatformTarget" />
     <ItemGroup>
       <LegacyCm16Files Include="..\CM26.LegacyUI\bin\$(Configuration)\net48\**\*" />
     </ItemGroup>
@@ -85,7 +85,7 @@
   </Target>
 
   <Target Name="CopyLegacyCm16ShellToPublish" AfterTargets="Publish" Condition="'$(PublishDir)' != ''">
-    <MSBuild Projects="..\CM26.LegacyUI\CM26.LegacyUI.csproj" Targets="Build" Properties="Configuration=$(Configuration)" RemoveProperties="RuntimeIdentifier;SelfContained" />
+    <MSBuild Projects="..\CM26.LegacyUI\CM26.LegacyUI.csproj" Targets="Build" Properties="Configuration=$(Configuration)" RemoveProperties="RuntimeIdentifier;SelfContained;Platform;PlatformTarget" />
     <ItemGroup>
       <LegacyCm16PublishFiles Include="..\CM26.LegacyUI\bin\$(Configuration)\net48\**\*" />
     </ItemGroup>
