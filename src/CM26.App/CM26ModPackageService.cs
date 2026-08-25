@@ -11,12 +11,6 @@ namespace CM26.App;
 public static class CM26ModPackageService
 {
     public const string Extension = ".cm26mod";
-    /// <summary>
-    /// A CM26 editable project. It deliberately has the familiar FET project
-    /// extension, but its manifest identifies it as a CM26 project so it is
-    /// never mistaken for FET's undocumented internal project format.
-    /// </summary>
-    public const string ProjectExtension = ".fifaproject";
     private const string ManifestEntry = "manifest.json";
 
     public sealed record Payload(string GamePath, string SourcePath);
@@ -26,9 +20,6 @@ public static class CM26ModPackageService
 
     public static PackageManifest Export(string destination, string name, IEnumerable<Payload> payloads)
         => Export(destination, name, payloads, Extension);
-
-    public static PackageManifest ExportProject(string destination, string name, IEnumerable<Payload> payloads)
-        => Export(destination, name, payloads, ProjectExtension);
 
     private static PackageManifest Export(string destination, string name, IEnumerable<Payload> payloads, string extension)
     {

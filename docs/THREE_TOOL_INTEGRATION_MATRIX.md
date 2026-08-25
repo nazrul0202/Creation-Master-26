@@ -5,7 +5,7 @@ The reference applications are not bundled and their code is not copied.
 
 | Overview area | CM26 implementation |
 |---|---|
-| Project launcher / direct Frostbite workflow | Open installed FC26 or extracted database; staged changes; backup; direct Data/Patch transaction; reload verification; project/mod payload export |
+| Launcher / direct Frostbite workflow | Open installed FC26 or extracted database; staged changes; backup; direct Data/Patch transaction; reload verification; playable mod export. CM26 project import/export is intentionally excluded because CM26 edits the Frostbite source directly. |
 | Advanced database workspace | All loaded tables; paging; scalar editing; search and numeric filters; saved filters; clone/delete; bulk paste/replace; compare; row templates; TSV/CSV import/export; pending/history views |
 | Dependency-aware editing | Database reference impact, safe reference replacement requiring an existing parent, relationship-aware delete, asset-usage report and full engine integrity validation |
 | Player editor / IDs / names | Create/clone/delete, FC26 fields and PlayStyles, editable name override records, player/team navigation, transfers and batch scraper import |
