@@ -1,5 +1,13 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.149 - public Studio shell and data integrity hotfix (2026-08-25)
+
+- **PASS:** normal `CM26_by_Rizco98.exe` launch opens the Studio interface; the classic shell requires the explicit `--classic` switch.
+- **PASS:** 135/135 managed regression tests and Studio shell smoke.
+- **PASS:** real FC26 snapshot diagnostic maps nation 149 to Asia and assigns team 11's starting XI to eleven distinct valid pitch roles.
+- **Fixed:** one-based FC26 confederation values now round-trip correctly through the zero-based classic object model.
+- **Fixed:** missing teamsheet position columns now fall back to the active formation instead of stacking every starter at position zero.
+
 ## Version 1.0.148 — direct Frostbite three-tool integration (2026-08-25)
 
 - **PASS:** release metadata, managed build and 135/135 regression tests.

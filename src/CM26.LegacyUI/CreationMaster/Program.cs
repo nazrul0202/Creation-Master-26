@@ -12,6 +12,39 @@ internal static class Program
 	{
 		Fc26HostBridge.Configure(args);
 		FifaLibrary.FifaEnvironment.Fc26AssetExporter = Fc26HostBridge.ExportAsset;
+		if (args.Length >= 2 && string.Equals(args[0], "--cm26-data-integrity-test", StringComparison.OrdinalIgnoreCase))
+		{
+			try
+			{
+				Fc26SnapshotLoader.Load(args[1]);
+				var afghanistan = FifaLibrary.FifaEnvironment.Countries.SearchId(149) as FifaLibrary.Country
+					?? throw new InvalidDataException("FC26 nation 149 (Afghanistan) is missing.");
+				if (afghanistan.Confederation != 4)
+					throw new InvalidDataException("Afghanistan must map to legacy Asia index 4, not " + afghanistan.Confederation + ".");
+
+				var manchesterUnited = FifaLibrary.FifaEnvironment.Teams.SearchId(11) as FifaLibrary.Team
+					?? throw new InvalidDataException("FC26 team 11 (Manchester United) is missing.");
+				if (manchesterUnited.Roster.Count < 11)
+					throw new InvalidDataException("Manchester United has fewer than eleven loaded players.");
+				var starterRoles = new System.Collections.Generic.HashSet<int>();
+				for (var slot = 0; slot < 11; slot++)
+				{
+					var player = manchesterUnited.Roster[slot] as FifaLibrary.TeamPlayer;
+					if (player == null || player.position < 0 || player.position >= 28)
+						throw new InvalidDataException("Manchester United starter slot " + slot + " has no valid pitch role.");
+					starterRoles.Add(player.position);
+				}
+				if (starterRoles.Count != 11)
+					throw new InvalidDataException("Manchester United starters collapse into " + starterRoles.Count + " pitch roles.");
+				Environment.ExitCode = 0;
+			}
+			catch (Exception ex)
+			{
+				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				Environment.ExitCode = 1;
+			}
+			return;
+		}
 		if (args.Length >= 3 && string.Equals(args[0], "--cm26-team-transfer-plan-test", StringComparison.OrdinalIgnoreCase))
 		{
 			try

@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.149 - public Studio shell and FC26 data integrity fixes (2026-08-25)
+
+- Made CM26 Studio the interface opened by a normal `CM26_by_Rizco98.exe` launch, exposing the implemented modern modules instead of silently routing every user into the classic CM16 shell.
+- Kept the classic compatibility interface available explicitly with `CM26_by_Rizco98.exe --classic`.
+- Corrected FC26's one-based confederation codes at the legacy bridge boundary, so Afghanistan and other AFC nations display as Asia instead of Oceania and save back without an off-by-one change.
+- Corrected default-team-sheet loading when FC26 supplies `playerid0..51` without legacy `position0..10` columns. Starting players now inherit all eleven active formation roles instead of collapsing into a single pitch slot.
+- Added a real-snapshot integrity diagnostic covering Afghanistan's confederation and Manchester United's complete starting XI.
+
 ## Version 1.0.148 - complete direct Frostbite three-tool integration (2026-08-25)
 
 - Expanded the advanced Database Browser with transactional multi-cell paste, single-table and all-table TSV/CSV export, row-index-safe table import with a change preview, automatic rollback when any staged value fails, and a readable pending-change list.

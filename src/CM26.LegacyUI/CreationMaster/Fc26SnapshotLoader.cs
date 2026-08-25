@@ -906,6 +906,12 @@ internal static class Fc26SnapshotLoader
                 var value = ConvertValue(values[i], field.FieldType);
                 if (target is Player && columnName == "preferredfoot" && value is int preferredFoot)
                     value = preferredFoot <= 1 ? 0 : 1;
+                // FC26 stores confederations as 1..7, while the legacy Country
+                // object and its combo box use the zero-based 0..6 enum.  The
+                // normal database constructor performs this conversion too;
+                // snapshot loading must preserve the same contract.
+                if (target is Country && columnName == "confederation" && value is int confederation)
+                    value = Math.Max(0, confederation - 1);
                 field.SetValue(target, value);
             }
             catch { /* New FC26-only columns stay in the snapshot and are ignored by CM16 forms. */ }
@@ -958,6 +964,8 @@ internal static class Fc26SnapshotLoader
         var value = field.GetValue(item);
         if (item is Player && columnName == "preferredfoot" && value is int preferredFoot)
             value = (preferredFoot <= 0 ? 0 : 1) + 1;
+        if (item is Country && columnName == "confederation" && value is int confederation)
+            value = confederation + 1;
         return ToDatabaseText(value, field.FieldType);
     }
 
@@ -1173,8 +1181,13 @@ internal static class Fc26SnapshotLoader
                     continue;
                 if (slot < 11)
                 {
-                    var position = ParseIntAt(selected.Row, Column(sheets, "position" + slot));
-                    if (position < 0 || position >= 28)
+                    var positionColumn = Column(sheets, "position" + slot);
+                    var position = ParseIntAt(selected.Row, positionColumn);
+                    // Current FC26 default_teamsheets rows have playerid0..51,
+                    // but no position0..10 columns.  Treating a missing column
+                    // as integer zero stacks every starter in the same UI role,
+                    // leaving only one player visible on the pitch.
+                    if (positionColumn < 0 || position < 0 || position >= 28)
                         position = team.Formation?.PlayingRoles != null && slot < team.Formation.PlayingRoles.Length
                             ? team.Formation.PlayingRoles[slot].Role?.Id ?? team.Formation.PlayingRoles[slot].Id
                             : player.Player.preferredposition1;

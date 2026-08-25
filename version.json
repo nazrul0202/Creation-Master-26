@@ -1,6 +1,6 @@
 {
-  "version": "1.0.148",
+  "version": "1.0.149",
   "name": "Creation Master 26",
-  "notes": "v1.0.148 - completes the direct Frostbite three-tool integration with operation rollback, database health repairs and a preview-first appearance assistant.",
+  "notes": "v1.0.149 - makes CM26 Studio the normal public interface and corrects FC26 confederation and starting-XI mapping.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

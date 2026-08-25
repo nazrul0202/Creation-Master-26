@@ -1,10 +1,10 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.148 (MIT License), 2026-08-25.
+Status: Version 1.0.149 (MIT License), 2026-08-25.
 
 ## User interface
 
-The v1.0.106 Studio rebuild replaces the legacy fixed-layout sections with a shared dark-card design system. Every section now uses `StudioCard`, `StudioToolbar` and related controls. Layouts were verified at common desktop resolutions, but exotic DPI combinations or very small window sizes may still need refinement. All business logic (staging, save, validation, asset loading, formation editing) was preserved.
+The v1.0.149 public launcher opens the Studio interface by default. The classic fixed-layout shell remains available with `--classic` for compatibility and diagnostics; it is not the primary interface and does not mirror Studio's visual design. Studio layouts were verified at common desktop resolutions, but exotic DPI combinations or very small window sizes may still need refinement.
 
 v1.0.124 adds embedded in-app 3D previews (HelixToolkit + Assimp FBX import) for kit, player face, stadium, ball and boot records. The external `CM26.3DViewer` remains available as a separate tool for standalone FBX inspection.
 

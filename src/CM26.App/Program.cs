@@ -403,10 +403,8 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         WinApp.SetDefaultFont(new System.Drawing.Font("Segoe UI", 9f, System.Drawing.FontStyle.Regular));
 
-        // The public x64 host owns one x86 CM16 shell for its full lifetime.
-        // A second Explorer double-click previously created another blue shell
-        // on top of the first one and made section loading look like re-entrant
-        // flicker. Hidden --legacy-* bridge invocations return above and never
+        // The public x64 host owns one editor shell for its full lifetime.
+        // Hidden --legacy-* bridge invocations return above and never
         // participate in this UI-only mutex.
         using var singleInstance = new Mutex(true, @"Local\CreationMaster26.UI", out var isFirstInstance);
         if (!isFirstInstance)
@@ -463,15 +461,15 @@ internal static class Program
 
         try
         {
-            // CM16's user-friendly shell is the public entry point.  Its File
-            // > Open flow detects FC26 and loads the Data/Patch Frostbite source
-            // through CM26.Application; the former dark WinForms workspace stays
-            // available as an internal compatibility surface, not a second UI.
+            // CM26 Studio is the public interface.  The classic CM16-compatible
+            // shell remains available for diagnostics and compatibility through
+            // an explicit --classic switch, but must not hide the implemented
+            // Studio modules during a normal launch.
             var legacyExe = Path.Combine(AppContext.BaseDirectory, "CM26.LegacyUI", "CM26.LegacyUI.exe");
-            // UI automation targets the WPF Studio directly. Routing these flags
-            // into the normal legacy shell ignores the requested smoke mode and
-            // leaves release automation waiting for a user to close the window.
-            if (File.Exists(legacyExe) && !isStudioSmoke)
+            var useClassicShell = args.Length >= 1 &&
+                (args[0].Equals("--classic", StringComparison.OrdinalIgnoreCase) ||
+                 args[0].Equals("--legacy-ui", StringComparison.OrdinalIgnoreCase));
+            if (useClassicShell && File.Exists(legacyExe))
             {
                 using var legacy = Process.Start(new ProcessStartInfo
                 {
