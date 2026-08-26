@@ -21,7 +21,7 @@ public class RefereeForm : Form
 
 	private NewIdCreator m_NewIdCreator = new NewIdCreator();
 
-	private bool m_GenericAppearanceSema = true;
+	private bool m_GenericAppearanceSema;
 
 	private bool m_Locked;
 
@@ -394,10 +394,16 @@ public class RefereeForm : Form
 
 	public void LoadReferee(Referee referee)
 	{
-		if (m_IsLoaded && m_CurrentReferee != referee)
+		if (!m_IsLoaded || referee == null || m_CurrentReferee == referee)
+		{
+			if (referee == null) ShowEmptyRefereeState();
+			return;
+		}
+		if (m_CurrentReferee != referee)
 		{
 			m_Locked = true;
 			m_CurrentReferee = referee;
+			groupIdentity.Text = "Identity";
 			refereeBindingSource.DataSource = m_CurrentReferee;
 			Refresh();
 			LoadRefereeInfo();
@@ -406,8 +412,19 @@ public class RefereeForm : Form
 		}
 	}
 
+	private void ShowEmptyRefereeState()
+	{
+		m_CurrentReferee = null;
+		m_GenericAppearanceSema = false;
+		refereeBindingSource.DataSource = null;
+		buttonShow3DModel.Checked = false;
+		viewer3DReferee?.ShowEmpty();
+		groupIdentity.Text = "Identity · Select or create a referee";
+	}
+
 	private void LoadRefereeInfo()
 	{
+		if (m_CurrentReferee == null) { ShowEmptyRefereeState(); return; }
 		m_Locked = true;
 		numericRefereeId.Value = m_CurrentReferee.Id;
 		if (m_CurrentReferee.Leagues[0] == null)
@@ -596,6 +613,7 @@ public class RefereeForm : Form
 
 	private void LoadRefereeFace()
 	{
+		if (m_CurrentReferee == null) { ShowEmptyRefereeState(); return; }
 		m_GenericAppearanceSema = false;
 		GenericHead.EHeadModelSet eHeadModelSet = GenericHead.GetModelSet(m_CurrentReferee.headtypecode);
 		if (eHeadModelSet == GenericHead.EHeadModelSet.Unknown)
@@ -831,6 +849,11 @@ public class RefereeForm : Form
 
 	private void UpdateAndShowHead3D()
 	{
+		if (m_CurrentReferee == null)
+		{
+			viewer3DReferee.ShowEmpty();
+			return;
+		}
 		if (!buttonShow3DModel.Checked)
 		{
 			viewer3DReferee.ShowEmpty();

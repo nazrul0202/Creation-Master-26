@@ -32,9 +32,7 @@ public class PlayerForm : Form
 
 	private bool m_Fc26PlaystylesLoading;
 
-	private readonly List<CheckBox> m_Fc26PlaystyleChecks = new List<CheckBox>();
-
-	private readonly List<CheckBox> m_Fc26PlaystylePlusChecks = new List<CheckBox>();
+	private readonly List<ComboBox> m_Fc26PlaystyleSelectors = new List<ComboBox>();
 
 	private static readonly string[] c_Fc26PlaystyleNames = new string[34]
 	{
@@ -825,7 +823,9 @@ public class PlayerForm : Form
 
 	private Button m_TransfermarktButton;
 
-	private GroupBox m_Fc26RoleGroup;
+        private GroupBox m_Fc26RoleGroup;
+
+        private TabPage m_Fc26RolesPage;
 
 	private readonly ComboBox[] m_Fc26RoleCombos = new ComboBox[5];
 
@@ -1529,39 +1529,56 @@ public class PlayerForm : Form
 		RefreshFc26Playstyles();
 	}
 
-	private void InitializeFc26FriendlyPlayerFields()
-	{
-		labelMarking.Text = "Def. Awareness ";
-		m_Fc26RoleGroup = new GroupBox
-		{
-			Name = "groupFc26TacticalRoles",
-			Text = "Tactical Roles · Familiarity",
-			Size = new Size(360, 174),
-			BackColor = SystemColors.Control
-		};
-		for (int slot = 0; slot < m_Fc26RoleCombos.Length; slot++)
-		{
-			var label = new Label
-			{
-				AutoSize = true,
-				Text = "Role " + (slot + 1),
-				Location = new Point(12, 25 + slot * 28)
-			};
-			var combo = new ComboBox
-			{
-				Name = "comboFc26Role" + (slot + 1),
-				DropDownStyle = ComboBoxStyle.DropDownList,
-				Location = new Point(68, 21 + slot * 28),
-				Size = new Size(280, 21),
-				Tag = slot
-			};
+        private void InitializeFc26FriendlyPlayerFields()
+        {
+                labelMarking.Text = "Def. Awareness ";
+                m_Fc26RolesPage = new TabPage
+                {
+                        Name = "pageFc26TacticalRoles",
+                        Text = "Tactical Roles",
+                        UseVisualStyleBackColor = true,
+                        AutoScroll = true
+                };
+                tabEditPlayer.TabPages.Insert(1, m_Fc26RolesPage);
+                m_Fc26RoleGroup = new GroupBox
+                {
+                        Name = "groupFc26TacticalRoles",
+                        Text = "Tactical Roles · Familiarity",
+                        Location = new Point(18, 18),
+                        Size = new Size(470, 190),
+                        BackColor = SystemColors.Control
+                };
+                m_Fc26RoleGroup.Controls.Add(new Label
+                {
+                        AutoSize = false,
+                        Text = "Each slot stores the FC26 position role and familiarity level. " +
+                               "Use + for familiar and ++ for fully familiar.",
+                        Location = new Point(12, 22),
+                        Size = new Size(440, 32)
+                });
+                for (int slot = 0; slot < m_Fc26RoleCombos.Length; slot++)
+                {
+                        var label = new Label
+                        {
+                                AutoSize = true,
+                                Text = "Role " + (slot + 1),
+                                Location = new Point(12, 62 + slot * 24)
+                        };
+                        var combo = new ComboBox
+                        {
+                                Name = "comboFc26Role" + (slot + 1),
+                                DropDownStyle = ComboBoxStyle.DropDownList,
+                                Location = new Point(68, 58 + slot * 24),
+                                Size = new Size(384, 21),
+                                Tag = slot
+                        };
 			foreach (var role in Fc26RoleChoice.CreateAll()) combo.Items.Add(role);
 			combo.SelectedIndexChanged += Fc26Role_SelectedIndexChanged;
 			m_Fc26RoleCombos[slot] = combo;
-			m_Fc26RoleGroup.Controls.Add(label);
-			m_Fc26RoleGroup.Controls.Add(combo);
-		}
-		flowPanelInfo.Controls.Add(m_Fc26RoleGroup);
+                        m_Fc26RoleGroup.Controls.Add(label);
+                        m_Fc26RoleGroup.Controls.Add(combo);
+                }
+                m_Fc26RolesPage.Controls.Add(m_Fc26RoleGroup);
 
 		m_Fc26ComposureLabel = new Label
 		{
@@ -1676,13 +1693,15 @@ public class PlayerForm : Form
 		}
 	}
 
-	private void InitializeFc26PlaystyleControls()
-	{
-		groupTraits.SuspendLayout();
-		groupTraits.Controls.Clear();
-		groupTraits.Text = "PlayStyles";
-		groupTraits.Location = new Point(8, 387);
-		groupTraits.Size = new Size(1235, 254);
+        private void InitializeFc26PlaystyleControls()
+        {
+                groupTraits.SuspendLayout();
+                groupTraits.Controls.Clear();
+                groupTraits.Text = "PlayStyles · None / PlayStyle / PlayStyle+";
+                groupTraits.Location = new Point(8, 387);
+                groupTraits.Size = new Size(1235, 254);
+
+                m_Fc26PlaystyleSelectors.Clear();
 
 		var grid = new TableLayoutPanel
 		{
@@ -1697,70 +1716,75 @@ public class PlayerForm : Form
 		for (int row = 0; row < 9; row++)
 			grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 25f));
 
-		for (int index = 0; index < c_Fc26PlaystyleNames.Length; index++)
-		{
-			var panel = new Panel
-			{
-				Dock = DockStyle.Fill,
-				Margin = Padding.Empty
-			};
-			var playstyle = new CheckBox
-			{
-				AutoSize = false,
-				Width = 264,
-				Height = 22,
-				Text = c_Fc26PlaystyleNames[index],
-				Tag = index,
-				Location = new Point(2, 1)
-			};
-			var plus = new CheckBox
-			{
-				Appearance = Appearance.Button,
-				AutoSize = false,
-				Text = "+",
-				AccessibleName = c_Fc26PlaystyleNames[index] + " Plus",
-				Tag = index,
-				Location = new Point(268, 1),
-				Size = new Size(30, 22),
-				FlatStyle = FlatStyle.Flat,
-				Font = new Font(Font, FontStyle.Bold),
-				TextAlign = ContentAlignment.MiddleCenter
-			};
-			playstyle.CheckedChanged += Fc26Playstyle_CheckedChanged;
-			plus.CheckedChanged += Fc26PlaystylePlus_CheckedChanged;
-			m_Fc26PlaystyleChecks.Add(playstyle);
-			m_Fc26PlaystylePlusChecks.Add(plus);
-			panel.Controls.Add(playstyle);
-			panel.Controls.Add(plus);
-			grid.Controls.Add(panel, index % 4, index / 4);
-		}
+                for (int index = 0; index < c_Fc26PlaystyleNames.Length; index++)
+                {
+                        var panel = new Panel
+                        {
+                                Dock = DockStyle.Fill,
+                                Margin = Padding.Empty
+                        };
+                        var name = new Label
+                        {
+                                AutoSize = false,
+                                Width = 184,
+                                Height = 22,
+                                Text = c_Fc26PlaystyleNames[index],
+                                TextAlign = ContentAlignment.MiddleLeft,
+                                Location = new Point(2, 1)
+                        };
+                        var selector = new ComboBox
+                        {
+                                Name = "comboFc26Playstyle" + index,
+                                DropDownStyle = ComboBoxStyle.DropDownList,
+                                Tag = index,
+                                Location = new Point(186, 1),
+                                Size = new Size(112, 21)
+                        };
+                        selector.Items.AddRange(new object[] { "None", "PlayStyle", "PlayStyle+" });
+                        selector.SelectedIndexChanged += Fc26PlaystyleState_SelectedIndexChanged;
+                        m_Fc26PlaystyleSelectors.Add(selector);
+                        panel.Controls.Add(name);
+                        panel.Controls.Add(selector);
+                        grid.Controls.Add(panel, index % 4, index / 4);
+                }
 
 		groupTraits.Controls.Add(grid);
 		groupTraits.ResumeLayout(performLayout: true);
 	}
 
-	private void RefreshFc26Playstyles()
-	{
-		if (FifaEnvironment.Year != 26 || m_CurrentPlayer == null || m_Fc26PlaystyleChecks.Count == 0)
-			return;
-		m_Fc26PlaystylesLoading = true;
-		try
-		{
-			for (int index = 0; index < c_Fc26PlaystyleNames.Length; index++)
-			{
-				bool plus = GetFc26Playstyle(index, plus: true);
-				bool standard = GetFc26Playstyle(index, plus: false) || plus;
-				m_Fc26PlaystyleChecks[index].Checked = standard;
-				m_Fc26PlaystylePlusChecks[index].Checked = plus;
-				m_Fc26PlaystylePlusChecks[index].Enabled = standard;
-				m_Fc26PlaystylePlusChecks[index].BackColor = plus ? Color.Gold : SystemColors.Control;
-			}
-		}
+        private void RefreshFc26Playstyles()
+        {
+                if (FifaEnvironment.Year != 26 || m_CurrentPlayer == null || m_Fc26PlaystyleSelectors.Count == 0)
+                        return;
+                m_Fc26PlaystylesLoading = true;
+                try
+                {
+                        for (int index = 0; index < c_Fc26PlaystyleNames.Length; index++)
+                        {
+                                bool plus = GetFc26Playstyle(index, plus: true);
+                                bool standard = GetFc26Playstyle(index, plus: false) || plus;
+                                m_Fc26PlaystyleSelectors[index].SelectedIndex = plus ? 2 : standard ? 1 : 0;
+                                m_Fc26PlaystyleSelectors[index].BackColor = plus ? Color.Gold : SystemColors.Window;
+                        }
+                }
 		finally
 		{
 			m_Fc26PlaystylesLoading = false;
-		}
-	}
+                }
+        }
+
+        private void Fc26PlaystyleState_SelectedIndexChanged(object sender, EventArgs e)
+        {
+                if (m_Fc26PlaystylesLoading || m_CurrentPlayer == null || sender is not ComboBox selector || selector.SelectedIndex < 0)
+                        return;
+
+                int index = (int)selector.Tag;
+                bool standard = selector.SelectedIndex >= 1;
+                bool plus = selector.SelectedIndex == 2;
+                SetFc26Playstyle(index, plus: false, standard);
+                SetFc26Playstyle(index, plus: true, plus);
+                selector.BackColor = plus ? Color.Gold : SystemColors.Window;
+        }
 
 	private bool GetFc26Playstyle(int index, bool plus)
 	{
@@ -1790,29 +1814,9 @@ public class PlayerForm : Form
 		}
 	}
 
-	private void Fc26Playstyle_CheckedChanged(object sender, EventArgs e)
-	{
-		if (m_Fc26PlaystylesLoading || m_CurrentPlayer == null || sender is not CheckBox check) return;
-		int index = (int)check.Tag;
-		SetFc26Playstyle(index, plus: false, check.Checked);
-		m_Fc26PlaystylePlusChecks[index].Enabled = check.Checked;
-		if (!check.Checked && m_Fc26PlaystylePlusChecks[index].Checked)
-			m_Fc26PlaystylePlusChecks[index].Checked = false;
-	}
-
-	private void Fc26PlaystylePlus_CheckedChanged(object sender, EventArgs e)
-	{
-		if (m_Fc26PlaystylesLoading || m_CurrentPlayer == null || sender is not CheckBox check) return;
-		int index = (int)check.Tag;
-		SetFc26Playstyle(index, plus: true, check.Checked);
-		check.BackColor = check.Checked ? Color.Gold : SystemColors.Control;
-		if (check.Checked && !m_Fc26PlaystyleChecks[index].Checked)
-			m_Fc26PlaystyleChecks[index].Checked = true;
-	}
-
 	public void Preset()
 	{
-		if (FifaEnvironment.Year == 26 && m_Fc26PlaystyleChecks.Count == 0)
+		if (FifaEnvironment.Year == 26 && m_Fc26PlaystyleSelectors.Count == 0)
 			InitializeFc26PlaystyleControls();
 		Kit.Prepare3DModels();
 		m_NewIdCreator.IdList = FifaEnvironment.Players;

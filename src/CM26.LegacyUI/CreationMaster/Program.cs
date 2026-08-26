@@ -206,9 +206,15 @@ internal static class Program
 					!ContainsControlText(main.m_LeagueForm, "League Details"))
 					throw new InvalidDataException("A mapped, friendly CM26 details surface is missing.");
 				if (!ContainsControlText(main.m_PlayerForm, "Tactical Roles") ||
-					!ContainsControlText(main.m_PlayerForm, "Composure") ||
-					!ContainsControlText(main.m_PlayerForm, "Def. Awareness"))
+						!ContainsControlText(main.m_PlayerForm, "Composure") ||
+						!ContainsControlText(main.m_PlayerForm, "Def. Awareness"))
 					throw new InvalidDataException("The mapped FC26 Player Info/Skills controls are missing.");
+				if (CountNamedControls(main.m_PlayerForm, "comboFc26Playstyle") != 34 ||
+						!ContainsControlText(main.m_PlayerForm, "None / PlayStyle / PlayStyle+"))
+					throw new InvalidDataException("The FC26 three-state PlayStyle editor is incomplete.");
+				var tacticalRolesPage = FindControl(main.m_PlayerForm, "pageFc26TacticalRoles") as TabPage;
+				if (tacticalRolesPage == null || tacticalRolesPage.Parent == null)
+					throw new InvalidDataException("Tactical Roles must have a dedicated Player tab.");
 				if (ContainsControlText(main.m_ManagerForm, "Manager Records") ||
 					ContainsControlText(main.m_RefereeForm, "Competition Kits"))
 					throw new InvalidDataException("A disconnected details popup is still exposed.");
@@ -216,9 +222,10 @@ internal static class Program
 				if (miniface == null || miniface.Width > 104 || miniface.Height > 129)
 					throw new InvalidDataException("Player miniface exceeds the classic CM26 layout boundary.");
 				if (ContainsControlText(main.m_TeamForm, "Career Money (Dollars)") ||
-					!ContainsControlText(main.m_TeamForm, "Transfer Budget") ||
-					!ContainsControlText(main.m_TeamForm, "Matchday Presentation") ||
-					!ContainsControlText(main.m_TrophyForm, "Create League") ||
+						!ContainsControlText(main.m_TeamForm, "Transfer Budget") ||
+						!ContainsControlText(main.m_TeamForm, "Matchday Presentation") ||
+						!ContainsControlText(main.m_KitForm, "Texture: checking") ||
+						!ContainsControlText(main.m_TrophyForm, "Create League") ||
 					!ContainsControlText(main.m_TrophyForm, "Create Team") ||
 					!ContainsControlText(main.m_TrophyForm, "Create Nation") ||
 					!ContainsControlText(main.m_TrophyForm, "Create Player"))
@@ -321,6 +328,14 @@ internal static class Program
 			if (match != null) return match;
 		}
 		return null;
+	}
+
+	private static int CountNamedControls(Control root, string prefix)
+	{
+		if (root == null) return 0;
+		int count = root.Name?.StartsWith(prefix, StringComparison.Ordinal) == true ? 1 : 0;
+		foreach (Control child in root.Controls) count += CountNamedControls(child, prefix);
+		return count;
 	}
 
 	private static bool ContainsMenuText(ToolStripItemCollection items, string text)

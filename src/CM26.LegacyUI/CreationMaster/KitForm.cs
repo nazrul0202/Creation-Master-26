@@ -45,7 +45,9 @@ public class KitForm : Form
 
 	private int m_Fc26TextureRequest;
 
-	private Label m_Fc26Kit3dStatus;
+        private Label m_Fc26Kit3dStatus;
+
+        private Label m_Fc26KitAssetStatus;
 
 	private static Color[] c_ColorPalette = new Color[20]
 	{
@@ -291,8 +293,23 @@ public class KitForm : Form
 			Text = "3D kit preview",
 			Visible = false
 		};
-		group3D.Controls.Add(m_Fc26Kit3dStatus);
-		m_Fc26Kit3dStatus.BringToFront();
+                group3D.Controls.Add(m_Fc26Kit3dStatus);
+                m_Fc26Kit3dStatus.BringToFront();
+                m_Fc26KitAssetStatus = new Label
+                {
+                        AutoEllipsis = true,
+                        BackColor = Color.FromArgb(45, 45, 45),
+                        Dock = DockStyle.Bottom,
+                        ForeColor = Color.Gainsboro,
+                        Height = 48,
+                        Name = "labelFc26KitAssetStatus",
+                        Padding = new Padding(6, 4, 6, 0),
+                        Text = "Texture: checking · Minikit: checking · Fonts: checking",
+                        Visible = false
+                };
+                group3D.Controls.Add(m_Fc26KitAssetStatus);
+                m_Fc26KitAssetStatus.BringToFront();
+                m_Fc26Kit3dStatus.BringToFront();
 		viewer3DMinikit = new Viewer3D();
 		viewer3DMinikit.AmbientColor = Color.White;
 		viewer3DMinikit.BackColor = Color.Gray;
@@ -487,7 +504,8 @@ public class KitForm : Form
 			}
 			multiViewer2DJerseyNumbers.Bitmaps = NumberFont.GetNumberFont(m_CurrentKit.jerseyNumberFont, m_CurrentKit.jerseyNumberColor);
 			multiViewer2DShortsNumbers.Bitmaps = NumberFont.GetNumberFont(m_CurrentKit.shortsNumberFont, m_CurrentKit.shortsNumberColor);
-			viewer2DMinikit.CurrentBitmap = m_CurrentKit.GetMiniKit();
+                        viewer2DMinikit.CurrentBitmap = m_CurrentKit.GetMiniKit();
+                        UpdateFc26KitAssetStatus("Checking");
 			pictureJerseyNumberColor.BackColor = SafePaletteColor(m_CurrentKit.jerseyNumberColor);
 			pictureShortsNumberColor.BackColor = SafePaletteColor(m_CurrentKit.shortsNumberColor);
 			labelCollarImage.ImageIndex = kit.jerseyCollar;
@@ -547,18 +565,22 @@ public class KitForm : Form
 			{
 				path = await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.ExportKitTexture(kit.teamid, kit.kittype));
 			}
-			catch (Exception)
-			{
-				if (request == m_Fc26TextureRequest && m_CurrentKit == kit && !IsDisposed)
-					SetFc26Kit3dStatus("Kit preview is unavailable.", Color.OrangeRed);
-				return;
-			}
+                        catch (Exception)
+                        {
+                                if (request == m_Fc26TextureRequest && m_CurrentKit == kit && !IsDisposed)
+                                {
+                                        SetFc26Kit3dStatus("Kit preview is unavailable.", Color.OrangeRed);
+                                        UpdateFc26KitAssetStatus("Unavailable");
+                                }
+                                return;
+                        }
 			if (request != m_Fc26TextureRequest || m_CurrentKit != kit || IsDisposed) return;
 			if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
-			{
-				SetFc26Kit3dStatus("No kit preview is available.", Color.OrangeRed);
-				return;
-			}
+                        {
+                                SetFc26Kit3dStatus("No kit preview is available.", Color.OrangeRed);
+                                UpdateFc26KitAssetStatus("Missing");
+                                return;
+                        }
 			try
 			{
 				Bitmap texture = LoadMemorySafePreview(path, 1024);
@@ -566,25 +588,27 @@ public class KitForm : Form
 				CacheFc26KitTextures(key, cached);
 			}
 			catch (Exception)
-			{
-				SetFc26Kit3dStatus("Kit preview could not be decoded safely.", Color.OrangeRed);
-				return;
-			}
+                        {
+                                SetFc26Kit3dStatus("Kit preview could not be decoded safely.", Color.OrangeRed);
+                                UpdateFc26KitAssetStatus("Preview unavailable");
+                                return;
+                        }
 		}
 		if (request != m_Fc26TextureRequest || m_CurrentKit != kit || IsDisposed) return;
-		if (multiViewer2DKit.buttonShow.Checked) multiViewer2DKit.Bitmaps = cached;
-		SetFc26Kit3dStatus("Kit preview loaded.", Color.LightGreen);
-		try
-		{
-			Show3DKit();
-			Show3DMinikit();
-		}
-		catch (OutOfMemoryException)
-		{
-			viewer3DKit.ShowEmpty();
-			viewer3DMinikit.ShowEmpty();
-			SetFc26Kit3dStatus("2D preview loaded. 3D preview needs more available memory.", Color.Gold);
-		}
+                if (multiViewer2DKit.buttonShow.Checked) multiViewer2DKit.Bitmaps = cached;
+                SetFc26Kit3dStatus("Kit preview loaded.", Color.LightGreen);
+                UpdateFc26KitAssetStatus("Installed");
+                try
+                {
+                        Show3DKit();
+                        Show3DMinikit();
+                }
+                catch (Exception)
+                {
+                        viewer3DKit.ShowEmpty();
+                        viewer3DMinikit.ShowEmpty();
+                        SetFc26Kit3dStatus("2D preview loaded. 3D preview is unavailable.", Color.Gold);
+                }
 	}
 
 	private static Bitmap LoadMemorySafePreview(string path, int maximumSide)
@@ -610,13 +634,24 @@ public class KitForm : Form
 		return preview;
 	}
 
-	private void SetFc26Kit3dStatus(string text, Color color)
+        private void SetFc26Kit3dStatus(string text, Color color)
 	{
 		if (m_Fc26Kit3dStatus == null) return;
 		m_Fc26Kit3dStatus.Visible = FifaEnvironment.Year == 26;
 		m_Fc26Kit3dStatus.ForeColor = color;
-		m_Fc26Kit3dStatus.Text = text;
-	}
+                m_Fc26Kit3dStatus.Text = text;
+        }
+
+        private void UpdateFc26KitAssetStatus(string textureStatus)
+        {
+                if (m_Fc26KitAssetStatus == null || m_CurrentKit == null) return;
+                m_Fc26KitAssetStatus.Visible = FifaEnvironment.Year == 26;
+                string minikit = viewer2DMinikit.CurrentBitmap == null ? "Missing" : "Installed";
+                m_Fc26KitAssetStatus.Text =
+                        "Texture: " + textureStatus + " · Minikit: " + minikit + Environment.NewLine +
+                        "Name font: " + m_CurrentKit.jerseyNameFont + " · Jersey number: " +
+                        m_CurrentKit.jerseyNumberFont + " · Shorts number: " + m_CurrentKit.shortsNumberFont;
+        }
 
 	private void CacheFc26KitTextures(string key, Bitmap[] textures)
 	{
