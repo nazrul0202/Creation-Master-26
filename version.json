@@ -1,6 +1,6 @@
 {
-  "version": "1.0.165",
+  "version": "1.0.166",
   "name": "Creation Master 26",
-  "notes": "v1.0.165 - matches Deco club finance calculations and moves kit decoding to a compact 64-bit preview cache.",
+  "notes": "v1.0.166 - separates Tactical Roles, clarifies PlayStyles, hardens Referee startup and reports kit asset status.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

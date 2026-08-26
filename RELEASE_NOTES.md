@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.166 - editor clarity and stability (2026-08-26)
+
+- Moved FC26 Tactical Roles to their own Player tab so identity and appearance information are no longer duplicated or crowded.
+- Replaced the ambiguous PlayStyle checkbox/plus-button pairs with one explicit `None`, `PlayStyle` or `PlayStyle+` selector per style.
+- Hardened Referee startup and empty-record handling so missing current-generation records no longer cause null-reference failures.
+- Added compact Kit asset status for texture, minikit and font assignments, and made failed 3D decoding fall back to 2D without an out-of-memory popup.
+- Extended the UI integration audit to lock the 34 PlayStyle controls, dedicated Tactical Roles tab, compact miniface, Deco finance mapping, Kit status and guided CompData actions.
+
 ## Version 1.0.165 - Deco finance parity and compact kit cache (2026-08-25)
 
 - Club Worth is now a read-only currency display using Deco's `clubworth × 1000 × 1.08` conversion instead of exposing the compact database value.

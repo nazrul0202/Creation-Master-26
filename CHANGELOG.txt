@@ -1,3 +1,9 @@
+Creation Master 26 v1.0.166 - 26 August 2026
+- Separated Player Tactical Roles from Player Info and replaced ambiguous PlayStyle controls with explicit three-state selectors.
+- Prevented Referee null-record crashes and added a clear empty state.
+- Added Kit texture, minikit and font status with safe 2D fallback when 3D decoding is unavailable.
+- Added integration guards for the corrected Player, Kit, finance, miniface and CompData surfaces.
+
 Creation Master 26 v1.0.165 - 25 August 2026
 - Matched Club Worth and Transfer Budget to Deco's calculated read-only displays.
 - Moved kit texture scaling into the 64-bit host and reduced the legacy preview cache to 1024px.
