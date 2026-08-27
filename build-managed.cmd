@@ -11,7 +11,7 @@ call "%~dp0build-bridge.cmd"
 if errorlevel 1 ( echo BRIDGE BUILD FAILED & exit /b 1 )
 
 echo === Building full solution (Release ^| x64) ===
-msbuild "%~dp0CM26.slnx" /p:Configuration=Release /p:Platform=x64 /v:m /nologo
+dotnet build "%~dp0CM26.slnx" -c Release -p:Platform=x64 -v:minimal
 if errorlevel 1 ( echo SOLUTION BUILD FAILED & exit /b 1 )
 
 echo === Building native engine + smoke test ===
