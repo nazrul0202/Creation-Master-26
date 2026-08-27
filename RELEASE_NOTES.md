@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.167 - full FC26 snapshot memory fix (2026-08-27)
+
+- Marked the classic x86 Legacy UI as Large Address Aware, raising its usable address space from 2 GB to 4 GB on supported 64-bit Windows systems.
+- Verified `Open FC26` against the real 207 MB, 279-table snapshot while navigating Country, League, Team, Kits, Player, CompData/Trophy and Referee; peak virtual memory was 1,887 MB and the full run completed successfully.
+- Kept all structured tables available to Advanced Database Workspace instead of hiding data to reduce memory use.
+- Replaced the raw out-of-memory popup with a clear message and a full diagnostic log path if loading ever fails again.
+- Added a release-package gate that rejects Full or Lite builds when the Legacy UI Large Address Aware flag is missing.
+
 ## Version 1.0.166 - editor clarity and stability (2026-08-26)
 
 - Moved FC26 Tactical Roles to their own Player tab so identity and appearance information are no longer duplicated or crowded.

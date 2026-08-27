@@ -1,6 +1,6 @@
 {
-  "version": "1.0.166",
+  "version": "1.0.167",
   "name": "Creation Master 26",
-  "notes": "v1.0.166 - separates Tactical Roles, clarifies PlayStyles, hardens Referee startup and reports kit asset status.",
+  "notes": "v1.0.167 - prevents Open FC26 memory failures when loading the complete legacy editor snapshot.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

@@ -67,4 +67,12 @@
     <Content Include="vendor\libspeex.dll" Link="libspeex.dll" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="vendor\WebView2Loader.dll" Link="WebView2Loader.dll" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <!-- FC26's complete structured snapshot is intentionally available to the
+       classic x86 editor (including Advanced Database Workspace).  Mark the
+       process Large Address Aware so it can use the full 4 GB user address
+       space on 64-bit Windows instead of failing near the legacy 2 GB limit. -->
+  <Target Name="SetLegacyLargeAddressAware" AfterTargets="CopyFilesToOutputDirectory">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\tools\SetLargeAddressAware.ps1&quot; -Path &quot;$(TargetPath)&quot;" />
+  </Target>
 </Project>

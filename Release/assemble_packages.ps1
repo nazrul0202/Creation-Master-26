@@ -111,6 +111,28 @@ function Assert-NoGameContent {
     else { Write-Host '    EA content check: clean' }
 }
 
+function Assert-LargeAddressAware {
+    param([string]$ExePath, [string]$Label)
+
+    if (-not (Test-Path -LiteralPath $ExePath)) { return }
+    $bytes = [System.IO.File]::ReadAllBytes($ExePath)
+    if ($bytes.Length -lt 64) {
+        $errors.Add("$Label Legacy UI executable has an invalid PE header.")
+        return
+    }
+    $peOffset = [System.BitConverter]::ToInt32($bytes, 0x3C)
+    $characteristicsOffset = $peOffset + 22
+    if ($peOffset -lt 0 -or $characteristicsOffset + 1 -ge $bytes.Length) {
+        $errors.Add("$Label Legacy UI executable has an invalid PE offset.")
+        return
+    }
+    $characteristics = [System.BitConverter]::ToUInt16($bytes, $characteristicsOffset)
+    if (($characteristics -band 0x20) -eq 0) {
+        $errors.Add("$Label Legacy UI is not Large Address Aware; a full FC26 snapshot can exceed the x86 2 GB limit.")
+    }
+    else { Write-Host '    Legacy UI Large Address Aware: verified' }
+}
+
 function Invoke-PackageSelfTest {
     param([string]$PackageDir, [string]$Label)
 
@@ -299,6 +321,8 @@ function Assemble-Package {
             $errors.Add("$Label contains unused CM26.LegacyUI runtime '$runtime'.")
         }
     }
+
+    Assert-LargeAddressAware -ExePath (Join-Path $PackageDir 'CM26.LegacyUI\CM26.LegacyUI.exe') -Label $Label
 
     # Both public entry points must report the version being released.
     foreach ($exeName in @('CM26_by_Rizco98.exe', 'CM26.Studio.exe')) {

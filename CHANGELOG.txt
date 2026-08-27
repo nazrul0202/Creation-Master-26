@@ -1,3 +1,8 @@
+Creation Master 26 v1.0.167 - 27 August 2026
+- Enabled the full 4 GB address space for the x86 Legacy UI to prevent Open FC26 failures on complete 279-table snapshots.
+- Verified the 207 MB real snapshot across Country, League, Team, Kits, Player, CompData/Trophy and Referee at a 1,887 MB peak.
+- Added friendly Open FC26 failure reporting, full diagnostic logging and a release gate for the memory flag.
+
 Creation Master 26 v1.0.166 - 26 August 2026
 - Separated Player Tactical Roles from Player Info and replaced ambiguous PlayStyle controls with explicit three-state selectors.
 - Prevented Referee null-record crashes and added a clear empty state.

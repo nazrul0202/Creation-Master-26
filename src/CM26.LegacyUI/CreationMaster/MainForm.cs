@@ -3053,7 +3053,13 @@ public class MainForm : Form
 		}
 		catch (Exception ex)
 		{
-			MessageBox.Show(this, ex.Message, "Open FC26", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			var errorLog = Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log");
+			try { File.WriteAllText(errorLog, ex.ToString()); } catch { }
+			var message = ex is OutOfMemoryException
+				? "FC26 data could not be loaded into memory. Close other memory-heavy applications and retry."
+				: "FC26 data could not be opened: " + ex.Message;
+			MessageBox.Show(this, message + "\r\n\r\nDiagnostic log:\r\n" + errorLog,
+				"Open FC26", MessageBoxButtons.OK, MessageBoxIcon.Error);
 		}
 		finally
 		{
