@@ -1,6 +1,6 @@
 {
-  "version": "1.0.173",
+  "version": "1.0.174",
   "name": "Creation Master 26",
-  "notes": "v1.0.173 - simplifies league and team creation to two guided commands with automatic Compdata staging on Save.",
+  "notes": "v1.0.174 - Deco-aligned Team, Player and Manager information with safe budget and preview handling.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

@@ -349,7 +349,7 @@ public partial class TeamView : UserControl
     private static bool IsManager(string n) => false;
     private static bool IsInfo(string n) => n is "teamid" or "overallrating" or "attackrating" or "midfieldrating" or "defenserating"
         or "matchdayoverallrating" or "matchdayattackrating" or "matchdaymidfieldrating" or "matchdaydefenserating"
-        or "domesticprestige" or "internationalprestige" or "foundationyear" or "clubworth" or "profitability" or "popularity"
+        or "domesticprestige" or "internationalprestige" or "foundationyear" or "clubworth" or "teamstadiumcapacity" or "profitability" or "popularity"
         or "youthdevelopment" or "form" or "gender" or "rivalteam" or "ballid";
     private static bool IsLastYear(string n) => n is "prevleague" or "positionlastyear" or "ischampion";
     private static bool IsLocation(string n) => n is "latitude" or "longitude" or "utcoffset" or "cityid";

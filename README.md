@@ -33,7 +33,7 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.173.txt` is included with the v1.0.173 release assets.
+Checksums: `SHA256SUMS_v1.0.174.txt` is included with the v1.0.174 release assets.
 
 The **Create** menu now contains only **Create New League** and **Create New Team**.
 New Team asks which league it belongs to and links it immediately. Once a new league
@@ -48,7 +48,7 @@ new Career after saving.
 ### Original CM26 editors with FC26 mapping
 
 - **Players** — classic Info, Skills and Face pages with contracts, appearance, named tactical roles, Composure, Defensive Awareness, PlayStyles/PlayStyles+ and direct miniface/face assets
-- **Teams** — classic Generic and Roster pages with crest, club profile, separate Club Worth and read-only Transfer Budget display, matchday presentation, transfers/loans, real XI/substitutes/reserves, formations and set pieces
+- **Teams** — classic Generic and Roster pages with crest, Deco-aligned Team Info, separate Club Worth and read-only Transfer Budget estimate, matchday presentation, transfers/loans, real XI/substitutes/reserves, formations and set pieces
 - **Leagues and countries** — original logo/flag, club/national-team and presentation controls with relationship-aware FC26 selectors
 - **Managers · Stadiums · Kits · Competitions · Formations · Balls · Boots · Gloves · Referees · Transfers** — mapped football controls in their owning original editor sections
 - **Sponsors · Adboards · Audio** — mapped artwork and assignment workflows; low-level database/schema tools remain internal

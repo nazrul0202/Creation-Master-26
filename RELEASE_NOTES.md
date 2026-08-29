@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.174 - Deco information parity and preview stability (2026-08-29)
+
+- Added a structured **Team Info** card with country, league, default ball, stadium capacity, city link and location/UTC values from the FC26 team record.
+- Team Generic now shows Deco-compatible Club Worth and a transparent Transfer Budget estimate below it; the real editable budget remains in the Career Save module.
+- Expanded Player Info with gender, weak foot, joined date, jersey name, international reputation and linked shirt number, while keeping Tactical Roles separate.
+- Kept Manager General, Face and Appearance pages aligned with Deco's identity, nationality/team, body, face, outfit, accessory and trait fields.
+- Fixed signed FC26 PlayStyle masks, stale asynchronous miniface updates and sequential kit preview loading to avoid wrong faces and 32-bit out-of-memory failures.
+
 ## Version 1.0.173 - simple league and team creation (2026-08-29)
 
 - Reduced the public Create menu to only **Create New League** and **Create New Team**.

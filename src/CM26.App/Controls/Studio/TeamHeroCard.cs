@@ -256,6 +256,23 @@ public sealed class TeamHeroCard : StudioCard
         set => _budgetEditor.Enabled = value;
     }
 
+    /// <summary>
+    /// Controls whether the financial editor is shown at all.  FC26 stores a
+    /// static club valuation in the squads database, while a real transfer
+    /// budget belongs to a Career save.  Keeping the editor hidden when the
+    /// loaded schema has no writable budget prevents users from accidentally
+    /// treating the valuation as a budget.
+    /// </summary>
+    public bool FinancialEditorVisible
+    {
+        get => _budgetEditor.Visible && _budgetLabel.Visible;
+        set
+        {
+            _budgetEditor.Visible = value;
+            _budgetLabel.Visible = value;
+        }
+    }
+
     public event EventHandler<long>? BudgetChanged;
 
     private int _attack;

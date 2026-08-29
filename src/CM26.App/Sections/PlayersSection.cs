@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Diagnostics;
+using System.Globalization;
 using System.Windows.Forms;
 using CM26.App.Controls;
 using CM26.App.Controls.Studio;
@@ -440,8 +441,8 @@ public sealed class PlayersSection : SectionBase
             BackColor = Color.Transparent,
         };
 
-        string[] labels = ["Age", "Position", "Club", "Nation", "Height", "Weight", "Preferred foot", "Contract", "Value", "Wage"];
-        string[] keys = ["age", "preferredposition1", "club", "nationality", "height", "weight", "preferredfoot", "contractvaliduntil", "value", "wage"];
+        string[] labels = ["Age", "Position", "Club", "Nation", "Gender", "Height", "Weight", "Preferred foot", "Weak foot", "Joined", "Contract", "Jersey name", "International rep.", "Shirt number", "Value", "Wage"];
+        string[] keys = ["age", "preferredposition1", "club", "nationality", "gender", "height", "weight", "preferredfoot", "weakfootabilitytypecode", "playerjointeamdate", "contractvaliduntil", "playerjerseynameid", "internationalrep", "jerseynumber", "value", "wage"];
         for (var i = 0; i < labels.Length; i++)
             flow.Controls.Add(BuildInfoItem(labels[i], keys[i]));
 
@@ -738,14 +739,14 @@ public sealed class PlayersSection : SectionBase
         var page = Page("Info");
         var canvas = Canvas(page);
 
-        var identity = Box("Identity Card", new Point(3, 3), new Size(390, 240));
+        var identity = Box("Identity Card", new Point(3, 3), new Size(390, 300));
         _miniface.Location = new Point(12, 20);
-        _miniface.Size = new Size(100, 100);
+        _miniface.Size = new Size(150, 150);
         _miniface.BackColor = Theme.Input;
         _miniface.BorderStyle = BorderStyle.FixedSingle;
         _miniface.SizeMode = PictureBoxSizeMode.Zoom;
         identity.Controls.Add(_miniface);
-        LegacyAssetActions.Attach(Services, identity, _miniface, new Point(12, 124), () => ShowRecord(CurrentRecordIndex));
+        LegacyAssetActions.Attach(Services, identity, _miniface, new Point(12, 178), () => ShowRecord(CurrentRecordIndex));
         _playerName.Location = new Point(11, 216);
         _playerName.Size = new Size(365, 20);
         _playerName.Font = LegacyFont;
@@ -754,9 +755,9 @@ public sealed class PlayersSection : SectionBase
         AddFields(identity, new[]
         {
             ("Player Id", "playerid"), ("First Name", "firstnameid"), ("Surname", "lastnameid"), ("Common Name", "commonnameid"),
-            ("Jersey", "jerseynumber"), ("Birthdate", "birthdate")
-        }, 155, 20, 255, 120, 26);
-        AddReferenceDropdown(identity, "Country", "nationality", new Point(255, 176), 120, NationOptions());
+            ("Jersey Name", "playerjerseynameid"), ("Birthdate", "birthdate"), ("Gender", "gender")
+        }, 164, 20, 253, 122, 26);
+        AddReferenceDropdown(identity, "Country", "nationality", new Point(253, 202), 122, NationOptions());
         canvas.Controls.Add(identity);
 
         var playingFor = Box("Playing for", new Point(399, 3), new Size(245, 200));
@@ -1624,17 +1625,18 @@ public sealed class PlayersSection : SectionBase
         _clubName.Text = Services.Resolver?.PlayerClubName(playerId) ?? "Club unknown";
         RefreshClubPicker();
         var image = Services.Assets.GetPlayerMiniface(playerId);
+        var requestedPlayerId = playerId;
         FrostbitePreviewLoader.LoadLegacyUiAsset(_miniface, Services, image,
             $"data/ui/imgAssets/heads/p{playerId}.dds", (preview, _) =>
         {
-            if (IsDisposed) { preview?.Dispose(); return; }
+            if (IsDisposed || _currentPlayerId != requestedPlayerId) { preview?.Dispose(); return; }
             _miniface.Image?.Dispose();
             _miniface.Image = preview;
         });
         FrostbitePreviewLoader.LoadLegacyUiAsset(_overviewFace, Services, image,
             $"data/ui/imgAssets/heads/p{playerId}.dds", (preview, _) =>
         {
-            if (IsDisposed) { preview?.Dispose(); return; }
+            if (IsDisposed || _currentPlayerId != requestedPlayerId) { preview?.Dispose(); return; }
             _overviewFace.Image?.Dispose();
             _overviewFace.Image = preview;
             if (_heroCard != null)
@@ -1650,7 +1652,7 @@ public sealed class PlayersSection : SectionBase
         FrostbitePreviewLoader.LoadLegacyUiAsset(_facePreview, Services, image,
             $"data/ui/imgAssets/heads/p{playerId}.dds", (preview, source) =>
         {
-            if (IsDisposed) { preview?.Dispose(); return; }
+            if (IsDisposed || _currentPlayerId != requestedPlayerId) { preview?.Dispose(); return; }
             _facePreview.Image?.Dispose();
             _facePreview.Image = preview;
             _facePreviewCaption.Text = $"Face preview · {source}";
@@ -1812,10 +1814,16 @@ public sealed class PlayersSection : SectionBase
         SetInfoLabel("preferredposition1", GetOverviewText("preferredposition1"));
         SetInfoLabel("club", _clubName.Text);
         SetInfoLabel("nationality", GetOverviewText("nationality"));
+        SetInfoLabel("gender", GetOverviewText("gender"));
         SetInfoLabel("height", GetOverviewNumber("height") > 0 ? $"{GetOverviewNumber("height")} cm" : "—");
         SetInfoLabel("weight", GetOverviewNumber("weight") > 0 ? $"{GetOverviewNumber("weight")} kg" : "—");
         SetInfoLabel("preferredfoot", GetOverviewText("preferredfoot"));
+        SetInfoLabel("weakfootabilitytypecode", GetOverviewText("weakfootabilitytypecode"));
+        SetInfoLabel("playerjointeamdate", GetOverviewText("playerjointeamdate"));
         SetInfoLabel("contractvaliduntil", GetOverviewText("contractvaliduntil"));
+        SetInfoLabel("playerjerseynameid", GetOverviewText("playerjerseynameid"));
+        SetInfoLabel("internationalrep", GetOverviewNumber("internationalrep") > 0 ? GetOverviewNumber("internationalrep").ToString() : "—");
+        SetInfoLabel("jerseynumber", GetOverviewText("jerseynumber"));
         SetInfoLabel("value", GetOverviewText("value"));
         SetInfoLabel("wage", GetOverviewText("wage"));
 
@@ -2124,13 +2132,32 @@ public sealed class PlayersSection : SectionBase
 
     private void AddPlaystyleMask(string field, int offset, bool plus, ICollection<(string Name, bool Plus)> output)
     {
-        if (!_fields.TryGetValue(field, out var value) || !uint.TryParse(value.RawValue, out var mask)) return;
+        if (!_fields.TryGetValue(field, out var value) || !TryParsePlaystyleMask(value.RawValue, out var mask)) return;
         for (var bit = 0; bit < 32; bit++)
         {
             var index = offset + bit;
             if ((mask & (1u << bit)) == 0 || index >= PlaystyleNames.Length) continue;
             output.Add((PlaystyleNames[index], plus));
         }
+    }
+
+    private static bool TryParsePlaystyleMask(string? raw, out uint mask)
+    {
+        mask = 0;
+        if (string.IsNullOrWhiteSpace(raw)) return false;
+        raw = raw.Trim();
+        if (raw.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            return uint.TryParse(raw[2..], NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out mask);
+        if (uint.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out mask)) return true;
+        // Some Frostbite exports expose a 32-bit bitmask as a signed Int32.
+        // Preserve its two's-complement bits instead of dropping every style
+        // when bit 31 is set.
+        if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var signed))
+        {
+            mask = unchecked((uint)signed);
+            return true;
+        }
+        return false;
     }
 
     /// <summary>Render FC26 foreign keys/codes as their database-backed meaning.  These fields
@@ -2140,6 +2167,29 @@ public sealed class PlayersSection : SectionBase
     {
         var resolver = Services.Resolver;
         display = string.Empty;
+        if (field.Equals("gender", StringComparison.OrdinalIgnoreCase) && int.TryParse(rawValue, out var gender))
+        {
+            display = gender switch
+            {
+                0 => "Male",
+                1 => "Female",
+                _ => "Not set",
+            };
+            return true;
+        }
+        if (field.Equals("weakfootabilitytypecode", StringComparison.OrdinalIgnoreCase) && int.TryParse(rawValue, out var weakFoot))
+        {
+            display = weakFoot switch
+            {
+                1 => "Very Weak",
+                2 => "Weak",
+                3 => "Average",
+                4 => "Good",
+                5 => "Very Good",
+                _ => "Not set",
+            };
+            return true;
+        }
         if (resolver == null) return false;
         if (field.Equals("jerseynumber", StringComparison.OrdinalIgnoreCase))
         {
@@ -2167,7 +2217,7 @@ public sealed class PlayersSection : SectionBase
             display = FifaDateConverter.TryToIso(rawValue, out var iso) ? iso : "Not set";
             return true;
         }
-        if (field is "firstnameid" or "lastnameid" or "commonnameid")
+        if (field is "firstnameid" or "lastnameid" or "commonnameid" or "playerjerseynameid")
         {
             // Resolve the localization ID to a real name. Show the honest "Unavailable" fallback
             // when the readable name source is absent — never display the raw numeric ID as a name.
@@ -2212,7 +2262,7 @@ public sealed class PlayersSection : SectionBase
     private string NameFieldTooltip(string field, string rawValue)
     {
         var resolver = Services.Resolver;
-        if (field is "firstnameid" or "lastnameid" or "commonnameid")
+        if (field is "firstnameid" or "lastnameid" or "commonnameid" or "playerjerseynameid")
         {
             var idText = string.IsNullOrWhiteSpace(rawValue) ? "0" : rawValue;
             if (resolver?.PlayerNames.NamesDecodable == true)

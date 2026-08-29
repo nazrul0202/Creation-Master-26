@@ -1,3 +1,11 @@
+Creation Master 26 v1.0.174 - 29 August 2026
+------------------------------------------------------------
+- Added Deco-aligned Team Info fields (country, league, ball, capacity, city and location).
+- Matched Deco Club Worth scaling and Transfer Budget estimation without confusing Career-save data with teams data.
+- Added Player Info gender, weak foot, joined date, jersey name, international reputation and shirt number.
+- Kept Manager identity/face/appearance fields in the mapped original sections.
+- Fixed signed PlayStyle masks, stale miniface callbacks and sequential kit preview memory pressure.
+
 Creation Master 26 v1.0.173 - 29 August 2026
 ------------------------------------------------------------
 - Simplified Create to two commands: New League and New Team.

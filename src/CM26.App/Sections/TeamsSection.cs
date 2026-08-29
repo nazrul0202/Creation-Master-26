@@ -72,6 +72,7 @@ public sealed class TeamsSection : SectionBase
     private Label _teamFinanceLabel = new();
     private Label _teamPrestigeLabel = new();
     private Label _teamHonoursLabel = new();
+    private Label _teamBudgetLabel = new();
     private Label _teamStadiumLabel = new();
     private Label _teamRivalLabel = new();
     private readonly PictureBox _teamKitHome = new();
@@ -91,6 +92,7 @@ public sealed class TeamsSection : SectionBase
     private StudioCard? _managerCard;
     private StudioCard? _rivalCard;
     private StudioCard? _metadataCard;
+    private StudioCard? _teamInfoCard;
     private StudioCard? _tacticsCard;
     private StudioCard? _kitsCard;
     private StudioCard? _actionsCard;
@@ -99,6 +101,14 @@ public sealed class TeamsSection : SectionBase
     private readonly ComboBox _defensiveLinePicker = new() { DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly NumericUpDown _defensiveDepthEditor = new() { Minimum = 1, Maximum = 100 };
     private readonly Label _teamTraitsSummary = new();
+    private readonly Label _teamManagerDetails = new();
+    private readonly Label _teamInfoIdLabel = new();
+    private readonly Label _teamInfoCountryLabel = new();
+    private readonly Label _teamInfoLeagueLabel = new();
+    private readonly Label _teamInfoBallLabel = new();
+    private readonly Label _teamInfoCapacityLabel = new();
+    private readonly Label _teamInfoCityLabel = new();
+    private readonly Label _teamInfoLocationLabel = new();
     private bool _syncTacticsCard;
 
     // Studio roster
@@ -676,7 +686,9 @@ public sealed class TeamsSection : SectionBase
         _managerCard = BuildManagerCard();
         _rivalCard = BuildRivalCard();
         _metadataCard = BuildMetadataCard();
+        _teamInfoCard = BuildTeamInfoCard();
         _tacticsCard = BuildTacticsCard();
+        quickRow.Controls.Add(_teamInfoCard);
         quickRow.Controls.Add(_stadiumCard);
         quickRow.Controls.Add(_managerCard);
         quickRow.Controls.Add(_rivalCard);
@@ -732,6 +744,15 @@ public sealed class TeamsSection : SectionBase
         _teamManagerNation.Size = new Size(228, 20);
         card.Controls.Add(_teamManagerNation);
 
+        _teamManagerDetails.Text = "Manager details: —";
+        _teamManagerDetails.Location = new Point(StudioSpacing.Medium, 204);
+        _teamManagerDetails.Size = new Size(228, 20);
+        _teamManagerDetails.Font = StudioFonts.DataLabel;
+        _teamManagerDetails.ForeColor = StudioColors.MutedText;
+        _teamManagerDetails.BackColor = Color.Transparent;
+        _teamManagerDetails.AutoEllipsis = true;
+        card.Controls.Add(_teamManagerDetails);
+
         return card;
     }
 
@@ -749,11 +770,52 @@ public sealed class TeamsSection : SectionBase
         return card;
     }
 
+    private StudioCard BuildTeamInfoCard()
+    {
+        var card = StudioGroup("Team Info", StudioColors.CyanAccent);
+        card.Width = 300;
+        card.Height = 260;
+
+        ConfigureTeamInfoLabel(_teamInfoIdLabel, "Team ID: —", 30, StudioFonts.DataValue);
+        ConfigureTeamInfoLabel(_teamInfoCountryLabel, "Country: —", 56, StudioFonts.DataLabel);
+        ConfigureTeamInfoLabel(_teamInfoLeagueLabel, "League: —", 82, StudioFonts.DataLabel);
+        ConfigureTeamInfoLabel(_teamInfoBallLabel, "Default ball: —", 108, StudioFonts.DataLabel);
+        ConfigureTeamInfoLabel(_teamInfoCapacityLabel, "Stadium capacity: —", 134, StudioFonts.DataLabel);
+        ConfigureTeamInfoLabel(_teamInfoCityLabel, "City link: —", 160, StudioFonts.DataLabel);
+        ConfigureTeamInfoLabel(_teamInfoLocationLabel, "Location: —", 186, StudioFonts.DataLabel);
+
+        card.Controls.Add(_teamInfoIdLabel);
+        card.Controls.Add(_teamInfoCountryLabel);
+        card.Controls.Add(_teamInfoLeagueLabel);
+        card.Controls.Add(_teamInfoBallLabel);
+        card.Controls.Add(_teamInfoCapacityLabel);
+        card.Controls.Add(_teamInfoCityLabel);
+        card.Controls.Add(_teamInfoLocationLabel);
+        ToolTip.SetToolTip(_teamInfoBallLabel,
+            "Default ball is the FC26 ball asset link. The preview is available when the asset pack is installed.");
+        ToolTip.SetToolTip(_teamInfoCityLabel,
+            "FC26 stores a city link on the team record; the loaded database may not include a readable city-name table.");
+        ToolTip.SetToolTip(_teamInfoLocationLabel,
+            "Latitude, longitude and UTC offset from the FC26 teams record.");
+        return card;
+    }
+
+    private static void ConfigureTeamInfoLabel(Label label, string text, int top, Font font)
+    {
+        label.Text = text;
+        label.Location = new Point(StudioSpacing.Medium, top);
+        label.Size = new Size(268, 20);
+        label.Font = font;
+        label.ForeColor = StudioColors.PrimaryText;
+        label.BackColor = Color.Transparent;
+        label.AutoEllipsis = true;
+    }
+
     private StudioCard BuildMetadataCard()
     {
         var card = StudioGroup("Team Metadata", StudioColors.Purple);
         card.Width = 260;
-        card.Height = 260;
+        card.Height = 290;
 
         _teamFoundationLabel = MakeLabel("Founded: —", StudioFonts.DataValue, StudioColors.PrimaryText, false);
         _teamFoundationLabel.Location = new Point(StudioSpacing.Medium, 30);
@@ -765,33 +827,40 @@ public sealed class TeamsSection : SectionBase
         _teamWorthLabel.Size = new Size(228, 20);
         card.Controls.Add(_teamWorthLabel);
 
+        _teamBudgetLabel = MakeLabel("Transfer budget: Career save", StudioFonts.DataLabel, StudioColors.MutedText, false);
+        _teamBudgetLabel.Location = new Point(StudioSpacing.Medium, 82);
+        _teamBudgetLabel.Size = new Size(228, 20);
+        card.Controls.Add(_teamBudgetLabel);
+        ToolTip.SetToolTip(_teamBudgetLabel,
+            "Deco-style projection from Club Worth and Profitability. The real editable amount is stored in a Career save.");
+
         _teamFanbaseLabel = MakeLabel("Fanbase: —", StudioFonts.DataLabel, StudioColors.PrimaryText, false);
-        _teamFanbaseLabel.Location = new Point(StudioSpacing.Medium, 84);
+        _teamFanbaseLabel.Location = new Point(StudioSpacing.Medium, 110);
         _teamFanbaseLabel.Size = new Size(228, 20);
         card.Controls.Add(_teamFanbaseLabel);
 
         _teamYouthLabel = MakeLabel("Youth facilities: —", StudioFonts.DataLabel, StudioColors.PrimaryText, false);
-        _teamYouthLabel.Location = new Point(StudioSpacing.Medium, 110);
+        _teamYouthLabel.Location = new Point(StudioSpacing.Medium, 136);
         _teamYouthLabel.Size = new Size(228, 20);
         card.Controls.Add(_teamYouthLabel);
 
         _teamFinanceLabel = MakeLabel("Financial stability: —", StudioFonts.DataLabel, StudioColors.PrimaryText, false);
-        _teamFinanceLabel.Location = new Point(StudioSpacing.Medium, 136);
+        _teamFinanceLabel.Location = new Point(StudioSpacing.Medium, 162);
         _teamFinanceLabel.Size = new Size(228, 20);
         card.Controls.Add(_teamFinanceLabel);
 
         _teamPrestigeLabel = MakeLabel("Prestige: —", StudioFonts.DataLabel, StudioColors.PrimaryText, false);
-        _teamPrestigeLabel.Location = new Point(StudioSpacing.Medium, 162);
+        _teamPrestigeLabel.Location = new Point(StudioSpacing.Medium, 188);
         _teamPrestigeLabel.Size = new Size(228, 20);
         card.Controls.Add(_teamPrestigeLabel);
 
         _teamHonoursLabel = MakeLabel("Honours: —", StudioFonts.DataLabel, StudioColors.MutedText, false);
-        _teamHonoursLabel.Location = new Point(StudioSpacing.Medium, 188);
+        _teamHonoursLabel.Location = new Point(StudioSpacing.Medium, 214);
         _teamHonoursLabel.Size = new Size(228, 30);
         card.Controls.Add(_teamHonoursLabel);
 
-        var careerNote = MakeLabel("Budget & objectives: Career save only", StudioFonts.DataLabel, StudioColors.MutedText, false);
-        careerNote.Location = new Point(StudioSpacing.Medium, 218);
+        var careerNote = MakeLabel("Career budget opens from the Career Save module", StudioFonts.DataLabel, StudioColors.MutedText, false);
+        careerNote.Location = new Point(StudioSpacing.Medium, 252);
         careerNote.Size = new Size(228, 20);
         card.Controls.Add(careerNote);
 
@@ -2297,15 +2366,16 @@ public sealed class TeamsSection : SectionBase
             _heroCard.Defence = int.TryParse(record.Get(Col(table, "defenserating")), out var def) ? def : 0;
             _heroCard.FoundedText = $"Founded: {record.Get(Col(table, "foundationyear")) ?? "—"}";
             var financial = TeamFinancialFieldResolver.Resolve(table);
-            _heroCard.FinancialFieldLabel = financial?.DisplayName ?? "Financial value";
-            _heroCard.FinancialEditorEnabled = financial is not null;
-            _heroCard.WorthText = financial?.IsTransferBudget == true
-                ? $"Club worth: {record.Get(Col(table, "clubworth")) ?? "—"}"
-                : "Career budget: not stored in teams DB";
+            var clubWorth = Fc26ClubProfile.FormatDecoClubWorth(record.Get(Col(table, "clubworth")));
+            var hasRealBudget = financial?.IsTransferBudget == true;
+            _heroCard.FinancialFieldLabel = hasRealBudget ? financial!.DisplayName : "Transfer Budget";
+            _heroCard.FinancialEditorVisible = hasRealBudget;
+            _heroCard.FinancialEditorEnabled = hasRealBudget;
+            _heroCard.WorthText = $"Club worth: {clubWorth}";
             var financialValue = 0L;
-            if (financial is not null)
+            if (hasRealBudget)
             {
-                var financialColumn = Col(table, financial.FieldName);
+                var financialColumn = Col(table, financial!.FieldName);
                 if (financialColumn >= 0 && long.TryParse(record.Get(financialColumn), out var parsed))
                     financialValue = parsed;
             }
@@ -2319,16 +2389,24 @@ public sealed class TeamsSection : SectionBase
         }
 
         _teamStadiumLabel.Text = ResolveLinkedValue("stadiumid", crestTeamId);
-        _teamManagerName.Text = ResolveLinkedValue("managerid", crestTeamId);
-        _teamManagerNation.Text = "";
-        _teamRivalLabel.Text = "—";
+        var managerName = ResolveLinkedValue("managerid", crestTeamId);
+        if (string.IsNullOrWhiteSpace(managerName) || managerName == "—")
+        {
+            managerName = $"{ResolveManagerField(crestTeamId, "firstname")} {ResolveManagerField(crestTeamId, "surname")}".Trim();
+        }
+        _teamManagerName.Text = string.IsNullOrWhiteSpace(managerName) ? "Not assigned" : managerName;
+        _teamManagerNation.Text = ResolveManagerNation(crestTeamId);
+        _teamManagerDetails.Text = ResolveManagerDetails(crestTeamId);
+        _teamRivalLabel.Text = ResolveLinkedValue("rivalteam", crestTeamId);
         _teamFoundationLabel.Text = $"Founded: {record.Get(Col(table, "foundationyear")) ?? "—"}";
-        _teamWorthLabel.Text = $"Club worth: {Fc26ClubProfile.FormatClubWorth(record.Get(Col(table, "clubworth")))}";
+        _teamWorthLabel.Text = $"Club worth: {Fc26ClubProfile.FormatDecoClubWorth(record.Get(Col(table, "clubworth")))}";
+        _teamBudgetLabel.Text = FormatTeamBudgetInfo(table, record);
         _teamFanbaseLabel.Text = $"Fanbase devotion: {Fc26ClubProfile.RatingLabel(record.Get(Col(table, "popularity")))}";
         _teamYouthLabel.Text = $"Youth facilities: {Fc26ClubProfile.RatingLabel(record.Get(Col(table, "youthdevelopment")))}";
         _teamFinanceLabel.Text = $"Financial stability: {Fc26ClubProfile.RatingLabel(record.Get(Col(table, "profitability")))}";
         _teamPrestigeLabel.Text = $"Prestige: Domestic {record.Get(Col(table, "domesticprestige")) ?? "—"}  •  International {record.Get(Col(table, "internationalprestige")) ?? "—"}";
         _teamHonoursLabel.Text = $"Honours: League {record.Get(Col(table, "leaguetitles")) ?? "—"}  •  Cups {record.Get(Col(table, "domesticcups")) ?? "—"}  •  UCL {record.Get(Col(table, "uefa_cl_wins")) ?? "—"}";
+        RefreshTeamInfo(table, record, crestTeamId);
         RefreshTacticsCard(crestTeamId);
 
         ReplacePreviewImage(_teamKitHome, null);
@@ -2386,6 +2464,123 @@ public sealed class TeamsSection : SectionBase
         {
             System.Diagnostics.Debug.WriteLine($"[TeamsSection] Roster load error: {ex.Message}");
         }
+    }
+
+    private static string TeamField(DbTable table, DbRecord record, string field)
+    {
+        var column = Col(table, field);
+        return column >= 0 ? record.Get(column) : string.Empty;
+    }
+
+    private string FormatTeamBudgetInfo(DbTable table, DbRecord record)
+    {
+        var financial = TeamFinancialFieldResolver.Resolve(table);
+        if (financial?.IsTransferBudget == true)
+        {
+            var budget = TeamField(table, record, financial.FieldName);
+            if (decimal.TryParse(budget, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount))
+                return $"Transfer budget: {amount.ToString("C2", CultureInfo.GetCultureInfo("en-US"))} (editable)";
+            return $"Transfer budget: {budget} (editable)";
+        }
+
+        // A base FC26 squads database has no per-team Career budget. Match the
+        // useful Deco display with a clearly labelled estimate, while keeping
+        // the Career-save boundary explicit so it can never be mistaken for a
+        // writable teams field.
+        var estimate = Fc26ClubProfile.FormatDecoTransferBudget(
+            TeamField(table, record, "clubworth"),
+            TeamField(table, record, "profitability"));
+        return estimate == "—"
+            ? "Transfer budget: Career save only"
+            : $"Transfer budget (estimate): {estimate}";
+    }
+
+    private void RefreshTeamInfo(DbTable table, DbRecord record, int teamId)
+    {
+        _teamInfoIdLabel.Text = $"Team ID: {(teamId > 0 ? teamId.ToString(CultureInfo.InvariantCulture) : "Not set")}";
+        _teamInfoCountryLabel.Text = $"Country: {ResolveLinkedValue("countryid", teamId)}";
+        _teamInfoLeagueLabel.Text = $"League: {ResolveLinkedValue("leagueid", teamId)}";
+        _teamInfoBallLabel.Text = $"Default ball: {FormatTeamBall(TeamField(table, record, "ballid"))}";
+        _teamInfoCapacityLabel.Text = $"Stadium capacity: {FormatTeamCapacity(TeamField(table, record, "teamstadiumcapacity"))}";
+        _teamInfoCityLabel.Text = $"City link: {FormatTeamCity(TeamField(table, record, "cityid"))}";
+        _teamInfoLocationLabel.Text = $"Location: {FormatTeamLocation(
+            TeamField(table, record, "latitude"),
+            TeamField(table, record, "longitude"),
+            TeamField(table, record, "utcoffset"))}";
+    }
+
+    private string FormatTeamBall(string raw)
+    {
+        if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ballId) || ballId <= 0)
+            return "Not set";
+        var asset = Services.Assets.GetBall(ballId);
+        return string.IsNullOrWhiteSpace(asset) ? $"Ball {ballId}" : $"Ball {ballId} · preview ready";
+    }
+
+    private static string FormatTeamCapacity(string raw)
+    {
+        return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var capacity) && capacity > 0
+            ? capacity.ToString("N0", CultureInfo.InvariantCulture)
+            : "Not set";
+    }
+
+    private static string FormatTeamCity(string raw)
+    {
+        return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var cityId) && cityId > 0
+            ? $"Linked profile ({cityId})"
+            : "Not set";
+    }
+
+    private static string FormatTeamLocation(string latitude, string longitude, string utcOffset)
+    {
+        var hasLatitude = decimal.TryParse(latitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var lat);
+        var hasLongitude = decimal.TryParse(longitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var lon);
+        var hasUtc = int.TryParse(utcOffset, NumberStyles.Integer, CultureInfo.InvariantCulture, out var utc);
+        if (!hasLatitude && !hasLongitude && !hasUtc) return "Not set";
+        var coordinates = hasLatitude && hasLongitude
+            ? $"{lat:0.##}, {lon:0.##}"
+            : "Coordinates incomplete";
+        return hasUtc ? $"{coordinates} · UTC {utc:+#;-#;0}" : coordinates;
+    }
+
+    private string ResolveManagerNation(int teamId)
+    {
+        var managers = Services.Session.GetTable("manager");
+        if (managers == null) return "Nation: not set";
+        var teamColumn = Col(managers, "teamid");
+        var nationColumn = Col(managers, "nationality");
+        if (teamColumn < 0 || nationColumn < 0) return "Nation: not set";
+        for (var row = 0; row < managers.RowCount; row++)
+        {
+            var record = Services.Session.GetRecord("manager", row);
+            if (record == null || Parse(record.Get(teamColumn)) != teamId) continue;
+            var nationId = Parse(record.Get(nationColumn));
+            return nationId > 0
+                ? $"{Services.Resolver?.NationName(nationId) ?? $"Nation {nationId}"} · nationality"
+                : "Nation: not set";
+        }
+        return "Nation: not set";
+    }
+
+    private string ResolveManagerDetails(int teamId)
+    {
+        var managers = Services.Session.GetTable("manager");
+        if (managers == null) return "Manager details: not set";
+        var teamColumn = Col(managers, "teamid");
+        var idColumn = Col(managers, "managerid");
+        var starColumn = Col(managers, "starrating");
+        if (teamColumn < 0) return "Manager details: not set";
+        for (var row = 0; row < managers.RowCount; row++)
+        {
+            var record = Services.Session.GetRecord("manager", row);
+            if (record == null || Parse(record.Get(teamColumn)) != teamId) continue;
+            var id = idColumn >= 0 ? Parse(record.Get(idColumn)) : 0;
+            var stars = starColumn >= 0 ? Parse(record.Get(starColumn)) : 0;
+            var idText = id > 0 ? $"ID {id}" : "ID —";
+            var starText = stars > 0 ? $"Star {stars:0.##}" : "Star —";
+            return $"{idText} · {starText}";
+        }
+        return "Manager details: not set";
     }
 
     private Dictionary<int, int> LoadPotentials(IReadOnlyList<TeamRosterItem> roster)
@@ -2532,14 +2727,15 @@ public sealed class TeamsSection : SectionBase
 
     private async Task LoadOneKitPreviewAsync(string variant, PictureBox preview)
     {
-        if (_activeTeamPreviewId <= 0) return;
-        var targetPath = $"data/ui/imgAssets/teamkits/team{_activeTeamPreviewId}_{variant}.dds";
+        var requestedTeamId = _activeTeamPreviewId;
+        if (requestedTeamId <= 0) return;
+        var targetPath = $"data/ui/imgAssets/teamkits/team{requestedTeamId}_{variant}.dds";
         var replacement = LegacyAssetActions.Replacement(Services, targetPath);
         if (!string.IsNullOrWhiteSpace(replacement))
         {
             FrostbitePreviewLoader.LoadLegacyUiAsset(preview, Services, replacement, targetPath, (img, _) =>
             {
-                if (IsDisposed) { img?.Dispose(); return; }
+                if (IsDisposed || _activeTeamPreviewId != requestedTeamId) { img?.Dispose(); return; }
                 ReplacePreviewImage(preview, img);
             });
             return;
@@ -2547,7 +2743,7 @@ public sealed class TeamsSection : SectionBase
         if (!Services.FrostbiteAssets.IsAvailable) return;
         try
         {
-            var query = $"_{_activeTeamPreviewId}/{variant}_";
+            var query = $"_{requestedTeamId}/{variant}_";
             var selected = (await Task.Run(() => Services.FrostbiteAssets.SearchAssets(query, "Res", 100)))
                 .Where(match => match.ResType == 0x6BDE20BA && match.Name.EndsWith("_color", StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(match => KitTextureScore(match.Name))
@@ -2556,13 +2752,26 @@ public sealed class TeamsSection : SectionBase
             var path = await Task.Run(() => Services.FrostbiteAssets.ExportTexture(selected.Name));
             if (string.IsNullOrWhiteSpace(path)) return;
             var image = await Task.Run(() => Services.Textures.CreatePreview(path, 300, 180));
-            if (image == null || IsDisposed) { image?.Dispose(); return; }
-            if (InvokeRequired) BeginInvoke(() => ReplacePreviewImage(preview, image));
-            else ReplacePreviewImage(preview, image);
+            if (image == null || IsDisposed || _activeTeamPreviewId != requestedTeamId) { image?.Dispose(); return; }
+            void ApplyPreview()
+            {
+                if (IsDisposed || _activeTeamPreviewId != requestedTeamId)
+                {
+                    image.Dispose();
+                    return;
+                }
+                ReplacePreviewImage(preview, image);
+            }
+            if (InvokeRequired)
+            {
+                try { BeginInvoke((Action)ApplyPreview); }
+                catch (InvalidOperationException) { image.Dispose(); }
+            }
+            else ApplyPreview();
         }
         catch (Exception ex)
         {
-            Program.Log($"Team {_activeTeamPreviewId} {variant} kit preview failed: {ex.Message}");
+            Program.Log($"Team {requestedTeamId} {variant} kit preview failed: {ex.Message}");
         }
     }
 
@@ -3173,7 +3382,8 @@ public sealed class TeamsSection : SectionBase
         field.Equals("countryid", StringComparison.OrdinalIgnoreCase) ||
         field.Equals("leagueid", StringComparison.OrdinalIgnoreCase) ||
         field.Equals("stadiumid", StringComparison.OrdinalIgnoreCase) ||
-        field.Equals("managerid", StringComparison.OrdinalIgnoreCase);
+        field.Equals("managerid", StringComparison.OrdinalIgnoreCase) ||
+        field.Equals("rivalteam", StringComparison.OrdinalIgnoreCase);
 
     private string ResolveLinkedValue(string field, int teamId) => field switch
     {
@@ -3181,10 +3391,30 @@ public sealed class TeamsSection : SectionBase
         "leagueid" => Services.Resolver?.TeamLeagueName(teamId) ?? string.Empty,
         "stadiumid" => Services.Resolver?.TeamStadiumName(teamId) ?? string.Empty,
         "managerid" => Services.Resolver?.TeamManagerName(teamId) ?? string.Empty,
+        "rivalteam" => ResolveRivalName(teamId),
         "managerfirstname" => ResolveManagerField(teamId, "firstname"),
         "managersurname" => ResolveManagerField(teamId, "surname"),
         _ => string.Empty,
     };
+
+    private string ResolveRivalName(int teamId)
+    {
+        var teams = Services.Session.GetTable("teams");
+        if (teams == null) return "No rival linked";
+        var teamColumn = Col(teams, "teamid");
+        var rivalColumn = Col(teams, "rivalteam");
+        if (teamColumn < 0 || rivalColumn < 0) return "No rival linked";
+        for (var row = 0; row < teams.RowCount; row++)
+        {
+            var record = Services.Session.GetRecord("teams", row);
+            if (record == null || Parse(record.Get(teamColumn)) != teamId) continue;
+            var rivalId = Parse(record.Get(rivalColumn));
+            return rivalId > 0
+                ? Services.Resolver?.TeamName(rivalId) ?? $"Team {rivalId}"
+                : "No rival linked";
+        }
+        return "No rival linked";
+    }
 
     private string ResolveManagerField(int teamId, string field)
     {
@@ -3337,7 +3567,15 @@ public sealed class TeamsSection : SectionBase
             (Variant: "third", Preview: _teamKitThird),
             (Variant: "gk", Preview: _teamKitGk),
         };
-        await Task.WhenAll(requests.Select(r => LoadOneKitPreviewAsync(r.Variant, r.Preview)));
+        // Kit textures are large Frostbite resources. Loading all four at once
+        // made the legacy bridge allocate several decoded surfaces concurrently
+        // and was the source of the reported OutOfMemory/texture decode dialog.
+        // Keep the preview deterministic and stop when the user changes team.
+        foreach (var request in requests)
+        {
+            if (IsDisposed || teamId != _activeTeamPreviewId) return;
+            await LoadOneKitPreviewAsync(request.Variant, request.Preview);
+        }
     }
 
     private static int KitTextureScore(string name)
