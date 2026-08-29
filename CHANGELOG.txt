@@ -1,3 +1,9 @@
+Creation Master 26 v1.0.168 - 29 August 2026
+- Replaced the monolithic FC26 snapshot with a compact manifest and one compressed stream per table.
+- Lazy-loads non-core tables only when their mapped details or Advanced Database Workspace view is opened, while retaining all 281 discovered main and locale tables.
+- Reduced the measured real-database Legacy UI peak from about 1,887 MB virtual memory to 392 MB (168 MB working set).
+- Verified Country, League, Team, Kits, Player, CompData/Trophy, Referee, transfer, tactics, structured detail edits and no-op save.
+
 Creation Master 26 v1.0.167 - 27 August 2026
 - Enabled the full 4 GB address space for the x86 Legacy UI to prevent Open FC26 failures on complete 279-table snapshots.
 - Verified the 207 MB real snapshot across Country, League, Team, Kits, Player, CompData/Trophy and Referee at a 1,887 MB peak.

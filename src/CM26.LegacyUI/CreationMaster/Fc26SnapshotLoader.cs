@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -14,6 +15,16 @@ namespace CreationMaster;
 internal static class Fc26SnapshotLoader
 {
     private static Snapshot? s_snapshot;
+    private static string s_snapshotPath = string.Empty;
+    private static readonly HashSet<string> s_coreTables = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "nations", "leagues", "leagueteamlinks", "teams", "teamplayerlinks",
+        "teamnationlinks", "teamstadiumlinks", "players", "playernames",
+        "stadiums", "teamkits", "kits", "formations", "default_mentalities",
+        "defaultteamdata", "default_teamsheets", "manager", "referee",
+        "leaguerefereelinks", "teamballs", "playerboots",
+        "fieldpositionboundingboxes", "competition"
+    };
     private static readonly Dictionary<object, List<RowOrigin>> s_rowOrigins =
         new Dictionary<object, List<RowOrigin>>(ReferenceComparer.Instance);
     /// <summary>nameid -> resolved display name recorded at snapshot load. Used to
@@ -43,10 +54,10 @@ internal static class Fc26SnapshotLoader
 
     internal static void Load(string path)
     {
-        using var stream = File.OpenRead(path);
-        var snapshot = JsonSerializer.Deserialize<Snapshot>(stream,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-            ?? throw new InvalidDataException("FC26 snapshot is empty.");
+        var snapshot = ReadSnapshot(path);
+        s_snapshotPath = Path.GetFullPath(path);
+        foreach (var table in snapshot.Tables.Where(table => table.IsCore || s_coreTables.Contains(table.Name)))
+            EnsureRows(table, s_snapshotPath);
         var tables = snapshot.Tables.ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);
         s_snapshot = snapshot;
         s_rowOrigins.Clear();
@@ -251,6 +262,7 @@ internal static class Fc26SnapshotLoader
     {
         var table = s_snapshot?.Tables.FirstOrDefault(value =>
             value.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
+        if (table != null) EnsureRows(table, s_snapshotPath);
         return table == null ? null : new SnapshotDetailTable(table.Name, table.Columns, table.ColumnDetails, table.Rows);
     }
 
@@ -267,7 +279,8 @@ internal static class Fc26SnapshotLoader
 
     internal static int CurrentTableCount => s_snapshot?.Tables.Count ?? 0;
 
-    internal static long CurrentRowCount => s_snapshot?.Tables.Sum(table => (long)table.Rows.Count) ?? 0L;
+    internal static long CurrentRowCount => s_snapshot?.Tables.Sum(table =>
+        (long)(table.RowCount > 0 ? table.RowCount : table.Rows.Count)) ?? 0L;
 
     internal static string DescribeLoadedSource()
     {
@@ -282,9 +295,8 @@ internal static class Fc26SnapshotLoader
     internal static string CompareWithSnapshot(string path)
     {
         var current = s_snapshot ?? throw new InvalidOperationException("No FC26 database is loaded.");
-        using var stream = File.OpenRead(path);
-        var other = JsonSerializer.Deserialize<Snapshot>(stream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-            ?? throw new InvalidDataException("Comparison snapshot is empty.");
+        var other = ReadSnapshot(path);
+        var otherPath = Path.GetFullPath(path);
         var output = new StringBuilder();
         var changedTables = 0; long changedCells = 0;
         var otherTables = other.Tables.ToDictionary(table => table.Name, StringComparer.OrdinalIgnoreCase);
@@ -299,6 +311,9 @@ internal static class Fc26SnapshotLoader
             {
                 output.AppendLine(table.Name + ": schema/field order differs"); changedTables++; continue;
             }
+            var currentWasLoaded = table.RowsLoaded;
+            EnsureRows(table, s_snapshotPath);
+            EnsureRows(compared, otherPath);
             var rows = Math.Max(table.Rows.Count, compared.Rows.Count);
             for (var row = 0; row < rows; row++)
                 for (var column = 0; column < table.Columns.Length; column++)
@@ -307,10 +322,14 @@ internal static class Fc26SnapshotLoader
                     var right = row < compared.Rows.Count && column < compared.Rows[row].Length ? compared.Rows[row][column] : "<missing>";
                     if (!string.Equals(left, right, StringComparison.Ordinal)) differences++;
                 }
-            if (differences == 0) continue;
-            changedTables++; changedCells += differences;
-            output.AppendLine(table.Name + ": " + differences.ToString("N0", CultureInfo.InvariantCulture) + " different cell(s), " +
-                table.Rows.Count.ToString("N0", CultureInfo.InvariantCulture) + " vs " + compared.Rows.Count.ToString("N0", CultureInfo.InvariantCulture) + " rows");
+            if (differences != 0)
+            {
+                changedTables++; changedCells += differences;
+                output.AppendLine(table.Name + ": " + differences.ToString("N0", CultureInfo.InvariantCulture) + " different cell(s), " +
+                    table.Rows.Count.ToString("N0", CultureInfo.InvariantCulture) + " vs " + compared.Rows.Count.ToString("N0", CultureInfo.InvariantCulture) + " rows");
+            }
+            if (!currentWasLoaded) UnloadRows(table);
+            UnloadRows(compared);
         }
         foreach (var table in other.Tables.Where(value => current.Tables.All(existing => !existing.Name.Equals(value.Name, StringComparison.OrdinalIgnoreCase))))
         { output.AppendLine(table.Name + ": only in comparison database"); changedTables++; }
@@ -329,6 +348,7 @@ internal static class Fc26SnapshotLoader
         if (s_structuralChanges.Any(change => change.Kind == "delete"))
             throw new InvalidOperationException("Save the pending deletion before cloning another record.");
         var table = s_snapshot?.Tables.FirstOrDefault(candidate => candidate.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
+        if (table != null) EnsureRows(table, s_snapshotPath);
         if (table == null || rowIndex < 0 || rowIndex >= table.Rows.Count) throw new InvalidOperationException("Selected record is unavailable.");
         var newIndex = table.Rows.Count;
         table.Rows.Add((string[])table.Rows[rowIndex].Clone());
@@ -342,6 +362,7 @@ internal static class Fc26SnapshotLoader
         if (s_detailChanges.Count > 0 || s_structuralChanges.Any(change => change.Kind != "delete"))
             throw new InvalidOperationException("Save or close the current staged field/clone edits first. Dependency-cleaned deletions are isolated so row indexes cannot shift under other edits.");
         var table = s_snapshot?.Tables.FirstOrDefault(candidate => candidate.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
+        if (table != null) EnsureRows(table, s_snapshotPath);
         if (table == null || rowIndex < 0 || rowIndex >= table.Rows.Count) throw new InvalidOperationException("Selected record is unavailable.");
         if (IsDetailDeleted(tableName, rowIndex)) return;
         s_structuralChanges.Add(new StructuralChange { Kind = "delete", TableName = table.Name, RowIndex = rowIndex });
@@ -355,6 +376,7 @@ internal static class Fc26SnapshotLoader
     {
         var table = s_snapshot?.Tables.FirstOrDefault(candidate =>
             candidate.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
+        if (table != null) EnsureRows(table, s_snapshotPath);
         if (table == null || rowIndex < 0 || rowIndex >= table.Rows.Count)
             throw new InvalidOperationException("The selected detail record is unavailable.");
         if (IsDetailDeleted(tableName, rowIndex)) throw new InvalidOperationException("The selected record is staged for deletion.");
@@ -1330,8 +1352,61 @@ internal static class Fc26SnapshotLoader
     private static string Normalize(string value) => new string(value.TrimStart('m', 'M', '_')
         .Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
 
+    private static Snapshot ReadSnapshot(string path)
+    {
+        using var stream = File.OpenRead(path);
+        var snapshot = JsonSerializer.Deserialize<Snapshot>(stream,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            ?? throw new InvalidDataException("FC26 snapshot is empty.");
+        foreach (var table in snapshot.Tables)
+        {
+            table.Rows ??= new List<string[]>();
+            table.RowsLoaded = string.IsNullOrWhiteSpace(table.DataFile);
+            if (table.RowCount <= 0) table.RowCount = table.Rows.Count;
+        }
+        return snapshot;
+    }
+
+    private static void EnsureRows(TableSnapshot table, string snapshotPath)
+    {
+        if (table.RowsLoaded) return;
+        if (string.IsNullOrWhiteSpace(table.DataFile))
+        {
+            table.RowsLoaded = true;
+            return;
+        }
+
+        var snapshotDirectory = Path.GetDirectoryName(Path.GetFullPath(snapshotPath))
+            ?? throw new InvalidDataException("FC26 snapshot folder is unavailable.");
+        var dataPath = Path.GetFullPath(Path.Combine(snapshotDirectory,
+            table.DataFile.Replace('/', Path.DirectorySeparatorChar)));
+        var allowedPrefix = snapshotDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
+            Path.DirectorySeparatorChar;
+        if (!dataPath.StartsWith(allowedPrefix, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("FC26 snapshot contains an unsafe table data path.");
+        if (!File.Exists(dataPath))
+            throw new FileNotFoundException("FC26 snapshot table data is missing: " + table.Name, dataPath);
+
+        using var file = File.OpenRead(dataPath);
+        using var input = dataPath.EndsWith(".gz", StringComparison.OrdinalIgnoreCase)
+            ? (Stream)new GZipStream(file, CompressionMode.Decompress, leaveOpen: false)
+            : file;
+        table.Rows = JsonSerializer.Deserialize<List<string[]>>(input,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<string[]>();
+        table.RowCount = table.Rows.Count;
+        table.RowsLoaded = true;
+    }
+
+    private static void UnloadRows(TableSnapshot table)
+    {
+        if (string.IsNullOrWhiteSpace(table.DataFile)) return;
+        table.Rows = new List<string[]>();
+        table.RowsLoaded = false;
+    }
+
     private sealed class Snapshot
     {
+        public int Version { get; set; }
         public string GameRoot { get; set; } = string.Empty;
         public string DatabaseFolder { get; set; } = string.Empty;
         public List<TableSnapshot> Tables { get; set; } = new();
@@ -1339,9 +1414,13 @@ internal static class Fc26SnapshotLoader
     private sealed class TableSnapshot
     {
         public string Name { get; set; } = string.Empty;
+        public bool IsCore { get; set; }
         public string[] Columns { get; set; } = Array.Empty<string>();
         public List<ColumnSnapshot> ColumnDetails { get; set; } = new();
         public List<string[]> Rows { get; set; } = new();
+        public int RowCount { get; set; }
+        public string DataFile { get; set; } = string.Empty;
+        internal bool RowsLoaded { get; set; }
     }
 
     internal sealed class ColumnSnapshot

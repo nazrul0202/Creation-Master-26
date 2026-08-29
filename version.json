@@ -1,6 +1,6 @@
 {
-  "version": "1.0.167",
+  "version": "1.0.168",
   "name": "Creation Master 26",
-  "notes": "v1.0.167 - prevents Open FC26 memory failures when loading the complete legacy editor snapshot.",
+  "notes": "v1.0.168 - streams and lazy-loads the complete FC26 snapshot to eliminate Open FC26 memory exhaustion.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

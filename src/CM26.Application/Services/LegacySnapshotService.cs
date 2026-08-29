@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text.Json;
 
 namespace CM26.Application.Services;
@@ -9,38 +10,14 @@ namespace CM26.Application.Services;
 /// </summary>
 public static class LegacySnapshotService
 {
-    private static readonly HashSet<string> IncludedTables = new(StringComparer.OrdinalIgnoreCase)
+    internal static readonly HashSet<string> CoreTables = new(StringComparer.OrdinalIgnoreCase)
     {
         "nations", "leagues", "leagueteamlinks", "teams", "teamplayerlinks",
         "teamnationlinks", "teamstadiumlinks", "players", "playernames",
-        "editedplayernames", "stadiums", "teamkits", "kits", "formations",
+        "stadiums", "teamkits", "kits", "formations",
         "default_mentalities", "defaultteamdata",
-        "manager", "referee", "leaguerefereelinks", "teamballs", "shoecolors",
-        "playerboots", "fieldpositionboundingboxes", "competition", "competitioninfo",
-        "compobj", "audionation", "career_managerpref",
-
-        // Structured CM-style detail editors. These are intentionally limited to
-        // football-facing records used by a visible section; internal tuning,
-        // temporary, anatomy and simulation tables stay out of the x86 snapshot.
-        "audiostadium", "goalkeepergloves", "sponsors", "teamsponsorlinks",
-        "modeadboardlinks", "adboardconsoleoverrides", "adboardlogicexceptions",
-        "broadcastleague", "presentationmodesettings",
-        "default_teamsheets", "customformations", "formationoffsets", "mentalities",
-        "teamformationteamstylelinks", "customteamstyles",
-        "playerloans", "playersuspensions", "transfers", "previousteam",
-        "playerperks", "playerarchetypelinks", "playstyles", "playeroutfitlinks",
-        "tattoo", "celebrations", "goalcelebrationlink", "playercalls",
-        "playervoicemap", "playerpronouns", "playernamemap", "commentarynames",
-        "rivals", "clubcoefficients", "nationcoefficients", "teamcounterparts",
-        "tifo", "teamkithudvalues", "kitcoloroverrides", "kitremapping",
-        "competitionbadges", "competitionballs", "competitionkits",
-        "competitionmatchups", "competitionseeds", "competitionsponsorlinks",
-        "competitionstadiumlinks", "competitionuefasponsors",
-        "competitionrefereekits", "fixtures", "prevcompetitionstats",
-        "stadiumassignments", "stadiumcolor", "seatcolor", "netpattern",
-        "turfattributesmap", "turfsquadtypemap",
-        "dlcballs", "teamballremapping", "footwear", "dlcboots",
-        "playerbootremapping", "crowdregion", "crowdregionlrc"
+        "default_teamsheets", "manager", "referee", "leaguerefereelinks",
+        "teamballs", "playerboots", "fieldpositionboundingboxes", "competition"
     };
 
     public static void Write(DatabaseSession session, string outputPath, string? gameRoot = null)
@@ -48,9 +25,14 @@ public static class LegacySnapshotService
         if (!session.IsLoaded) throw new InvalidOperationException("FC26 database is not loaded.");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outputPath))!);
 
+        var fullOutputPath = Path.GetFullPath(outputPath);
+        var dataDirectory = fullOutputPath + ".tables";
+        var temporaryDataDirectory = dataDirectory + ".tmp-" + Guid.NewGuid().ToString("N");
+        Directory.CreateDirectory(temporaryDataDirectory);
+
         var snapshot = new LegacySnapshot
         {
-            Version = 1,
+            Version = 2,
             GameRoot = gameRoot ?? string.Empty,
             DatabaseFolder = session.LoadedFolder ?? string.Empty,
         };
@@ -64,13 +46,16 @@ public static class LegacySnapshotService
         // typed CM16 editors. The Advanced Database Workspace sees every table
         // exposed by the verified native engine. Locale tables use an explicit
         // display prefix so names shared with the main DB can never collide.
+        var tableIndex = 0;
         foreach (var table in session.Tables)
         {
+            var dataFileName = tableIndex.ToString("D4") + ".json.gz";
             var target = new LegacyTable
             {
                 Name = table.IsLocale ? "locale::" + table.Name : table.Name,
                 SourceName = table.Name,
                 IsLocale = table.IsLocale,
+                IsCore = !table.IsLocale && CoreTables.Contains(table.Name),
                 Columns = table.Columns.Select(c => c.Name).ToArray(),
                 ColumnDetails = table.Columns.Select(c => new LegacyColumn
                 {
@@ -81,33 +66,52 @@ public static class LegacySnapshotService
                     RangeLow = c.RangeLow,
                     RangeHigh = c.RangeHigh,
                 }).ToList(),
-                Rows = new List<string[]>(table.RowCount)
+                RowCount = table.RowCount,
+                DataFile = Path.GetFileName(dataDirectory) + "/" + dataFileName,
             };
-            for (var row = 0; row < table.RowCount; row++)
+
+            var tableFile = Path.Combine(temporaryDataDirectory, dataFileName);
+            var exportedRows = 0;
+            using (var file = File.Create(tableFile))
+            using (var compressed = new GZipStream(file, CompressionLevel.Optimal, leaveOpen: false))
+            using (var json = new Utf8JsonWriter(compressed))
             {
-                var record = session.GetRecord(table.Name, row);
-                if (record is null) continue;
-                var values = record.Values.ToArray();
-                if (!table.IsLocale && table.Name.Equals("playernames", StringComparison.OrdinalIgnoreCase))
+                json.WriteStartArray();
+                for (var row = 0; row < table.RowCount; row++)
                 {
-                    var idColumn = Array.FindIndex(target.Columns,
-                        column => column.Equals("nameid", StringComparison.OrdinalIgnoreCase));
-                    var nameColumn = Array.FindIndex(target.Columns,
-                        column => column.Equals("name", StringComparison.OrdinalIgnoreCase));
-                    if (idColumn >= 0 && nameColumn >= 0 &&
-                        int.TryParse(values[idColumn], out var nameId))
+                    var record = session.GetRecord(table.Name, row);
+                    if (record is null) continue;
+                    var values = record.Values.ToArray();
+                    if (!table.IsLocale && table.Name.Equals("playernames", StringComparison.OrdinalIgnoreCase))
                     {
-                        var decoded = playerNames.NameById(nameId);
-                        if (!string.IsNullOrWhiteSpace(decoded)) values[nameColumn] = decoded;
+                        var idColumn = Array.FindIndex(target.Columns,
+                            column => column.Equals("nameid", StringComparison.OrdinalIgnoreCase));
+                        var nameColumn = Array.FindIndex(target.Columns,
+                            column => column.Equals("name", StringComparison.OrdinalIgnoreCase));
+                        if (idColumn >= 0 && nameColumn >= 0 &&
+                            int.TryParse(values[idColumn], out var nameId))
+                        {
+                            var decoded = playerNames.NameById(nameId);
+                            if (!string.IsNullOrWhiteSpace(decoded)) values[nameColumn] = decoded;
+                        }
                     }
+                    JsonSerializer.Serialize(json, values);
+                    exportedRows++;
                 }
-                target.Rows.Add(values);
+                json.WriteEndArray();
             }
+            target.RowCount = exportedRows;
             snapshot.Tables.Add(target);
+            tableIndex++;
         }
 
-        using var stream = File.Create(outputPath);
-        JsonSerializer.Serialize(stream, snapshot, new JsonSerializerOptions { WriteIndented = false });
+        var temporaryManifest = fullOutputPath + ".tmp-" + Guid.NewGuid().ToString("N");
+        using (var stream = File.Create(temporaryManifest))
+            JsonSerializer.Serialize(stream, snapshot, new JsonSerializerOptions { WriteIndented = false });
+
+        if (Directory.Exists(dataDirectory)) Directory.Delete(dataDirectory, recursive: true);
+        Directory.Move(temporaryDataDirectory, dataDirectory);
+        File.Move(temporaryManifest, fullOutputPath, overwrite: true);
     }
 }
 
@@ -124,8 +128,11 @@ public sealed class LegacyTable
     public string Name { get; set; } = string.Empty;
     public string SourceName { get; set; } = string.Empty;
     public bool IsLocale { get; set; }
+    public bool IsCore { get; set; }
     public string[] Columns { get; set; } = Array.Empty<string>();
     public List<LegacyColumn> ColumnDetails { get; set; } = new();
+    public int RowCount { get; set; }
+    public string DataFile { get; set; } = string.Empty;
     public List<string[]> Rows { get; set; } = new();
 }
 

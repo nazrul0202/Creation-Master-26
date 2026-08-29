@@ -1,4 +1,4 @@
-# CM26 v1.0.167 implementation status
+# CM26 v1.0.168 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
@@ -17,6 +17,7 @@ This status is intentionally conservative: a visible control is not counted as w
 - Full-transfer, transfer-all, loan, loan-to-buy, loan termination, loan-end, join-date and contract-year workflows with roster/formation/set-piece repair.
 - Deco-style Transfer Budget shown read-only directly below Club Worth in Team Generic, with career-save writing kept outside the public database-field surface.
 - Action history, source/table performance profile, diagnostic export and safe preview-cache management.
+- Complete main/locale snapshot discovery with streamed per-table compression and on-demand detail loading; the classic editor no longer retains all 281 tables in memory at startup.
 
 ## Functional
 
