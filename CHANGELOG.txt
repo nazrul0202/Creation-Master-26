@@ -1,3 +1,8 @@
+Creation Master 26 v1.0.172 - 29 August 2026
+------------------------------------------------------------
+- Fixed Create Team crashing while cloning an FC26 starter roster.
+- Added null-safe commentary ID fallback and real snapshot clone regression coverage.
+
 Creation Master 26 v1.0.171 - 29 August 2026
 ------------------------------------------------------------
 - Added League > Make In-Game Ready with direct FC26 Career Compdata staging.

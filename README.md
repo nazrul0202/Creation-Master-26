@@ -33,7 +33,7 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.171.txt` is included with the v1.0.171 release assets.
+Checksums: `SHA256SUMS_v1.0.172.txt` is included with the v1.0.172 release assets.
 
 For a newly created league, add at least two teams and click **Make In-Game Ready**
 in League Details before the normal **Save**. CM26 imports the installed FC26 Career

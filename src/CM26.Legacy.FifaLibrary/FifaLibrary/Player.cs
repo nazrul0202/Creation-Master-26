@@ -710,11 +710,18 @@ public class Player : IdObject
 	{
 		get
 		{
-			return FifaEnvironment.PlayerNamesList.GetCommentaryIdFromName(Name);
+			// FC26's streamed snapshot does not load the legacy playernames table.
+			// Keep the cloned player's local value instead of crashing Create Team.
+			return FifaEnvironment.PlayerNamesList == null
+				? m_commentaryid
+				: FifaEnvironment.PlayerNamesList.GetCommentaryIdFromName(Name);
 		}
 		set
 		{
-			FifaEnvironment.PlayerNamesList.SetCommentaryId(Name, value);
+			if (FifaEnvironment.PlayerNamesList != null)
+			{
+				FifaEnvironment.PlayerNamesList.SetCommentaryId(Name, value);
+			}
 			m_commentaryid = value;
 		}
 	}

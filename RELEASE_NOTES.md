@@ -1,5 +1,11 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.172 - Create Team roster-clone hotfix (2026-08-29)
+
+- Fixed the `Object reference not set to an instance of an object` crash after Create Team when starter players are cloned.
+- FC26 streamed snapshots no longer require the unloaded legacy PlayerNamesList to read or set a cloned player's commentary ID.
+- Added a real FC26 snapshot regression that clones a club player, resets identity fields, assigns the fallback commentary ID, randomizes appearance and creates the new roster link.
+
 ## Version 1.0.171 - in-game-ready new leagues (2026-08-29)
 
 - Added **Make In-Game Ready** directly to League Details.

@@ -193,6 +193,39 @@ internal static class Program
 			}
 			return;
 		}
+		if (args.Length >= 2 && string.Equals(args[0], "--cm26-team-roster-clone-test", StringComparison.OrdinalIgnoreCase))
+		{
+			try
+			{
+				Fc26SnapshotLoader.Load(args[1]);
+				FifaLibrary.Team source = null;
+				foreach (FifaLibrary.Team candidate in FifaLibrary.FifaEnvironment.Teams)
+				{
+					if (!candidate.NationalTeam && candidate.Roster.Count > 0) { source = candidate; break; }
+				}
+				if (source == null) throw new InvalidDataException("No FC26 club roster is available for clone testing.");
+				var link = (FifaLibrary.TeamPlayer)source.Roster[0];
+				var cloneId = FifaLibrary.FifaEnvironment.Players.GetNewId();
+				var clone = (FifaLibrary.Player)FifaLibrary.FifaEnvironment.Players.CloneId(link.Player, cloneId);
+				clone.headclasscode = 1;
+				clone.firstname = string.Empty;
+				clone.lastname = "Player_" + clone.Id;
+				clone.commonname = string.Empty;
+				clone.playerjerseyname = string.Empty;
+				clone.commentaryid = 900000;
+				clone.RandomizeAppearanceSameRace();
+				var clonedLink = new FifaLibrary.TeamPlayer(clone) { position = link.position, jerseynumber = link.jerseynumber };
+				if (clone.commentaryid != 900000 || clonedLink.Player != clone)
+					throw new InvalidDataException("FC26 starter-roster clone did not complete correctly.");
+				Environment.ExitCode = 0;
+			}
+			catch (Exception ex)
+			{
+				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				Environment.ExitCode = 1;
+			}
+			return;
+		}
 		Application.EnableVisualStyles();
 		Application.SetCompatibleTextRenderingDefault(defaultValue: false);
 		Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
@@ -204,6 +237,13 @@ internal static class Program
 			if (File.Exists(errorLog)) File.Delete(errorLog);
 			try
 			{
+				// Create Team can clone a starter roster while FC26 intentionally
+				// leaves the legacy PlayerNamesList unloaded. This must round-trip
+				// locally rather than throwing a NullReferenceException.
+				var commentaryProbe = new FifaLibrary.Player(999999) { lastname = "CM26_Test" };
+				commentaryProbe.commentaryid = 900000;
+				if (commentaryProbe.commentaryid != 900000)
+					throw new InvalidDataException("FC26 player commentary fallback failed.");
 				var main = new MainForm();
 				File.AppendAllText(uiLog, "classic shell constructed" + Environment.NewLine);
 				foreach (var command in new[]

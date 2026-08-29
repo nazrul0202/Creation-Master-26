@@ -1,6 +1,6 @@
 {
-  "version": "1.0.171",
+  "version": "1.0.172",
   "name": "Creation Master 26",
-  "notes": "v1.0.171 - creates and stages complete FC26 Career Compdata for new leagues.",
+  "notes": "v1.0.172 - fixes Create Team starter-roster cloning for FC26 snapshots.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
