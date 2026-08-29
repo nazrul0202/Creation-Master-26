@@ -1,3 +1,15 @@
+Creation Master 26 v1.0.175 - 29 August 2026
+------------------------------------------------------------
+- Added a single DBM-style Create New League wizard: country, level, teams,
+  Create Another Team and Finish & Save now build the league graph together.
+- Added guided Create New Team league selection and complete starter links,
+  roster, kits and stadium references instead of an unlinked raw row.
+- Added friendly Save Preflight Fix actions and post-save reload proof with a
+  clear Career Ready/new Career message.
+- Added Compdata toolbar actions for Add New League, Add New Team, Add New Nation
+  and Add New Player while keeping raw fields out of the normal workflow.
+- Added safe kit metadata staging and improved preview/decode fallback handling.
+
 Creation Master 26 v1.0.174 - 29 August 2026
 ------------------------------------------------------------
 - Added Deco-aligned Team Info fields (country, league, ball, capacity, city and location).

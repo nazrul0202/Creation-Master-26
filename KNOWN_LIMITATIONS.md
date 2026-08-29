@@ -1,10 +1,10 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.174 (MIT License), 2026-08-29.
+Status: Version 1.0.175 (MIT License), 2026-08-29.
 
 ## User interface
 
-The v1.0.174 public launcher preserves the original Creation Master / CM16-style interface used by v1.0.148. Raw database/schema editors, oversized embedded forms and standalone specialist windows are not exposed in the public workflow. FC26 data is mapped to friendly CM26 controls while the x64 Frostbite host runs behind the interface. Exotic DPI combinations or very small window sizes may still need refinement.
+The v1.0.175 public launcher preserves the original Creation Master / CM16-style interface used by v1.0.148. Raw database/schema editors, oversized embedded forms and standalone specialist windows are not exposed in the public workflow. FC26 data is mapped to friendly CM26 controls while the x64 Frostbite host runs behind the interface. Exotic DPI combinations or very small window sizes may still need refinement.
 
 Team Generic's Transfer Budget is a Deco-compatible estimate when a base squads
 database is loaded. FC26 does not store an editable per-team budget on the

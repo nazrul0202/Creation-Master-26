@@ -39,8 +39,10 @@ internal sealed class Fc26CompdataPanel : UserControl
         tools.Items.Add(Item("Make League In-Game Ready", (_, _) => ChooseLeagueForCareerSetup()));
         tools.Items.Add(Item("Stage Compdata to Save", (_, _) => StageCurrentCompdata()));
         tools.Items.Add(new ToolStripSeparator());
-		tools.Items.Add(Item("Create New League", (_, _) => MainForm.CM?.CreateFriendlyEntity("league")));
-		tools.Items.Add(Item("Create New Team", (_, _) => MainForm.CM?.CreateNewTeamWorkflow()));
+		tools.Items.Add(Item("Add New League", (_, _) => MainForm.CM?.CreateNewLeagueWorkflow()));
+		tools.Items.Add(Item("Add New Team", (_, _) => MainForm.CM?.CreateNewTeamWorkflow()));
+		tools.Items.Add(Item("Add New Nation", (_, _) => MainForm.CM?.CreateFriendlyEntity("nation")));
+		tools.Items.Add(Item("Add New Player", (_, _) => MainForm.CM?.CreateFriendlyEntity("player")));
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Item("Validate", (_, _) => ValidateTables()));
         tools.Items.Add(new ToolStripSeparator());

@@ -1,5 +1,25 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.175 - DBM guided creation and save proof (2026-08-29)
+
+- Added one guided **Create New League** flow: choose country and level, add
+  teams with **Create Another Team**, then **Finish & Save**. League/team
+  relationships, starter roster, kits, stadium link and FC26 Compdata are
+  staged together.
+- Added **Create New Team** with an explicit league picker and editable name,
+  country, foundation year, stadium capacity, Club Worth and Transfer Budget
+  seed values. The new team is never left as an unlinked database row.
+- Added a friendly **Save Preflight** that checks country, minimum two teams,
+  duplicate IDs, league links, roster and assets. **Fix Selected** opens the
+  relevant CM26 section instead of showing a raw exception.
+- Added **Save Proof**: CM26 reloads the saved snapshot, verifies league/team
+  rows and links, reports **CAREER READY**, and reminds users to start a new
+  Career after Compdata changes.
+- Added DBM-style Compdata shortcuts for **Add New League**, **Add New Team**,
+  **Add New Nation** and **Add New Player** without exposing raw fields.
+- Added safe kit metadata staging and made the guided kit preview resilient
+  when a texture cannot be decoded in the 32-bit classic shell.
+
 ## Version 1.0.174 - Deco information parity and preview stability (2026-08-29)
 
 - Added a structured **Team Info** card with country, league, default ball, stadium capacity, city link and location/UTC values from the FC26 team record.

@@ -332,6 +332,176 @@ internal static class Fc26SnapshotLoader
         Fc26ActivityLog.Add("League link", "team " + team.Id + " → league " + league.Id + " staged");
     }
 
+    /// <summary>
+    /// Adds a new roster link for a team created by the guided FC26 wizard.
+    /// The old CM16 object model can hold the TeamPlayer in memory without
+    /// creating a database row; FC26 needs an explicit duplicated link row.
+    /// Keeping this operation in the snapshot writer makes the classic shell
+    /// and the direct-save bridge use the same artificial-key rules.
+    /// </summary>
+    internal static void StageNewTeamPlayerLink(TeamPlayer teamPlayer)
+    {
+        if (teamPlayer?.Team == null || teamPlayer.Player == null)
+            throw new InvalidOperationException("The new roster link is missing a team or player.");
+        var table = DetailTable("teamplayerlinks");
+        if (table == null || table.Rows.Count == 0)
+            throw new InvalidOperationException("The FC26 team-player link table has no safe template row.");
+        var teamColumn = table.Column("teamid");
+        var playerColumn = table.Column("playerid");
+        if (teamColumn >= 0 && playerColumn >= 0)
+        {
+            for (var row = 0; row < table.Rows.Count; row++)
+            {
+                if (IsDetailDeleted(table.Name, row)) continue;
+                if (ParseIntAt(table.Rows[row], teamColumn) == teamPlayer.Team.Id &&
+                    ParseIntAt(table.Rows[row], playerColumn) == teamPlayer.Player.Id)
+                    return;
+            }
+        }
+
+        var rowIndex = DuplicateDetailRow(table.Name, 0);
+        StageDetailValue(table.Name, rowIndex, "teamid", teamPlayer.Team.Id.ToString(CultureInfo.InvariantCulture));
+        StageDetailValue(table.Name, rowIndex, "playerid", teamPlayer.Player.Id.ToString(CultureInfo.InvariantCulture));
+        StageDetailValue(table.Name, rowIndex, "jerseynumber", teamPlayer.jerseynumber.ToString(CultureInfo.InvariantCulture));
+        StageDetailValue(table.Name, rowIndex, "position", teamPlayer.position.ToString(CultureInfo.InvariantCulture));
+        if (table.Column("artificialkey") >= 0)
+            StageDetailValue(table.Name, rowIndex, "artificialkey", NextDetailKey(table, "artificialkey").ToString(CultureInfo.InvariantCulture));
+        // Keep the object-to-row map aware of the newly-created link.  This is
+        // important if the user changes a shirt number or position before the
+        // first Save: WriteChanges must target this staged row, not an older
+        // occurrence of the same player ID.
+        SetOrigin(teamPlayer, table.Name, rowIndex);
+        Fc26ActivityLog.Add("Roster link", "team " + teamPlayer.Team.Id + " ← player " + teamPlayer.Player.Id + " staged");
+    }
+
+    /// <summary>Creates the active FC26 teamsheet row for a newly-created team.</summary>
+    internal static void StageNewTeamSheet(Team team)
+    {
+        if (team == null) throw new InvalidOperationException("The new team is unavailable.");
+        var table = DetailTable("default_teamsheets");
+        if (table == null || table.Rows.Count == 0) return;
+        var teamColumn = table.Column("teamid");
+        if (teamColumn < 0) return;
+        for (var row = 0; row < table.Rows.Count; row++)
+        {
+            if (!IsDetailDeleted(table.Name, row) && ParseIntAt(table.Rows[row], teamColumn) == team.Id)
+                return;
+        }
+        var rowIndex = DuplicateDetailRow(table.Name, 0);
+        StageDetailValue(table.Name, rowIndex, "teamid", team.Id.ToString(CultureInfo.InvariantCulture));
+        var players = team.Roster.Cast<TeamPlayer>().Where(value => value?.Player != null)
+            .GroupBy(value => value.Player.Id).Select(group => group.First()).Take(52).ToArray();
+        for (var slot = 0; slot < players.Length; slot++)
+        {
+            var field = "playerid" + slot.ToString(CultureInfo.InvariantCulture);
+            if (table.Column(field) >= 0)
+                StageDetailValue(table.Name, rowIndex, field, players[slot].Player.Id.ToString(CultureInfo.InvariantCulture));
+            var position = "position" + slot.ToString(CultureInfo.InvariantCulture);
+            if (slot < 11 && table.Column(position) >= 0)
+                StageDetailValue(table.Name, rowIndex, position, players[slot].position.ToString(CultureInfo.InvariantCulture));
+        }
+        Fc26ActivityLog.Add("Teamsheet", "team " + team.Id + " default teamsheet staged");
+    }
+
+    /// <summary>Creates a safe stadium relationship when the wizard has a template stadium.</summary>
+    internal static void StageNewTeamStadiumLink(Team team)
+    {
+        if (team == null || team.Stadium == null) return;
+        var table = DetailTable("teamstadiumlinks");
+        if (table == null || table.Rows.Count == 0) return;
+        var teamColumn = table.Column("teamid");
+        var stadiumColumn = table.Column("stadiumid");
+        if (teamColumn < 0 || stadiumColumn < 0) return;
+        for (var row = 0; row < table.Rows.Count; row++)
+        {
+            if (!IsDetailDeleted(table.Name, row))
+            {
+                if (ParseIntAt(table.Rows[row], teamColumn) == team.Id) return;
+            }
+        }
+        var rowIndex = DuplicateDetailRow(table.Name, 0);
+        StageDetailValue(table.Name, rowIndex, "teamid", team.Id.ToString(CultureInfo.InvariantCulture));
+        StageDetailValue(table.Name, rowIndex, "stadiumid", team.Stadium.Id.ToString(CultureInfo.InvariantCulture));
+        if (table.Column("artificialkey") >= 0)
+            StageDetailValue(table.Name, rowIndex, "artificialkey", NextDetailKey(table, "artificialkey").ToString(CultureInfo.InvariantCulture));
+        SetOrigin(team, table.Name, rowIndex);
+        Fc26ActivityLog.Add("Stadium link", "team " + team.Id + " → stadium " + team.Stadium.Id + " staged");
+    }
+
+    /// <summary>Stages a duplicated teamkits row.  FC26 stores the team
+    /// relationship on the kit record itself (there is no separate kit link
+    /// table), so the duplicated row must carry both teamtechid/teamid and the
+    /// kit type before the save engine can validate it.</summary>
+    internal static void StageNewKit(Kit kit)
+    {
+        if (kit == null || kit.Team == null) throw new InvalidOperationException("The new kit is missing its team reference.");
+        var table = DetailTable("teamkits") ?? DetailTable("kits");
+        if (table == null || table.Rows.Count == 0) throw new InvalidOperationException("The FC26 kit table has no safe template row.");
+        var idColumn = table.Column(table.Name.Equals("teamkits", StringComparison.OrdinalIgnoreCase) ? "teamkitid" : "kitid");
+        if (idColumn < 0) throw new InvalidOperationException("The FC26 kit table has no kit ID column.");
+        if (Origins(kit).Any(value => value.TableName.Equals(table.Name, StringComparison.OrdinalIgnoreCase))) return;
+        var rowIndex = DuplicateDetailRow(table.Name, 0);
+        StageDetailValue(table.Name, rowIndex, table.Columns[idColumn], kit.Id.ToString(CultureInfo.InvariantCulture));
+        if (table.Column("teamtechid") >= 0) StageDetailValue(table.Name, rowIndex, "teamtechid", kit.Team.Id.ToString(CultureInfo.InvariantCulture));
+        if (table.Column("teamid") >= 0) StageDetailValue(table.Name, rowIndex, "teamid", kit.Team.Id.ToString(CultureInfo.InvariantCulture));
+        if (table.Column("teamkittypetechid") >= 0) StageDetailValue(table.Name, rowIndex, "teamkittypetechid", kit.kittype.ToString(CultureInfo.InvariantCulture));
+        if (table.Column("kittype") >= 0) StageDetailValue(table.Name, rowIndex, "kittype", kit.kittype.ToString(CultureInfo.InvariantCulture));
+        SetOrigin(kit, table.Name, rowIndex);
+        Fc26ActivityLog.Add("Kit", "team " + kit.Team.Id + " " + kit.kittype + " staged");
+    }
+
+    /// <summary>
+    /// Adds editable player-name rows for a player created by the wizard.  FC26
+    /// keeps names in playernames rather than in the players table, so merely
+    /// setting Player.firstname/lastname would otherwise display a blank name in
+    /// a fresh Career.
+    /// </summary>
+    internal static void StageNewPlayerNames(Player player)
+    {
+        if (player == null) throw new InvalidOperationException("The new player is unavailable.");
+        var table = DetailTable("playernames");
+        if (table == null || table.Rows.Count == 0) return;
+        player.firstnameid = StagePlayerName(table, player.firstnameid, player.firstname);
+        player.lastnameid = StagePlayerName(table, player.lastnameid, player.lastname);
+        player.commonnameid = StagePlayerName(table, player.commonnameid, player.commonname);
+        player.playerjerseynameid = StagePlayerName(table, player.playerjerseynameid, player.playerjerseyname);
+    }
+
+    private static int StagePlayerName(SnapshotDetailTable table, int currentId, string value)
+    {
+        value = (value ?? string.Empty).Trim();
+        if (value.Length == 0) return 0;
+        var idColumn = table.Column("nameid");
+        var nameColumn = table.Column("name");
+        if (idColumn < 0 || nameColumn < 0) return currentId;
+        if (currentId > 0)
+        {
+            for (var row = 0; row < table.Rows.Count; row++)
+                if (!IsDetailDeleted(table.Name, row) && ParseIntAt(table.Rows[row], idColumn) == currentId)
+                    return currentId;
+        }
+        for (var row = 0; row < table.Rows.Count; row++)
+            if (!IsDetailDeleted(table.Name, row) && string.Equals(table.Rows[row][nameColumn], value, StringComparison.Ordinal))
+                return ParseIntAt(table.Rows[row], idColumn);
+        var rowIndex = DuplicateDetailRow(table.Name, 0);
+        var id = NextDetailKey(table, "nameid");
+        StageDetailValue(table.Name, rowIndex, "nameid", id.ToString(CultureInfo.InvariantCulture));
+        StageDetailValue(table.Name, rowIndex, "name", value);
+        return id;
+    }
+
+    private static int NextDetailKey(SnapshotDetailTable table, string fieldName)
+    {
+        var column = table.Column(fieldName);
+        if (column < 0) return 1;
+        var next = table.Rows.Select(row => ParseIntAt(row, column)).DefaultIfEmpty(0).Max() + 1L;
+        var descriptor = table.ColumnDetails.FirstOrDefault(value =>
+            value.Name.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+        if (descriptor != null && next > descriptor.RangeHigh)
+            throw new InvalidOperationException("No free " + fieldName + " remains in the FC26 table.");
+        return next > int.MaxValue ? throw new InvalidOperationException("No free database ID remains.") : (int)next;
+    }
+
     internal static SnapshotDetailTable? DetailTable(string tableName)
     {
         var table = s_snapshot?.Tables.FirstOrDefault(value =>
