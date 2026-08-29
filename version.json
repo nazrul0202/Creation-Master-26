@@ -1,6 +1,6 @@
 {
-  "version": "1.0.168",
+  "version": "1.0.169",
   "name": "Creation Master 26",
-  "notes": "v1.0.168 - streams and lazy-loads the complete FC26 snapshot to eliminate Open FC26 memory exhaustion.",
+  "notes": "v1.0.169 - adds direct record creation and guided Compdata team, schedule and Career Ready workflows.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

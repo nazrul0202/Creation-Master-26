@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using CreationMaster.Properties;
@@ -3141,7 +3142,27 @@ public class MainForm : Form
 			default: return;
 		}
 		ShowFormOnPanel(form, panelMain);
+		var existing = pickUp.ObjectList == null
+			? new HashSet<object>()
+			: new HashSet<object>(pickUp.ObjectList.Cast<object>());
 		pickUp.buttonNew.PerformClick();
+		var created = pickUp.ObjectList?.Cast<object>().FirstOrDefault(item => !existing.Contains(item));
+		if (created != null && Fc26SnapshotLoader.IsLoaded)
+		{
+			try
+			{
+				Fc26SnapshotLoader.StageNewEntity(section, created);
+				statusBar.Text = "New " + section + " record staged. Complete its details, then Save.";
+			}
+			catch (Exception ex)
+			{
+				// Do not leave a picker-only record behind when it could not be
+				// represented by a writable FC26 database row.
+				pickUp.ObjectList?.Remove(created);
+				MessageBox.Show(this, ex.Message, "Create New " + section,
+					MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
+		}
 	}
 
 	internal void ClickFc26SectionForSmoke(string section)

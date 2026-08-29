@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Windows.Forms;
+using FifaLibrary;
 
 namespace CreationMaster;
 
@@ -31,6 +32,9 @@ internal sealed class Fc26CompdataPanel : UserControl
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Item("Create Tournament", (_, _) => TournamentWizard()));
         tools.Items.Add(Item("Add Advancement", (_, _) => AddAdvancement()));
+        tools.Items.Add(Item("Assign Teams", (_, _) => AssignTeams()));
+        tools.Items.Add(Item("Generate Schedule", (_, _) => GenerateSchedule()));
+        tools.Items.Add(Item("Career Ready Check", (_, _) => ShowCareerReadyReport()));
         tools.Items.Add(new ToolStripSeparator());
 		tools.Items.Add(Item("Create New League", (_, _) => MainForm.CM?.CreateFriendlyEntity("league")));
 		tools.Items.Add(Item("Create New Team", (_, _) => MainForm.CM?.CreateFriendlyEntity("team")));
@@ -208,6 +212,131 @@ internal sealed class Fc26CompdataPanel : UserControl
         });
     }
 
+    private CompetitionChoice[] CompetitionChoices()
+    {
+        if (!_tables.TryGetValue("compobj", out var objects)) return Array.Empty<CompetitionChoice>();
+        return objects.Rows.Cast<DataRow>()
+            .Where(row => Int(row, 0, out _) && Int(row, 1, out var type) && type == 3)
+            .Select(row => new CompetitionChoice(Convert.ToInt32(Value(row, 0)),
+                string.IsNullOrWhiteSpace(Value(row, 3)) ? Value(row, 2) : Value(row, 3)))
+            .OrderBy(choice => choice.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private void AssignTeams()
+    {
+        EnsureLoaded();
+        if (!_tables.TryGetValue("initteams", out var initTeams))
+        { MessageBox.Show(this, "The opened Compdata has no initteams section.", Text); return; }
+        var competitions = CompetitionChoices();
+        if (competitions.Length == 0) { MessageBox.Show(this, "Create a tournament before assigning teams.", Text); return; }
+        var teams = FifaEnvironment.Teams?.Cast<Team>().Where(team => !team.NationalTeam)
+            .OrderBy(team => team.TeamNameFull, StringComparer.OrdinalIgnoreCase)
+            .Select(team => new TeamChoice(team.Id, string.IsNullOrWhiteSpace(team.TeamNameFull) ? team.DatabaseName : team.TeamNameFull))
+            .ToArray() ?? Array.Empty<TeamChoice>();
+        using var dialog = new TeamAssignmentDialog(competitions, teams, competitionId =>
+            initTeams.Rows.Cast<DataRow>().Where(row => Value(row, 0) == competitionId.ToString())
+                .Select(row => Int(row, 2, out var id) ? id : -1).Where(id => id >= 0).ToHashSet());
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        Run("Assigning teams to tournament...", () =>
+        {
+            var selected = dialog.TeamIds.Distinct().ToArray();
+            if (selected.Length < 2) throw new InvalidOperationException("Select at least two teams.");
+            foreach (var row in initTeams.Rows.Cast<DataRow>()
+                         .Where(row => Value(row, 0) == dialog.Competition.Id.ToString()).ToArray()) row.Delete();
+            initTeams.AcceptChanges();
+            var position = 0;
+            foreach (var teamId in selected)
+            {
+                var row = initTeams.NewRow();
+                row[0] = dialog.Competition.Id.ToString();
+                if (initTeams.Columns.Count > 1) row[1] = (position++).ToString();
+                if (initTeams.Columns.Count > 2) row[2] = teamId.ToString();
+                initTeams.Rows.Add(row);
+            }
+            RefreshSimpleViews();
+            return selected.Length + " team(s) assigned to " + dialog.Competition.Name + ".";
+        });
+    }
+
+    private void GenerateSchedule()
+    {
+        EnsureLoaded();
+        if (!_tables.TryGetValue("compobj", out var objects) || !_tables.TryGetValue("initteams", out var initTeams) ||
+            !_tables.TryGetValue("schedule", out var schedule))
+        { MessageBox.Show(this, "Compdata requires compobj, initteams and schedule sections.", Text); return; }
+        var competitions = CompetitionChoices();
+        if (competitions.Length == 0) { MessageBox.Show(this, "Create a tournament first.", Text); return; }
+        using var dialog = new ScheduleGeneratorDialog(competitions);
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        Run("Generating round-robin calendar...", () =>
+        {
+            var competitionId = dialog.Competition.Id;
+            var teamCount = initTeams.Rows.Cast<DataRow>().Count(row => Value(row, 0) == competitionId.ToString());
+            if (teamCount < 2) throw new InvalidOperationException("Assign at least two teams before generating a schedule.");
+            var stages = objects.Rows.Cast<DataRow>().Where(row =>
+                    Int(row, 0, out _) && Int(row, 1, out var type) && type == 4 &&
+                    Int(row, 4, out var parent) && parent == competitionId)
+                .Select(row => Convert.ToInt32(Value(row, 0))).ToArray();
+            if (stages.Length == 0) throw new InvalidOperationException("The tournament has no stage object.");
+            foreach (var row in schedule.Rows.Cast<DataRow>()
+                         .Where(row => Int(row, 0, out var objectId) && stages.Contains(objectId)).ToArray()) row.Delete();
+            schedule.AcceptChanges();
+            var singleLegRounds = teamCount % 2 == 0 ? teamCount - 1 : teamCount;
+            var rounds = singleLegRounds * dialog.Legs;
+            var games = teamCount / 2;
+            foreach (var stage in stages)
+                for (var round = 1; round <= rounds; round++)
+                {
+                    var row = schedule.NewRow();
+                    var values = new[] { stage, dialog.StartDay + ((round - 1) * dialog.DayInterval), round, games, games, dialog.Kickoff };
+                    for (var column = 0; column < values.Length && column < schedule.Columns.Count; column++) row[column] = values[column].ToString();
+                    schedule.Rows.Add(row);
+                }
+            RefreshSimpleViews(); _views.SelectedIndex = 1;
+            return rounds + " round(s) generated for " + teamCount + " teams.";
+        });
+    }
+
+    private void ShowCareerReadyReport()
+    {
+        EnsureLoaded();
+        var report = BuildCareerReadyReport();
+        using var viewer = new Form { Text = "Career Ready Check", Size = new Size(820, 560), StartPosition = FormStartPosition.CenterParent };
+        viewer.Controls.Add(new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true,
+            ScrollBars = ScrollBars.Both, WordWrap = false, Font = new Font("Consolas", 9f), Text = report });
+        viewer.ShowDialog(this);
+    }
+
+    private string BuildCareerReadyReport()
+    {
+        if (!_tables.TryGetValue("compobj", out var objects)) return "NOT READY: compobj is missing.";
+        _tables.TryGetValue("compids", out var compIds); _tables.TryGetValue("initteams", out var initTeams);
+        _tables.TryGetValue("schedule", out var schedule); _tables.TryGetValue("settings", out var settings);
+        var lines = new List<string> { "CM26 COMPDATA CAREER READINESS", new string('=', 36), string.Empty };
+        var readyCount = 0;
+        foreach (var competition in CompetitionChoices())
+        {
+            var stages = objects.Rows.Cast<DataRow>().Where(row => Int(row, 0, out _) && Int(row, 1, out var type) && type == 4 && Int(row, 4, out var parent) && parent == competition.Id)
+                .Select(row => Convert.ToInt32(Value(row, 0))).ToArray();
+            var groups = objects.Rows.Cast<DataRow>().Count(row => Int(row, 1, out var type) && type == 5 && Int(row, 4, out var parent) && stages.Contains(parent));
+            var mapped = compIds != null && compIds.Rows.Cast<DataRow>().Any(row => Value(row, 0) == competition.Id.ToString() && !string.IsNullOrWhiteSpace(Value(row, 1)));
+            var teams = initTeams?.Rows.Cast<DataRow>().Count(row => Value(row, 0) == competition.Id.ToString()) ?? 0;
+            var calendarRows = schedule?.Rows.Cast<DataRow>().Count(row => Int(row, 0, out var id) && stages.Contains(id)) ?? 0;
+            var settingRows = settings?.Rows.Cast<DataRow>().Count(row => Value(row, 0) == competition.Id.ToString() || (Int(row, 0, out var id) && stages.Contains(id))) ?? 0;
+            var ready = mapped && stages.Length > 0 && groups > 0 && teams >= 2 && calendarRows > 0;
+            if (ready) readyCount++;
+            lines.Add((ready ? "[READY] " : "[NEEDS SETUP] ") + competition.Id + " · " + competition.Name);
+            lines.Add("  Database link: " + (mapped ? "OK" : "MISSING"));
+            lines.Add("  Stages / groups: " + stages.Length + " / " + groups);
+            lines.Add("  Assigned teams: " + teams + (teams >= 2 ? " (OK)" : " (minimum 2)"));
+            lines.Add("  Calendar rows: " + calendarRows + (calendarRows > 0 ? " (OK)" : " (MISSING)"));
+            lines.Add("  Friendly settings rows: " + settingRows);
+            lines.Add(string.Empty);
+        }
+        lines.Insert(2, readyCount + " of " + CompetitionChoices().Length + " tournament(s) pass the structural Career Ready gate.");
+        return string.Join(Environment.NewLine, lines);
+    }
+
     private GroupChoice[] GroupChoices()
     {
         if (!_tables.TryGetValue("compobj", out var objects)) return Array.Empty<GroupChoice>();
@@ -355,6 +484,65 @@ internal sealed class Fc26CompdataPanel : UserControl
     {
         internal GroupChoice(int id, string description, string shortName) { Id = id; Name = string.IsNullOrWhiteSpace(description) ? shortName : description; }
         internal int Id { get; } internal string Name { get; } public override string ToString() => Id + " · " + Name;
+    }
+    private sealed class CompetitionChoice
+    {
+        internal CompetitionChoice(int id, string name) { Id = id; Name = string.IsNullOrWhiteSpace(name) ? "Competition " + id : name; }
+        internal int Id { get; } internal string Name { get; } public override string ToString() => Id + " · " + Name;
+    }
+    private sealed class TeamChoice
+    {
+        internal TeamChoice(int id, string name) { Id = id; Name = string.IsNullOrWhiteSpace(name) ? "Team " + id : name; }
+        internal int Id { get; } internal string Name { get; } public override string ToString() => Id + " · " + Name;
+    }
+    private sealed class TeamAssignmentDialog : Form
+    {
+        private readonly ComboBox _competition = new ComboBox { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList };
+        private readonly CheckedListBox _teams = new CheckedListBox { Dock = DockStyle.Fill, CheckOnClick = true };
+        private readonly Func<int, HashSet<int>> _existing;
+        internal TeamAssignmentDialog(CompetitionChoice[] competitions, TeamChoice[] teams, Func<int, HashSet<int>> existing)
+        {
+            _existing = existing; Text = "Assign Tournament Teams"; StartPosition = FormStartPosition.CenterParent; Size = new Size(560, 620);
+            _competition.Items.AddRange(competitions); _teams.Items.AddRange(teams);
+            _competition.SelectedIndexChanged += (_, _) => RefreshChecks(); _competition.SelectedIndex = 0;
+            var buttons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 42, FlowDirection = FlowDirection.RightToLeft };
+            buttons.Controls.Add(new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true });
+            buttons.Controls.Add(new Button { Text = "Apply", DialogResult = DialogResult.OK, AutoSize = true });
+            Controls.Add(_teams); Controls.Add(new Label { Text = "Select a competition, then tick its participating clubs.", Dock = DockStyle.Top, Height = 28 });
+            Controls.Add(_competition); Controls.Add(buttons); AcceptButton = buttons.Controls[1] as Button; CancelButton = buttons.Controls[0] as Button;
+        }
+        private void RefreshChecks()
+        {
+            if (_competition.SelectedItem is not CompetitionChoice competition) return;
+            var selected = _existing(competition.Id);
+            for (var index = 0; index < _teams.Items.Count; index++)
+                _teams.SetItemChecked(index, _teams.Items[index] is TeamChoice team && selected.Contains(team.Id));
+        }
+        internal CompetitionChoice Competition => (CompetitionChoice)_competition.SelectedItem;
+        internal int[] TeamIds => _teams.CheckedItems.Cast<TeamChoice>().Select(team => team.Id).ToArray();
+    }
+    private sealed class ScheduleGeneratorDialog : Form
+    {
+        private readonly ComboBox _competition = new ComboBox { Width = 280, DropDownStyle = ComboBoxStyle.DropDownList };
+        private readonly NumericUpDown _legs = Number(1, 2, 2), _startDay = Number(0, 2000, 1),
+            _interval = Number(1, 60, 7), _kickoff = Number(0, 2359, 1500);
+        internal ScheduleGeneratorDialog(CompetitionChoice[] competitions)
+        {
+            Text = "Generate Round-robin Schedule"; FormBorderStyle = FormBorderStyle.FixedDialog; StartPosition = FormStartPosition.CenterParent; ClientSize = new Size(520, 255);
+            _competition.Items.AddRange(competitions); _competition.SelectedIndex = 0;
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 2, RowCount = 6 };
+            layout.Controls.Add(new Label { Text = "Competition", AutoSize = true }, 0, 0); layout.Controls.Add(_competition, 1, 0);
+            layout.Controls.Add(new Label { Text = "Legs", AutoSize = true }, 0, 1); layout.Controls.Add(_legs, 1, 1);
+            layout.Controls.Add(new Label { Text = "Start day", AutoSize = true }, 0, 2); layout.Controls.Add(_startDay, 1, 2);
+            layout.Controls.Add(new Label { Text = "Days between rounds", AutoSize = true }, 0, 3); layout.Controls.Add(_interval, 1, 3);
+            layout.Controls.Add(new Label { Text = "Kick-off (HHMM)", AutoSize = true }, 0, 4); layout.Controls.Add(_kickoff, 1, 4);
+            var ok = new Button { Text = "Generate", DialogResult = DialogResult.OK, AutoSize = true }; var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true };
+            var buttons = new FlowLayoutPanel { AutoSize = true }; buttons.Controls.Add(ok); buttons.Controls.Add(cancel); layout.Controls.Add(buttons, 1, 5);
+            Controls.Add(layout); AcceptButton = ok; CancelButton = cancel;
+        }
+        internal CompetitionChoice Competition => (CompetitionChoice)_competition.SelectedItem;
+        internal int Legs => Decimal.ToInt32(_legs.Value); internal int StartDay => Decimal.ToInt32(_startDay.Value);
+        internal int DayInterval => Decimal.ToInt32(_interval.Value); internal int Kickoff => Decimal.ToInt32(_kickoff.Value);
     }
     private sealed class CompdataSheetChoice
     {

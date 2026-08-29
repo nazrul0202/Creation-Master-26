@@ -152,6 +152,44 @@ internal static class Program
 			}
 			return;
 		}
+		if (args.Length >= 3 && string.Equals(args[0], "--cm26-create-plan-test", StringComparison.OrdinalIgnoreCase))
+		{
+			try
+			{
+				Fc26SnapshotLoader.Load(args[1]);
+				var created = new (string Section, FifaLibrary.IdObject Item)[]
+				{
+					("nation", FifaLibrary.FifaEnvironment.Countries.CreateNewId()),
+					("league", FifaLibrary.FifaEnvironment.Leagues.CreateNewId()),
+					("team", FifaLibrary.FifaEnvironment.Teams.CreateNewId()),
+					("player", FifaLibrary.FifaEnvironment.Players.CreateNewId())
+				};
+				foreach (var value in created)
+				{
+					if (value.Item == null) throw new InvalidDataException("No free ID is available for " + value.Section + ".");
+					Fc26SnapshotLoader.StageNewEntity(value.Section, value.Item);
+				}
+				Fc26SnapshotLoader.WriteChanges(args[2]);
+				var plan = File.ReadAllText(args[2]);
+				foreach (var required in new[]
+				{
+					"\"TableName\":\"nations\"", "\"FieldName\":\"nationid\"",
+					"\"TableName\":\"leagues\"", "\"FieldName\":\"leagueid\"",
+					"\"TableName\":\"teams\"", "\"FieldName\":\"teamid\"",
+					"\"TableName\":\"players\"", "\"FieldName\":\"playerid\"",
+					"\"Kind\":\"duplicate\""
+				})
+					if (plan.IndexOf(required, StringComparison.Ordinal) < 0)
+						throw new InvalidDataException("Direct creation plan is missing " + required + ".");
+				Environment.ExitCode = 0;
+			}
+			catch (Exception ex)
+			{
+				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				Environment.ExitCode = 1;
+			}
+			return;
+		}
 		Application.EnableVisualStyles();
 		Application.SetCompatibleTextRenderingDefault(defaultValue: false);
 		Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
@@ -234,7 +272,10 @@ internal static class Program
 						!ContainsControlText(main.m_TrophyForm, "Create New League") ||
 					!ContainsControlText(main.m_TrophyForm, "Create New Team") ||
 					!ContainsControlText(main.m_TrophyForm, "Create New Nation") ||
-					!ContainsControlText(main.m_TrophyForm, "Create New Player"))
+					!ContainsControlText(main.m_TrophyForm, "Create New Player") ||
+					!ContainsControlText(main.m_TrophyForm, "Assign Teams") ||
+					!ContainsControlText(main.m_TrophyForm, "Generate Schedule") ||
+					!ContainsControlText(main.m_TrophyForm, "Career Ready Check"))
 					throw new InvalidDataException("A mapped FC26 team or Compdata surface is missing.");
 				decimal decoBudget = TeamForm.CalculateDecoTransferBudget(162100, 6);
 				if (Math.Abs(decoBudget - 17289023.40328413m) > 0.01m)

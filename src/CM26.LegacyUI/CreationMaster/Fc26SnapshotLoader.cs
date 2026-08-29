@@ -258,6 +258,32 @@ internal static class Fc26SnapshotLoader
         return changes.Count + s_structuralChanges.Count;
     }
 
+    internal static void StageNewEntity(string section, object item)
+    {
+        var mapping = (section ?? string.Empty).ToLowerInvariant() switch
+        {
+            "nation" => (Table: "nations", IdColumn: "nationid"),
+            "league" => (Table: "leagues", IdColumn: "leagueid"),
+            "team" => (Table: "teams", IdColumn: "teamid"),
+            "player" => (Table: "players", IdColumn: "playerid"),
+            _ => throw new InvalidOperationException("Unsupported direct creation type: " + section)
+        };
+        var snapshot = s_snapshot ?? throw new InvalidOperationException("No FC26 snapshot is loaded.");
+        var table = snapshot.Tables.FirstOrDefault(candidate =>
+            candidate.Name.Equals(mapping.Table, StringComparison.OrdinalIgnoreCase));
+        if (table != null) EnsureRows(table, s_snapshotPath);
+        if (table == null || table.Rows.Count == 0)
+            throw new InvalidOperationException("The FC26 " + mapping.Table + " table has no safe template row.");
+        var id = ObjectId(item);
+        if (id == int.MinValue) throw new InvalidOperationException("The new record has no usable database ID.");
+        if (Origins(item).Any(origin => origin.TableName.Equals(table.Name, StringComparison.OrdinalIgnoreCase))) return;
+
+        var newRow = DuplicateDetailRow(table.Name, 0);
+        StageDetailValue(table.Name, newRow, mapping.IdColumn, id.ToString(CultureInfo.InvariantCulture));
+        SetOrigin(item, table.Name, newRow);
+        Fc26ActivityLog.Add("Create", section + " " + id + " staged from a validated template row");
+    }
+
     internal static SnapshotDetailTable? DetailTable(string tableName)
     {
         var table = s_snapshot?.Tables.FirstOrDefault(value =>
@@ -1010,7 +1036,16 @@ internal static class Fc26SnapshotLoader
             SetOrigin(item, table.Name, rowIndex);
             list.Add(item);
         }
-        if (list is IdArrayList ids) ids.SortId();
+        if (list is IdArrayList ids)
+        {
+            ids.SortId();
+            var usedMaximum = table.Rows.Select(row => ParseIntAt(row, idIndex)).DefaultIfEmpty(-1).Max();
+            var descriptor = table.ColumnDetails.FirstOrDefault(column =>
+                column.Name.Equals(idColumn, StringComparison.OrdinalIgnoreCase));
+            var rangeHigh = descriptor == null ? Math.Max(usedMaximum + 10000L, int.MaxValue / 4L) : descriptor.RangeHigh;
+            ids.MinId = usedMaximum < int.MaxValue ? Math.Max(0, usedMaximum + 1) : int.MaxValue;
+            ids.MaxId = (int)Math.Max(ids.MinId, Math.Min(int.MaxValue, rangeHigh));
+        }
         return list;
     }
 

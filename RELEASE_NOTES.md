@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.169 - direct creation and guided Compdata workflows (2026-08-29)
+
+- Create New League, Team, Nation and Player now allocates safe IDs and stages real writable FC26 database rows from validated templates.
+- Added friendly Compdata team assignment and round-robin schedule generation inside Competition without exposing raw database fields.
+- Added a Career Ready report covering database linkage, stages/groups, assigned teams and calendar structure.
+- Prevented failed creation attempts from leaving UI-only phantom records and added real-snapshot regression coverage for all four entity types.
+
 ## Version 1.0.168 - streamed snapshot and lazy table loading (2026-08-29)
 
 - Replaced the single 207 MB in-memory snapshot with a 1.23 MB manifest and 281 independently compressed table streams (about 50 MB total on the tested database).

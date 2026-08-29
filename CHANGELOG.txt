@@ -1,3 +1,8 @@
+Creation Master 26 v1.0.169 - 29 August 2026
+- Added direct, staged database creation for leagues, teams, nations and players with safe unused IDs.
+- Added Compdata team assignment, round-robin schedule generation and a Career Ready structural report.
+- Added UI and real-snapshot regression gates for the new workflows.
+
 Creation Master 26 v1.0.168 - 29 August 2026
 - Replaced the monolithic FC26 snapshot with a compact manifest and one compressed stream per table.
 - Lazy-loads non-core tables only when their mapped details or Advanced Database Workspace view is opened, while retaining all 281 discovered main and locale tables.
