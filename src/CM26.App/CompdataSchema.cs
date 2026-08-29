@@ -18,7 +18,9 @@ internal static class CompdataSchema
     private static readonly Dictionary<string, string[]> Columns = new(StringComparer.OrdinalIgnoreCase)
     {
         ["compobj"] = ["Object ID", "Object Type", "Short Name", "Description", "Parent Object ID"],
-        ["compids"] = ["Competition Object ID", "Database Competition ID"],
+        // FC26 stores one Compdata object ID per row. The linked database ID is
+        // encoded by the competition object's C{id} short name.
+        ["compids"] = ["Competition Object ID"],
         ["standings"] = ["Group Object ID", "Rank"],
         ["schedule"] = ["Object ID", "Day", "Round", "Minimum Games", "Maximum Games", "Kick-off Time"],
         ["advancement"] = ["Source Group ID", "Source Rank", "Destination Group ID", "Destination Rank"],
@@ -99,6 +101,9 @@ internal static class CompdataSchema
 
         ValidateReference(tables, "standings", 0, types, 5, "Group Object ID", issues);
         ValidateReference(tables, "schedule", 0, types, [4, 5], "Object ID", issues);
+        // FC26 registers both normal competition objects (3) and special
+        // competition groups (6) in compids.
+        ValidateReference(tables, "compids", 0, types, [3, 6], "Registered Competition Object ID", issues);
         ValidateReference(tables, "initteams", 0, types, 3, "Competition Object ID", issues);
         ValidateReference(tables, "advancement", 0, types, 5, "Source Group ID", issues);
         ValidateReference(tables, "advancement", 2, types, 5, "Destination Group ID", issues);
@@ -125,7 +130,10 @@ internal static class CompdataSchema
             if (day < 0 || round < 0) issues.Add(CompdataValidationIssue.Error("schedule", row + 1, "Day and round cannot be negative."));
             if (minimum < 0 || maximum < minimum) issues.Add(CompdataValidationIssue.Error("schedule", row + 1, "Maximum games must be greater than or equal to minimum games."));
             if (kickoff < 0 || kickoff > 2359 || kickoff % 100 > 59) issues.Add(CompdataValidationIssue.Error("schedule", row + 1, "Kick-off must use a valid FC HHMM value (0000–2359)."));
-            if (!keys.Add($"{objectId}|{day}|{round}")) issues.Add(CompdataValidationIssue.Error("schedule", row + 1, "Duplicate object/day/round creates a schedule conflict."));
+            // FC26 legitimately uses multiple kick-off/game-range rows for the same
+            // object, day and round. Only a fully identical schedule row is a duplicate.
+            if (!keys.Add($"{objectId}|{day}|{round}|{minimum}|{maximum}|{kickoff}"))
+                issues.Add(CompdataValidationIssue.Error("schedule", row + 1, "Exact duplicate schedule row."));
         }
     }
 

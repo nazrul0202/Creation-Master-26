@@ -27,6 +27,7 @@ internal sealed class Fc26CompdataPanel : UserControl
         Dock = DockStyle.Fill;
         MinimumSize = new Size(720, 480);
         var tools = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden, Dock = DockStyle.Top };
+        tools.Items.Add(Item("Load FC26 Compdata", (_, _) => LoadInstalled()));
         tools.Items.Add(Item("Open Tournament Files", (_, _) => OpenFolder()));
         tools.Items.Add(Item("Open Workbook", (_, _) => OpenWorkbook()));
         tools.Items.Add(new ToolStripSeparator());
@@ -35,6 +36,8 @@ internal sealed class Fc26CompdataPanel : UserControl
         tools.Items.Add(Item("Assign Teams", (_, _) => AssignTeams()));
         tools.Items.Add(Item("Generate Schedule", (_, _) => GenerateSchedule()));
         tools.Items.Add(Item("Career Ready Check", (_, _) => ShowCareerReadyReport()));
+        tools.Items.Add(Item("Make League In-Game Ready", (_, _) => ChooseLeagueForCareerSetup()));
+        tools.Items.Add(Item("Stage Compdata to Save", (_, _) => StageCurrentCompdata()));
         tools.Items.Add(new ToolStripSeparator());
 		tools.Items.Add(Item("Create New League", (_, _) => MainForm.CM?.CreateFriendlyEntity("league")));
 		tools.Items.Add(Item("Create New Team", (_, _) => MainForm.CM?.CreateFriendlyEntity("team")));
@@ -162,14 +165,16 @@ internal sealed class Fc26CompdataPanel : UserControl
         {
             var names = ObjectNames();
             var duplicates = schedule.Rows.Cast<DataRow>().Where(row => row.RowState != DataRowState.Deleted)
-                .GroupBy(row => Value(row, 0) + "|" + Value(row, 1) + "|" + Value(row, 2), StringComparer.OrdinalIgnoreCase)
+                .GroupBy(row => string.Join("|", Enumerable.Range(0, Math.Min(6, schedule.Columns.Count))
+                    .Select(column => Value(row, column))), StringComparer.OrdinalIgnoreCase)
                 .Where(group => group.Count() > 1).Select(group => group.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (DataRow row in schedule.Rows)
             {
                 if (row.RowState == DataRowState.Deleted) continue;
                 var idText = Value(row, 0); int.TryParse(idText, out var id);
-                var key = idText + "|" + Value(row, 1) + "|" + Value(row, 2);
-                var state = duplicates.Contains(key) ? "Conflict: duplicate object/day/round" : CalendarStatus(row);
+                var key = string.Join("|", Enumerable.Range(0, Math.Min(6, schedule.Columns.Count))
+                    .Select(column => Value(row, column)));
+                var state = duplicates.Contains(key) ? "Conflict: exact duplicate schedule row" : CalendarStatus(row);
                 view.Rows.Add(idText, names.TryGetValue(id, out var objectName) ? objectName : "Object " + idText,
                     Value(row, 1), Value(row, 2), Value(row, 3), Value(row, 4), FormatKickoff(Value(row, 5)), state);
             }
@@ -210,6 +215,23 @@ internal sealed class Fc26CompdataPanel : UserControl
             }
             finally { try { File.Delete(snapshot); } catch { } }
         });
+    }
+
+    private void LoadInstalled()
+    {
+        Run("Loading installed FC26 Compdata...", () =>
+        {
+            LoadInstalledCore();
+            return _tables.Count + " installed FC26 Compdata section(s) loaded.";
+        });
+    }
+
+    private void LoadInstalledCore()
+    {
+        var path = Fc26HostBridge.OpenInstalledCompdata();
+        try { LoadSnapshot(path); }
+        finally { try { File.Delete(path); } catch { } }
+        _sourcePath = string.Empty;
     }
 
     private CompetitionChoice[] CompetitionChoices()
@@ -307,6 +329,68 @@ internal sealed class Fc26CompdataPanel : UserControl
         viewer.ShowDialog(this);
     }
 
+    private void ChooseLeagueForCareerSetup()
+    {
+        var leagues = FifaEnvironment.Leagues?.Cast<League>()
+            .OrderBy(league => league.ToString(), StringComparer.OrdinalIgnoreCase).ToArray() ?? Array.Empty<League>();
+        if (leagues.Length == 0) { MessageBox.Show(this, "Open an FC26 database first.", Text); return; }
+        using var dialog = new Form { Text = "Make League In-Game Ready", FormBorderStyle = FormBorderStyle.FixedDialog,
+            StartPosition = FormStartPosition.CenterParent, ClientSize = new Size(470, 135), MaximizeBox = false, MinimizeBox = false };
+        var combo = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 420, DataSource = leagues };
+        var ok = new Button { Text = "Build and Stage", DialogResult = DialogResult.OK, AutoSize = true };
+        var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true };
+        var layout = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, Padding = new Padding(14) };
+        layout.Controls.Add(new Label { Text = "League", AutoSize = true }); layout.Controls.Add(combo);
+        var buttons = new FlowLayoutPanel { AutoSize = true }; buttons.Controls.AddRange(new Control[] { ok, cancel }); layout.Controls.Add(buttons);
+        dialog.Controls.Add(layout); dialog.AcceptButton = ok; dialog.CancelButton = cancel;
+        if (dialog.ShowDialog(this) == DialogResult.OK && combo.SelectedItem is League league) MakeLeagueInGameReady(league);
+    }
+
+    internal void MakeLeagueInGameReady(League league)
+    {
+        if (league == null) return;
+        Run("Building and staging an in-game Career league...", () =>
+        {
+            if (league.Country == null) throw new InvalidOperationException("Assign a country to this league first.");
+            var teams = league.PlayingTeams.Cast<Team>().Where(team => team != null && team.Id > 0)
+                .Select(team => team.Id).Distinct().ToArray();
+            if (teams.Length < 2) throw new InvalidOperationException("Add at least two teams to this league first.");
+            if (_tables.Count == 0) LoadInstalledCore();
+            var snapshot = WriteSnapshot();
+            try
+            {
+                var result = Fc26HostBridge.BuildCareerCompdata(snapshot,
+                    league.Country.DatabaseName, league.Country.Id, league.Country.Confederation + 1,
+                    string.IsNullOrWhiteSpace(league.LongName) ? league.leaguename : league.LongName,
+                    league.Id, teams);
+                LoadSnapshot(snapshot);
+                var stagedSnapshot = WriteSnapshot();
+                try
+                {
+                    var staged = Fc26HostBridge.StageCompdataForSave(stagedSnapshot);
+                    RefreshSimpleViews(); _views.SelectedIndex = 0;
+                    MessageBox.Show(this,
+                        result + Environment.NewLine + staged + Environment.NewLine + Environment.NewLine +
+                        "Use the normal CM26 Save command to commit the database and Compdata together. Start a new Career after saving.",
+                        "League In-Game Ready", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return result + " " + staged;
+                }
+                finally { try { File.Delete(stagedSnapshot); } catch { } }
+            }
+            finally { try { File.Delete(snapshot); } catch { } }
+        });
+    }
+
+    private void StageCurrentCompdata()
+    {
+        Run("Staging validated Compdata for Save...", () =>
+        {
+            EnsureLoaded(); var snapshot = WriteSnapshot();
+            try { return Fc26HostBridge.StageCompdataForSave(snapshot) + " Use normal CM26 Save to commit it."; }
+            finally { try { File.Delete(snapshot); } catch { } }
+        });
+    }
+
     private string BuildCareerReadyReport()
     {
         if (!_tables.TryGetValue("compobj", out var objects)) return "NOT READY: compobj is missing.";
@@ -319,7 +403,7 @@ internal sealed class Fc26CompdataPanel : UserControl
             var stages = objects.Rows.Cast<DataRow>().Where(row => Int(row, 0, out _) && Int(row, 1, out var type) && type == 4 && Int(row, 4, out var parent) && parent == competition.Id)
                 .Select(row => Convert.ToInt32(Value(row, 0))).ToArray();
             var groups = objects.Rows.Cast<DataRow>().Count(row => Int(row, 1, out var type) && type == 5 && Int(row, 4, out var parent) && stages.Contains(parent));
-            var mapped = compIds != null && compIds.Rows.Cast<DataRow>().Any(row => Value(row, 0) == competition.Id.ToString() && !string.IsNullOrWhiteSpace(Value(row, 1)));
+            var mapped = compIds != null && compIds.Rows.Cast<DataRow>().Any(row => Value(row, 0) == competition.Id.ToString());
             var teams = initTeams?.Rows.Cast<DataRow>().Count(row => Value(row, 0) == competition.Id.ToString()) ?? 0;
             var calendarRows = schedule?.Rows.Cast<DataRow>().Count(row => Int(row, 0, out var id) && stages.Contains(id)) ?? 0;
             var settingRows = settings?.Rows.Cast<DataRow>().Count(row => Value(row, 0) == competition.Id.ToString() || (Int(row, 0, out var id) && stages.Contains(id))) ?? 0;

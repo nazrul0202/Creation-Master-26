@@ -34,7 +34,7 @@ internal static class CompdataBuilder
         var objectIds = ReserveObjectIds(tables["compobj"], 1 + request.Stages + groupCount);
         var competitionId = objectIds.Dequeue();
         Add(tables["compobj"], competitionId, 3, request.Name, request.Name, string.Empty);
-        Add(tables["compids"], competitionId, request.DatabaseCompetitionId);
+        Add(tables["compids"], competitionId);
 
         var stages = new List<int>();
         var groups = new List<int>();
@@ -90,31 +90,69 @@ internal static class CompdataBuilder
         if (parentId == null || !TryInt(parentId, 0, out var confederationObjectId))
             throw new InvalidOperationException($"The Compdata workbook has no {confederation} confederation object.");
 
+        var teamIds = request.TeamIds.Where(id => id > 0).Distinct().ToArray();
+        if (teamIds.Length < 2)
+            throw new InvalidOperationException("Link at least two valid clubs to the league before building its Career setup.");
+        var competitionCode = "C" + request.DatabaseLeagueId;
+        if (tables["compobj"].Rows.Cast<DataRow>().Any(row =>
+                TryInt(row, 1, out var type) && type == 3 &&
+                string.Equals(Convert.ToString(row[2])?.Trim(), competitionCode, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"League {request.DatabaseLeagueId} already has a Compdata competition. Use Assign Teams or Generate Schedule to amend it.");
+
+        var nationToken = $"NationName_{request.NationId}";
+        var existingCountry = tables["compobj"].Rows.Cast<DataRow>().FirstOrDefault(row =>
+            TryInt(row, 0, out _) && TryInt(row, 1, out var type) && type == 2 &&
+            string.Equals(Convert.ToString(row[3])?.Trim(), nationToken, StringComparison.OrdinalIgnoreCase));
+        var newCountry = existingCountry == null;
         CompdataSchema.EnsureCapacity(tables, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
         {
-            ["compobj"] = 4, ["compids"] = 1, ["settings"] = 4,
-            ["initteams"] = request.TeamIds.Distinct().Count(), ["standings"] = 1, ["schedule"] = 1,
+            ["compobj"] = newCountry ? 4 : 3, ["compids"] = 1,
+            ["settings"] = newCountry ? 17 : 16,
+            ["initteams"] = teamIds.Length, ["standings"] = teamIds.Length,
+            ["schedule"] = RoundCount(teamIds.Length, 2),
         });
-        var ids = ReserveObjectIds(tables["compobj"], 4);
-        var countryObject = ids.Dequeue();
+        var ids = ReserveObjectIds(tables["compobj"], newCountry ? 4 : 3);
+        var countryObject = newCountry ? ids.Dequeue() : Convert.ToInt32(existingCountry![0]);
         var competitionObject = ids.Dequeue();
         var stageObject = ids.Dequeue();
         var groupObject = ids.Dequeue();
-        Add(tables["compobj"], countryObject, 2, CountryCode(request.CountryName), $"NationName_{request.NationId}", confederationObjectId);
-        Add(tables["settings"], countryObject, "nation_id", request.NationId);
-        Add(tables["compobj"], competitionObject, 3, $"C{request.DatabaseLeagueId}", request.LeagueName, countryObject);
-        Add(tables["compids"], competitionObject, request.DatabaseLeagueId);
+        if (newCountry)
+        {
+            Add(tables["compobj"], countryObject, 2, CountryCode(request.CountryName), nationToken, confederationObjectId);
+            Add(tables["settings"], countryObject, "nation_id", request.NationId);
+        }
+        Add(tables["compobj"], competitionObject, 3, competitionCode, $"TrophyName_Abbr15_{request.DatabaseLeagueId}", countryObject);
+        Add(tables["compids"], competitionObject);
+        Add(tables["settings"], competitionObject, "asset_id", request.DatabaseLeagueId);
         Add(tables["settings"], competitionObject, "comp_type", "LEAGUE");
-        Add(tables["compobj"], stageObject, 4, "S1", "League Stage", competitionObject);
+        Add(tables["settings"], competitionObject, "match_canusefancards", "on");
+        Add(tables["settings"], competitionObject, "standings_sort", "POINTS");
+        Add(tables["settings"], competitionObject, "standings_sort", "GOALDIFF");
+        Add(tables["settings"], competitionObject, "standings_sort", "GOALSFOR");
+        Add(tables["settings"], competitionObject, "standings_sort", "H2HPOINTS");
+        Add(tables["compobj"], stageObject, 4, "S1", "FCE_League_Stage", competitionObject);
         Add(tables["settings"], stageObject, "match_stagetype", "LEAGUE");
-        Add(tables["schedule"], stageObject, 1, 1, 1, 1, 1200);
-        Add(tables["compobj"], groupObject, 5, "G1", "League Table", stageObject);
-        Add(tables["settings"], groupObject, "match_matchsituation", "LEAGUE");
-        Add(tables["standings"], groupObject, 0);
+        Add(tables["settings"], stageObject, "match_matchsituation", "LEAGUE");
+        Add(tables["settings"], stageObject, "match_canusefancards", "on");
+        Add(tables["settings"], stageObject, "standings_sort", "POINTS");
+        Add(tables["settings"], stageObject, "standings_sort", "GOALDIFF");
+        Add(tables["settings"], stageObject, "standings_sort", "GOALSFOR");
+        Add(tables["settings"], stageObject, "standings_sort", "H2HPOINTS");
+        Add(tables["settings"], stageObject, "schedule_year_real", 2024);
+        Add(tables["compobj"], groupObject, 5, "G1", string.Empty, stageObject);
+        Add(tables["settings"], groupObject, "num_games", 2);
+        for (var rank = 0; rank < teamIds.Length; rank++) Add(tables["standings"], groupObject, rank);
+        var rounds = RoundCount(teamIds.Length, 2);
+        var games = Math.Max(1, teamIds.Length / 2);
+        for (var round = 1; round <= rounds; round++)
+            Add(tables["schedule"], stageObject, 201 + ((round - 1) * 7), round, games, games, 1500);
         var position = 0;
-        foreach (var teamId in request.TeamIds.Distinct()) Add(tables["initteams"], competitionObject, position++, teamId);
+        foreach (var teamId in teamIds) Add(tables["initteams"], competitionObject, position++, teamId);
         return new CompdataBuildResult(competitionObject, [stageObject], [groupObject]);
     }
+
+    private static int RoundCount(int teamCount, int legs) =>
+        (teamCount % 2 == 0 ? teamCount - 1 : teamCount) * Math.Max(1, legs);
 
     private static string CountryCode(string name)
     {

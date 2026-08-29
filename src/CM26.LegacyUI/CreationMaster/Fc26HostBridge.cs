@@ -330,6 +330,15 @@ internal static class Fc26HostBridge
         return response;
     }
 
+    internal static string OpenInstalledCompdata()
+    {
+        var response = Path.Combine(Path.GetTempPath(), "cm26-installed-compdata-" + Guid.NewGuid().ToString("N") + ".json");
+        RunHost("--legacy-compdata-open-installed \"" + response.Replace("\"", string.Empty) + "\"",
+            DatabaseCommandTimeoutMs, "FC26 installed Compdata loader", allowValidationIssues: false);
+        if (!File.Exists(response)) throw new FileNotFoundException("Installed FC26 Compdata snapshot was not created.");
+        return response;
+    }
+
     internal static string ValidateCompdata(string snapshotPath)
     {
         var response = Path.Combine(Path.GetTempPath(), "cm26-compdata-report-" + Guid.NewGuid().ToString("N") + ".txt");
@@ -359,6 +368,24 @@ internal static class Fc26HostBridge
         var result = RunHost("--legacy-compdata-advance \"" + snapshotPath.Replace("\"", string.Empty) + "\" " +
             sourceGroup + " " + sourceRank + " " + destinationGroup + " " + destinationRank,
             DatabaseCommandTimeoutMs, "FC26 Compdata advancement editor", allowValidationIssues: false);
+        return result.StandardOutput.Trim();
+    }
+
+    internal static string BuildCareerCompdata(string snapshotPath, string countryName, int nationId,
+        int confederation, string leagueName, int leagueId, IEnumerable<int> teamIds)
+    {
+        var ids = string.Join(",", teamIds.Distinct());
+        var result = RunHost("--legacy-compdata-career \"" + snapshotPath.Replace("\"", string.Empty) + "\" \"" +
+            countryName.Replace("\"", string.Empty) + "\" " + nationId + " " + confederation + " \"" +
+            leagueName.Replace("\"", string.Empty) + "\" " + leagueId + " \"" + ids + "\"",
+            DatabaseCommandTimeoutMs, "FC26 Career league builder", allowValidationIssues: false);
+        return result.StandardOutput.Trim();
+    }
+
+    internal static string StageCompdataForSave(string snapshotPath)
+    {
+        var result = RunHost("--legacy-compdata-stage \"" + snapshotPath.Replace("\"", string.Empty) + "\"",
+            DatabaseCommandTimeoutMs, "FC26 Compdata save staging", allowValidationIssues: false);
         return result.StandardOutput.Trim();
     }
 

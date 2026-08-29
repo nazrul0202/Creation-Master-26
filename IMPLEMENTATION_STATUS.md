@@ -1,4 +1,4 @@
-# CM26 v1.0.170 implementation status
+# CM26 v1.0.171 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
@@ -15,6 +15,7 @@ This status is intentionally conservative: a visible control is not counted as w
 - Compdata XLSX/TXT load, friendly Competition Structure tree, Tournament Calendar, League/Cup Wizard, team assignment, round-robin schedule generation, Career Ready structural checks, advancement editing, validation, workbook-copy save and game-TXT export inside the original Competition section.
 - Direct Create League, Team, Nation and Player commands allocate safe unused IDs and stage complete writable database rows instead of creating UI-only placeholders.
 - League exposes Create Team Here, while Team Generic allows a current league to be selected; both paths create or update the writable `leagueteamlinks` relationship.
+- League exposes Make In-Game Ready: it reads all 11 installed FC26 Career Compdata assets, creates the country/competition/stage/group hierarchy, team assignments, standings and a complete double round-robin calendar, validates them and stages them into the normal direct Save transaction.
 - Direct CM26 project/session save, recent-project history and deterministic reopening of the stored installed-game or extracted-database source.
 - Full-transfer, transfer-all, loan, loan-to-buy, loan termination, loan-end, join-date and contract-year workflows with roster/formation/set-piece repair.
 - Deco-style Transfer Budget shown read-only directly below Club Worth in Team Generic, with career-save writing kept outside the public database-field surface.

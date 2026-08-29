@@ -100,6 +100,12 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 2 && args[0] == "--legacy-compdata-open-installed")
+        {
+            Environment.ExitCode = OpenInstalledLegacyCompdata(args[1]);
+            return;
+        }
+
         if (args.Length >= 5 && args[0] == "--legacy-compdata-save")
         {
             Environment.ExitCode = SaveLegacyCompdata(args[1], args[2], args[3], args[4]);
@@ -121,6 +127,19 @@ internal static class Program
         if (args.Length >= 6 && args[0] == "--legacy-compdata-advance")
         {
             Environment.ExitCode = AdvanceLegacyCompdata(args[1], args[2], args[3], args[4], args[5]);
+            return;
+        }
+
+        if (args.Length >= 8 && args[0] == "--legacy-compdata-career")
+        {
+            Environment.ExitCode = BuildLegacyCareerCompdata(args[1], args[2], args[3], args[4],
+                args[5], args[6], args[7]);
+            return;
+        }
+
+        if (args.Length >= 2 && args[0] == "--legacy-compdata-stage")
+        {
+            Environment.ExitCode = StageLegacyCompdata(args[1]);
             return;
         }
 
@@ -979,6 +998,21 @@ internal static class Program
         catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
     }
 
+    private static int OpenInstalledLegacyCompdata(string responsePath)
+    {
+        string? extracted = null;
+        try
+        {
+            extracted = Fc26CompdataGameService.ExtractInstalled();
+            return OpenLegacyCompdata(extracted, responsePath);
+        }
+        finally
+        {
+            try { if (!string.IsNullOrWhiteSpace(extracted) && Directory.Exists(extracted)) Directory.Delete(extracted, true); }
+            catch (Exception ex) { Log("Installed Compdata cleanup failed: " + ex.Message); }
+        }
+    }
+
     private static int SaveLegacyCompdata(string sourcePath, string snapshotPath, string outputPath, string mode)
     {
         try
@@ -1060,6 +1094,47 @@ internal static class Program
             snapshot.Sheets = tables.Values.Select(ToLegacySheet).ToList();
             File.WriteAllText(snapshotPath, System.Text.Json.JsonSerializer.Serialize(snapshot));
             Console.WriteLine("Advancement path created");
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int BuildLegacyCareerCompdata(string snapshotPath, string countryName, string nationIdText,
+        string confederationText, string leagueName, string leagueIdText, string teamIdsText)
+    {
+        try
+        {
+            if (!int.TryParse(nationIdText, out var nationId) ||
+                !int.TryParse(confederationText, out var confederation) ||
+                !int.TryParse(leagueIdText, out var leagueId))
+                throw new ArgumentException("Invalid country or league identifiers.");
+            var teamIds = teamIdsText.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(value => int.TryParse(value, out var id) ? id : -1).Where(id => id > 0).Distinct().ToArray();
+            var snapshot = System.Text.Json.JsonSerializer.Deserialize<LegacyCompdataSnapshot>(File.ReadAllText(snapshotPath))
+                ?? throw new InvalidDataException("Compdata edit snapshot is empty.");
+            var tables = snapshot.Sheets.ToDictionary(sheet => sheet.Name, FromLegacySheet, StringComparer.OrdinalIgnoreCase);
+            var result = CompdataBuilder.CreateCountryCareerLeague(tables,
+                new CountryCareerBuildRequest(countryName, nationId, confederation, leagueName, leagueId, teamIds));
+            var errors = CompdataSchema.Validate(tables).Where(issue => issue.IsError).ToArray();
+            if (errors.Length > 0)
+                throw new InvalidDataException(string.Join(" | ", errors.Take(8).Select(issue => issue.Message)));
+            snapshot.Sheets = tables.Values.Select(ToLegacySheet).ToList();
+            File.WriteAllText(snapshotPath, System.Text.Json.JsonSerializer.Serialize(snapshot));
+            Console.WriteLine($"Career league object {result.CompetitionObjectId} created with {teamIds.Length} teams and a complete double round-robin calendar.");
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int StageLegacyCompdata(string snapshotPath)
+    {
+        try
+        {
+            var snapshot = System.Text.Json.JsonSerializer.Deserialize<LegacyCompdataSnapshot>(File.ReadAllText(snapshotPath))
+                ?? throw new InvalidDataException("Compdata edit snapshot is empty.");
+            var tables = snapshot.Sheets.ToDictionary(sheet => sheet.Name, FromLegacySheet, StringComparer.OrdinalIgnoreCase);
+            var count = Fc26CompdataGameService.StageForDirectSave(tables);
+            Console.WriteLine(count + " Compdata TXT asset(s) staged for the normal CM26 Save transaction.");
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }

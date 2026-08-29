@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using FifaControls;
 using FifaLibrary;
@@ -13,6 +14,7 @@ namespace CreationMaster;
 
 public class CompetitionForm : Form
 {
+	internal Fc26CompdataPanel Fc26Compdata { get; private set; }
 	private bool m_IsLoaded;
 
 	private CompobjList m_Competitions;
@@ -1386,7 +1388,8 @@ public class CompetitionForm : Form
 		{
 			Name = "pageFc26Compdata", Text = "Compdata", UseVisualStyleBackColor = true
 		};
-		compdataPage.Controls.Add(new Fc26CompdataPanel());
+		Fc26Compdata = new Fc26CompdataPanel();
+		compdataPage.Controls.Add(Fc26Compdata);
 		tabCompetitions.TabPages.Add(compdataPage);
 		CmStyleDetailsWindow.Attach(this, "Competition Details", DetailSection.Competition,
 			() => m_CurrentCompobj?.Id ?? -1);
@@ -1804,6 +1807,14 @@ public class CompetitionForm : Form
 		viewer2DPitchDressing.RemoveButton = true;
 		viewer2DPitchDressing.ImageImport = ImportImagePitchDressing;
 		viewer2DPitchDressing.ImageDelete = DeletePitchDressing;
+	}
+
+	internal void MakeLeagueInGameReady(League league)
+	{
+		var page = tabCompetitions.TabPages.Cast<TabPage>()
+			.FirstOrDefault(item => item.Name == "pageFc26Compdata");
+		if (page != null) tabCompetitions.SelectedTab = page;
+		Fc26Compdata.MakeLeagueInGameReady(league);
 	}
 
 	public void Clean()

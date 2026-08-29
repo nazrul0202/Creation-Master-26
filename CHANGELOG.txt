@@ -1,3 +1,10 @@
+Creation Master 26 v1.0.171 - 29 August 2026
+------------------------------------------------------------
+- Added League > Make In-Game Ready with direct FC26 Career Compdata staging.
+- Added installed 11-file Compdata loading, complete league hierarchy, team assignment,
+  standings, FC26 settings and double round-robin calendar generation.
+- Corrected one-column compids mapping and FC26 schedule validation.
+
 Creation Master 26 v1.0.170 - 29 August 2026
 - Added Create Team Here to League and enabled writable FC26 league selection in Team Generic.
 - New and existing clubs now create or update a validated leagueteamlinks relationship.

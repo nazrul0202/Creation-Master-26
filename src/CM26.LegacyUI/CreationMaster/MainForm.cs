@@ -3187,6 +3187,13 @@ public class MainForm : Form
 		}
 	}
 
+	internal void MakeLeagueInGameReady(League league)
+	{
+		if (league == null) return;
+		ShowFormOnPanel(m_TrophyForm, panelMain);
+		m_TrophyForm.MakeLeagueInGameReady(league);
+	}
+
 	internal void ClickFc26SectionForSmoke(string section)
 	{
 		if (!string.Equals(Text, "Creation Master 26", StringComparison.Ordinal))

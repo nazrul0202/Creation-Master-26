@@ -33,7 +33,13 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.170.txt` is included with the v1.0.170 release assets.
+Checksums: `SHA256SUMS_v1.0.171.txt` is included with the v1.0.171 release assets.
+
+For a newly created league, add at least two teams and click **Make In-Game Ready**
+in League Details before the normal **Save**. CM26 imports the installed FC26 Career
+Compdata, creates the country/competition/stage/group records, assigns the teams,
+generates a double round-robin calendar and stages all 11 Compdata assets in the
+same direct-save transaction. Start a new Career after saving.
 
 ---
 

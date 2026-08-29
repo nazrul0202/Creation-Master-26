@@ -254,6 +254,10 @@ internal static class Program
 					throw new InvalidDataException("A mapped, friendly CM26 details surface is missing.");
 				if (!ContainsControlText(main.m_LeagueForm, "Create Team Here"))
 					throw new InvalidDataException("League is missing its direct create-and-link team command.");
+				if (!ContainsControlText(main.m_LeagueForm, "Make In-Game Ready") ||
+					!ContainsControlText(main.m_TrophyForm, "Load FC26 Compdata") ||
+					!ContainsControlText(main.m_TrophyForm, "Stage Compdata to Save"))
+					throw new InvalidDataException("League-to-Compdata save integration is missing.");
 				if (!ContainsControlText(main.m_PlayerForm, "Tactical Roles") ||
 						!ContainsControlText(main.m_PlayerForm, "Composure") ||
 						!ContainsControlText(main.m_PlayerForm, "Def. Awareness"))

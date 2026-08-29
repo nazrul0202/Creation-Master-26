@@ -1,6 +1,6 @@
 {
-  "version": "1.0.170",
+  "version": "1.0.171",
   "name": "Creation Master 26",
-  "notes": "v1.0.170 - adds direct create-in-league and writable team league assignment.",
+  "notes": "v1.0.171 - creates and stages complete FC26 Career Compdata for new leagues.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

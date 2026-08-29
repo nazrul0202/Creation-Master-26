@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Data;
 using CM26.App.Sections;
 
 using CM26.Application.Services;
@@ -40,7 +41,8 @@ internal static class HeadlessSmoke
         try
         {
             var service = new CompdataWorkbookService();
-            service.Open(workbookPath);
+            if (Directory.Exists(workbookPath)) service.OpenFromGameFolder(workbookPath);
+            else service.Open(workbookPath);
             var tables = service.SheetNames.ToDictionary(
                 name => name,
                 service.ReadSheet,
@@ -57,17 +59,20 @@ internal static class HeadlessSmoke
             CompdataWorkbookService.ExportTextFiles(textOutput, tables);
             if (Directory.GetFiles(textOutput, "*.txt").Length != tables.Count)
                 throw new InvalidDataException("Compdata TXT export does not contain every worksheet.");
-            output = Path.Combine(Path.GetTempPath(), "cm26-compdata-" + Guid.NewGuid().ToString("N") + ".xlsx");
-            service.SaveCopy(output, tables);
-            var verification = new CompdataWorkbookService();
-            verification.Open(output);
-            if (verification.SheetNames.Count != service.SheetNames.Count)
-                throw new InvalidDataException("Saved workbook worksheet count does not match.");
-            foreach (var (name, table) in tables)
+            if (!Directory.Exists(workbookPath))
             {
-                var saved = verification.ReadSheet(name);
-                if (saved.Rows.Count != table.Rows.Count || saved.Columns.Count != table.Columns.Count)
-                    throw new InvalidDataException($"Saved worksheet '{name}' does not match.");
+                output = Path.Combine(Path.GetTempPath(), "cm26-compdata-" + Guid.NewGuid().ToString("N") + ".xlsx");
+                service.SaveCopy(output, tables);
+                var verification = new CompdataWorkbookService();
+                verification.Open(output);
+                if (verification.SheetNames.Count != service.SheetNames.Count)
+                    throw new InvalidDataException("Saved workbook worksheet count does not match.");
+                foreach (var (name, table) in tables)
+                {
+                    var saved = verification.ReadSheet(name);
+                    if (saved.Rows.Count != table.Rows.Count || saved.Columns.Count != table.Columns.Count)
+                        throw new InvalidDataException($"Saved worksheet '{name}' does not match.");
+                }
             }
             Console.WriteLine(
                 $"COMPDATA TEST OK: {tables.Count} worksheets, " +
@@ -94,21 +99,38 @@ internal static class HeadlessSmoke
         try
         {
             var service = new CompdataWorkbookService();
-            service.Open(workbookPath);
+            if (Directory.Exists(workbookPath)) service.OpenFromGameFolder(workbookPath);
+            else service.Open(workbookPath);
             var tables = service.SheetNames.ToDictionary(name => name, service.ReadSheet, StringComparer.OrdinalIgnoreCase);
             var result = CompdataBuilder.CreateLeagueOrCup(tables,
-                new CompdataLeagueBuildRequest("CM26 Validation League", 0, 1, 1));
-            CompdataBuilder.AddAdvancement(tables, result.GroupIds[0], 0, result.GroupIds[0], 0);
+                new CompdataLeagueBuildRequest("CM26 Validation Cup", 199999, 1, 2));
+            CompdataBuilder.AddAdvancement(tables, result.GroupIds[0], 0, result.GroupIds[1], 0);
+            var career = CompdataBuilder.CreateCountryCareerLeague(tables,
+                new CountryCareerBuildRequest("CM26 Test Nation", 999, 2, "CM26 Validation League", 199998,
+                    [199901, 199902, 199903, 199904]));
             var validation = CompdataSchema.Validate(tables);
             if (validation.Any(issue => issue.IsError))
                 throw new InvalidDataException(string.Join(" | ", validation.Take(3).Select(issue => issue.Message)));
-            output = Path.Combine(Path.GetTempPath(), "cm26-compdata-builder-" + Guid.NewGuid().ToString("N") + ".xlsx");
-            service.SaveCopy(output, tables);
+            output = Path.Combine(Path.GetTempPath(), "cm26-compdata-builder-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(output);
+            CompdataWorkbookService.ExportTextFiles(output, tables);
             var reopen = new CompdataWorkbookService();
-            reopen.Open(output);
+            reopen.OpenFromGameFolder(output);
             if (reopen.ReadSheet("compobj").Rows.Count != tables["compobj"].Rows.Count)
                 throw new InvalidDataException("Built Compdata object rows did not survive the save/reopen check.");
-            Console.WriteLine($"COMPDATA BUILDER TEST OK: object {result.CompetitionObjectId}");
+            var compIds = reopen.ReadSheet("compids");
+            if (compIds.Columns.Count != 1 || !compIds.Rows.Cast<DataRow>().Any(row =>
+                    Convert.ToString(row[0]) == career.CompetitionObjectId.ToString()))
+                throw new InvalidDataException("FC26 one-column compids mapping did not survive export/reopen.");
+            var expectedRounds = 6;
+            if (tables["schedule"].Rows.Cast<DataRow>().Count(row =>
+                    Convert.ToString(row[0]) == career.StageIds[0].ToString()) != expectedRounds)
+                throw new InvalidDataException("Career league did not receive a complete double round-robin calendar.");
+            if (!tables["settings"].Rows.Cast<DataRow>().Any(row =>
+                    Convert.ToString(row[0]) == career.StageIds[0].ToString() &&
+                    Convert.ToString(row[1]) == "schedule_year_real" && Convert.ToString(row[2]) == "2024"))
+                throw new InvalidDataException("Career league stage is missing its FC26 base schedule year.");
+            Console.WriteLine($"COMPDATA BUILDER TEST OK: cup {result.CompetitionObjectId}, career league {career.CompetitionObjectId}");
             return 0;
         }
         catch (Exception ex)
@@ -118,7 +140,7 @@ internal static class HeadlessSmoke
         }
         finally
         {
-            try { if (!string.IsNullOrWhiteSpace(output) && File.Exists(output)) File.Delete(output); }
+            try { if (!string.IsNullOrWhiteSpace(output) && Directory.Exists(output)) Directory.Delete(output, true); }
             catch (Exception ex) { Console.Error.WriteLine("Compdata builder cleanup failed: " + ex.Message); }
         }
     }

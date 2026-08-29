@@ -33,14 +33,31 @@ internal sealed class CompdataWorkbookService
 
     public void OpenFromGameFolder(string compdataPath)
     {
-        var subdirs = Directory.GetDirectories(compdataPath)
+        var root = Path.GetFullPath(compdataPath);
+        var careerFolder = Path.Combine(root, "careermode_closedbeta");
+        if (Directory.Exists(careerFolder) && Directory.GetFiles(careerFolder, "*.txt").Length > 0)
+            root = careerFolder;
+
+        var flatFiles = Directory.GetFiles(root, "*.txt")
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (flatFiles.Length > 0)
+        {
+            FilePath = string.Empty;
+            _gameFolderCompdataPath = root;
+            SheetNames = flatFiles.Select(Path.GetFileNameWithoutExtension)
+                .Where(name => !string.IsNullOrWhiteSpace(name)).Cast<string>().ToArray();
+            return;
+        }
+
+        var subdirs = Directory.GetDirectories(root)
             .Select(d => Path.GetFileName(d))
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .ToArray();
         if (subdirs.Length == 0)
             throw new InvalidDataException("No subdirectories found in the compdata folder.");
         FilePath = string.Empty;
-        _gameFolderCompdataPath = compdataPath;
+        _gameFolderCompdataPath = root;
         SheetNames = subdirs;
     }
 
@@ -86,12 +103,15 @@ internal sealed class CompdataWorkbookService
 
     private DataTable ReadTxtSheet(string sheetName)
     {
+        var flatFile = Path.Combine(_gameFolderCompdataPath, sheetName + ".txt");
         var sheetDir = Path.Combine(_gameFolderCompdataPath, sheetName);
-        if (!Directory.Exists(sheetDir))
-            throw new InvalidDataException($"Compdata subdirectory '{sheetName}' was not found.");
-        var txtFiles = Directory.GetFiles(sheetDir, "*.txt").OrderBy(f => f).ToArray();
+        var txtFiles = File.Exists(flatFile)
+            ? [flatFile]
+            : Directory.Exists(sheetDir)
+                ? Directory.GetFiles(sheetDir, "*.txt").OrderBy(f => f).ToArray()
+                : [];
         if (txtFiles.Length == 0)
-            throw new InvalidDataException($"No .txt files found in '{sheetName}'.");
+            throw new InvalidDataException($"No Compdata TXT file was found for '{sheetName}'.");
         var allRows = new List<string[]>();
         foreach (var file in txtFiles)
         {

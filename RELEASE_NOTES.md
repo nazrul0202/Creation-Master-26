@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.171 - in-game-ready new leagues (2026-08-29)
+
+- Added **Make In-Game Ready** directly to League Details.
+- Reads the 11 real installed FC26 `careermode_closedbeta` Compdata TXT assets instead of a disconnected workbook skeleton.
+- Creates the country, competition, stage and group hierarchy; one-column `compids` registration; team assignments; standings; FC26 league settings; and a complete double round-robin calendar.
+- Stages the validated Compdata assets together with database changes through the normal CM26 direct Save transaction.
+- Corrected Compdata validation for FC26 special competition groups and legitimate multi-slot matchdays.
+- Added real 24,058-row FC26 Compdata regression coverage. New league structures require a new Career after saving.
+
 ## Version 1.0.170 - create team inside league (2026-08-29)
 
 - Added a visible `Create Team Here` command to the League teams toolbar.
