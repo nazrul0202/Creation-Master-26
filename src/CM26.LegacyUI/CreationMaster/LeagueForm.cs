@@ -48,9 +48,6 @@ public class LeagueForm : Form
 
 	private ToolStripButton checkShowTeamLogo;
 
-	private ToolStripButton buttonCreateTeamInLeague;
-	private ToolStripButton buttonMakeLeagueInGameReady;
-
 	private GroupBox groupBoxNames;
 
 	private TextBox textLeagueFullName;
@@ -153,22 +150,6 @@ public class LeagueForm : Form
 		pickUpControl.CreateObject = CreateLeague;
 		pickUpControl.DeleteObject = DeleteLeague;
 		pickUpControl.RefreshObject = RefreshLeague;
-		buttonCreateTeamInLeague = new ToolStripButton("Create Team Here")
-		{
-			Name = "buttonCreateTeamInLeague",
-			DisplayStyle = ToolStripItemDisplayStyle.Text,
-			ToolTipText = "Create a new team and link it directly to this league"
-		};
-		buttonCreateTeamInLeague.Click += buttonCreateTeamInLeague_Click;
-		toolStripTeamAvailable.Items.Insert(Math.Min(3, toolStripTeamAvailable.Items.Count), buttonCreateTeamInLeague);
-		buttonMakeLeagueInGameReady = new ToolStripButton("Make In-Game Ready")
-		{
-			Name = "buttonMakeLeagueInGameReady",
-			DisplayStyle = ToolStripItemDisplayStyle.Text,
-			ToolTipText = "Build Compdata, assign this league's teams, generate its calendar and stage it for Save"
-		};
-		buttonMakeLeagueInGameReady.Click += buttonMakeLeagueInGameReady_Click;
-		toolStripTeamAvailable.Items.Insert(Math.Min(4, toolStripTeamAvailable.Items.Count), buttonMakeLeagueInGameReady);
 		viewer2DLeagueTinyLogo.ImageImport = ImportImageLeagueTinyLogo;
 		viewer2DLeagueTinyLogo.ImageDelete = DeleteLeagueTinyLogo;
 		viewer2DLeagueTinyLogo.ButtonStripVisible = true;
@@ -183,27 +164,7 @@ public class LeagueForm : Form
 		viewer2DLeague512x128Logo.RemoveButton = true;
 	}
 
-	private void buttonCreateTeamInLeague_Click(object sender, EventArgs e)
-	{
-		if (m_CurrentLeague == null)
-		{
-			MessageBox.Show(this, "Select a league first.", "Create Team",
-				MessageBoxButtons.OK, MessageBoxIcon.Information);
-			return;
-		}
-		MainForm.CM?.CreateTeamInLeague(m_CurrentLeague);
-	}
-
-	private void buttonMakeLeagueInGameReady_Click(object sender, EventArgs e)
-	{
-		if (m_CurrentLeague == null)
-		{
-			MessageBox.Show(this, "Select a league first.", "Make League In-Game Ready",
-				MessageBoxButtons.OK, MessageBoxIcon.Information);
-			return;
-		}
-		MainForm.CM?.MakeLeagueInGameReady(m_CurrentLeague);
-	}
+	internal League CurrentLeague => m_CurrentLeague;
 
 	public void Clean()
 	{

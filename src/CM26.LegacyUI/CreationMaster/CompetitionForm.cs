@@ -1817,6 +1817,8 @@ public class CompetitionForm : Form
 		Fc26Compdata.MakeLeagueInGameReady(league);
 	}
 
+	internal string StageLeagueForSave(League league) => Fc26Compdata.StageLeagueForSave(league);
+
 	public void Clean()
 	{
 		base.Visible = false;

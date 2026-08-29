@@ -1,14 +1,14 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.172 (MIT License), 2026-08-29.
+Status: Version 1.0.173 (MIT License), 2026-08-29.
 
 ## User interface
 
-The v1.0.172 public launcher preserves the original Creation Master / CM16-style interface used by v1.0.148. Raw database/schema editors, oversized embedded forms and standalone specialist windows are not exposed in the public workflow. FC26 data is mapped to friendly CM26 controls while the x64 Frostbite host runs behind the interface. Exotic DPI combinations or very small window sizes may still need refinement.
+The v1.0.173 public launcher preserves the original Creation Master / CM16-style interface used by v1.0.148. Raw database/schema editors, oversized embedded forms and standalone specialist windows are not exposed in the public workflow. FC26 data is mapped to friendly CM26 controls while the x64 Frostbite host runs behind the interface. Exotic DPI combinations or very small window sizes may still need refinement.
 
-New league structures are loaded by Career initialization. After **Make In-Game
-Ready** and the normal CM26 **Save**, start a new Career; an existing Career save
-is not expected to rebuild its competition graph automatically.
+New league structures are loaded by Career initialization. Create at least two
+teams, use the normal CM26 **Save**, then start a new Career; an existing Career
+save is not expected to rebuild its competition graph automatically.
 
 v1.0.124 adds embedded in-app 3D previews (HelixToolkit + Assimp FBX import) for kit, player face, stadium, ball and boot records. The external `CM26.3DViewer` remains available as a separate tool for standalone FBX inspection.
 

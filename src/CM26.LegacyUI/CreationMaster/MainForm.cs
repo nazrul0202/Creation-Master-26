@@ -29,6 +29,8 @@ public class MainForm : Form
 
 	private bool m_IsAltPressed;
 
+	private readonly HashSet<int> m_PendingLeagueCompdataIds = new HashSet<int>();
+
 	private AboutForm m_AboutForm = new AboutForm();
 
 	public FormationForm m_FormationForm;
@@ -368,19 +370,12 @@ public class MainForm : Form
 	private void ConfigureFriendlyCreateMenu()
 	{
 		var createMenu = new ToolStripMenuItem("Create") { Name = "menuCreateFriendly" };
-		foreach (var entry in new[]
-		{
-			new { Label = "Create New League...", Section = "league", Name = "menuCreateLeague" },
-			new { Label = "Create New Team...", Section = "team", Name = "menuCreateTeam" },
-			new { Label = "Create New Player...", Section = "player", Name = "menuCreatePlayer" },
-			new { Label = "Create New Nation...", Section = "nation", Name = "menuCreateNation" }
-		})
-		{
-			var item = new ToolStripMenuItem(entry.Label) { Name = entry.Name };
-			var section = entry.Section;
-			item.Click += (_, _) => CreateFriendlyEntity(section);
-			createMenu.DropDownItems.Add(item);
-		}
+		var createLeague = new ToolStripMenuItem("Create New League...") { Name = "menuCreateLeague" };
+		createLeague.Click += (_, _) => CreateFriendlyEntity("league");
+		createMenu.DropDownItems.Add(createLeague);
+		var createTeam = new ToolStripMenuItem("Create New Team...") { Name = "menuCreateTeam" };
+		createTeam.Click += (_, _) => CreateNewTeamWorkflow();
+		createMenu.DropDownItems.Add(createTeam);
 
 		// Keep the commands visible beside File instead of burying record creation
 		// inside each editor's small picker toolbar.
@@ -1340,11 +1335,19 @@ public class MainForm : Form
 	{
 		if (m_OpenFileFlag)
 		{
-			Cursor.Current = Cursors.WaitCursor;
-			Refresh();
-			SaveFiles();
-			statusBar.Text = "Ready - Save completed!";
-			Cursor.Current = Cursors.Default;
+			try
+			{
+				Cursor.Current = Cursors.WaitCursor;
+				Refresh();
+				SaveFiles();
+				statusBar.Text = "Ready - Save completed!";
+			}
+			catch (Exception ex)
+			{
+				statusBar.Text = "Save cancelled - complete the new league setup.";
+				MessageBox.Show(this, ex.Message, "Save", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+			}
+			finally { Cursor.Current = Cursors.Default; }
 		}
 	}
 
@@ -1366,8 +1369,12 @@ public class MainForm : Form
 		switch (FifaEnvironment.UserMessages.ShowMessage(1))
 		{
 		case DialogResult.Yes:
-			SaveFiles();
-			return true;
+			try { SaveFiles(); return true; }
+			catch (Exception ex)
+			{
+				MessageBox.Show(this, ex.Message, "Save", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+				return false;
+			}
 		case DialogResult.OK:
 		case DialogResult.No:
 			return true;
@@ -1396,9 +1403,11 @@ public class MainForm : Form
 	{
 		if (FifaEnvironment.Year == 26)
 		{
+			StagePendingLeagueCompdata();
 			statusBar.Text = "Saving FC26 database and Frostbite archives...";
 			statusBar.GetCurrentParent().Refresh();
 			statusBar.Text = Fc26HostBridge.Save();
+			m_PendingLeagueCompdataIds.Clear();
 			return;
 		}
 		FifaEnvironment.Save(statusBar);
@@ -1407,6 +1416,7 @@ public class MainForm : Form
 	private void CloseFile()
 	{
 		m_OpenFileFlag = false;
+		m_PendingLeagueCompdataIds.Clear();
 		m_CountryForm.Clean();
 		m_LeagueForm.Clean();
 		m_TeamForm.Clean();
@@ -3164,7 +3174,51 @@ public class MainForm : Form
 				return null;
 			}
 		}
+		if (created is League createdLeague)
+			m_PendingLeagueCompdataIds.Add(createdLeague.Id);
 		return created;
+	}
+
+	internal Team CreateNewTeamWorkflow()
+	{
+		if (!m_OpenFileFlag)
+		{
+			MessageBox.Show(this, "Open a database before creating a new team.", "Create New Team",
+				MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return null;
+		}
+		var leagues = FifaEnvironment.Leagues?.Cast<League>()
+			.Where(value => value != null).OrderBy(value => value.ToString(), StringComparer.OrdinalIgnoreCase).ToArray()
+			?? Array.Empty<League>();
+		if (leagues.Length == 0)
+		{
+			MessageBox.Show(this, "Create a league first, then create its teams.", "Create New Team",
+				MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return null;
+		}
+
+		using var dialog = new Form
+		{
+			Text = "Create New Team", FormBorderStyle = FormBorderStyle.FixedDialog,
+			StartPosition = FormStartPosition.CenterParent, ClientSize = new Size(470, 135),
+			MaximizeBox = false, MinimizeBox = false
+		};
+		var combo = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 420, DataSource = leagues };
+		if (m_LeagueForm.Visible && m_LeagueForm.CurrentLeague != null)
+			combo.SelectedItem = m_LeagueForm.CurrentLeague;
+		var create = new Button { Text = "Create Team", DialogResult = DialogResult.OK, AutoSize = true };
+		var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true };
+		var buttons = new FlowLayoutPanel { AutoSize = true };
+		buttons.Controls.AddRange(new Control[] { create, cancel });
+		var layout = new FlowLayoutPanel
+		{
+			Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, Padding = new Padding(14)
+		};
+		layout.Controls.Add(new Label { Text = "Choose the league for this team", AutoSize = true });
+		layout.Controls.Add(combo); layout.Controls.Add(buttons);
+		dialog.Controls.Add(layout); dialog.AcceptButton = create; dialog.CancelButton = cancel;
+		return dialog.ShowDialog(this) == DialogResult.OK && combo.SelectedItem is League league
+			? CreateTeamInLeague(league) : null;
 	}
 
 	internal Team CreateTeamInLeague(League league)
@@ -3184,6 +3238,21 @@ public class MainForm : Form
 			MessageBox.Show(this, ex.Message, "Create Team in League",
 				MessageBoxButtons.OK, MessageBoxIcon.Error);
 			return null;
+		}
+	}
+
+	private void StagePendingLeagueCompdata()
+	{
+		foreach (var leagueId in m_PendingLeagueCompdataIds.ToArray())
+		{
+			var league = FifaEnvironment.Leagues.SearchId(leagueId) as League;
+			if (league == null) continue;
+			var teamCount = league.PlayingTeams.Cast<Team>().Count(team => team != null && team.Id > 0);
+			if (league.Country == null || teamCount < 2)
+				throw new InvalidOperationException("New league '" + league + "' is not complete. Choose its country and create at least two teams before Save.");
+			statusBar.Text = "Preparing " + league + " for the game...";
+			statusBar.GetCurrentParent().Refresh();
+			m_TrophyForm.StageLeagueForSave(league);
 		}
 	}
 

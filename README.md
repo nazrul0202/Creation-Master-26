@@ -33,13 +33,13 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.172.txt` is included with the v1.0.172 release assets.
+Checksums: `SHA256SUMS_v1.0.173.txt` is included with the v1.0.173 release assets.
 
-For a newly created league, add at least two teams and click **Make In-Game Ready**
-in League Details before the normal **Save**. CM26 imports the installed FC26 Career
-Compdata, creates the country/competition/stage/group records, assigns the teams,
-generates a double round-robin calendar and stages all 11 Compdata assets in the
-same direct-save transaction. Start a new Career after saving.
+The **Create** menu now contains only **Create New League** and **Create New Team**.
+New Team asks which league it belongs to and links it immediately. Once a new league
+has a country and at least two teams, the normal **Save** automatically creates and
+stages its complete FC26 Career Compdata and double round-robin calendar. Start a
+new Career after saving.
 
 ---
 

@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.173 - simple league and team creation (2026-08-29)
+
+- Reduced the public Create menu to only **Create New League** and **Create New Team**.
+- Removed the duplicate `Create Team Here` and `Make In-Game Ready` buttons from League Details.
+- Create New Team now asks for its league first, then creates and links the club in one guided action.
+- New league structures automatically build and stage their FC26 Career Compdata during the normal Save; incomplete leagues are stopped with a clear country/two-team requirement instead of producing a database-only league.
+- Kept the advanced Competition workspace available without exposing Player or Nation creation in its toolbar.
+
 ## Version 1.0.172 - Create Team roster-clone hotfix (2026-08-29)
 
 - Fixed the `Object reference not set to an instance of an object` crash after Create Team when starter players are cloned.

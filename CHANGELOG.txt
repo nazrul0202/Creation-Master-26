@@ -1,3 +1,9 @@
+Creation Master 26 v1.0.173 - 29 August 2026
+------------------------------------------------------------
+- Simplified Create to two commands: New League and New Team.
+- New Team selects and links its league in one guided action.
+- Normal Save now stages complete new-league Career Compdata automatically.
+
 Creation Master 26 v1.0.172 - 29 August 2026
 ------------------------------------------------------------
 - Fixed Create Team crashing while cloning an FC26 starter roster.

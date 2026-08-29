@@ -246,12 +246,12 @@ internal static class Program
 					throw new InvalidDataException("FC26 player commentary fallback failed.");
 				var main = new MainForm();
 				File.AppendAllText(uiLog, "classic shell constructed" + Environment.NewLine);
-				foreach (var command in new[]
-				{
-					"Create New League...", "Create New Team...", "Create New Player...", "Create New Nation..."
-				})
+				foreach (var command in new[] { "Create New League...", "Create New Team..." })
 					if (!ContainsMenuText(main.MainMenuStrip?.Items, command))
 						throw new InvalidDataException("The direct record command is missing: " + command);
+				if (ContainsMenuText(main.MainMenuStrip?.Items, "Create New Player...") ||
+					ContainsMenuText(main.MainMenuStrip?.Items, "Create New Nation..."))
+					throw new InvalidDataException("The public Create menu must contain only League and Team.");
 				if (FindControl(main, "fc26DirectToolsStrip") != null)
 					throw new InvalidDataException("The obsolete global Direct Tools bar is still present.");
 				foreach (var forbidden in new[]
@@ -292,10 +292,10 @@ internal static class Program
 				if (!ContainsControlText(main.m_CountryForm, "Association Details") ||
 					!ContainsControlText(main.m_LeagueForm, "League Details"))
 					throw new InvalidDataException("A mapped, friendly CM26 details surface is missing.");
-				if (!ContainsControlText(main.m_LeagueForm, "Create Team Here"))
-					throw new InvalidDataException("League is missing its direct create-and-link team command.");
-				if (!ContainsControlText(main.m_LeagueForm, "Make In-Game Ready") ||
-					!ContainsControlText(main.m_TrophyForm, "Load FC26 Compdata") ||
+				if (ContainsControlText(main.m_LeagueForm, "Create Team Here") ||
+					ContainsControlText(main.m_LeagueForm, "Make In-Game Ready"))
+					throw new InvalidDataException("League still exposes obsolete multi-step creation buttons.");
+				if (!ContainsControlText(main.m_TrophyForm, "Load FC26 Compdata") ||
 					!ContainsControlText(main.m_TrophyForm, "Stage Compdata to Save"))
 					throw new InvalidDataException("League-to-Compdata save integration is missing.");
 				if (!ContainsControlText(main.m_PlayerForm, "Tactical Roles") ||
@@ -319,9 +319,7 @@ internal static class Program
 						!ContainsControlText(main.m_TeamForm, "Matchday Presentation") ||
 						!ContainsControlText(main.m_KitForm, "Texture: checking") ||
 						!ContainsControlText(main.m_TrophyForm, "Create New League") ||
-					!ContainsControlText(main.m_TrophyForm, "Create New Team") ||
-					!ContainsControlText(main.m_TrophyForm, "Create New Nation") ||
-					!ContainsControlText(main.m_TrophyForm, "Create New Player") ||
+						!ContainsControlText(main.m_TrophyForm, "Create New Team") ||
 					!ContainsControlText(main.m_TrophyForm, "Assign Teams") ||
 					!ContainsControlText(main.m_TrophyForm, "Generate Schedule") ||
 					!ContainsControlText(main.m_TrophyForm, "Career Ready Check"))

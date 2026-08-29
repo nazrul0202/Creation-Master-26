@@ -40,9 +40,7 @@ internal sealed class Fc26CompdataPanel : UserControl
         tools.Items.Add(Item("Stage Compdata to Save", (_, _) => StageCurrentCompdata()));
         tools.Items.Add(new ToolStripSeparator());
 		tools.Items.Add(Item("Create New League", (_, _) => MainForm.CM?.CreateFriendlyEntity("league")));
-		tools.Items.Add(Item("Create New Team", (_, _) => MainForm.CM?.CreateFriendlyEntity("team")));
-		tools.Items.Add(Item("Create New Nation", (_, _) => MainForm.CM?.CreateFriendlyEntity("nation")));
-		tools.Items.Add(Item("Create New Player", (_, _) => MainForm.CM?.CreateFriendlyEntity("player")));
+		tools.Items.Add(Item("Create New Team", (_, _) => MainForm.CM?.CreateNewTeamWorkflow()));
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Item("Validate", (_, _) => ValidateTables()));
         tools.Items.Add(new ToolStripSeparator());
@@ -351,35 +349,41 @@ internal sealed class Fc26CompdataPanel : UserControl
         if (league == null) return;
         Run("Building and staging an in-game Career league...", () =>
         {
-            if (league.Country == null) throw new InvalidOperationException("Assign a country to this league first.");
-            var teams = league.PlayingTeams.Cast<Team>().Where(team => team != null && team.Id > 0)
-                .Select(team => team.Id).Distinct().ToArray();
-            if (teams.Length < 2) throw new InvalidOperationException("Add at least two teams to this league first.");
-            if (_tables.Count == 0) LoadInstalledCore();
-            var snapshot = WriteSnapshot();
-            try
-            {
-                var result = Fc26HostBridge.BuildCareerCompdata(snapshot,
-                    league.Country.DatabaseName, league.Country.Id, league.Country.Confederation + 1,
-                    string.IsNullOrWhiteSpace(league.LongName) ? league.leaguename : league.LongName,
-                    league.Id, teams);
-                LoadSnapshot(snapshot);
-                var stagedSnapshot = WriteSnapshot();
-                try
-                {
-                    var staged = Fc26HostBridge.StageCompdataForSave(stagedSnapshot);
-                    RefreshSimpleViews(); _views.SelectedIndex = 0;
-                    MessageBox.Show(this,
-                        result + Environment.NewLine + staged + Environment.NewLine + Environment.NewLine +
-                        "Use the normal CM26 Save command to commit the database and Compdata together. Start a new Career after saving.",
-                        "League In-Game Ready", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    return result + " " + staged;
-                }
-                finally { try { File.Delete(stagedSnapshot); } catch { } }
-            }
-            finally { try { File.Delete(snapshot); } catch { } }
+            var result = StageLeagueForSave(league);
+            MessageBox.Show(this, result + Environment.NewLine + Environment.NewLine +
+                "Use the normal CM26 Save command to commit the database and Compdata together. Start a new Career after saving.",
+                "League In-Game Ready", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return result;
         });
     }
+
+	internal string StageLeagueForSave(League league)
+	{
+		if (league == null) throw new InvalidOperationException("Select a league first.");
+		if (league.Country == null) throw new InvalidOperationException("Assign a country to this league first.");
+		var teams = league.PlayingTeams.Cast<Team>().Where(team => team != null && team.Id > 0)
+			.Select(team => team.Id).Distinct().ToArray();
+		if (teams.Length < 2) throw new InvalidOperationException("Add at least two teams to this league first.");
+		if (_tables.Count == 0) LoadInstalledCore();
+		var snapshot = WriteSnapshot();
+		try
+		{
+			var result = Fc26HostBridge.BuildCareerCompdata(snapshot,
+				league.Country.DatabaseName, league.Country.Id, league.Country.Confederation + 1,
+				string.IsNullOrWhiteSpace(league.LongName) ? league.leaguename : league.LongName,
+				league.Id, teams);
+			LoadSnapshot(snapshot);
+			var stagedSnapshot = WriteSnapshot();
+			try
+			{
+				var staged = Fc26HostBridge.StageCompdataForSave(stagedSnapshot);
+				RefreshSimpleViews(); _views.SelectedIndex = 0;
+				return result + " " + staged;
+			}
+			finally { try { File.Delete(stagedSnapshot); } catch { } }
+		}
+		finally { try { File.Delete(snapshot); } catch { } }
+	}
 
     private void StageCurrentCompdata()
     {
