@@ -3152,12 +3152,14 @@ public class TeamForm : Form
 
 	private void buttonCreateFc26Player_Click(object sender, EventArgs e)
 	{
-		if (m_CurrentTeam == null) return;
-		m_CurrentAvailableTeam = null;
-		m_CurrentAvailablePlayer = null;
-		InitListViewPlayersAvailable((Team)null, (Country)null, showFreeAgents: false);
-		listViewPlayersAvailable.Focus();
-		EnableRosterButtons();
+		if (m_CurrentTeam == null)
+		{
+			MessageBox.Show(this, "Select a team before creating a player for its roster.", "Create New Player",
+				MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+
+		MainForm.CM?.CreateFriendlyEntity("player");
 	}
 
 	private void listViewTeamPlayers_DoubleClick(object sender, EventArgs e)

@@ -165,6 +165,12 @@ internal static class Program
 			{
 				var main = new MainForm();
 				File.AppendAllText(uiLog, "classic shell constructed" + Environment.NewLine);
+				foreach (var command in new[]
+				{
+					"Create New League...", "Create New Team...", "Create New Player...", "Create New Nation..."
+				})
+					if (!ContainsMenuText(main.MainMenuStrip?.Items, command))
+						throw new InvalidDataException("The direct record command is missing: " + command);
 				if (FindControl(main, "fc26DirectToolsStrip") != null)
 					throw new InvalidDataException("The obsolete global Direct Tools bar is still present.");
 				foreach (var forbidden in new[]
@@ -225,10 +231,10 @@ internal static class Program
 						!ContainsControlText(main.m_TeamForm, "Transfer Budget") ||
 						!ContainsControlText(main.m_TeamForm, "Matchday Presentation") ||
 						!ContainsControlText(main.m_KitForm, "Texture: checking") ||
-						!ContainsControlText(main.m_TrophyForm, "Create League") ||
-					!ContainsControlText(main.m_TrophyForm, "Create Team") ||
-					!ContainsControlText(main.m_TrophyForm, "Create Nation") ||
-					!ContainsControlText(main.m_TrophyForm, "Create Player"))
+						!ContainsControlText(main.m_TrophyForm, "Create New League") ||
+					!ContainsControlText(main.m_TrophyForm, "Create New Team") ||
+					!ContainsControlText(main.m_TrophyForm, "Create New Nation") ||
+					!ContainsControlText(main.m_TrophyForm, "Create New Player"))
 					throw new InvalidDataException("A mapped FC26 team or Compdata surface is missing.");
 				decimal decoBudget = TeamForm.CalculateDecoTransferBudget(162100, 6);
 				if (Math.Abs(decoBudget - 17289023.40328413m) > 0.01m)

@@ -32,10 +32,10 @@ internal sealed class Fc26CompdataPanel : UserControl
         tools.Items.Add(Item("Create Tournament", (_, _) => TournamentWizard()));
         tools.Items.Add(Item("Add Advancement", (_, _) => AddAdvancement()));
         tools.Items.Add(new ToolStripSeparator());
-        tools.Items.Add(Item("Create League", (_, _) => MainForm.CM?.CreateFriendlyEntity("league")));
-        tools.Items.Add(Item("Create Team", (_, _) => MainForm.CM?.CreateFriendlyEntity("team")));
-        tools.Items.Add(Item("Create Nation", (_, _) => MainForm.CM?.CreateFriendlyEntity("nation")));
-        tools.Items.Add(Item("Create Player", (_, _) => MainForm.CM?.CreateFriendlyEntity("player")));
+		tools.Items.Add(Item("Create New League", (_, _) => MainForm.CM?.CreateFriendlyEntity("league")));
+		tools.Items.Add(Item("Create New Team", (_, _) => MainForm.CM?.CreateFriendlyEntity("team")));
+		tools.Items.Add(Item("Create New Nation", (_, _) => MainForm.CM?.CreateFriendlyEntity("nation")));
+		tools.Items.Add(Item("Create New Player", (_, _) => MainForm.CM?.CreateFriendlyEntity("player")));
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Item("Validate", (_, _) => ValidateTables()));
         tools.Items.Add(new ToolStripSeparator());

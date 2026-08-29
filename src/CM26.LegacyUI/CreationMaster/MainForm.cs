@@ -333,6 +333,7 @@ public class MainForm : Form
 	public MainForm()
 	{
 		InitializeComponent();
+		ConfigureFriendlyCreateMenu();
 		var projectLauncher = new ToolStripMenuItem("FC26 Project Launcher...");
 		projectLauncher.Click += (_, _) => ShowFc26ProjectLauncher();
 		var openExtracted = new ToolStripMenuItem("Open extracted FC26 database...");
@@ -361,6 +362,28 @@ public class MainForm : Form
 		CM = this;
 		EnablePanels(enable: false);
 		EnableMenus();
+	}
+
+	private void ConfigureFriendlyCreateMenu()
+	{
+		var createMenu = new ToolStripMenuItem("Create") { Name = "menuCreateFriendly" };
+		foreach (var entry in new[]
+		{
+			new { Label = "Create New League...", Section = "league", Name = "menuCreateLeague" },
+			new { Label = "Create New Team...", Section = "team", Name = "menuCreateTeam" },
+			new { Label = "Create New Player...", Section = "player", Name = "menuCreatePlayer" },
+			new { Label = "Create New Nation...", Section = "nation", Name = "menuCreateNation" }
+		})
+		{
+			var item = new ToolStripMenuItem(entry.Label) { Name = entry.Name };
+			var section = entry.Section;
+			item.Click += (_, _) => CreateFriendlyEntity(section);
+			createMenu.DropDownItems.Add(item);
+		}
+
+		// Keep the commands visible beside File instead of burying record creation
+		// inside each editor's small picker toolbar.
+		menuStrip.Items.Insert(Math.Min(1, menuStrip.Items.Count), createMenu);
 	}
 
 	private void ShowFc26ProjectLauncher()
