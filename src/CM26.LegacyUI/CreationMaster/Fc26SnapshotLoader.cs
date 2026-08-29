@@ -284,6 +284,54 @@ internal static class Fc26SnapshotLoader
         Fc26ActivityLog.Add("Create", section + " " + id + " staged from a validated template row");
     }
 
+    internal static void AssignTeamToLeague(Team team, League league)
+    {
+        if (team == null || league == null) throw new InvalidOperationException("Select a valid team and league.");
+        var snapshot = s_snapshot ?? throw new InvalidOperationException("No FC26 snapshot is loaded.");
+        var table = snapshot.Tables.FirstOrDefault(candidate =>
+            candidate.Name.Equals("leagueteamlinks", StringComparison.OrdinalIgnoreCase));
+        if (table != null) EnsureRows(table, s_snapshotPath);
+        if (table == null || table.Rows.Count == 0)
+            throw new InvalidOperationException("The FC26 league-team link table has no safe template row.");
+
+        // Keep the friendly object graph consistent even when WinForms data binding
+        // has already assigned Team.League before SelectedIndexChanged is raised.
+        foreach (League candidate in FifaEnvironment.Leagues)
+            if (candidate != league) candidate.PlayingTeams.RemoveId(team);
+        league.AddTeam(team);
+
+        var origin = Origins(team).FirstOrDefault(value =>
+            value.TableName.Equals(table.Name, StringComparison.OrdinalIgnoreCase));
+        var rowIndex = origin == null ? -1 : origin.RowIndex;
+        if (rowIndex < 0)
+        {
+            rowIndex = DuplicateDetailRow(table.Name, 0);
+            SetOrigin(team, table.Name, rowIndex);
+            var keyColumn = Column(table, "artificialkey");
+            if (keyColumn >= 0)
+            {
+                var nextKey = table.Rows.Select(row => ParseIntAt(row, keyColumn)).DefaultIfEmpty(0).Max() + 1;
+                var keyDescriptor = table.ColumnDetails.FirstOrDefault(column =>
+                    column.Name.Equals("artificialkey", StringComparison.OrdinalIgnoreCase));
+                if (keyDescriptor != null && nextKey > keyDescriptor.RangeHigh)
+                    throw new InvalidOperationException("No free league-team link key remains.");
+                StageDetailValue(table.Name, rowIndex, "artificialkey", nextKey.ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        void StageIfPresent(string field, int value)
+        {
+            if (Column(table, field) >= 0)
+                StageDetailValue(table.Name, rowIndex, field, value.ToString(CultureInfo.InvariantCulture));
+        }
+        StageIfPresent("teamid", team.Id);
+        StageIfPresent("leagueid", league.Id);
+        StageIfPresent("prevleagueid", league.Id);
+        StageIfPresent("currenttableposition", team.currenttableposition);
+        StageIfPresent("previousyeartableposition", team.previousyeartableposition);
+        Fc26ActivityLog.Add("League link", "team " + team.Id + " → league " + league.Id + " staged");
+    }
+
     internal static SnapshotDetailTable? DetailTable(string tableName)
     {
         var table = s_snapshot?.Tables.FirstOrDefault(value =>

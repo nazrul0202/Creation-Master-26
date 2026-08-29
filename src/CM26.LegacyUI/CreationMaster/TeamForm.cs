@@ -2725,6 +2725,9 @@ public class TeamForm : Form
 		prevLeagueListBindingSource.DataSource = FifaEnvironment.Leagues;
 		comboTeamLeague.DataSource = leagueListBindingSource;
 		comboPrevLeague.DataSource = prevLeagueListBindingSource;
+		comboTeamLeague.Enabled = FifaEnvironment.Year == 26;
+		toolTip.SetToolTip(comboTeamLeague,
+			FifaEnvironment.Year == 26 ? "Select the club's current league. The league-team link is saved automatically." : string.Empty);
 		leagueListBindingSource.ResetBindings(metadataChanged: false);
 		prevLeagueListBindingSource.ResetBindings(metadataChanged: false);
 		IdArrayList[] filterValues2 = new IdArrayList[5]
@@ -4323,9 +4326,34 @@ public class TeamForm : Form
 
 	private void comboTeamLeague_SelectedIndexChanged(object sender, EventArgs e)
 	{
-		if (!m_Locked && comboTeamLeague.SelectedItem == null)
+		if (m_Locked) return;
+		if (comboTeamLeague.SelectedItem == null)
 		{
 			comboTeamLeague.Text = string.Empty;
+			return;
+		}
+		if (FifaEnvironment.Year != 26 || !Fc26SnapshotLoader.IsLoaded ||
+			m_CurrentTeam == null || comboTeamLeague.SelectedItem is not League selectedLeague) return;
+
+		League previousLeague = null;
+		foreach (League candidate in FifaEnvironment.Leagues)
+			if (candidate.PlayingTeams.SearchId(m_CurrentTeam.Id) == m_CurrentTeam)
+			{
+				previousLeague = candidate;
+				break;
+			}
+		try
+		{
+			Fc26SnapshotLoader.AssignTeamToLeague(m_CurrentTeam, selectedLeague);
+		}
+		catch (Exception ex)
+		{
+			if (previousLeague != null) previousLeague.AddTeam(m_CurrentTeam);
+			m_Locked = true;
+			comboTeamLeague.SelectedItem = previousLeague;
+			m_Locked = false;
+			MessageBox.Show(this, ex.Message, "Change Team League",
+				MessageBoxButtons.OK, MessageBoxIcon.Error);
 		}
 	}
 

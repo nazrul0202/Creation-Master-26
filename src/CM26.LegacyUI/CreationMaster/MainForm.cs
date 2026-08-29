@@ -3122,13 +3122,13 @@ public class MainForm : Form
 		ShowFormOnPanel(form, panelMain);
 	}
 
-	internal void CreateFriendlyEntity(string section)
+	internal object CreateFriendlyEntity(string section)
 	{
 		if (!m_OpenFileFlag)
 		{
 			MessageBox.Show(this, "Open a database before creating a new item.", "Create",
 				MessageBoxButtons.OK, MessageBoxIcon.Information);
-			return;
+			return null;
 		}
 
 		Form form;
@@ -3139,7 +3139,7 @@ public class MainForm : Form
 			case "team": form = m_TeamForm; pickUp = m_TeamForm.pickUpControl; break;
 			case "nation": form = m_CountryForm; pickUp = m_CountryForm.pickUpControl; break;
 			case "player": form = m_PlayerForm; pickUp = m_PlayerForm.pickUpControl; break;
-			default: return;
+			default: return null;
 		}
 		ShowFormOnPanel(form, panelMain);
 		var existing = pickUp.ObjectList == null
@@ -3161,7 +3161,29 @@ public class MainForm : Form
 				pickUp.ObjectList?.Remove(created);
 				MessageBox.Show(this, ex.Message, "Create New " + section,
 					MessageBoxButtons.OK, MessageBoxIcon.Error);
+				return null;
 			}
+		}
+		return created;
+	}
+
+	internal Team CreateTeamInLeague(League league)
+	{
+		if (league == null) return null;
+		var team = CreateFriendlyEntity("team") as Team;
+		if (team == null) return null;
+		try
+		{
+			Fc26SnapshotLoader.AssignTeamToLeague(team, league);
+			m_TeamForm.ReloadTeam(team);
+			statusBar.Text = "New team " + team.Id + " created in " + league + ". Complete its details, then Save.";
+			return team;
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show(this, ex.Message, "Create Team in League",
+				MessageBoxButtons.OK, MessageBoxIcon.Error);
+			return null;
 		}
 	}
 

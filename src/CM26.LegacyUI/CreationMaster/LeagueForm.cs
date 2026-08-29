@@ -48,6 +48,8 @@ public class LeagueForm : Form
 
 	private ToolStripButton checkShowTeamLogo;
 
+	private ToolStripButton buttonCreateTeamInLeague;
+
 	private GroupBox groupBoxNames;
 
 	private TextBox textLeagueFullName;
@@ -150,6 +152,14 @@ public class LeagueForm : Form
 		pickUpControl.CreateObject = CreateLeague;
 		pickUpControl.DeleteObject = DeleteLeague;
 		pickUpControl.RefreshObject = RefreshLeague;
+		buttonCreateTeamInLeague = new ToolStripButton("Create Team Here")
+		{
+			Name = "buttonCreateTeamInLeague",
+			DisplayStyle = ToolStripItemDisplayStyle.Text,
+			ToolTipText = "Create a new team and link it directly to this league"
+		};
+		buttonCreateTeamInLeague.Click += buttonCreateTeamInLeague_Click;
+		toolStripTeamAvailable.Items.Insert(Math.Min(3, toolStripTeamAvailable.Items.Count), buttonCreateTeamInLeague);
 		viewer2DLeagueTinyLogo.ImageImport = ImportImageLeagueTinyLogo;
 		viewer2DLeagueTinyLogo.ImageDelete = DeleteLeagueTinyLogo;
 		viewer2DLeagueTinyLogo.ButtonStripVisible = true;
@@ -162,6 +172,17 @@ public class LeagueForm : Form
 		viewer2DLeague512x128Logo.ImageDelete = DeleteLeagueLogo512x128;
 		viewer2DLeague512x128Logo.ButtonStripVisible = true;
 		viewer2DLeague512x128Logo.RemoveButton = true;
+	}
+
+	private void buttonCreateTeamInLeague_Click(object sender, EventArgs e)
+	{
+		if (m_CurrentLeague == null)
+		{
+			MessageBox.Show(this, "Select a league first.", "Create Team",
+				MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		MainForm.CM?.CreateTeamInLeague(m_CurrentLeague);
 	}
 
 	public void Clean()

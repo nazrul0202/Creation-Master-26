@@ -169,6 +169,8 @@ internal static class Program
 					if (value.Item == null) throw new InvalidDataException("No free ID is available for " + value.Section + ".");
 					Fc26SnapshotLoader.StageNewEntity(value.Section, value.Item);
 				}
+				Fc26SnapshotLoader.AssignTeamToLeague((FifaLibrary.Team)created[2].Item,
+					(FifaLibrary.League)created[1].Item);
 				Fc26SnapshotLoader.WriteChanges(args[2]);
 				var plan = File.ReadAllText(args[2]);
 				foreach (var required in new[]
@@ -177,6 +179,7 @@ internal static class Program
 					"\"TableName\":\"leagues\"", "\"FieldName\":\"leagueid\"",
 					"\"TableName\":\"teams\"", "\"FieldName\":\"teamid\"",
 					"\"TableName\":\"players\"", "\"FieldName\":\"playerid\"",
+					"\"TableName\":\"leagueteamlinks\"", "\"FieldName\":\"leagueid\"",
 					"\"Kind\":\"duplicate\""
 				})
 					if (plan.IndexOf(required, StringComparison.Ordinal) < 0)
@@ -249,6 +252,8 @@ internal static class Program
 				if (!ContainsControlText(main.m_CountryForm, "Association Details") ||
 					!ContainsControlText(main.m_LeagueForm, "League Details"))
 					throw new InvalidDataException("A mapped, friendly CM26 details surface is missing.");
+				if (!ContainsControlText(main.m_LeagueForm, "Create Team Here"))
+					throw new InvalidDataException("League is missing its direct create-and-link team command.");
 				if (!ContainsControlText(main.m_PlayerForm, "Tactical Roles") ||
 						!ContainsControlText(main.m_PlayerForm, "Composure") ||
 						!ContainsControlText(main.m_PlayerForm, "Def. Awareness"))

@@ -1,5 +1,12 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.170 - create team inside league (2026-08-29)
+
+- Added a visible `Create Team Here` command to the League teams toolbar.
+- Enabled the League selector in Team Generic for FC26 and connected it to a real `leagueteamlinks` row.
+- New teams created from League inherit that league immediately, including previous-league and table-position link values.
+- Added real-snapshot regression coverage proving the team row and its league relationship are staged together.
+
 ## Version 1.0.169 - direct creation and guided Compdata workflows (2026-08-29)
 
 - Create New League, Team, Nation and Player now allocates safe IDs and stages real writable FC26 database rows from validated templates.

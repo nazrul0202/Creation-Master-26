@@ -1,3 +1,7 @@
+Creation Master 26 v1.0.170 - 29 August 2026
+- Added Create Team Here to League and enabled writable FC26 league selection in Team Generic.
+- New and existing clubs now create or update a validated leagueteamlinks relationship.
+
 Creation Master 26 v1.0.169 - 29 August 2026
 - Added direct, staged database creation for leagues, teams, nations and players with safe unused IDs.
 - Added Compdata team assignment, round-robin schedule generation and a Career Ready structural report.
