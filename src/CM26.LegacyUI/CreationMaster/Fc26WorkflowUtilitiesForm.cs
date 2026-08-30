@@ -51,6 +51,7 @@ internal sealed class Fc26WorkflowUtilitiesForm : Form
         output.AppendLine("Pending advanced/detail edits: " + Fc26SnapshotLoader.PendingDetailCount.ToString("N0"));
         output.AppendLine("Managed memory: " + (GC.GetTotalMemory(false) / 1048576d).ToString("N1") + " MB");
         output.AppendLine("Process working set: " + (System.Diagnostics.Process.GetCurrentProcess().WorkingSet64 / 1048576d).ToString("N1") + " MB");
+        output.AppendLine(); output.AppendLine(Fc26SnapshotLoader.DescribeIdAvailability());
         output.AppendLine(); output.AppendLine("Largest tables"); output.AppendLine(new string('-', 72));
         foreach (var name in Fc26SnapshotLoader.DetailTableNames.Select(name => new { Name = name, Table = Fc26SnapshotLoader.DetailTable(name) })
             .Where(item => item.Table != null).OrderByDescending(item => item.Table!.Rows.Count).Take(25))

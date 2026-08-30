@@ -1,5 +1,19 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.177 - shared player-name safety and ID diagnostics (2026-08-30)
+
+- Fixed the FC26 Save warning where editing one player could try to rewrite a
+  shared `playernames` row (for example name ID `30683`) to two different names.
+  Edited names now detach automatically to a validated unused ID, preserving the
+  original row for every other player.
+- Added compact ID availability reports to Save Preflight and Diagnostics for
+  `playernames`, `dcplayernames`, players, teams, leagues, nations, managers,
+  stadiums, kits and referees. Free IDs are shown as ranges instead of raw data.
+- Kept ordinary no-op saves clean: unresolved/empty FC26 common-name references
+  are preserved and are not bulk-converted into thousands of new rows.
+- Added a headless shared-name regression probe to the release verification
+  workflow.
+
 ## Version 1.0.176 - append-safe guided creation (2026-08-30)
 
 - Fixed new league, team, country and player creation to append a real row at

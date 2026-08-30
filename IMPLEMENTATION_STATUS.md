@@ -1,4 +1,4 @@
-# CM26 v1.0.176 implementation status
+# CM26 v1.0.177 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
@@ -26,6 +26,7 @@ This status is intentionally conservative: a visible control is not counted as w
 - Guided Create New Team with an explicit league selector and editable identity, stadium and financial seed values; no UI-only or unlinked team row is left behind.
 - Friendly FC26 Save Preflight with duplicate-ID, country, roster, relationship and asset checks plus Fix Selected navigation, followed by Save Proof reload verification and Career Ready messaging.
 - Compdata toolbar shortcuts for Add New League, Add New Team, Add New Nation and Add New Player, with structured staging kept behind the classic friendly UI.
+- Shared FC26 `playernames` edits detach automatically to unused IDs without rewriting a row referenced by another player; Save Preflight and Diagnostics show compact free-ID ranges for the writable core tables.
 
 ## Functional
 

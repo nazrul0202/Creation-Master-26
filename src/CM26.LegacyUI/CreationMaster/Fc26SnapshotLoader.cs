@@ -31,6 +31,12 @@ internal static class Fc26SnapshotLoader
     /// detect genuine user edits; decode artifacts must never be staged as edits.</summary>
     private static readonly Dictionary<int, string> s_loadedPlayerNames =
         new Dictionary<int, string>();
+    /// <summary>Original name IDs/text for each loaded Player object. FC26 has
+    /// many intentionally empty common-name IDs, so the writer must know which
+    /// values were changed by the user before allocating a new dictionary row.
+    /// </summary>
+    private static readonly Dictionary<object, PlayerNameState> s_loadedPlayerNameStates =
+        new Dictionary<object, PlayerNameState>(ReferenceComparer.Instance);
     /// <summary>
     /// Formation coordinates in the FC26 database are stored as precise floats,
     /// while the legacy editor exposes integer percentages.  Keep the exact
@@ -62,6 +68,7 @@ internal static class Fc26SnapshotLoader
         s_snapshot = snapshot;
         s_rowOrigins.Clear();
         s_loadedPlayerNames.Clear();
+        s_loadedPlayerNameStates.Clear();
         s_loadedFormationRoles.Clear();
         s_loadedTeamSheets.Clear();
         s_detailChanges.Clear();
@@ -165,6 +172,16 @@ internal static class Fc26SnapshotLoader
     internal static int WriteChanges(string path)
     {
         var snapshot = s_snapshot ?? throw new InvalidOperationException("No FC26 snapshot is loaded.");
+
+        // FC26's playernames table is a shared dictionary.  The legacy object
+        // model exposes the decoded string next to the nameid, so editing a
+        // player used to leave the old shared id in place.  The writer then
+        // attempted to change one row to two different names (for example the
+        // 30683 warning reported by users).  Detach every genuinely edited
+        // name before mapping player rows so the new nameid is written together
+        // with the player and the original database row remains untouched.
+        NormalizeEditedPlayerNameIds();
+
         var mappings = new (string Table, string IdColumn, System.Collections.IList? Items)[]
         {
             ("nations", "nationid", FifaEnvironment.Countries),
@@ -477,12 +494,28 @@ internal static class Fc26SnapshotLoader
         if (currentId > 0)
         {
             for (var row = 0; row < table.Rows.Count; row++)
-                if (!IsDetailDeleted(table.Name, row) && ParseIntAt(table.Rows[row], idColumn) == currentId)
+            {
+                if (IsDetailDeleted(table.Name, row) || ParseIntAt(table.Rows[row], idColumn) != currentId)
+                    continue;
+
+                // A nameid is not an ownership token: many players can point
+                // at the same row.  Reuse it only when the row already carries
+                // the requested value.  Prefer the load-time decoded value for
+                // compressed FC26 rows, while staged literal edits use the row
+                // text so they can be reused within the same Save operation.
+                if (string.Equals(DetailPlayerName(table, row, idColumn, nameColumn), value,
+                    StringComparison.Ordinal))
                     return currentId;
+                break;
+            }
         }
         for (var row = 0; row < table.Rows.Count; row++)
-            if (!IsDetailDeleted(table.Name, row) && string.Equals(table.Rows[row][nameColumn], value, StringComparison.Ordinal))
+        {
+            if (IsDetailDeleted(table.Name, row)) continue;
+            if (string.Equals(DetailPlayerName(table, row, idColumn, nameColumn), value,
+                StringComparison.Ordinal))
                 return ParseIntAt(table.Rows[row], idColumn);
+        }
         var rowIndex = DuplicateDetailRow(table.Name, 0);
         var id = NextDetailKey(table, "nameid");
         StageDetailValue(table.Name, rowIndex, "nameid", id.ToString(CultureInfo.InvariantCulture));
@@ -490,16 +523,154 @@ internal static class Fc26SnapshotLoader
         return id;
     }
 
+    private static string DetailPlayerName(SnapshotDetailTable table, int rowIndex,
+        int idColumn, int nameColumn)
+    {
+        var id = ParseIntAt(table.Rows[rowIndex], idColumn);
+        // A staged value is already decoded/literal and must win over the
+        // load-time cache.  This also makes a second click on Save idempotent.
+        if (IsDetailChanged(table.Name, rowIndex, "name"))
+            return table.Rows[rowIndex][nameColumn]?.Trim() ?? string.Empty;
+        if (s_loadedPlayerNames.TryGetValue(id, out var loaded))
+            return (loaded ?? string.Empty).Trim();
+        return table.Rows[rowIndex][nameColumn]?.Trim() ?? string.Empty;
+    }
+
+    private sealed class PlayerNameState
+    {
+        internal int FirstNameId;
+        internal string FirstName = string.Empty;
+        internal int LastNameId;
+        internal string LastName = string.Empty;
+        internal int CommonNameId;
+        internal string CommonName = string.Empty;
+        internal int JerseyNameId;
+        internal string JerseyName = string.Empty;
+    }
+
+    /// <summary>
+    /// Separates edited legacy Player objects from FC26's shared playernames
+    /// rows.  This runs immediately before the change plan is built, so the
+    /// updated nameid values are included in the players table changes.
+    /// </summary>
+    private static void NormalizeEditedPlayerNameIds()
+    {
+        if (s_snapshot == null || FifaEnvironment.Players == null) return;
+        var table = DetailTable("playernames");
+        if (table == null || table.Rows.Count == 0) return;
+
+        // Do not rescan the ~40k-row playernames table for every one of the
+        // ~20k players on an ordinary Save.  The lookup is only used to prove
+        // that an unchanged reference can stay in place; the slower allocator
+        // is reached for the small number of genuinely edited/new values.
+        var namesById = new Dictionary<int, string>();
+        var idColumn = table.Column("nameid");
+        var nameColumn = table.Column("name");
+        if (idColumn < 0 || nameColumn < 0) return;
+        for (var row = 0; row < table.Rows.Count; row++)
+        {
+            if (IsDetailDeleted(table.Name, row)) continue;
+            var id = ParseIntAt(table.Rows[row], idColumn);
+            if (id > 0 && !namesById.ContainsKey(id))
+                namesById[id] = DetailPlayerName(table, row, idColumn, nameColumn);
+        }
+
+        foreach (Player player in FifaEnvironment.Players)
+        {
+            // Do not turn the normal Save into a 16k-row common-name import:
+            // FC26 deliberately stores zero/empty commonname IDs for most
+            // players. Only fields that differ from the load-time state (or
+            // a genuinely new Player object) need an allocator pass.
+            if (!s_loadedPlayerNameStates.TryGetValue(player, out var original))
+            {
+                player.firstnameid = NormalizePlayerNameId(table, namesById, player.firstnameid, player.firstname);
+                player.lastnameid = NormalizePlayerNameId(table, namesById, player.lastnameid, player.lastname);
+                player.commonnameid = NormalizePlayerNameId(table, namesById, player.commonnameid, player.commonname);
+                player.playerjerseynameid = NormalizePlayerNameId(table, namesById,
+                    player.playerjerseynameid, player.playerjerseyname);
+                continue;
+            }
+
+            if (player.firstnameid != original.FirstNameId ||
+                !string.Equals(player.firstname, original.FirstName, StringComparison.Ordinal))
+                player.firstnameid = NormalizePlayerNameId(table, namesById, player.firstnameid, player.firstname);
+            if (player.lastnameid != original.LastNameId ||
+                !string.Equals(player.lastname, original.LastName, StringComparison.Ordinal))
+                player.lastnameid = NormalizePlayerNameId(table, namesById, player.lastnameid, player.lastname);
+            if (player.commonnameid != original.CommonNameId ||
+                !string.Equals(player.commonname, original.CommonName, StringComparison.Ordinal))
+                player.commonnameid = NormalizePlayerNameId(table, namesById, player.commonnameid, player.commonname);
+            if (player.playerjerseynameid != original.JerseyNameId ||
+                !string.Equals(player.playerjerseyname, original.JerseyName, StringComparison.Ordinal))
+                player.playerjerseynameid = NormalizePlayerNameId(table, namesById,
+                    player.playerjerseynameid, player.playerjerseyname);
+        }
+    }
+
+    private static int NormalizePlayerNameId(SnapshotDetailTable table,
+        IReadOnlyDictionary<int, string> namesById, int currentId, string? value)
+    {
+        var desired = (value ?? string.Empty).Trim();
+        if (desired.Length == 0)
+        {
+            // The current FC26 database contains compressed rows that the
+            // legacy shell may not be able to decode.  Their text appears
+            // empty in the form even though the numeric reference is valid;
+            // preserve that reference unless the loaded value was genuinely
+            // readable and the user cleared it.
+            if (currentId > 0 &&
+                (!s_loadedPlayerNames.TryGetValue(currentId, out var loaded) ||
+                 string.IsNullOrWhiteSpace(loaded)))
+                return currentId;
+            return 0;
+        }
+
+        if (currentId > 0 && namesById.TryGetValue(currentId, out var current) &&
+            string.Equals(current, desired, StringComparison.Ordinal))
+            return currentId;
+
+        // StagePlayerName performs the decoded-value comparison and allocates
+        // from the table's validated descriptor range when the current id is a
+        // different/shared name.  Keeping this call for new/staged IDs makes
+        // the operation safe for both newly-created and existing players.
+        return StagePlayerName(table, currentId, desired);
+    }
+
     private static int NextDetailKey(SnapshotDetailTable table, string fieldName)
     {
         var column = table.Column(fieldName);
         if (column < 0) return 1;
-        var next = table.Rows.Select(row => ParseIntAt(row, column)).DefaultIfEmpty(0).Max() + 1L;
         var descriptor = table.ColumnDetails.FirstOrDefault(value =>
             value.Name.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
-        if (descriptor != null && next > descriptor.RangeHigh)
+        var used = new HashSet<int>(table.Rows.Select(row => ParseIntAt(row, column)).Where(value => value > 0));
+        var highest = used.Count == 0 ? 0L : used.Max();
+        var low = descriptor == null ? 1L : Math.Max(1L, descriptor.RangeLow);
+        var high = descriptor == null
+            ? Math.Max(low, Math.Min(int.MaxValue, highest + 10000L))
+            : Math.Min(int.MaxValue, descriptor.RangeHigh);
+        if (high < low) throw new InvalidOperationException("No free " + fieldName + " remains in the FC26 table.");
+
+        // Prefer an append id (which keeps the database diff compact), then
+        // wrap once to recover a genuine hole if an imported table is full at
+        // its high end.  Every candidate is checked against all loaded and
+        // staged rows, so duplicate IDs cannot be generated by repeated saves.
+        var preferred = Math.Max(low, highest + 1L);
+        var candidate = FindFreeDetailKey(used, preferred, high);
+        if (candidate < 0 && preferred > low)
+            candidate = FindFreeDetailKey(used, low, preferred - 1L);
+        if (candidate < 0)
             throw new InvalidOperationException("No free " + fieldName + " remains in the FC26 table.");
-        return next > int.MaxValue ? throw new InvalidOperationException("No free database ID remains.") : (int)next;
+        return candidate;
+    }
+
+    private static int FindFreeDetailKey(HashSet<int> used, long low, long high)
+    {
+        for (var value = low; value <= high; value++)
+        {
+            if (value <= int.MaxValue && !used.Contains((int)value)) return (int)value;
+            if (value == long.MaxValue) break;
+        }
+        return -1;
     }
 
     internal static SnapshotDetailTable? DetailTable(string tableName)
@@ -535,6 +706,92 @@ internal static class Fc26SnapshotLoader
         return CurrentTableCount.ToString("N0", CultureInfo.CurrentCulture) + " table(s), " +
             CurrentRowCount.ToString("N0", CultureInfo.CurrentCulture) + " row(s)\r\n" + source;
     }
+
+    /// <summary>
+    /// Human-readable ID inventory for the writable FC26 tables.  The report
+    /// deliberately uses compact ranges instead of dumping thousands of
+    /// individual values, so it can be shown in the legacy diagnostics window
+    /// and copied into a support ticket.  The playernames line is also the
+    /// source of truth used by the automatic edited-name allocator.
+    /// </summary>
+    internal static string DescribeIdAvailability()
+    {
+        if (s_snapshot == null) return "ID availability: no FC26 data is loaded.";
+        var output = new StringBuilder();
+        output.AppendLine("FC26 ID availability (loaded database)");
+        output.AppendLine(new string('-', 72));
+        var tables = new (string Table, string IdColumn)[]
+        {
+            ("playernames", "nameid"), ("dcplayernames", "nameid"),
+            ("players", "playerid"), ("teams", "teamid"),
+            ("leagues", "leagueid"), ("nations", "nationid"),
+            ("manager", "managerid"), ("stadiums", "stadiumid"),
+            ("teamkits", "teamkitid"), ("referee", "refereeid")
+        };
+        foreach (var item in tables)
+        {
+            var table = s_snapshot.Tables.FirstOrDefault(value =>
+                value.Name.Equals(item.Table, StringComparison.OrdinalIgnoreCase));
+            if (table == null) continue;
+            EnsureRows(table, s_snapshotPath);
+            var idColumn = Column(table, item.IdColumn);
+            if (idColumn < 0) continue;
+            var descriptor = table.ColumnDetails.FirstOrDefault(value =>
+                value.Name.Equals(item.IdColumn, StringComparison.OrdinalIgnoreCase));
+            var used = new HashSet<int>(table.Rows.Select(row => ParseIntAt(row, idColumn)).Where(value => value > 0));
+            var maximum = used.Count == 0 ? 0L : used.Max();
+            var low = descriptor == null ? 1L : Math.Max(1L, descriptor.RangeLow);
+            var high = descriptor == null
+                ? Math.Max(low, Math.Min(int.MaxValue, maximum + 10000L))
+                : Math.Min(int.MaxValue, descriptor.RangeHigh);
+            if (high < low) high = Math.Max(low, maximum);
+            var occupied = used.LongCount(value => value >= low && value <= high);
+            var capacity = high - low + 1L;
+            var free = Math.Max(0L, capacity - occupied);
+            var ranges = FormatFreeIdRanges(used, low, high, 10);
+            output.AppendLine(item.Table + "." + item.IdColumn + ": " +
+                "used " + occupied.ToString("N0", CultureInfo.CurrentCulture) + "/" +
+                capacity.ToString("N0", CultureInfo.CurrentCulture) + ", free " +
+                free.ToString("N0", CultureInfo.CurrentCulture) +
+                (free == 0 ? " (none)" : " (" + ranges + ")"));
+        }
+        return output.ToString().TrimEnd();
+    }
+
+    internal static string DescribePlayerNameAvailability()
+    {
+        if (s_snapshot == null) return "Player-name IDs: no FC26 data is loaded.";
+        var all = DescribeIdAvailability();
+        var lines = all.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Where(value => value.StartsWith("playernames.", StringComparison.OrdinalIgnoreCase) ||
+                            value.StartsWith("dcplayernames.", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        return lines.Length == 0 ? "Player-name IDs: playernames tables are unavailable." :
+            "Player-name IDs are allocated automatically; original shared rows are never overwritten.\r\n" +
+            string.Join("\r\n", lines);
+    }
+
+    private static string FormatFreeIdRanges(HashSet<int> used, long low, long high, int maxRanges)
+    {
+        var ranges = new List<string>();
+        var cursor = low;
+        foreach (var id in used.Where(value => value >= low && value <= high).OrderBy(value => value))
+        {
+            if (id > cursor)
+            {
+                ranges.Add(FormatIdRange(cursor, id - 1L));
+                if (ranges.Count >= maxRanges) return string.Join(", ", ranges) + ", ...";
+            }
+            cursor = Math.Max(cursor, (long)id + 1L);
+            if (cursor > high) break;
+        }
+        if (cursor <= high) ranges.Add(FormatIdRange(cursor, high));
+        return ranges.Count == 0 ? "none" : string.Join(", ", ranges);
+    }
+
+    private static string FormatIdRange(long first, long last) => first == last
+        ? first.ToString(CultureInfo.InvariantCulture)
+        : first.ToString(CultureInfo.InvariantCulture) + "-" + last.ToString(CultureInfo.InvariantCulture);
 
     internal static string CompareWithSnapshot(string path)
     {
@@ -1019,7 +1276,9 @@ internal static class Fc26SnapshotLoader
             if (desiredByRow.TryGetValue(rowIndex, out var existing) &&
                 !string.Equals(existing, desired, StringComparison.Ordinal))
                 throw new InvalidOperationException(
-                    $"Shared FC26 player name id {nameId} was edited to conflicting values.");
+                    $"FC26 player-name ID {nameId} is shared by different names ('{existing}' and '{desired}'). " +
+                    "The edit could not be separated automatically; use a fresh player-name ID from the " +
+                    "ID Availability report before saving.");
             desiredByRow[rowIndex] = desired;
         }
     }
@@ -1396,6 +1655,18 @@ internal static class Fc26SnapshotLoader
                 if (fields.TryGetValue("m_commonnameid", out var commonId) && commonId.GetValue(player) is int nameId)
                     s_loadedPlayerNames[nameId] = player.commonname;
             }
+
+            s_loadedPlayerNameStates[player] = new PlayerNameState
+            {
+                FirstNameId = player.firstnameid,
+                FirstName = player.firstname ?? string.Empty,
+                LastNameId = player.lastnameid,
+                LastName = player.lastname ?? string.Empty,
+                CommonNameId = player.commonnameid,
+                CommonName = player.commonname ?? string.Empty,
+                JerseyNameId = player.playerjerseynameid,
+                JerseyName = player.playerjerseyname ?? string.Empty
+            };
         }
     }
 

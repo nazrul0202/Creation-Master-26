@@ -68,6 +68,8 @@ internal static class Fc26SavePreflight
         checks.Add(CheckDuplicateIds("League IDs", leagues.Select(value => value.Id), "league"));
         checks.Add(CheckDuplicateIds("Team IDs", teams.Select(value => value.Id), "team"));
         checks.Add(CheckDuplicateIds("Player IDs", players.Select(value => value.Id), "player"));
+        checks.Add(new Fc26SaveCheck("Player-name IDs", Fc26CheckState.Pass,
+            Fc26SnapshotLoader.DescribePlayerNameAvailability(), "player"));
 
         var unlinked = pendingTeams.Where(team => team.League == null || team.League.PlayingTeams.SearchId(team.Id) == null).ToArray();
         var linkTable = Fc26SnapshotLoader.DetailTable("leagueteamlinks");

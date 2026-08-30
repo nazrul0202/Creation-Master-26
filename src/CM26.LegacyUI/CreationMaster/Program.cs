@@ -193,6 +193,63 @@ internal static class Program
 			}
 			return;
 		}
+		if (args.Length >= 2 && string.Equals(args[0], "--cm26-id-availability", StringComparison.OrdinalIgnoreCase))
+		{
+			try
+			{
+				Fc26SnapshotLoader.Load(args[1]);
+				Console.WriteLine(Fc26SnapshotLoader.DescribeIdAvailability());
+				Environment.ExitCode = 0;
+			}
+			catch (Exception ex)
+			{
+				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				Console.Error.WriteLine(ex.Message);
+				Environment.ExitCode = 1;
+			}
+			return;
+		}
+		if (args.Length >= 3 && string.Equals(args[0], "--cm26-player-name-plan-test", StringComparison.OrdinalIgnoreCase))
+		{
+			try
+			{
+				Fc26SnapshotLoader.Load(args[1]);
+				FifaLibrary.Player source = null;
+				FifaLibrary.Player target = null;
+				foreach (FifaLibrary.Player candidate in FifaLibrary.FifaEnvironment.Players)
+				{
+					if (candidate.lastnameid <= 0 || string.IsNullOrWhiteSpace(candidate.lastname)) continue;
+					if (source == null) { source = candidate; continue; }
+					if (candidate != source) { target = candidate; break; }
+				}
+				if (source == null || target == null)
+					throw new InvalidDataException("The FC26 snapshot has no two players suitable for the shared-name test.");
+
+				// Reproduce the real UI failure: two Player objects point at one
+				// shared nameid, but one has a different edited surname.  The writer
+				// must allocate a fresh row rather than changing the shared source.
+				var sharedId = source.lastnameid;
+				var editedName = (source.lastname.Trim() + " CM26 Test").Trim();
+				target.lastnameid = sharedId;
+				target.lastname = editedName;
+				Fc26SnapshotLoader.WriteChanges(args[2]);
+				var plan = File.ReadAllText(args[2]);
+				if (plan.IndexOf("\"TableName\":\"playernames\"", StringComparison.Ordinal) < 0 ||
+					plan.IndexOf("\"FieldName\":\"lastnameid\"", StringComparison.Ordinal) < 0 ||
+					plan.IndexOf(editedName, StringComparison.Ordinal) < 0 ||
+					plan.IndexOf("\"Kind\":\"duplicate\"", StringComparison.Ordinal) < 0)
+					throw new InvalidDataException("Shared player-name edit did not allocate a new playernames row.");
+				Console.WriteLine("PLAYER NAME PLAN TEST: shared ID " + sharedId + " detached to a fresh playernames row.");
+				Environment.ExitCode = 0;
+			}
+			catch (Exception ex)
+			{
+				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				Console.Error.WriteLine(ex.Message);
+				Environment.ExitCode = 1;
+			}
+			return;
+		}
 		if (args.Length >= 2 && string.Equals(args[0], "--cm26-team-roster-clone-test", StringComparison.OrdinalIgnoreCase))
 		{
 			try

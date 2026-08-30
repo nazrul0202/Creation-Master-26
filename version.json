@@ -1,6 +1,6 @@
 {
-  "version": "1.0.176",
+  "version": "1.0.177",
   "name": "Creation Master 26",
-  "notes": "v1.0.176 - append-safe guided creation, country-aware links and stable FC26 relationships.",
+  "notes": "v1.0.177 - safe shared player-name allocation, ID availability diagnostics and append-safe guided creation.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

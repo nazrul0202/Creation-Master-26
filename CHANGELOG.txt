@@ -1,3 +1,12 @@
+Creation Master 26 v1.0.177 - 30 August 2026
+------------------------------------------------------------
+- Fixed shared FC26 player-name IDs being edited to conflicting values; edited
+  names now detach to a validated unused playernames row automatically.
+- Added player-name and entity ID availability ranges to Save Preflight and
+  Diagnostics, including the currently unused playernames block 41190-43999.
+- Preserved empty/unresolved common-name references during no-op saves and added
+  a real-snapshot shared-name allocation regression probe.
+
 Creation Master 26 v1.0.176 - 30 August 2026
 ------------------------------------------------------------
 - Fixed row-1 overwrite risks by appending all guided records and relationship links.

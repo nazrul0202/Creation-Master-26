@@ -1,10 +1,10 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.176 (MIT License), 2026-08-30.
+Status: Version 1.0.177 (MIT License), 2026-08-30.
 
 ## User interface
 
-The v1.0.176 public launcher preserves the original Creation Master / CM16-style interface used by v1.0.148. Raw database/schema editors, oversized embedded forms and standalone specialist windows are not exposed in the public workflow. FC26 data is mapped to friendly CM26 controls while the x64 Frostbite host runs behind the interface. Exotic DPI combinations or very small window sizes may still need refinement.
+The v1.0.177 public launcher preserves the original Creation Master / CM16-style interface used by v1.0.148. Raw database/schema editors, oversized embedded forms and standalone specialist windows are not exposed in the public workflow. FC26 data is mapped to friendly CM26 controls while the x64 Frostbite host runs behind the interface. Exotic DPI combinations or very small window sizes may still need refinement.
 
 Team Generic's Transfer Budget is a Deco-compatible estimate when a base squads
 database is loaded. FC26 does not store an editable per-team budget on the
@@ -64,6 +64,11 @@ budget. The Team page therefore shows **Club Worth** and the Deco-compatible
 The second figure is calculated from club worth and profitability for display;
 it is not presented as an editable database field and does not overwrite a live
 Career save.
+
+FC26 `playernames` rows are shared by design. When a player name is edited,
+CM26 allocates a free dictionary ID and leaves the original shared row intact.
+The Save Preflight and Diagnostics reports show the available ID ranges; an
+existing Career must be restarted after database or Compdata changes.
 
 ## Structural edits
 
