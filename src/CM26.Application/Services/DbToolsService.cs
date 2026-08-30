@@ -209,7 +209,7 @@ public static class DbToolsService
         var players = session.GetTable("players");
         var teams = session.GetTable("teams");
         if (sheets == null || players == null || teams == null) return NotLoaded();
-        using var operation = pending.BeginOperation("Repair missing team-sheet players");
+        using var operation = pending.BeginOperation("Repair missing or duplicate team-sheet players");
         var playerIds = ReadIdSet(session, players, "playerid");
         var teamIds = ReadIdSet(session, teams, "teamid");
         var fixedCells = 0;
@@ -217,11 +217,14 @@ public static class DbToolsService
         {
             var teamId = ParseInt(session.GetCell("default_teamsheets", row, "teamid"));
             if (teamId > 0 && !teamIds.Contains(teamId)) continue; // parent cleanup is structural; report via integrity validation
+            var seenPlayers = new HashSet<int>();
             foreach (var column in sheets.Columns.Where(column =>
-                         column.Name.StartsWith("playerid", StringComparison.OrdinalIgnoreCase) && column.IsWritable))
+                         column.Name.StartsWith("playerid", StringComparison.OrdinalIgnoreCase) && column.IsWritable)
+                         .OrderBy(column => PlayerSlot(column.Name)))
             {
                 var playerId = ParseInt(session.GetCell("default_teamsheets", row, column.Name));
-                if (playerId <= 0 || playerIds.Contains(playerId)) continue;
+                if (playerId <= 0) continue;
+                if (playerIds.Contains(playerId) && seenPlayers.Add(playerId)) continue;
                 var outcome = pending.Stage("default_teamsheets", row, column.Name, "0");
                 if (!outcome.Success) return new ToolRunResult(false, outcome.Message);
                 fixedCells++;
@@ -229,8 +232,15 @@ public static class DbToolsService
         }
         operation.Commit();
         return new ToolRunResult(true, fixedCells == 0
-            ? "Default team sheets contain no missing player references."
-            : $"Cleared {fixedCells} missing player reference(s) from default team sheets.");
+            ? "Default team sheets contain no missing or duplicate player references."
+            : $"Cleared {fixedCells} missing or duplicate player reference(s) from default team sheets.");
+    }
+
+    private static int PlayerSlot(string fieldName)
+    {
+        var suffix = new string(fieldName.SkipWhile(character => !char.IsDigit(character)).ToArray());
+        return int.TryParse(suffix, NumberStyles.Integer, CultureInfo.InvariantCulture, out var slot)
+            ? slot : int.MaxValue;
     }
 
     public static ToolRunResult AssignUniqueJerseyNumbers(DatabaseSession session, PendingChangesService pending)

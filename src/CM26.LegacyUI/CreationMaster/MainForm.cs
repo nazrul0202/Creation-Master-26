@@ -366,7 +366,10 @@ public class MainForm : Form
 		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 4), saveSession);
 		var healthCentre = new ToolStripMenuItem("Database Health Centre...");
 		healthCentre.Click += (_, _) => ShowFc26HealthCentre();
+		var publicReadiness = new ToolStripMenuItem("Public Readiness Centre...") { Name = "menuPublicReadiness" };
+		publicReadiness.Click += (_, _) => ShowFc26PublicReadiness();
 		menuTools.DropDownItems.Add(new ToolStripSeparator());
+		menuTools.DropDownItems.Add(publicReadiness);
 		menuTools.DropDownItems.Add(healthCentre);
 		buttonSponsor.Visible = true;
 		buttonTv.Visible = true;
@@ -521,7 +524,7 @@ public class MainForm : Form
 		}
 	}
 
-	private void ShowFc26DatabaseWorkspace()
+	internal void ShowFc26DatabaseWorkspace()
 	{
 		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
 		{
@@ -533,7 +536,7 @@ public class MainForm : Form
 			workspace.ShowDialog(this);
 	}
 
-	private void ShowFc26HealthCentre()
+	internal void ShowFc26HealthCentre()
 	{
 		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
 		{
@@ -3172,6 +3175,41 @@ public class MainForm : Form
 	{
 		await OpenFc26SnapshotAsync(Fc26HostBridge.Open,
 			"Opening FC26 database", "FC26 database and Frostbite assets loaded.", "Open FC26");
+	}
+
+	internal void ShowFc26PublicReadiness()
+	{
+		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
+		{
+			MessageBox.Show(this, "Open FC26 first.", "Public Readiness Centre",
+				MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		var centre = new Fc26PublicReadinessForm(this);
+		centre.Show(this);
+	}
+
+	internal Team CurrentFc26Team => m_TeamForm?.m_CurrentTeam;
+
+	internal void ShowFc26CompdataCentre()
+	{
+		ShowFc26Section("competition");
+		m_TrophyForm?.SelectFc26Compdata();
+	}
+
+	internal void ShowFc26AssetManager(string initialFamily)
+	{
+		if (!m_OpenFileFlag || FifaEnvironment.Year != 26)
+		{
+			MessageBox.Show(this, "Open FC26 first.", "Visual Asset Manager", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		using (var manager = new Fc26AssetManagerForm(initialFamily)) manager.ShowDialog(this);
+	}
+
+	internal void CommitFc26DirectSave()
+	{
+		SaveFiles();
 	}
 
 	internal void LoadFc26Snapshot(string snapshotPath, bool showCountry)

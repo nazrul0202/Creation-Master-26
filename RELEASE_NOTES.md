@@ -1,5 +1,26 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.181 - direct-edit public readiness workflows (2026-08-31)
+
+- Added a friendly **Public Readiness Centre** that brings Team Complete,
+  Squad Doctor, player/batch/face tools, Compdata Pro, Kit/Asset Center, Safe
+  IDs, database health and the final Save gate into one consistent workflow.
+- Every action uses CM26's loaded transaction. **Save Direct to FC26** runs the
+  existing validation, automatic backup and direct Frostbite commit; no FIFA
+  Editing Tool or FIFA Mod Manager import/export step is required.
+- Added a fast team completion audit for identity, country/league/manager/
+  stadium relationships, roster depth, XI, formation, shirts and Home/Away/GK
+  kit rows. Safe repair never guesses missing relationships or assets.
+- Extended Database Health with duplicate lineup repair, duplicate loans,
+  invalid loan sources/end dates and broken, duplicate or mismatched manager
+  links. Teamsheet repairs now clear missing and duplicate player references in
+  the staged transaction.
+- Compdata now states its direct Save contract in the Competition section. Its
+  guided league/team assignment, structure, advancement, schedule, validation
+  and Career Ready checks remain the in-game competition path.
+- Added UI integration coverage for the complete readiness centre while keeping
+  the public Create menu limited to **Create New League** and **Create New Team**.
+
 ## Version 1.0.180 - guided Create Team picker fix (2026-08-30)
 
 - The Team section's small New icon now routes directly to the friendly FC26

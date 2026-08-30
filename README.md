@@ -33,7 +33,13 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.180.txt` is included with the v1.0.180 release assets.
+Checksums: `SHA256SUMS_v1.0.181.txt` is included with the v1.0.181 release assets.
+
+Open **Tools > Public Readiness Centre** for the complete direct-edit workflow:
+Team Complete, Squad Doctor, player/batch/face tools, Compdata Pro, Kit/Asset
+Center, Safe IDs, health checks and **Save Direct to FC26**. These actions stage
+inside CM26 and use its validated backup-and-commit pipeline; they do not depend
+on FIFA Editing Tool or FIFA Mod Manager.
 
 The **Create** menu now contains only **Create New League** and **Create New Team**.
 New Team asks which league it belongs to and links it immediately. Once a new league

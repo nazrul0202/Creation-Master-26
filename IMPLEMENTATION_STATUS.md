@@ -1,10 +1,11 @@
-# CM26 v1.0.180 implementation status
+# CM26 v1.0.181 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
 ## Complete
 
 - Original v1.0.148-style Creation Master interface as the normal public shell.
+- Public Readiness Centre unifies Team Complete, Squad Doctor, player/batch/face workflows, Compdata Pro, Kit/Asset Center, Safe IDs, health checks and direct Save without an external editor hand-off.
 - DBM Studio, RDM26 and Deco-derived logic mapped behind the original Player, Team, Formation, Country, League, Competition, Stadium, Kit, Ball, Boots, Gloves, Manager and presentation controls.
 - Public UI exposes friendly football concepts and relationship selectors only; raw database, XML, hash and schema fields are not exposed.
 - Installed FC26 and extracted-database loading through the verified x64 native engine.

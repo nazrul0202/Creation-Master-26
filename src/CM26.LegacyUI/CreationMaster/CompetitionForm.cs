@@ -1819,6 +1819,13 @@ public class CompetitionForm : Form
 
 	internal string StageLeagueForSave(League league) => Fc26Compdata.StageLeagueForSave(league);
 
+	internal void SelectFc26Compdata()
+	{
+		var page = tabCompetitions.TabPages.Cast<TabPage>()
+			.FirstOrDefault(item => item.Name == "pageFc26Compdata");
+		if (page != null) tabCompetitions.SelectedTab = page;
+	}
+
 	public void Clean()
 	{
 		base.Visible = false;

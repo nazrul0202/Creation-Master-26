@@ -1,3 +1,10 @@
+Creation Master 26 v1.0.181 - 31 August 2026
+------------------------------------------------
+* Added the direct-edit Public Readiness Centre and Team Complete audit/repair.
+* Unified Squad Doctor, Compdata Pro, Kit/Asset, batch player and Safe ID workflows.
+* Expanded health checks for teamsheets, loans and manager relationships.
+* All changes remain staged in CM26 and commit through validated direct Save.
+
 Creation Master 26 v1.0.180 - 30 August 2026
 ------------------------------------------------------------
 - The small New button in the Team picker now opens the same guided FC26 team

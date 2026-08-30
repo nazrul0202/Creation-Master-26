@@ -320,7 +320,12 @@ internal sealed class Fc26RosterToolsForm : Form
             "Roster repair", MessageBoxButtons.OK, MessageBoxIcon.Information); RefreshAll();
     }
 
-    private static int RepairTeam(Team team)
+    /// <summary>
+    /// Applies the same conservative squad repair used by the Roster Tools UI.
+    /// The method only changes the loaded CM26 object graph; the normal Save
+    /// pipeline still performs validation, backup and the direct FC26 commit.
+    /// </summary>
+    internal static int RepairTeam(Team team)
     {
         var repaired = 0; var ids = new HashSet<int>();
         foreach (var link in team.Roster.Cast<TeamPlayer>().ToArray())

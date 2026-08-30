@@ -70,7 +70,7 @@ internal sealed class Fc26CompdataPanel : UserControl
         sheetPanel.Controls.Add(_sheets); sheetPanel.Controls.Add(sheetLabel);
         split.Panel1.Controls.Add(sheetPanel); split.Panel2.Controls.Add(_views);
         _status.Dock = DockStyle.Bottom; _status.Height = 24; _status.Padding = new Padding(6, 4, 0, 0);
-        _status.Text = "Open tournament files to edit the structure and calendar with guided controls.";
+        _status.Text = "Direct FC26 Compdata editing. Stage here, then use normal File > Save for validation, backup and direct commit.";
         Controls.Add(split); Controls.Add(_status); Controls.Add(tools);
     }
 

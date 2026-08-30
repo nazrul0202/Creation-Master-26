@@ -327,6 +327,8 @@ internal static class Program
 				foreach (var command in new[] { "Create New League...", "Create New Team..." })
 					if (!ContainsMenuText(main.MainMenuStrip?.Items, command))
 						throw new InvalidDataException("The direct record command is missing: " + command);
+				if (!ContainsMenuText(main.MainMenuStrip?.Items, "Public Readiness Centre..."))
+					throw new InvalidDataException("The public direct-edit readiness entry point is missing.");
 				if (ContainsMenuText(main.MainMenuStrip?.Items, "Create New Player...") ||
 					ContainsMenuText(main.MainMenuStrip?.Items, "Create New Nation..."))
 					throw new InvalidDataException("The public Create menu must contain only League and Team.");
@@ -362,6 +364,18 @@ internal static class Program
 						if (ContainsControlText(launcher, forbiddenLauncherAction))
 							throw new InvalidDataException("A separate specialist launcher action remains visible: " + forbiddenLauncherAction);
 					}
+				}
+				using (var readiness = new Fc26PublicReadinessForm(main))
+				{
+					foreach (var required in new[]
+					{
+						"DIRECT EDIT PIPELINE", "Team Complete & Squad Doctor", "League & Compdata Pro",
+						"Kit & Asset Centre", "Safe ID Migration", "Save Direct to FC26"
+					})
+						if (!ContainsControlText(readiness, required))
+							throw new InvalidDataException("Public Readiness Centre is missing: " + required);
+					if (ContainsControlText(readiness, "Open in FIFA Editing Tool"))
+						throw new InvalidDataException("Public workflow must not instruct users to import through FIFA Editing Tool.");
 				}
 				if (ContainsControlText(main.m_TeamForm, "Club Relations") ||
 					ContainsControlText(main.m_TeamForm, "Rev. Mod. Extensions") ||

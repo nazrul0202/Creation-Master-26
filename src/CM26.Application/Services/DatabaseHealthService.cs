@@ -48,6 +48,7 @@ public static class DatabaseHealthService
         AnalyzeLoans(session, issues);
         AnalyzeTeamAssetsAndLeague(session, issues);
         AnalyzeNationalTeams(session, issues);
+        AnalyzeManagers(session, issues);
         return new(issues);
     }
 
@@ -126,7 +127,7 @@ public static class DatabaseHealthService
                         $"{field.Name} references missing player {player}.", field.IsWritable));
                 else if (!seen.Add(player))
                     issues.Add(new("duplicate-lineup-player", HealthSeverity.Warning, sheets.Name, row,
-                        $"Player {player} appears more than once.", false));
+                        $"Player {player} appears more than once.", field.IsWritable));
             }
             if (playerFields.Length >= 11 && count < 11)
                 issues.Add(new("empty-starting-xi", HealthSeverity.Warning, sheets.Name, row,
@@ -140,12 +141,28 @@ public static class DatabaseHealthService
         var players = session.GetTable("players");
         if (loans == null || players == null || !Has(loans, "playerid")) return;
         var playerIds = IdSet(session, players, "playerid");
+        var teams = session.GetTable("teams");
+        var teamIds = teams == null ? [] : IdSet(session, teams, "teamid");
+        var seenPlayers = new HashSet<int>();
         for (var row = 0; row < loans.RowCount; row++)
         {
             var player = Int(session, loans.Name, row, "playerid");
             if (!playerIds.Contains(player))
                 issues.Add(new("broken-loan-player", HealthSeverity.Error, loans.Name, row,
                     $"Loan references missing player {player}.", false));
+            else if (!seenPlayers.Add(player))
+                issues.Add(new("duplicate-player-loan", HealthSeverity.Error, loans.Name, row,
+                    $"Player {player} has more than one active loan row.", false));
+            if (Has(loans, "teamidloanedfrom"))
+            {
+                var sourceTeam = Int(session, loans.Name, row, "teamidloanedfrom");
+                if (sourceTeam > 0 && teamIds.Count > 0 && !teamIds.Contains(sourceTeam))
+                    issues.Add(new("broken-loan-source-team", HealthSeverity.Error, loans.Name, row,
+                        $"Loan source team {sourceTeam} does not exist.", false));
+            }
+            if (Has(loans, "loandateend") && Int(session, loans.Name, row, "loandateend") <= 0)
+                issues.Add(new("invalid-loan-end-date", HealthSeverity.Warning, loans.Name, row,
+                    $"Player {player} has no valid loan end date.", false));
         }
     }
 
@@ -200,6 +217,44 @@ public static class DatabaseHealthService
                     issues.Add(new("invalid-team-nation", HealthSeverity.Error, links.Name, row,
                         $"National-team link references missing nation {nation}.", false));
             }
+        }
+    }
+
+    private static void AnalyzeManagers(DatabaseSession session, List<DatabaseHealthIssue> issues)
+    {
+        var managers = session.GetTable("manager");
+        var teams = session.GetTable("teams");
+        if (managers == null || teams == null || !Has(managers, "managerid")) return;
+        var managerIds = IdSet(session, managers, "managerid");
+        var teamIds = IdSet(session, teams, "teamid");
+        var managerTeams = new Dictionary<int, int>();
+        if (Has(managers, "teamid"))
+        {
+            for (var row = 0; row < managers.RowCount; row++)
+            {
+                var manager = Int(session, managers.Name, row, "managerid");
+                var team = Int(session, managers.Name, row, "teamid");
+                if (team <= 0) continue;
+                if (!teamIds.Contains(team))
+                    issues.Add(new("broken-manager-team", HealthSeverity.Error, managers.Name, row,
+                        $"Manager {manager} references missing team {team}.", false));
+                if (managerTeams.TryGetValue(team, out var existing) && existing != manager)
+                    issues.Add(new("duplicate-team-manager", HealthSeverity.Warning, managers.Name, row,
+                        $"Team {team} is linked to managers {existing} and {manager}.", false));
+                else managerTeams[team] = manager;
+            }
+        }
+        if (!Has(teams, "managerid")) return;
+        for (var row = 0; row < teams.RowCount; row++)
+        {
+            var team = Int(session, teams.Name, row, "teamid");
+            var manager = Int(session, teams.Name, row, "managerid");
+            if (manager > 0 && !managerIds.Contains(manager))
+                issues.Add(new("missing-team-manager", HealthSeverity.Warning, teams.Name, row,
+                    $"Team {team} references missing manager {manager}.", false));
+            if (manager > 0 && managerTeams.TryGetValue(team, out var reverse) && reverse != manager)
+                issues.Add(new("manager-link-mismatch", HealthSeverity.Warning, teams.Name, row,
+                    $"Team {team} points to manager {manager}, but manager table points to {reverse}.", false));
         }
     }
 
