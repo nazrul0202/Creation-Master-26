@@ -1,4 +1,5 @@
 using System.Text;
+using System.Reflection;
 using CM26.App.Theming;
 
 using CM26.Application.Services;
@@ -45,6 +46,57 @@ internal static class ReleaseSelfTest
         }
 
         Console.WriteLine("=== CM26 release self-test ===");
+
+        // --- Runtime dependencies must be intact ---------------------------
+        // A damaged Open XML assembly can leave the editor apparently healthy
+        // until a Compdata workbook or TXT folder is opened. Validate both the
+        // files and the real Compdata read path before any package is accepted.
+        Check("Open XML runtime assemblies are intact", () =>
+        {
+            foreach (var name in new[]
+                     {
+                         "DocumentFormat.OpenXml.dll",
+                         "DocumentFormat.OpenXml.Framework.dll",
+                     })
+            {
+                var path = Path.Combine(AppContext.BaseDirectory, name);
+                if (!File.Exists(path)) return $"{name} is missing";
+                using (var stream = File.OpenRead(path))
+                {
+                    if (stream.ReadByte() != 'M' || stream.ReadByte() != 'Z')
+                        return $"{name} is not a valid PE assembly";
+                }
+                var identity = AssemblyName.GetAssemblyName(path);
+                if (identity.Version == null)
+                    return $"{name} has no assembly version";
+                Assembly.LoadFrom(path);
+            }
+            return null;
+        });
+
+        Check("Compdata TXT reader round-trips a real FC26 row", () =>
+        {
+            var temp = Path.Combine(Path.GetTempPath(), "cm26-selftest-compdata-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                Directory.CreateDirectory(temp);
+                File.WriteAllText(Path.Combine(temp, "compobj.txt"),
+                    "0,0,WORLD,World,-1\r\n", new UTF8Encoding(false));
+                var workbook = new CompdataWorkbookService();
+                workbook.OpenFromGameFolder(temp);
+                var table = workbook.ReadSheet("compobj");
+                if (table.Rows.Count != 1 || table.Columns.Count != 5)
+                    return $"unexpected table shape {table.Rows.Count}x{table.Columns.Count}";
+                return Convert.ToString(table.Rows[0][2]) == "WORLD"
+                    ? null
+                    : "Compdata row content changed during read";
+            }
+            finally
+            {
+                try { Directory.Delete(temp, recursive: true); }
+                catch { }
+            }
+        });
 
         // --- Tool detection must never depend on a developer machine ---------
         Check("scraper detection contains no hardcoded developer path", () =>

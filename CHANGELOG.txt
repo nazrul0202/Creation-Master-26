@@ -1,3 +1,16 @@
+Creation Master 26 v1.0.179 - 30 August 2026
+------------------------------------------------------------
+- Audited all 11 installed FC26 Compdata sections and corrected objectives and
+  tasks schemas, object hierarchy checks and database competition mapping.
+- New competitions now use C<database ID>, asset_id, comp_type and a valid
+  parent; duplicate database competition IDs are blocked before Save.
+- New country/league Career setups were verified through export and reload with
+  team links, standings and a complete double round-robin calendar.
+- Compdata replacement files now stage atomically, preventing partial sets.
+- Career Ready and Save Proof no longer report success for a no-op or an
+  incomplete database/Compdata mapping.
+- Added release gates for Open XML integrity and a real Compdata TXT read.
+
 Creation Master 26 v1.0.178 - 30 August 2026
 ------------------------------------------------------------
 - Kept the classic UI responsive while installed, extracted and project FC26

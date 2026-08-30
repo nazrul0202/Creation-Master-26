@@ -1,5 +1,24 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.179 - audited Compdata and Career-ready saves (2026-08-30)
+
+- Audited the editor against all 11 Compdata TXT assets extracted from the
+  installed FC26 CAS archives. The real 90-competition snapshot passes the new
+  schema, parent/reference, row-limit, calendar and advancement checks.
+- Corrected the FC26 `objectives` and seven-column `tasks` layouts. Competition
+  creation now writes `C<database ID>`, `TrophyName_Abbr15_<ID>`, a valid
+  parent, `compids`, matching `asset_id` and `comp_type` rows.
+- Verified a newly generated country/league hierarchy through TXT export and
+  reload: country, league, stage, group, four initial teams, standings and six
+  double round-robin rounds remained intact.
+- Compdata now stages all related replacement files atomically. A missing or
+  failed file cannot leave a partial persistent replacement set for Save.
+- Strengthened Career Ready and Save Proof so a no-op, missing database ID map,
+  missing competition type or incomplete commit is shown as review/not ready,
+  never as a false pass.
+- Added package self-tests for Open XML assembly integrity and a real Compdata
+  TXT read path, preventing damaged runtime dependencies from shipping.
+
 ## Version 1.0.178 - responsive loading and structural Save reliability (2026-08-30)
 
 - Moved installed-game, extracted-database and saved-project FC26 loading away

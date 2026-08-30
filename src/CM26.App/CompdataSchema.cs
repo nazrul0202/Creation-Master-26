@@ -25,9 +25,9 @@ internal static class CompdataSchema
         ["schedule"] = ["Object ID", "Day", "Round", "Minimum Games", "Maximum Games", "Kick-off Time"],
         ["advancement"] = ["Source Group ID", "Source Rank", "Destination Group ID", "Destination Rank"],
         ["initteams"] = ["Competition Object ID", "Last-season Position", "Database Team ID"],
-        ["objectives"] = ["Objective", "Competition Object ID", "Value"],
+        ["objectives"] = ["Competition Object ID", "Objective", "Value"],
         ["settings"] = ["Competition Object ID", "Setting", "Value"],
-        ["tasks"] = ["Trigger", "Task", "Source Object ID", "Rank", "Database ID", "Target Object ID"],
+        ["tasks"] = ["Competition Object ID", "Trigger", "Task", "Source Object ID", "Rank", "Database ID", "Target Object ID"],
         ["weather"] = ["Weather ID", "Temperature", "Rain", "Snow", "Wind", "Cloud", "Start Time", "End Time"],
     };
 
@@ -64,6 +64,10 @@ internal static class CompdataSchema
     public static IReadOnlyList<CompdataValidationIssue> Validate(IReadOnlyDictionary<string, DataTable> tables)
     {
         var issues = new List<CompdataValidationIssue>();
+        foreach (var (sheet, table) in tables)
+            if (RowLimits.TryGetValue(sheet, out var limit) && table.Rows.Count > limit)
+                issues.Add(CompdataValidationIssue.Error(sheet, 0,
+                    $"Section has {table.Rows.Count:N0} rows, exceeding the FC26 limit of {limit:N0}."));
         if (!tables.TryGetValue("compobj", out var objects))
         {
             issues.Add(CompdataValidationIssue.Error("compobj", 0, "Missing compobj worksheet."));
@@ -87,7 +91,11 @@ internal static class CompdataSchema
         for (var row = 0; row < objects.Rows.Count; row++)
         {
             if (!TryInt(objects.Rows[row], 0, out var id) || !TryInt(objects.Rows[row], 1, out var type)) continue;
-            if (!TryInt(objects.Rows[row], 4, out var parent)) continue;
+            if (!TryInt(objects.Rows[row], 4, out var parent))
+            {
+                issues.Add(CompdataValidationIssue.Error("compobj", row + 1, "Parent Object ID is required and must be an integer."));
+                continue;
+            }
             if (parent == -1)
             {
                 if (type != 0) issues.Add(CompdataValidationIssue.Error("compobj", row + 1, "Only a World object can use parent ID -1."));
@@ -97,6 +105,18 @@ internal static class CompdataSchema
                 issues.Add(CompdataValidationIssue.Error("compobj", row + 1, $"Parent Object ID {parent} does not exist."));
             else if (parent == id)
                 issues.Add(CompdataValidationIssue.Error("compobj", row + 1, "An object cannot be its own parent."));
+            else if (!IsValidParentType(type, types[parent]))
+                issues.Add(CompdataValidationIssue.Error("compobj", row + 1,
+                    $"Object type {type} cannot use a type {types[parent]} parent."));
+
+            if (type == 3)
+            {
+                var shortName = Convert.ToString(objects.Rows[row][2])?.Trim() ?? string.Empty;
+                if (shortName.Length < 2 || shortName[0] != 'C' ||
+                    !int.TryParse(shortName[1..], out var databaseId) || databaseId <= 0)
+                    issues.Add(CompdataValidationIssue.Error("compobj", row + 1,
+                        "Competition Short Name must be C followed by its positive database competition ID."));
+            }
         }
 
         ValidateReference(tables, "standings", 0, types, 5, "Group Object ID", issues);
@@ -105,11 +125,81 @@ internal static class CompdataSchema
         // competition groups (6) in compids.
         ValidateReference(tables, "compids", 0, types, [3, 6], "Registered Competition Object ID", issues);
         ValidateReference(tables, "initteams", 0, types, 3, "Competition Object ID", issues);
+        ValidateReference(tables, "settings", 0, types, [0, 1, 2, 3, 4, 5, 6], "Competition Object ID", issues);
+        ValidateReference(tables, "objectives", 0, types, [0, 1, 2, 3, 4, 5, 6], "Competition Object ID", issues);
+        ValidateReference(tables, "tasks", 0, types, [0, 1, 2, 3, 4, 5, 6], "Competition Object ID", issues);
         ValidateReference(tables, "advancement", 0, types, 5, "Source Group ID", issues);
         ValidateReference(tables, "advancement", 2, types, 5, "Destination Group ID", issues);
+        ValidateUniqueRows(tables, "compids", [0], "Competition object is registered more than once.", issues);
+        ValidateCompetitionMappings(tables, objects, issues);
         ValidateCalendar(tables, issues);
         ValidateAdvancement(tables, issues);
         return issues;
+    }
+
+    private static void ValidateCompetitionMappings(IReadOnlyDictionary<string, DataTable> tables,
+        DataTable objects, ICollection<CompdataValidationIssue> issues)
+    {
+        if (!tables.TryGetValue("compids", out var compIds) ||
+            !tables.TryGetValue("settings", out var settings)) return;
+        var registered = compIds.Rows.Cast<DataRow>()
+            .Select(row => TryInt(row, 0, out var id) ? id : -1).Where(id => id >= 0).ToHashSet();
+        for (var row = 0; row < objects.Rows.Count; row++)
+        {
+            var data = objects.Rows[row];
+            if (!TryInt(data, 0, out var objectId) || !TryInt(data, 1, out var type) || type != 3) continue;
+            var shortName = Convert.ToString(data[2])?.Trim() ?? string.Empty;
+            if (shortName.Length < 2 || shortName[0] != 'C' ||
+                !int.TryParse(shortName[1..], out var databaseId) || databaseId <= 0) continue;
+            if (!registered.Contains(objectId))
+                issues.Add(CompdataValidationIssue.Error("compids", 0,
+                    $"Competition object {objectId} ({shortName}) is not registered."));
+            var linkedSettings = settings.Rows.Cast<DataRow>()
+                .Where(setting => TryInt(setting, 0, out var id) && id == objectId).ToArray();
+            var assetMapped = linkedSettings.Any(setting =>
+                string.Equals(Convert.ToString(setting[1])?.Trim(), "asset_id", StringComparison.OrdinalIgnoreCase) &&
+                TryInt(setting, 2, out var assetId) && assetId == databaseId);
+            if (!assetMapped)
+                issues.Add(CompdataValidationIssue.Error("settings", 0,
+                    $"Competition object {objectId} must map asset_id {databaseId} from {shortName}."));
+            var hasType = linkedSettings.Any(setting =>
+                string.Equals(Convert.ToString(setting[1])?.Trim(), "comp_type", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(Convert.ToString(setting[2])));
+            if (!hasType)
+                issues.Add(CompdataValidationIssue.Error("settings", 0,
+                    $"Competition object {objectId} ({shortName}) has no comp_type setting."));
+        }
+    }
+
+    private static bool IsValidParentType(int type, int parentType) => type switch
+    {
+        1 => parentType == 0,
+        2 => parentType == 1,
+        3 => parentType is 0 or 1 or 2,
+        4 => parentType == 3,
+        5 => parentType is 4 or 5 or 6,
+        6 => parentType == 1,
+        _ => false,
+    };
+
+    private static void ValidateUniqueRows(IReadOnlyDictionary<string, DataTable> tables, string sheet,
+        IReadOnlyList<int> columns, string message, ICollection<CompdataValidationIssue> issues)
+    {
+        if (!tables.TryGetValue(sheet, out var table)) return;
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var row = 0; row < table.Rows.Count; row++)
+        {
+            var values = new List<string>(columns.Count);
+            var complete = true;
+            foreach (var column in columns)
+            {
+                if (column >= table.Columns.Count || string.IsNullOrWhiteSpace(Convert.ToString(table.Rows[row][column])))
+                { complete = false; break; }
+                values.Add(Convert.ToString(table.Rows[row][column])!.Trim());
+            }
+            if (complete && !keys.Add(string.Join("|", values)))
+                issues.Add(CompdataValidationIssue.Error(sheet, row + 1, message));
+        }
     }
 
     private static void ValidateCalendar(IReadOnlyDictionary<string, DataTable> tables,
@@ -164,7 +254,11 @@ internal static class CompdataSchema
         if (!tables.TryGetValue(sheet, out var table)) return;
         for (var row = 0; row < table.Rows.Count; row++)
         {
-            if (!TryInt(table.Rows[row], column, out var id)) continue;
+            if (!TryInt(table.Rows[row], column, out var id))
+            {
+                issues.Add(CompdataValidationIssue.Error(sheet, row + 1, $"{label} is required and must be an integer."));
+                continue;
+            }
             if (!types.TryGetValue(id, out var actual))
                 issues.Add(CompdataValidationIssue.Error(sheet, row + 1, $"{label} {id} does not exist in compobj."));
             else if (!expectedTypes.Contains(actual))

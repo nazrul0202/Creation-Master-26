@@ -406,6 +406,11 @@ internal sealed class Fc26CompdataPanel : UserControl
         var readyCount = 0;
         foreach (var competition in CompetitionChoices())
         {
+            var competitionRow = objects.Rows.Cast<DataRow>().First(row =>
+                Int(row, 0, out var objectId) && objectId == competition.Id);
+            var shortCode = Value(competitionRow, 2).Trim();
+            var databaseId = shortCode.Length > 1 && shortCode[0] == 'C' &&
+                int.TryParse(shortCode.Substring(1), out var parsedDatabaseId) ? parsedDatabaseId : -1;
             var stages = objects.Rows.Cast<DataRow>().Where(row => Int(row, 0, out _) && Int(row, 1, out var type) && type == 4 && Int(row, 4, out var parent) && parent == competition.Id)
                 .Select(row => Convert.ToInt32(Value(row, 0))).ToArray();
             var groups = objects.Rows.Cast<DataRow>().Count(row => Int(row, 1, out var type) && type == 5 && Int(row, 4, out var parent) && stages.Contains(parent));
@@ -413,10 +418,22 @@ internal sealed class Fc26CompdataPanel : UserControl
             var teams = initTeams?.Rows.Cast<DataRow>().Count(row => Value(row, 0) == competition.Id.ToString()) ?? 0;
             var calendarRows = schedule?.Rows.Cast<DataRow>().Count(row => Int(row, 0, out var id) && stages.Contains(id)) ?? 0;
             var settingRows = settings?.Rows.Cast<DataRow>().Count(row => Value(row, 0) == competition.Id.ToString() || (Int(row, 0, out var id) && stages.Contains(id))) ?? 0;
-            var ready = mapped && stages.Length > 0 && groups > 0 && teams >= 2 && calendarRows > 0;
+            var assetMapped = databaseId > 0 && settings != null && settings.Rows.Cast<DataRow>().Any(row =>
+                Value(row, 0) == competition.Id.ToString() &&
+                string.Equals(Value(row, 1).Trim(), "asset_id", StringComparison.OrdinalIgnoreCase) &&
+                Value(row, 2).Trim() == databaseId.ToString());
+            var hasCompetitionType = settings != null && settings.Rows.Cast<DataRow>().Any(row =>
+                Value(row, 0) == competition.Id.ToString() &&
+                string.Equals(Value(row, 1).Trim(), "comp_type", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(Value(row, 2)));
+            var ready = mapped && assetMapped && hasCompetitionType && stages.Length > 0 && groups > 0 && teams >= 2 && calendarRows > 0;
             if (ready) readyCount++;
             lines.Add((ready ? "[READY] " : "[NEEDS SETUP] ") + competition.Id + " · " + competition.Name);
             lines.Add("  Database link: " + (mapped ? "OK" : "MISSING"));
+            lines.Add("  Database competition ID: " + (databaseId > 0 ? databaseId.ToString() : "INVALID"));
+            lines.Add("  Asset ID / competition type: " +
+                (assetMapped ? "OK" : "MISSING OR MISMATCHED") + " / " +
+                (hasCompetitionType ? "OK" : "MISSING"));
             lines.Add("  Stages / groups: " + stages.Length + " / " + groups);
             lines.Add("  Assigned teams: " + teams + (teams >= 2 ? " (OK)" : " (minimum 2)"));
             lines.Add("  Calendar rows: " + calendarRows + (calendarRows > 0 ? " (OK)" : " (MISSING)"));

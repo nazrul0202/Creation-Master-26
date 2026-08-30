@@ -1414,9 +1414,10 @@ public class MainForm : Form
 				statusBar.Text = "Save paused — use Fix Selected in Save Preflight.";
 				return;
 			}
+			var preparedCompdataLeagues = 0;
 			try
 			{
-				StagePendingLeagueCompdata();
+				preparedCompdataLeagues = StagePendingLeagueCompdata();
 			}
 			catch (Exception ex)
 			{
@@ -1430,11 +1431,17 @@ public class MainForm : Form
 			statusBar.Text = "Saving FC26 database and Frostbite archives...";
 			statusBar.GetCurrentParent().Refresh();
 			statusBar.Text = Fc26HostBridge.Save();
-			m_PendingLeagueCompdataIds.Clear();
-			m_PendingTeamIds.Clear();
-			m_PendingPlayerIds.Clear();
-			m_LastSaveCommitted = true;
-			ShowFc26SaveProof(pendingLeagues, pendingTeams, sourceRoot, sourceFolder, statusBar.Text);
+			var committed = !statusBar.Text.StartsWith("No database or asset changes", StringComparison.OrdinalIgnoreCase) &&
+				!statusBar.Text.StartsWith("No extracted-database changes", StringComparison.OrdinalIgnoreCase);
+			if (committed)
+			{
+				m_PendingLeagueCompdataIds.Clear();
+				m_PendingTeamIds.Clear();
+				m_PendingPlayerIds.Clear();
+			}
+			m_LastSaveCommitted = committed;
+			ShowFc26SaveProof(pendingLeagues, pendingTeams, sourceRoot, sourceFolder, statusBar.Text,
+				preparedCompdataLeagues, committed);
 			return;
 		}
 		FifaEnvironment.Save(statusBar);
@@ -1442,16 +1449,21 @@ public class MainForm : Form
 	}
 
 	private void ShowFc26SaveProof(IEnumerable<int> leagueIds, IEnumerable<int> teamIds,
-		string sourceRoot, string sourceFolder, string saveMessage)
+		string sourceRoot, string sourceFolder, string saveMessage, int preparedCompdataLeagues, bool committed)
 	{
 		var leagues = (leagueIds ?? Array.Empty<int>()).Where(value => value > 0).Distinct().ToArray();
 		var teams = (teamIds ?? Array.Empty<int>()).Where(value => value > 0).Distinct().ToArray();
 		var lines = new List<string>
 		{
 			"CM26 SAVE PROOF", new string('=', 42), string.Empty,
-			"[PASS] Transactional save: " + (saveMessage ?? "committed"),
-			"[PASS] Backup: timestamped backup created by the FC26 save engine.",
-			"[PASS] Compdata: generated, validated and staged before commit.",
+			(committed ? "[PASS] Transactional save: " : "[CHECK] Transactional save: ") + (saveMessage ?? "no result"),
+			committed ? "[PASS] Backup: timestamped backup created by the FC26 save engine." :
+				"[CHECK] Backup: no backup was required because no changes were committed.",
+			leagues.Length == 0
+				? "[PASS] Compdata: existing Compdata was not changed by this save."
+				: preparedCompdataLeagues == leagues.Length && committed
+					? "[PASS] Compdata: " + preparedCompdataLeagues + " league setup(s) generated, validated, staged and committed."
+					: "[CHECK] Compdata: requested league setup was not fully committed.",
 			""
 		};
 		var reloadOk = false;
@@ -1483,9 +1495,10 @@ public class MainForm : Form
 		lines.Add(reloadOk ? "[PASS] Reload snapshot: current database was reloaded." : "[CHECK] Reload snapshot: source could not be reloaded; save is still committed.");
 		lines.Add(linkOk ? "[PASS] Proof rows: league/team IDs and links are present." : "[CHECK] Proof rows: review the League/Team relationship section.");
 		lines.Add(string.Empty);
-		lines.Add(reloadOk && linkOk ? "CAREER READY" : "CAREER READY WITH REVIEW");
+		lines.Add(!committed ? "NO CHANGES COMMITTED" : reloadOk && linkOk ? "CAREER READY" : "CAREER READY WITH REVIEW");
 		lines.Add("Start a new Career after database or Compdata changes; an existing Career keeps its old competition snapshot.");
-		using (var proof = new Fc26SaveProofDialog("Save Proof — Career Ready", string.Join(Environment.NewLine, lines)))
+		using (var proof = new Fc26SaveProofDialog(committed ? "Save Proof — Career Ready" : "Save Proof — No Changes",
+			string.Join(Environment.NewLine, lines)))
 			proof.ShowDialog(this);
 	}
 
@@ -3520,8 +3533,9 @@ public class MainForm : Form
 		}
 	}
 
-	private void StagePendingLeagueCompdata()
+	private int StagePendingLeagueCompdata()
 	{
+		var staged = 0;
 		foreach (var leagueId in m_PendingLeagueCompdataIds.ToArray())
 		{
 			var league = FifaEnvironment.Leagues.SearchId(leagueId) as League;
@@ -3532,7 +3546,9 @@ public class MainForm : Form
 			statusBar.Text = "Preparing " + league + " for the game...";
 			statusBar.GetCurrentParent().Refresh();
 			m_TrophyForm.StageLeagueForSave(league);
+			staged++;
 		}
+		return staged;
 	}
 
 	internal void MakeLeagueInGameReady(League league)

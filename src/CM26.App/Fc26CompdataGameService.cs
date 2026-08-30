@@ -25,14 +25,22 @@ internal static class Fc26CompdataGameService
 
         var output = Path.Combine(Path.GetTempPath(), "cm26-installed-compdata-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(output);
-        foreach (var sheet in SheetNames)
+        try
         {
-            var logicalPath = LogicalPrefix + sheet + ".txt";
-            var exported = assets.ExportLegacyAsset(logicalPath)
-                ?? throw new FileNotFoundException("FC26 Compdata asset was not found: " + logicalPath);
-            File.Copy(exported, Path.Combine(output, sheet + ".txt"), overwrite: true);
+            foreach (var sheet in SheetNames)
+            {
+                var logicalPath = LogicalPrefix + sheet + ".txt";
+                var exported = assets.ExportLegacyAsset(logicalPath)
+                    ?? throw new FileNotFoundException("FC26 Compdata asset was not found: " + logicalPath);
+                File.Copy(exported, Path.Combine(output, sheet + ".txt"), overwrite: true);
+            }
+            return output;
         }
-        return output;
+        catch
+        {
+            try { Directory.Delete(output, recursive: true); } catch { }
+            throw;
+        }
     }
 
     internal static int StageForDirectSave(IReadOnlyDictionary<string, DataTable> tables)
@@ -55,21 +63,54 @@ internal static class Fc26CompdataGameService
         try
         {
             CompdataWorkbookService.ExportTextFiles(output, tables);
-            var staged = 0;
+            VerifyTextRoundTrip(output, tables);
+            var targets = new List<(string LogicalPath, string SourcePath)>();
             foreach (var sheet in SheetNames.Where(tables.ContainsKey))
             {
                 var logicalPath = LogicalPrefix + sheet + ".txt";
                 _ = assets.ExportLegacyAsset(logicalPath)
                     ?? throw new FileNotFoundException("FC26 Compdata target was not found: " + logicalPath);
-                mods.StageFile(logicalPath, Path.Combine(output, sheet + ".txt"));
-                staged++;
+                targets.Add((logicalPath, Path.Combine(output, sheet + ".txt")));
             }
-            return staged;
+            // Do not persist a partial Compdata set: every exported file and every
+            // FC26 target is proven before the replacement set enters Save state,
+            // then all replacement metadata is committed in one workspace write.
+            mods.StageFilesAtomically(targets.Select(target => (target.LogicalPath, target.SourcePath)));
+            return targets.Count;
         }
         finally
         {
             try { if (Directory.Exists(output)) Directory.Delete(output, recursive: true); }
             catch (Exception ex) { Program.Log("Compdata staging cleanup failed: " + ex.Message); }
         }
+    }
+
+    private static void VerifyTextRoundTrip(string output,
+        IReadOnlyDictionary<string, DataTable> expected)
+    {
+        var verify = new CompdataWorkbookService();
+        verify.OpenFromGameFolder(output);
+        foreach (var sheet in SheetNames.Where(expected.ContainsKey))
+        {
+            var source = expected[sheet];
+            var saved = verify.ReadSheet(sheet);
+            if (saved.Rows.Count != source.Rows.Count || saved.Columns.Count != source.Columns.Count)
+                throw new InvalidDataException($"Compdata export verification failed for '{sheet}': row or column count changed.");
+            for (var row = 0; row < source.Rows.Count; row++)
+            for (var column = 0; column < source.Columns.Count; column++)
+            {
+                var before = NormalizeCell(source.Rows[row][column]);
+                var after = NormalizeCell(saved.Rows[row][column]);
+                if (!string.Equals(before, after, StringComparison.Ordinal))
+                    throw new InvalidDataException(
+                        $"Compdata export verification failed for '{sheet}' row {row + 1}, column {column + 1}.");
+            }
+        }
+    }
+
+    private static string NormalizeCell(object value)
+    {
+        var text = Convert.ToString(value)?.Trim() ?? string.Empty;
+        return string.IsNullOrWhiteSpace(text) ? string.Empty : text;
     }
 }

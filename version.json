@@ -1,6 +1,6 @@
 {
-  "version": "1.0.178",
+  "version": "1.0.179",
   "name": "Creation Master 26",
-  "notes": "v1.0.178 - responsive FC26 loading, fast player-name allocation and reliable structural row mapping during Save.",
+  "notes": "v1.0.179 - audited FC26 Compdata mapping, atomic staging and honest Career Ready proof.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

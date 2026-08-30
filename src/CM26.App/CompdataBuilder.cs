@@ -17,24 +17,39 @@ internal static class CompdataBuilder
         IReadOnlyDictionary<string, DataTable> tables, CompdataLeagueBuildRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name)) throw new InvalidOperationException("Competition name is required.");
-        if (request.DatabaseCompetitionId < 0) throw new InvalidOperationException("Database Competition ID must be zero or greater.");
+        if (request.DatabaseCompetitionId <= 0) throw new InvalidOperationException("Database Competition ID must be greater than zero.");
         if (request.Stages is < 1 or > 32 || request.GroupsPerStage is < 1 or > 64)
             throw new InvalidOperationException("Stages must be 1–32 and groups per stage must be 1–64.");
-        Require(tables, "compobj", "compids", "standings", "schedule");
+        Require(tables, "compobj", "compids", "settings", "standings", "schedule");
+
+        var competitionCode = "C" + request.DatabaseCompetitionId;
+        if (tables["compobj"].Rows.Cast<DataRow>().Any(row =>
+                TryInt(row, 1, out var type) && type == 3 &&
+                string.Equals(Convert.ToString(row[2])?.Trim(), competitionCode, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"Database competition {request.DatabaseCompetitionId} already has a Compdata object.");
+        var world = tables["compobj"].Rows.Cast<DataRow>().FirstOrDefault(row =>
+            TryInt(row, 0, out _) && TryInt(row, 1, out var type) && type == 0 &&
+            TryInt(row, 4, out var parent) && parent == -1);
+        if (world == null || !TryInt(world, 0, out var worldObjectId))
+            throw new InvalidOperationException("The Compdata source has no valid World root object.");
 
         var groupCount = checked(request.Stages * request.GroupsPerStage);
         CompdataSchema.EnsureCapacity(tables, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
         {
             ["compobj"] = 1 + request.Stages + groupCount,
             ["compids"] = 1,
+            ["settings"] = 2,
             ["standings"] = groupCount,
             ["schedule"] = request.Stages,
         });
 
         var objectIds = ReserveObjectIds(tables["compobj"], 1 + request.Stages + groupCount);
         var competitionId = objectIds.Dequeue();
-        Add(tables["compobj"], competitionId, 3, request.Name, request.Name, string.Empty);
+        Add(tables["compobj"], competitionId, 3, competitionCode,
+            $"TrophyName_Abbr15_{request.DatabaseCompetitionId}", worldObjectId);
         Add(tables["compids"], competitionId);
+        Add(tables["settings"], competitionId, "asset_id", request.DatabaseCompetitionId);
+        Add(tables["settings"], competitionId, "comp_type", "CUP");
 
         var stages = new List<int>();
         var groups = new List<int>();

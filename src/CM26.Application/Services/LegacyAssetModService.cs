@@ -94,6 +94,64 @@ public sealed class LegacyAssetModService
     }
 
     /// <summary>
+    /// Stages a related set of legacy files as one workspace operation. All
+    /// sources are validated and copied before the replacement state is
+    /// changed, and the state file is written once. This prevents a partial
+    /// Compdata set from surviving when one of its files cannot be prepared.
+    /// </summary>
+    public IReadOnlyList<string> StageFilesAtomically(
+        IEnumerable<(string LegacyPath, string SourcePath)> files)
+    {
+        if (string.IsNullOrWhiteSpace(_workspace))
+            throw new InvalidOperationException("Open FC26 before staging legacy files.");
+        var requests = files.Select(item =>
+            (LegacyPath: Normalize(item.LegacyPath), item.SourcePath)).ToArray();
+        if (requests.Length == 0) return Array.Empty<string>();
+        if (requests.Select(item => item.LegacyPath).Distinct(StringComparer.OrdinalIgnoreCase).Count() != requests.Length)
+            throw new InvalidOperationException("A legacy path was included more than once in the same staging operation.");
+        foreach (var request in requests)
+            if (!File.Exists(request.SourcePath))
+                throw new FileNotFoundException("Legacy file was not found.", request.SourcePath);
+
+        var previous = new Dictionary<string, Replacement>(_replacements, StringComparer.OrdinalIgnoreCase);
+        var protectedPaths = previous.Values.Select(item => item.SourcePath)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var prepared = new List<Replacement>(requests.Length);
+        try
+        {
+            foreach (var request in requests)
+            {
+                var pathHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+                    System.Text.Encoding.UTF8.GetBytes(request.LegacyPath)))[..20];
+                string contentHash;
+                using (var stream = File.OpenRead(request.SourcePath))
+                    contentHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stream))[..12];
+                var extension = Path.GetExtension(request.SourcePath);
+                var destination = Path.Combine(_workspace, "assets", pathHash + "-" + contentHash +
+                    (string.IsNullOrWhiteSpace(extension) ? ".bin" : extension.ToLowerInvariant()));
+                File.Copy(request.SourcePath, destination, overwrite: true);
+                prepared.Add(new Replacement(request.LegacyPath, destination));
+            }
+            foreach (var replacement in prepared)
+                _replacements[replacement.LegacyPath] = replacement;
+            SaveState();
+        }
+        catch
+        {
+            _replacements.Clear();
+            foreach (var item in previous) _replacements[item.Key] = item.Value;
+            foreach (var path in prepared.Select(item => item.SourcePath).Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (protectedPaths.Contains(path)) continue;
+                try { if (File.Exists(path)) File.Delete(path); } catch { }
+            }
+            throw;
+        }
+        Changed?.Invoke(this, EventArgs.Empty);
+        return prepared.Select(item => item.SourcePath).ToArray();
+    }
+
+    /// <summary>
     /// Stages the main database and, only when it was actually edited, the
     /// encrypted locale database.  Shipping an unchanged eng_us.db makes FIFA
     /// Mod Manager run its Dynamic Loc cleanup, which can fail on locked cache
