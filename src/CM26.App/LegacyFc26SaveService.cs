@@ -35,10 +35,16 @@ internal static class LegacyFc26SaveService
         using var session = new DatabaseSession();
         session.Load(workspace.DatabaseFolder);
         var failures = new List<string>();
-        ApplyStructuralChanges(session, plan.StructuralChanges, failures);
+        var rowMap = ApplyStructuralChanges(session, plan.StructuralChanges, failures);
         foreach (var change in plan.Changes)
         {
-            var outcome = session.StageEdit(ActualTable(change.TableName), change.RowIndex, change.FieldName, change.Value);
+            var tableName = ActualTable(change.TableName);
+            if (!rowMap.TryTranslate(tableName, change.RowIndex, out var actualRow))
+            {
+                failures.Add($"{change.TableName}[{change.RowIndex}].{change.FieldName}: row was removed or could not be mapped after structural changes");
+                continue;
+            }
+            var outcome = session.StageEdit(tableName, actualRow, change.FieldName, change.Value);
             if (!outcome.Success)
                 failures.Add($"{change.TableName}[{change.RowIndex}].{change.FieldName}: {outcome.Message}");
         }
@@ -60,7 +66,8 @@ internal static class LegacyFc26SaveService
         {
             verification.Load(stagingFolder);
             var mismatches = plan.Changes.Where(change =>
-                !string.Equals(verification.GetCell(ActualTable(change.TableName), change.RowIndex, change.FieldName),
+                !rowMap.TryTranslate(ActualTable(change.TableName), change.RowIndex, out var actualRow) ||
+                !string.Equals(verification.GetCell(ActualTable(change.TableName), actualRow, change.FieldName),
                     change.Value, StringComparison.Ordinal)).Take(8).ToList();
             if (mismatches.Count > 0)
                 throw new InvalidOperationException("FC26 reload verification failed: " +
@@ -88,8 +95,8 @@ internal static class LegacyFc26SaveService
         using var session = new DatabaseSession();
         session.Load(plan.DatabaseFolder);
         var failures = new List<string>();
-        ApplyStructuralChanges(session, plan.StructuralChanges, failures);
-        failures.AddRange(StageChanges(session, plan.Changes));
+        var rowMap = ApplyStructuralChanges(session, plan.StructuralChanges, failures);
+        failures.AddRange(StageChanges(session, rowMap, plan.Changes));
         if (failures.Count > 0)
             throw new InvalidOperationException("FC26 rejected the edit plan: " + string.Join("; ", failures.Take(8)));
         var saved = new SaveService(session).SaveToSourceFolder();
@@ -97,31 +104,65 @@ internal static class LegacyFc26SaveService
         return $"Saved and reload-verified {plan.Changes.Count} field edit(s) and {plan.StructuralChanges.Count} structural edit(s) to the extracted database. {saved.Message}";
     }
 
-    private static void ApplyStructuralChanges(DatabaseSession session, IReadOnlyList<StructuralChange> structural, List<string> failures)
+    private static RowIndexMap ApplyStructuralChanges(DatabaseSession session,
+        IReadOnlyList<StructuralChange> structural, List<string> failures)
     {
+        var rowMap = RowIndexMap.Create(session);
         foreach (var change in structural.Where(value => value.Kind.Equals("duplicate", StringComparison.OrdinalIgnoreCase)))
         {
-            var outcome = session.DuplicateRow(ActualTable(change.TableName), change.RowIndex);
-            if (!outcome.Success) failures.Add($"Duplicate {change.TableName}[{change.RowIndex}]: {outcome.Message}");
-            else session.RefreshSchema();
+            var tableName = ActualTable(change.TableName);
+            if (!rowMap.TryTranslate(tableName, change.RowIndex, out var actualSource))
+            {
+                failures.Add($"Duplicate {change.TableName}[{change.RowIndex}]: source row could not be mapped after an earlier structural change.");
+                continue;
+            }
+            var target = change.TargetRowIndex >= 0
+                ? change.TargetRowIndex
+                : rowMap.NextPlannedIndex(tableName);
+            var outcome = session.DuplicateRow(tableName, actualSource);
+            if (!outcome.Success)
+            {
+                failures.Add($"Duplicate {change.TableName}[{change.RowIndex}]: {outcome.Message}");
+                continue;
+            }
+            rowMap.InsertAfter(tableName, target, actualSource + 1);
+            session.RefreshSchema();
         }
         // Deletions are deliberately isolated by the legacy UI. Process descending
         // indexes so a future multi-delete plan cannot invalidate a later index.
         foreach (var change in structural.Where(value => value.Kind.Equals("delete", StringComparison.OrdinalIgnoreCase))
                      .OrderBy(value => value.TableName).ThenByDescending(value => value.RowIndex))
         {
-            var outcome = session.DeleteRowWithRelationships(ActualTable(change.TableName), change.RowIndex);
-            if (!outcome.Success) failures.Add($"Delete {change.TableName}[{change.RowIndex}]: {outcome.Message}");
-            else session.RefreshSchema();
+            var tableName = ActualTable(change.TableName);
+            if (!rowMap.TryTranslate(tableName, change.RowIndex, out var actualRow))
+            {
+                failures.Add($"Delete {change.TableName}[{change.RowIndex}]: source row could not be mapped after an earlier structural change.");
+                continue;
+            }
+            var outcome = session.DeleteRowWithRelationships(tableName, actualRow);
+            if (!outcome.Success)
+            {
+                failures.Add($"Delete {change.TableName}[{change.RowIndex}]: {outcome.Message}");
+                continue;
+            }
+            rowMap.RemoveAt(tableName, change.RowIndex, actualRow);
+            session.RefreshSchema();
         }
+        return rowMap;
     }
 
-    private static List<string> StageChanges(DatabaseSession session, IEnumerable<Change> changes)
+    private static List<string> StageChanges(DatabaseSession session, RowIndexMap rowMap, IEnumerable<Change> changes)
     {
         var failures = new List<string>();
         foreach (var change in changes)
         {
-            var outcome = session.StageEdit(ActualTable(change.TableName), change.RowIndex, change.FieldName, change.Value);
+            var tableName = ActualTable(change.TableName);
+            if (!rowMap.TryTranslate(tableName, change.RowIndex, out var actualRow))
+            {
+                failures.Add($"{change.TableName}[{change.RowIndex}].{change.FieldName}: row was removed or could not be mapped after structural changes");
+                continue;
+            }
+            var outcome = session.StageEdit(tableName, actualRow, change.FieldName, change.Value);
             if (!outcome.Success)
                 failures.Add($"{change.TableName}[{change.RowIndex}].{change.FieldName}: {outcome.Message}");
         }
@@ -136,6 +177,70 @@ internal static class LegacyFc26SaveService
         plan.Changes.Any(change => change.TableName.StartsWith("locale::", StringComparison.OrdinalIgnoreCase)) ||
         plan.StructuralChanges.Any(change => change.TableName.StartsWith("locale::", StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// Keeps the editor's append-oriented row numbers aligned with the native
+    /// engine.  DatabaseEngine.DuplicateRow inserts immediately after the
+    /// source row; the legacy snapshot deliberately appends the clone so the
+    /// UI can keep stable row references while a wizard is open.  Every insert
+    /// therefore shifts later native rows and must be translated before a field
+    /// is staged (and again when reload verification reads it).
+    /// </summary>
+    private sealed class RowIndexMap
+    {
+        private readonly Dictionary<string, Dictionary<int, int>> _rows =
+            new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, int> _nextPlanned =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        internal static RowIndexMap Create(DatabaseSession session)
+        {
+            var result = new RowIndexMap();
+            foreach (var table in session.Tables)
+            {
+                var indexes = new Dictionary<int, int>();
+                for (var row = 0; row < table.RowCount; row++) indexes[row] = row;
+                result._rows[table.Name] = indexes;
+                result._nextPlanned[table.Name] = table.RowCount;
+            }
+            return result;
+        }
+
+        internal bool TryTranslate(string tableName, int plannedRow, out int actualRow)
+        {
+            actualRow = -1;
+            return _rows.TryGetValue(tableName, out var indexes) &&
+                   indexes.TryGetValue(plannedRow, out actualRow);
+        }
+
+        internal int NextPlannedIndex(string tableName)
+        {
+            if (!_nextPlanned.TryGetValue(tableName, out var next))
+                next = 0;
+            _nextPlanned[tableName] = next + 1;
+            return next;
+        }
+
+        internal void InsertAfter(string tableName, int targetPlanned, int actualInserted)
+        {
+            if (!_rows.TryGetValue(tableName, out var indexes))
+                _rows[tableName] = indexes = new Dictionary<int, int>();
+
+            foreach (var key in indexes.Keys.ToArray())
+                if (indexes[key] >= actualInserted) indexes[key]++;
+            indexes[targetPlanned] = actualInserted;
+            if (!_nextPlanned.TryGetValue(tableName, out var next) || targetPlanned >= next)
+                _nextPlanned[tableName] = targetPlanned + 1;
+        }
+
+        internal void RemoveAt(string tableName, int plannedRow, int actualRow)
+        {
+            if (!_rows.TryGetValue(tableName, out var indexes)) return;
+            indexes.Remove(plannedRow);
+            foreach (var key in indexes.Keys.ToArray())
+                if (indexes[key] > actualRow) indexes[key]--;
+        }
+    }
+
     private sealed class ChangePlan
     {
         public List<Change> Changes { get; set; } = new();
@@ -149,6 +254,7 @@ internal static class LegacyFc26SaveService
         public string Kind { get; set; } = string.Empty;
         public string TableName { get; set; } = string.Empty;
         public int RowIndex { get; set; }
+        public int TargetRowIndex { get; set; } = -1;
     }
 
     private sealed class Change

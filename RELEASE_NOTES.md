@@ -1,5 +1,22 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.178 - responsive loading and structural Save reliability (2026-08-30)
+
+- Moved installed-game, extracted-database and saved-project FC26 loading away
+  from the WinForms UI thread. The classic window stays responsive and shows a
+  live progress state while the host reads and converts the database.
+- Replaced repeated full `playernames` scans during guided player/team creation
+  with a snapshot-scoped ID/text index. Creating a starter roster no longer
+  performs a 41,000-row scan for every generated name.
+- Fixed structural duplicate row mapping between the append-oriented editor
+  snapshot and the native engine's insert-after-source behaviour. New league,
+  team, player, relationship and name rows now stage fields at their real native
+  positions instead of failing with `playernames row 41190 was not found`.
+- Added native fallback resolution for newly duplicated player-name rows and
+  reload verification against the translated row positions.
+- Kept core-table decompression serial inside the 32-bit classic shell to avoid
+  memory spikes while the background loader keeps the interface responsive.
+
 ## Version 1.0.177 - shared player-name safety and ID diagnostics (2026-08-30)
 
 - Fixed the FC26 Save warning where editing one player could try to rewrite a

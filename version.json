@@ -1,6 +1,6 @@
 {
-  "version": "1.0.177",
+  "version": "1.0.178",
   "name": "Creation Master 26",
-  "notes": "v1.0.177 - safe shared player-name allocation, ID availability diagnostics and append-safe guided creation.",
+  "notes": "v1.0.178 - responsive FC26 loading, fast player-name allocation and reliable structural row mapping during Save.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

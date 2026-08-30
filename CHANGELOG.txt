@@ -1,3 +1,13 @@
+Creation Master 26 v1.0.178 - 30 August 2026
+------------------------------------------------------------
+- Kept the classic UI responsive while installed, extracted and project FC26
+  sources are read and decoded, with a visible progress indicator.
+- Cached player-name ID/text allocation so starter-roster creation does not
+  repeatedly scan the full 41k-row dictionary.
+- Fixed appended snapshot rows mapping to insert-after-source native rows,
+  including the `playernames row 41190 was not found` Save failure.
+- Reload verification now checks the translated native row positions.
+
 Creation Master 26 v1.0.177 - 30 August 2026
 ------------------------------------------------------------
 - Fixed shared FC26 player-name IDs being edited to conflicting values; edited

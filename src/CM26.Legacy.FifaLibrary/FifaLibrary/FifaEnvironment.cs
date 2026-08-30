@@ -465,6 +465,19 @@ public class FifaEnvironment
 	}
 
 	/// <summary>
+	/// Creates the two legacy dialog services on the WinForms UI thread before
+	/// FC26 snapshot decoding is moved to a worker thread.  The original
+	/// InitializeFc26Bridge method keeps a lazy fallback for command-line and
+	/// older callers, but constructing a Form from the decoder thread can make
+	/// WinForms hang or throw when it first touches Windows message state.
+	/// </summary>
+	public static void PrepareFc26UiServices()
+	{
+		if (m_UserMessages == null) m_UserMessages = new UserMessage();
+		if (m_UserOptions == null) m_UserOptions = new UserOptions();
+	}
+
+	/// <summary>
 	/// Establishes constructor dependencies used by the original CM16 model
 	/// while FC26 rows are being converted into those model objects.
 	/// </summary>

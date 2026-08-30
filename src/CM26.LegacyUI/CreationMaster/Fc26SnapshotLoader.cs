@@ -31,6 +31,18 @@ internal static class Fc26SnapshotLoader
     /// detect genuine user edits; decode artifacts must never be staged as edits.</summary>
     private static readonly Dictionary<int, string> s_loadedPlayerNames =
         new Dictionary<int, string>();
+    // Player-name allocation is on the create-player hot path.  Keep one
+    // decoded lookup for the lifetime of the loaded snapshot instead of
+    // rescanning the ~40k-row playernames table for every field of every new
+    // roster player.
+    private static bool s_playerNameIndexReady;
+    private static readonly Dictionary<int, string> s_playerNameTextById =
+        new Dictionary<int, string>();
+    private static readonly Dictionary<string, HashSet<int>> s_playerNameIdsByText =
+        new Dictionary<string, HashSet<int>>(StringComparer.Ordinal);
+    private static readonly HashSet<int> s_playerNameUsedIds = new HashSet<int>();
+    private static readonly Dictionary<int, (int Id, string Text)> s_playerNameRowState =
+        new Dictionary<int, (int Id, string Text)>();
     /// <summary>Original name IDs/text for each loaded Player object. FC26 has
     /// many intentionally empty common-name IDs, so the writer must know which
     /// values were changed by the user before allocating a new dictionary row.
@@ -62,12 +74,21 @@ internal static class Fc26SnapshotLoader
     {
         var snapshot = ReadSnapshot(path);
         s_snapshotPath = Path.GetFullPath(path);
-        foreach (var table in snapshot.Tables.Where(table => table.IsCore || s_coreTables.Contains(table.Name)))
+        // The legacy shell is a 32-bit process.  Decode core payloads serially
+        // so peak working-set stays predictable; the UI now runs this method on
+        // a worker thread, so serial decoding no longer makes the window freeze.
+        foreach (var table in snapshot.Tables.Where(table =>
+            table.IsCore || s_coreTables.Contains(table.Name)))
             EnsureRows(table, s_snapshotPath);
         var tables = snapshot.Tables.ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);
         s_snapshot = snapshot;
         s_rowOrigins.Clear();
         s_loadedPlayerNames.Clear();
+        s_playerNameIndexReady = false;
+        s_playerNameTextById.Clear();
+        s_playerNameIdsByText.Clear();
+        s_playerNameUsedIds.Clear();
+        s_playerNameRowState.Clear();
         s_loadedPlayerNameStates.Clear();
         s_loadedFormationRoles.Clear();
         s_loadedTeamSheets.Clear();
@@ -491,31 +512,19 @@ internal static class Fc26SnapshotLoader
         var idColumn = table.Column("nameid");
         var nameColumn = table.Column("name");
         if (idColumn < 0 || nameColumn < 0) return currentId;
+
+        EnsurePlayerNameIndex(table);
         if (currentId > 0)
         {
-            for (var row = 0; row < table.Rows.Count; row++)
-            {
-                if (IsDetailDeleted(table.Name, row) || ParseIntAt(table.Rows[row], idColumn) != currentId)
-                    continue;
+            // A nameid is not an ownership token: many players can point at
+            // one row.  Reuse it only when its current decoded value matches.
+            if (s_playerNameTextById.TryGetValue(currentId, out var current) &&
+                string.Equals(current, value, StringComparison.Ordinal))
+                return currentId;
+        }
+        if (s_playerNameIdsByText.TryGetValue(value, out var matches) && matches.Count > 0)
+            return matches.Min();
 
-                // A nameid is not an ownership token: many players can point
-                // at the same row.  Reuse it only when the row already carries
-                // the requested value.  Prefer the load-time decoded value for
-                // compressed FC26 rows, while staged literal edits use the row
-                // text so they can be reused within the same Save operation.
-                if (string.Equals(DetailPlayerName(table, row, idColumn, nameColumn), value,
-                    StringComparison.Ordinal))
-                    return currentId;
-                break;
-            }
-        }
-        for (var row = 0; row < table.Rows.Count; row++)
-        {
-            if (IsDetailDeleted(table.Name, row)) continue;
-            if (string.Equals(DetailPlayerName(table, row, idColumn, nameColumn), value,
-                StringComparison.Ordinal))
-                return ParseIntAt(table.Rows[row], idColumn);
-        }
         var rowIndex = DuplicateDetailRow(table.Name, 0);
         var id = NextDetailKey(table, "nameid");
         StageDetailValue(table.Name, rowIndex, "nameid", id.ToString(CultureInfo.InvariantCulture));
@@ -534,6 +543,62 @@ internal static class Fc26SnapshotLoader
         if (s_loadedPlayerNames.TryGetValue(id, out var loaded))
             return (loaded ?? string.Empty).Trim();
         return table.Rows[rowIndex][nameColumn]?.Trim() ?? string.Empty;
+    }
+
+    private static void EnsurePlayerNameIndex(SnapshotDetailTable table)
+    {
+        if (s_playerNameIndexReady || !table.Name.Equals("playernames", StringComparison.OrdinalIgnoreCase))
+            return;
+        var idColumn = table.Column("nameid");
+        var nameColumn = table.Column("name");
+        if (idColumn < 0 || nameColumn < 0) return;
+
+        for (var row = 0; row < table.Rows.Count; row++)
+            RegisterPlayerNameRow(table, row);
+        s_playerNameIndexReady = true;
+    }
+
+    private static void RegisterPlayerNameRow(SnapshotDetailTable table, int rowIndex)
+    {
+        if (!table.Name.Equals("playernames", StringComparison.OrdinalIgnoreCase) ||
+            rowIndex < 0 || rowIndex >= table.Rows.Count) return;
+        var idColumn = table.Column("nameid");
+        var nameColumn = table.Column("name");
+        if (idColumn < 0 || nameColumn < 0) return;
+
+        var id = ParseIntAt(table.Rows[rowIndex], idColumn);
+        var text = DetailPlayerName(table, rowIndex, idColumn, nameColumn);
+        if (s_playerNameRowState.TryGetValue(rowIndex, out var previous))
+            RemovePlayerNameIndex(previous.Id, previous.Text);
+        s_playerNameRowState[rowIndex] = (id, text);
+        AddPlayerNameIndex(id, text);
+    }
+
+    private static void AddPlayerNameIndex(int id, string? text)
+    {
+        if (id <= 0) return;
+        s_playerNameUsedIds.Add(id);
+        text = (text ?? string.Empty).Trim();
+        if (text.Length == 0) return;
+        s_playerNameTextById[id] = text;
+        if (!s_playerNameIdsByText.TryGetValue(text, out var ids))
+            s_playerNameIdsByText[text] = ids = new HashSet<int>();
+        ids.Add(id);
+    }
+
+    private static void RemovePlayerNameIndex(int id, string? text)
+    {
+        if (id <= 0) return;
+        text = (text ?? string.Empty).Trim();
+        if (text.Length == 0) return;
+        if (s_playerNameIdsByText.TryGetValue(text, out var ids))
+        {
+            ids.Remove(id);
+            if (ids.Count == 0) s_playerNameIdsByText.Remove(text);
+        }
+        if (s_playerNameTextById.TryGetValue(id, out var current) &&
+            string.Equals(current, text, StringComparison.Ordinal))
+            s_playerNameTextById.Remove(id);
     }
 
     private sealed class PlayerNameState
@@ -561,19 +626,13 @@ internal static class Fc26SnapshotLoader
 
         // Do not rescan the ~40k-row playernames table for every one of the
         // ~20k players on an ordinary Save.  The lookup is only used to prove
-        // that an unchanged reference can stay in place; the slower allocator
-        // is reached for the small number of genuinely edited/new values.
-        var namesById = new Dictionary<int, string>();
+        // that an unchanged reference can stay in place; the allocator is
+        // reached only for the small number of genuinely edited/new values.
         var idColumn = table.Column("nameid");
         var nameColumn = table.Column("name");
         if (idColumn < 0 || nameColumn < 0) return;
-        for (var row = 0; row < table.Rows.Count; row++)
-        {
-            if (IsDetailDeleted(table.Name, row)) continue;
-            var id = ParseIntAt(table.Rows[row], idColumn);
-            if (id > 0 && !namesById.ContainsKey(id))
-                namesById[id] = DetailPlayerName(table, row, idColumn, nameColumn);
-        }
+        EnsurePlayerNameIndex(table);
+        var namesById = s_playerNameTextById;
 
         foreach (Player player in FifaEnvironment.Players)
         {
@@ -642,7 +701,10 @@ internal static class Fc26SnapshotLoader
         if (column < 0) return 1;
         var descriptor = table.ColumnDetails.FirstOrDefault(value =>
             value.Name.Equals(fieldName, StringComparison.OrdinalIgnoreCase));
-        var used = new HashSet<int>(table.Rows.Select(row => ParseIntAt(row, column)).Where(value => value > 0));
+        var used = table.Name.Equals("playernames", StringComparison.OrdinalIgnoreCase) &&
+                   fieldName.Equals("nameid", StringComparison.OrdinalIgnoreCase)
+            ? s_playerNameUsedIds
+            : new HashSet<int>(table.Rows.Select(row => ParseIntAt(row, column)).Where(value => value > 0));
         var highest = used.Count == 0 ? 0L : used.Max();
         var low = descriptor == null ? 1L : Math.Max(1L, descriptor.RangeLow);
         var high = descriptor == null
@@ -853,7 +915,15 @@ internal static class Fc26SnapshotLoader
         if (table == null || rowIndex < 0 || rowIndex >= table.Rows.Count) throw new InvalidOperationException("Selected record is unavailable.");
         var newIndex = table.Rows.Count;
         table.Rows.Add((string[])table.Rows[rowIndex].Clone());
-        s_structuralChanges.Add(new StructuralChange { Kind = "duplicate", TableName = table.Name, RowIndex = rowIndex });
+        s_structuralChanges.Add(new StructuralChange
+        {
+            Kind = "duplicate",
+            TableName = table.Name,
+            RowIndex = rowIndex,
+            TargetRowIndex = newIndex
+        });
+        if (table.Name.Equals("playernames", StringComparison.OrdinalIgnoreCase) && s_playerNameIndexReady)
+            RegisterPlayerNameRow(new SnapshotDetailTable(table.Name, table.Columns, table.ColumnDetails, table.Rows), newIndex);
         Fc26ActivityLog.Add("Clone row", table.Name + "[" + rowIndex + "] → staged row " + newIndex);
         return newIndex;
     }
@@ -884,6 +954,9 @@ internal static class Fc26SnapshotLoader
         var column = Column(table, fieldName);
         if (column < 0 || column >= table.Rows[rowIndex].Length)
             throw new InvalidOperationException("The selected detail field is unavailable.");
+        var isPlayerName = table.Name.Equals("playernames", StringComparison.OrdinalIgnoreCase);
+        if (isPlayerName && s_playerNameIndexReady)
+            RegisterPlayerNameRow(new SnapshotDetailTable(table.Name, table.Columns, table.ColumnDetails, table.Rows), rowIndex);
         var key = table.Name + "\u001f" + rowIndex.ToString(CultureInfo.InvariantCulture) + "\u001f" + fieldName;
         if (!s_detailOriginalValues.TryGetValue(key, out var original))
         {
@@ -906,6 +979,8 @@ internal static class Fc26SnapshotLoader
         // Keep the in-memory view in sync so closing and reopening a details
         // page shows the staged value instead of the old snapshot text.
         table.Rows[rowIndex][column] = value ?? string.Empty;
+        if (isPlayerName && s_playerNameIndexReady)
+            RegisterPlayerNameRow(new SnapshotDetailTable(table.Name, table.Columns, table.ColumnDetails, table.Rows), rowIndex);
         Fc26ActivityLog.Add("Edit", table.Name + "[" + rowIndex + "]." + fieldName + " staged");
     }
 
@@ -1971,6 +2046,11 @@ internal static class Fc26SnapshotLoader
         public string Kind { get; set; } = string.Empty;
         public string TableName { get; set; } = string.Empty;
         public int RowIndex { get; set; }
+        // Snapshot rows are appended for a predictable editor view, while the
+        // native engine inserts a duplicate immediately after its source row.
+        // Persist the editor-side target so the save service can translate it
+        // to the native row index before staging fields.
+        public int TargetRowIndex { get; set; } = -1;
     }
 
     private sealed class Change

@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using CreationMaster.Properties;
 using FifaControls;
 using FifaLibrary;
+using ThreadingTasks = System.Threading.Tasks;
 
 namespace CreationMaster;
 
@@ -22,6 +23,8 @@ public class MainForm : Form
 	private int m_SplitterDistanceBottom;
 
 	private bool m_OpenFileFlag;
+
+	private bool m_Fc26LoadInProgress;
 
 	private bool m_IsShiftPressed;
 
@@ -426,25 +429,19 @@ public class MainForm : Form
 		}
 	}
 
-	private void OpenFc26ProjectSession(string fileName)
+	private async void OpenFc26ProjectSession(string fileName)
 	{
-		try
+		bool loaded = await OpenFc26SnapshotAsync(() =>
 		{
-			Cursor.Current = Cursors.WaitCursor;
 			var project = Fc26ProjectSessionService.Load(fileName);
-			string snapshot;
 			if (project.SourceKind.Equals("installed", StringComparison.OrdinalIgnoreCase) && Directory.Exists(project.GameRoot))
-				snapshot = Fc26HostBridge.OpenGameRoot(project.GameRoot);
+				return Fc26HostBridge.OpenGameRoot(project.GameRoot);
 			else if (Directory.Exists(project.DatabaseFolder))
-				snapshot = Fc26HostBridge.OpenExtractedFolder(project.DatabaseFolder);
-			else
-				throw new DirectoryNotFoundException("The FC26 source stored by this project is no longer available.\r\n" + project.GameRoot + "\r\n" + project.DatabaseFolder);
-			LoadFc26Snapshot(snapshot, showCountry: true);
-			statusBar.Text = "CM26 project loaded: " + fileName;
+				return Fc26HostBridge.OpenExtractedFolder(project.DatabaseFolder);
+			throw new DirectoryNotFoundException("The FC26 source stored by this project is no longer available.\r\n" + project.GameRoot + "\r\n" + project.DatabaseFolder);
+		}, "Opening CM26 project", "CM26 project loaded: " + fileName, "Open CM26 project");
+		if (loaded)
 			Fc26ActivityLog.Add("Project", "Opened CM26 session: " + fileName);
-		}
-		catch (Exception ex) { MessageBox.Show(this, ex.Message, "Open CM26 project", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-		finally { Cursor.Current = Cursors.Default; }
 	}
 
 	internal void ShowFc26CareerSaveModule()
@@ -507,7 +504,7 @@ public class MainForm : Form
 		using (var utilities = new Fc26ModdingUtilitiesForm()) utilities.ShowDialog(this);
 	}
 
-	private void OpenExtractedFc26Database()
+	private async void OpenExtractedFc26Database()
 	{
 		using (var dialog = new FolderBrowserDialog
 		{
@@ -515,17 +512,12 @@ public class MainForm : Form
 		})
 		{
 			if (dialog.ShowDialog(this) != DialogResult.OK) return;
-			try
-			{
-				Cursor.Current = Cursors.WaitCursor;
-				LoadFc26Snapshot(Fc26HostBridge.OpenExtractedFolder(dialog.SelectedPath), showCountry: true);
-				statusBar.Text = "Extracted FC26 database loaded: " + dialog.SelectedPath;
-			}
-			catch (Exception ex)
-			{
-				MessageBox.Show(this, ex.Message, "Open extracted FC26 database", MessageBoxButtons.OK, MessageBoxIcon.Error);
-			}
-			finally { Cursor.Current = Cursors.Default; }
+			string selectedPath = dialog.SelectedPath;
+			await OpenFc26SnapshotAsync(
+				() => Fc26HostBridge.OpenExtractedFolder(selectedPath),
+				"Opening extracted FC26 database",
+				"Extracted FC26 database loaded: " + selectedPath,
+				"Open extracted FC26 database");
 		}
 	}
 
@@ -3163,13 +3155,51 @@ public class MainForm : Form
 		}
 	}
 
-	private void menuOpenFifa16_Click(object sender, EventArgs e)
+	private async void menuOpenFifa16_Click(object sender, EventArgs e)
 	{
+		await OpenFc26SnapshotAsync(Fc26HostBridge.Open,
+			"Opening FC26 database", "FC26 database and Frostbite assets loaded.", "Open FC26");
+	}
+
+	internal void LoadFc26Snapshot(string snapshotPath, bool showCountry)
+	{
+		Fc26SnapshotLoader.Load(snapshotPath);
+		CompleteFc26SnapshotLoad(showCountry);
+	}
+
+	private void CompleteFc26SnapshotLoad(bool showCountry)
+	{
+		m_OpenFileFlag = true;
+		EnablePanels(enable: true);
+		EnableMenus();
+		statusBar.Text = "FC26 database and Frostbite assets loaded.";
+		if (showCountry)
+			ShowFormOnPanel(m_CountryForm, panelMain);
+	}
+
+	private async ThreadingTasks.Task<bool> OpenFc26SnapshotAsync(Func<string> snapshotFactory,
+		string operationStatus, string successStatus, string dialogTitle)
+	{
+		if (m_Fc26LoadInProgress) return false;
+		m_Fc26LoadInProgress = true;
+		SetFc26LoadingState(true);
 		try
 		{
-			Cursor.Current = Cursors.WaitCursor;
-			LoadFc26Snapshot(Fc26HostBridge.Open(), showCountry: true);
+			// UserMessage/UserOptions derive from Form and must be created on the
+			// UI thread before snapshot conversion is dispatched to the worker.
+			FifaEnvironment.PrepareFc26UiServices();
+			statusBar.Text = operationStatus + " — reading source...";
+			string snapshotPath = await ThreadingTasks.Task.Run(snapshotFactory);
+			if (IsDisposed || Disposing) return false;
+
+			statusBar.Text = operationStatus + " — decoding database...";
+			await ThreadingTasks.Task.Run(() => Fc26SnapshotLoader.Load(snapshotPath));
+			if (IsDisposed || Disposing) return false;
+
+			CompleteFc26SnapshotLoad(showCountry: true);
+			statusBar.Text = successStatus;
 			Refresh();
+			return true;
 		}
 		catch (Exception ex)
 		{
@@ -3178,24 +3208,38 @@ public class MainForm : Form
 			var message = ex is OutOfMemoryException
 				? "FC26 data could not be loaded into memory. Close other memory-heavy applications and retry."
 				: "FC26 data could not be opened: " + ex.Message;
-			MessageBox.Show(this, message + "\r\n\r\nDiagnostic log:\r\n" + errorLog,
-				"Open FC26", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			if (!IsDisposed && !Disposing)
+				MessageBox.Show(this, message + "\r\n\r\nDiagnostic log:\r\n" + errorLog,
+					dialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+			return false;
 		}
 		finally
 		{
-			Cursor.Current = Cursors.Default;
+			m_Fc26LoadInProgress = false;
+			if (!IsDisposed && !Disposing) SetFc26LoadingState(false);
 		}
 	}
 
-	internal void LoadFc26Snapshot(string snapshotPath, bool showCountry)
+	private void SetFc26LoadingState(bool loading)
 	{
-		Fc26SnapshotLoader.Load(snapshotPath);
-		m_OpenFileFlag = true;
-		EnablePanels(enable: true);
-		EnableMenus();
-		statusBar.Text = "FC26 database and Frostbite assets loaded.";
-		if (showCountry)
-			ShowFormOnPanel(m_CountryForm, panelMain);
+		UseWaitCursor = loading;
+		Cursor.Current = loading ? Cursors.WaitCursor : Cursors.Default;
+		progressBar.Style = loading ? ProgressBarStyle.Marquee : ProgressBarStyle.Blocks;
+		progressBar.MarqueeAnimationSpeed = loading ? 28 : 0;
+		progressBar.Visible = loading;
+		if (loading)
+		{
+			EnablePanels(enable: false);
+			toolStripMain.Enabled = false;
+			menuOpenFifa16.Enabled = false;
+			menuSave.Enabled = false;
+			menuClose.Enabled = false;
+		}
+		else
+		{
+			EnablePanels(m_OpenFileFlag);
+			EnableMenus();
+		}
 	}
 
 	internal void ShowFc26Section(string section)

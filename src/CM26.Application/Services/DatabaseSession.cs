@@ -143,7 +143,7 @@ public sealed class DatabaseSession : IDisposable
         if (IsMainPlayerNamesName(table, fieldName))
         {
             var names = EnsurePlayerNames();
-            if (names != null && names.RowNameIds.TryGetValue(rowIndex, out var nameId))
+            if (names != null && TryResolvePlayerNameId(tableName, rowIndex, names, out var nameId))
             {
                 if (_pendingNameTexts.TryGetValue(nameId, out var pending)) return pending;
                 return names.NameTexts.GetValueOrDefault(nameId, string.Empty);
@@ -175,7 +175,7 @@ public sealed class DatabaseSession : IDisposable
             var names = EnsurePlayerNames();
             if (names == null || names.Error != null)
                 return Fail(names?.Error ?? "The playernames table is unavailable in this database.");
-            if (!names.RowNameIds.TryGetValue(rowIndex, out var nameId))
+            if (!TryResolvePlayerNameId(tableName, rowIndex, names, out var nameId))
                 return Fail($"playernames row {rowIndex} was not found.");
             _pendingNameTexts[nameId] = value;
             return new EditOutcome { Success = true, Message = "Edit staged" };
@@ -246,6 +246,25 @@ public sealed class DatabaseSession : IDisposable
         if (string.IsNullOrEmpty(dbPath) || string.IsNullOrEmpty(metaPath)) return null;
         _playerNames = PlayerNamesTableRewriter.Read(dbPath, metaPath);
         return _playerNames;
+    }
+
+    private bool TryResolvePlayerNameId(string tableName, int rowIndex,
+        PlayerNamesTableRewriter.TableData names, out int nameId)
+    {
+        if (names.RowNameIds.TryGetValue(rowIndex, out nameId)) return true;
+
+        // A newly-created player-name row exists in the in-memory native table
+        // after a structural duplicate, but not in the original compressed
+        // file used to build RowNameIds.  Read its staged nameid from the
+        // engine model so the pending text can be attached to that new row.
+        nameId = 0;
+        if (_session == null || !int.TryParse(
+                _session.GetCellText(false, tableName, rowIndex, "nameid"),
+                System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out var parsed) || parsed <= 0)
+            return false;
+        nameId = parsed;
+        return true;
     }
 
     /// <summary>Reload-verify a written file via the engine (read-only). Throws on failure.</summary>
