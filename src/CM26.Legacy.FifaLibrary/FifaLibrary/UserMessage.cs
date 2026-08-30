@@ -10,7 +10,7 @@ namespace FifaLibrary;
 
 public class UserMessage : Form
 {
-	private int m_CurrentIndex;
+	private int m_CurrentIndex = -1;
 
 	private string m_XmlFileName;
 
@@ -65,6 +65,7 @@ public class UserMessage : Form
 	{
 		string text = null;
 		bool flag = true;
+		m_CurrentIndex = -1;
 		for (int i = 0; i < setMessages.DataTableMex.Count; i++)
 		{
 			if (id == setMessages.DataTableMex[i].MexId)
@@ -88,6 +89,7 @@ public class UserMessage : Form
 	{
 		string text = null;
 		bool flag = true;
+		m_CurrentIndex = -1;
 		for (int i = 0; i < setMessages.DataTableMex.Count; i++)
 		{
 			if (id == setMessages.DataTableMex[i].MexId)
@@ -145,6 +147,7 @@ public class UserMessage : Form
 	public DialogResult ShowMessage(int id, string messageText)
 	{
 		bool flag = true;
+		m_CurrentIndex = -1;
 		for (int i = 0; i < setMessages.DataTableMex.Count; i++)
 		{
 			if (id == setMessages.DataTableMex[i].MexId)
@@ -225,29 +228,27 @@ public class UserMessage : Form
 
 	private void buttonOK_Click(object sender, EventArgs e)
 	{
-		if (checkSuppressMessage.Checked)
-		{
-			setMessages.DataTableMex[m_CurrentIndex].MexSuppressed = true;
-		}
-		setMessages.WriteXml(m_XmlFileName);
+		SuppressCurrentMessageIfRequested();
 	}
 
 	private void buttonYes_Click(object sender, EventArgs e)
 	{
-		if (checkSuppressMessage.Checked)
-		{
-			setMessages.DataTableMex[m_CurrentIndex].MexSuppressed = true;
-		}
-		setMessages.WriteXml(m_XmlFileName);
+		SuppressCurrentMessageIfRequested();
 	}
 
 	private void buttonNo_Click(object sender, EventArgs e)
 	{
-		if (checkSuppressMessage.Checked)
-		{
-			setMessages.DataTableMex[m_CurrentIndex].MexSuppressed = true;
-		}
-		setMessages.WriteXml(m_XmlFileName);
+		SuppressCurrentMessageIfRequested();
+	}
+
+	private void SuppressCurrentMessageIfRequested()
+	{
+		if (!checkSuppressMessage.Checked || m_CurrentIndex < 0 ||
+			m_CurrentIndex >= setMessages.DataTableMex.Count)
+			return;
+		setMessages.DataTableMex[m_CurrentIndex].MexSuppressed = true;
+		if (!string.IsNullOrWhiteSpace(m_XmlFileName))
+			setMessages.WriteXml(m_XmlFileName);
 	}
 
 	protected override void Dispose(bool disposing)

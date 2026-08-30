@@ -303,6 +303,27 @@ internal static class Program
 					throw new InvalidDataException("FC26 player commentary fallback failed.");
 				var main = new MainForm();
 				File.AppendAllText(uiLog, "classic shell constructed" + Environment.NewLine);
+				var previousYear = FifaLibrary.FifaEnvironment.Year;
+				FifaLibrary.FifaEnvironment.Year = 26;
+				try
+				{
+					if (!main.m_TeamForm.UsesGuidedFc26TeamCreator)
+						throw new InvalidDataException("The Team picker New button does not route to the guided FC26 creator.");
+				}
+				finally { FifaLibrary.FifaEnvironment.Year = previousYear; }
+				using (var legacyMessage = new FifaLibrary.UserMessage())
+				{
+					var messageType = typeof(FifaLibrary.UserMessage);
+					var suppressCheck = messageType.GetField("checkSuppressMessage",
+						System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+						?.GetValue(legacyMessage) as CheckBox;
+					var suppress = messageType.GetMethod("SuppressCurrentMessageIfRequested",
+						System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+					if (suppressCheck == null || suppress == null)
+						throw new InvalidDataException("Legacy message safety guard is unavailable.");
+					suppressCheck.Checked = true;
+					suppress.Invoke(legacyMessage, null);
+				}
 				foreach (var command in new[] { "Create New League...", "Create New Team..." })
 					if (!ContainsMenuText(main.MainMenuStrip?.Items, command))
 						throw new InvalidDataException("The direct record command is missing: " + command);
@@ -371,16 +392,21 @@ internal static class Program
 				var miniface = FindControl(main.m_PlayerForm, "viewer2DPhoto");
 				if (miniface == null || miniface.Width > 104 || miniface.Height > 129)
 					throw new InvalidDataException("Player miniface exceeds the classic CM26 layout boundary.");
-				if (ContainsControlText(main.m_TeamForm, "Career Money (Dollars)") ||
-						!ContainsControlText(main.m_TeamForm, "Transfer Budget") ||
-						!ContainsControlText(main.m_TeamForm, "Matchday Presentation") ||
-						!ContainsControlText(main.m_KitForm, "Texture: checking") ||
-						!ContainsControlText(main.m_TrophyForm, "Create New League") ||
-						!ContainsControlText(main.m_TrophyForm, "Create New Team") ||
-					!ContainsControlText(main.m_TrophyForm, "Assign Teams") ||
-					!ContainsControlText(main.m_TrophyForm, "Generate Schedule") ||
-					!ContainsControlText(main.m_TrophyForm, "Career Ready Check"))
-					throw new InvalidDataException("A mapped FC26 team or Compdata surface is missing.");
+				var missingMappedSurfaces = new System.Collections.Generic.List<string>();
+				if (ContainsControlText(main.m_TeamForm, "Career Money (Dollars)"))
+					missingMappedSurfaces.Add("obsolete Career Money panel remains");
+				foreach (var check in new[]
+				{
+					new { Form = (Form)main.m_TeamForm, Text = "Transfer Budget" },
+					new { Form = (Form)main.m_TeamForm, Text = "Matchday Presentation" },
+					new { Form = (Form)main.m_KitForm, Text = "Texture: checking" },
+					new { Form = (Form)main.m_TrophyForm, Text = "Assign Teams" },
+					new { Form = (Form)main.m_TrophyForm, Text = "Generate Schedule" },
+					new { Form = (Form)main.m_TrophyForm, Text = "Career Ready Check" }
+				})
+					if (!ContainsControlText(check.Form, check.Text)) missingMappedSurfaces.Add(check.Text);
+				if (missingMappedSurfaces.Count > 0)
+					throw new InvalidDataException("Mapped FC26 surface check failed: " + string.Join(", ", missingMappedSurfaces));
 				decimal decoBudget = TeamForm.CalculateDecoTransferBudget(162100, 6);
 				if (Math.Abs(decoBudget - 17289023.40328413m) > 0.01m)
 					throw new InvalidDataException("Deco Transfer Budget mapping has drifted: " +

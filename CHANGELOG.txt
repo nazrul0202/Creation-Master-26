@@ -1,3 +1,13 @@
+Creation Master 26 v1.0.180 - 30 August 2026
+------------------------------------------------------------
+- The small New button in the Team picker now opens the same guided FC26 team
+  wizard as Create > Create New Team instead of the obsolete CM16 clone flow.
+- Removed the blank legacy roster-clone question that caused "There is no row
+  at position 0" when its missing Messages.xml entry was confirmed.
+- Missing legacy message rows can no longer suppress or write an invalid row.
+- Prevented a guided creator refresh from inserting the same team twice in the
+  picker and added UI integration coverage for this path.
+
 Creation Master 26 v1.0.179 - 30 August 2026
 ------------------------------------------------------------
 - Audited all 11 installed FC26 Compdata sections and corrected objectives and

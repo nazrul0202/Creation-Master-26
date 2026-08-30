@@ -1089,8 +1089,18 @@ public class TeamForm : Form
 		return team;
 	}
 
+	internal bool UsesGuidedFc26TeamCreator => FifaEnvironment.Year == 26 && MainForm.CM != null;
+
 	private Team CreateTeam(object sender, object obj)
 	{
+		// The small New button in the classic team picker must use the same
+		// guided FC26 workflow as Create > Create New Team.  Falling through to
+		// the original CM16 NewIdCreator asks whether to clone a roster and then
+		// relies on legacy Messages.xml rows which are not part of an FC26
+		// snapshot/package.
+		if (UsesGuidedFc26TeamCreator)
+			return MainForm.CM.CreateNewTeamWorkflow();
+
 		DialogResult dialogResult = m_NewIdCreator.ShowDialog();
 		if (m_NewIdCreator.NewObject == null)
 		{

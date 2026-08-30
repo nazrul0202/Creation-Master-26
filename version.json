@@ -1,6 +1,6 @@
 {
-  "version": "1.0.179",
+  "version": "1.0.180",
   "name": "Creation Master 26",
-  "notes": "v1.0.179 - audited FC26 Compdata mapping, atomic staging and honest Career Ready proof.",
+  "notes": "v1.0.180 - fixed the Team picker New button and missing legacy-message row crash.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

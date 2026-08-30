@@ -381,7 +381,10 @@ public class PickUpControl : UserControl
 			IdObject idObject = CreateObject(sender, e);
 			if (idObject != null)
 			{
-				combo.Items.Add(idObject);
+				// A guided creator may refresh the backing list before it returns.
+				// Do not insert the same object twice when that happens.
+				if (!combo.Items.Contains(idObject))
+					combo.Items.Add(idObject);
 				combo.SelectedItem = idObject;
 			}
 		}

@@ -1,5 +1,16 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.180 - guided Create Team picker fix (2026-08-30)
+
+- The Team section's small New icon now routes directly to the friendly FC26
+  Create New Team wizard, including country, league, identity and budget inputs.
+- The obsolete CM16 NewIdCreator/roster-clone confirmation is no longer reached
+  from an FC26 database, fixing `There is no row at position 0`.
+- Hardened the legacy message service so a missing `Messages.xml` ID cannot
+  index or persist a nonexistent row.
+- Guided list refreshes no longer insert a returned team twice. The full UI
+  integration smoke now verifies the picker route and missing-message guard.
+
 ## Version 1.0.179 - audited Compdata and Career-ready saves (2026-08-30)
 
 - Audited the editor against all 11 Compdata TXT assets extracted from the
