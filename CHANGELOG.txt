@@ -1,3 +1,9 @@
+Creation Master 26 v1.0.176 - 30 August 2026
+------------------------------------------------------------
+- Fixed row-1 overwrite risks by appending all guided records and relationship links.
+- Added country-name selection to the new league wizard and append regression coverage.
+- Preserved automatic DBM-style Compdata generation, validation and staging on Save.
+
 Creation Master 26 v1.0.175 - 29 August 2026
 ------------------------------------------------------------
 - Added a single DBM-style Create New League wizard: country, level, teams,

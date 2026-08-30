@@ -33,13 +33,17 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.175.txt` is included with the v1.0.175 release assets.
+Checksums: `SHA256SUMS_v1.0.176.txt` is included with the v1.0.176 release assets.
 
 The **Create** menu now contains only **Create New League** and **Create New Team**.
 New Team asks which league it belongs to and links it immediately. Once a new league
 has a country and at least two teams, the normal **Save** automatically creates and
 stages its complete FC26 Career Compdata and double round-robin calendar. Start a
 new Career after saving.
+
+New records are appended to the source tables and all generated relationships are
+validated before commit, so creating a league or team cannot replace the first
+existing database row.
 
 ---
 

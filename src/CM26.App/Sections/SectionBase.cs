@@ -505,10 +505,8 @@ public abstract class SectionBase : UserControl
 
     protected int NextAvailableId(string tableName, string idField)
     {
-        // The cached schema snapshot keeps a stale row count after staged
-        // inserts (new rows are inserted at the top, shifting the original
-        // rows down), which made this scan miss the table tail and hand out
-        // ids that already exist. Refresh first so every live row is scanned.
+        // The cached schema snapshot can be stale after staged inserts. Refresh
+        // first so every live row is scanned and generated IDs remain unique.
         Services.Session.RefreshSchema();
         var table = Services.Session.GetTable(tableName)
             ?? throw new InvalidOperationException($"Table '{tableName}' is unavailable.");
@@ -609,22 +607,30 @@ public abstract class SectionBase : UserControl
         string tableName,
         string idField,
         IReadOnlyDictionary<string, string> values,
-        int? templateRow = null)
+        int? templateRow = null,
+        bool append = false)
     {
         var table = Services.Session.GetTable(tableName)
             ?? throw new InvalidOperationException($"Table '{tableName}' is unavailable.");
         if (table.RowCount == 0)
             throw new InvalidOperationException($"Table '{tableName}' has no safe template record.");
 
-        var sourceRow = Math.Clamp(templateRow ?? CurrentRecordIndex, 0, table.RowCount - 1);
+        // New entities must not be inserted at row 1.  The native writer
+        // duplicates immediately after the source row, so an explicit append
+        // uses the final existing row as the template and the old row count as
+        // the new row index.  Appending also keeps every existing record index
+        // stable while a wizard is staging several related rows.
+        var originalRowCount = table.RowCount;
+        var sourceRow = append
+            ? originalRowCount - 1
+            : Math.Clamp(templateRow ?? CurrentRecordIndex, 0, originalRowCount - 1);
         var duplicate = Services.Session.DuplicateRow(tableName, sourceRow);
         if (!duplicate.Success)
             throw new InvalidOperationException(duplicate.Message);
         // The native engine inserts the duplicated row directly after the
-        // source row (index sourceRow + 1), never at the end of the table.
-        var newRow = InsertedRowAfter(sourceRow);
-        // Refresh the row count so id pickers see the shifted table (the last
-        // original row moved down one position after the insert).
+        // source row (index sourceRow + 1).  With the last row as the source,
+        // that is exactly the old row count and therefore a true append.
+        var newRow = append ? originalRowCount : InsertedRowAfter(sourceRow);
         Services.Session.RefreshSchema();
 
         var id = tableName.Equals("teams", StringComparison.OrdinalIgnoreCase)
@@ -663,6 +669,30 @@ public abstract class SectionBase : UserControl
     }
 
     internal static int InsertedRowAfter(int sourceRow) => checked(sourceRow + 1);
+
+    internal static int AppendedRowIndex(int rowCount) => rowCount > 0
+        ? rowCount
+        : throw new ArgumentOutOfRangeException(nameof(rowCount), "An append requires at least one template row.");
+
+    /// <summary>
+    /// Duplicates the last native row and returns the index of the new row.
+    /// FC26's native writer inserts after the requested source row; capturing
+    /// the count before duplication is therefore required because the cached
+    /// schema is not refreshed until the caller stages its values.
+    /// </summary>
+    protected int DuplicateAppendRow(string tableName)
+    {
+        var table = Services.Session.GetTable(tableName)
+            ?? throw new InvalidOperationException($"Table '{tableName}' is unavailable.");
+        if (table.RowCount == 0)
+            throw new InvalidOperationException($"Table '{tableName}' has no safe template record.");
+
+        var newRow = AppendedRowIndex(table.RowCount);
+        var duplicate = Services.Session.DuplicateRow(tableName, newRow - 1);
+        if (!duplicate.Success)
+            throw new InvalidOperationException(duplicate.Message);
+        return newRow;
+    }
 
     protected void SelectRecord(int recordIndex) => OnRecordSelected(recordIndex);
 
@@ -714,7 +744,7 @@ public abstract class SectionBase : UserControl
                 ["headclasscode"] = "0",
                 ["preferredposition1"] = positionCode.ToString(),
             };
-            var playerId = CreateRecordFromTemplate("players", "playerid", values, templateRow: 0);
+            var playerId = CreateRecordFromTemplate("players", "playerid", values, templateRow: 0, append: true);
             playerIds.Add(playerId);
             Services.SetPlayerNameOverride(playerId, name, string.Empty);
             CreateSquadEditedPlayerName(playerId, name);
@@ -732,9 +762,7 @@ public abstract class SectionBase : UserControl
     private void CreateSquadPlayerLink(int playerId, int teamId, int jerseyNumber, string position)
     {
         var links = Services.Session.GetTable("teamplayerlinks");
-        var duplicate = Services.Session.DuplicateRow("teamplayerlinks", 0);
-        if (!duplicate.Success) throw new InvalidOperationException(duplicate.Message);
-        var row = 1;
+        var row = DuplicateAppendRow("teamplayerlinks");
         var fields = new Dictionary<string, string>
         {
             ["playerid"] = playerId.ToString(),
@@ -759,9 +787,9 @@ public abstract class SectionBase : UserControl
     {
         var sheets = Services.Session.GetTable("default_teamsheets");
         if (sheets == null || sheets.RowCount == 0) return;
-        var duplicate = Services.Session.DuplicateRow("default_teamsheets", 0);
-        if (!duplicate.Success) return;
-        var row = 1;
+        int row;
+        try { row = DuplicateAppendRow("default_teamsheets"); }
+        catch (InvalidOperationException) { return; }
         if (sheets.FindColumn("teamid") != null)
             Services.Pending.Stage("default_teamsheets", row, "teamid", teamId.ToString());
         for (var index = 0; index < DefaultSquadPositions.Length && index < playerIds.Count; index++)
@@ -777,9 +805,9 @@ public abstract class SectionBase : UserControl
     {
         var names = Services.Session.GetTable("editedplayernames");
         if (names == null || names.RowCount == 0) return;
-        var duplicate = Services.Session.DuplicateRow("editedplayernames", 0);
-        if (!duplicate.Success) return;
-        var row = 1;
+        int row;
+        try { row = DuplicateAppendRow("editedplayernames"); }
+        catch (InvalidOperationException) { return; }
         foreach (var (field, value) in new Dictionary<string, string>
         {
             ["playerid"] = playerId.ToString(),

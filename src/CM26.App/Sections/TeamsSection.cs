@@ -271,7 +271,7 @@ public sealed class TeamsSection : SectionBase
                 ["internationalprestige"] = "0",
                 ["clubworth"] = "0",
                 ["transferbudget"] = "1000000",
-            });
+            }, append: true);
 
             // If a league was selected, create the league-team link
             var linkedToLeague = false;
@@ -294,15 +294,18 @@ public sealed class TeamsSection : SectionBase
                                 if (rec != null && int.TryParse(rec.Get(keyCol), out var key))
                                     maxKey = Math.Max(maxKey, key);
                             }
-                            var duplicate = Services.Session.DuplicateRow("leagueteamlinks", 0);
-                            if (duplicate.Success)
+                            try
                             {
-                                var newRow = 1;
+                                var newRow = DuplicateAppendRow("leagueteamlinks");
                                 Services.Pending.Stage("leagueteamlinks", newRow, "artificialkey", (maxKey + 1).ToString());
                                 Services.Pending.Stage("leagueteamlinks", newRow, "leagueid", leagueId);
                                 Services.Pending.Stage("leagueteamlinks", newRow, "teamid", id.ToString());
                                 Services.Pending.MarkStructuralChange();
                                 linkedToLeague = true;
+                            }
+                            catch (InvalidOperationException ex)
+                            {
+                                Program.Log($"[CM26] Team league link failed: {ex.Message}");
                             }
                         }
                     }
@@ -411,7 +414,7 @@ public sealed class TeamsSection : SectionBase
             firstName = string.IsNullOrWhiteSpace(firstName) ? "Unknown" : firstName;
             surname = string.IsNullOrWhiteSpace(surname) ? firstName : surname;
             var values = PlayerValuesFromScraper(row, teamId);
-            var playerId = CreateRecordFromTemplate("players", "playerid", values, templateRow: 0);
+            var playerId = CreateRecordFromTemplate("players", "playerid", values, templateRow: 0, append: true);
             Services.SetPlayerNameOverride(playerId, firstName, surname);
             if (TryCreateEditedPlayerName(playerId, firstName, surname)) editableNames++;
             CreateTeamPlayerLink(playerId, teamId, values);
@@ -433,9 +436,7 @@ public sealed class TeamsSection : SectionBase
     {
         var links = Services.Session.GetTable("teamplayerlinks") ?? throw new InvalidOperationException("The team-player link table is unavailable.");
         if (links.RowCount == 0) throw new InvalidOperationException("The team-player link table has no safe template record.");
-        var duplicate = Services.Session.DuplicateRow("teamplayerlinks", 0);
-        if (!duplicate.Success) throw new InvalidOperationException(duplicate.Message);
-        var row = 1;
+        var row = DuplicateAppendRow("teamplayerlinks");
         var fields = new Dictionary<string, string> { ["playerid"] = playerId.ToString(), ["teamid"] = teamId.ToString() };
         if (playerValues.TryGetValue("jerseynumber", out var jersey)) fields["jerseynumber"] = jersey;
         if (playerValues.TryGetValue("preferredposition1", out var position)) fields["position"] = position;
@@ -530,9 +531,9 @@ public sealed class TeamsSection : SectionBase
     {
         var names = Services.Session.GetTable("editedplayernames");
         if (names == null || names.RowCount == 0) return false;
-        var duplicate = Services.Session.DuplicateRow("editedplayernames", 0);
-        if (!duplicate.Success) return false;
-        var row = 1;
+        int row;
+        try { row = DuplicateAppendRow("editedplayernames"); }
+        catch (InvalidOperationException) { return false; }
         foreach (var (field, value) in new Dictionary<string, string>
         {
             ["playerid"] = playerId.ToString(), ["firstname"] = firstName, ["surname"] = surname,
@@ -2814,15 +2815,15 @@ public sealed class TeamsSection : SectionBase
             maxId = Math.Max(maxId, Parse(Services.Session.GetCell(tableName, row, "itemId")));
         if (!ShowAudioEntryDialog(tableName, maxId + 1, 0, $"CM26_AUDIO_{maxId + 1}",
                 out var itemId, out var audioItemId, out var halString, out var inCm, out var inClubs)) return;
-        var duplicate = Services.Session.DuplicateRow(tableName, 0);
-        if (!duplicate.Success)
+        int newRow;
+        try { newRow = DuplicateAppendRow(tableName); }
+        catch (InvalidOperationException ex)
         {
-            MessageBox.Show(this, duplicate.Message, "Team Audio",
+            MessageBox.Show(this, ex.Message, "Team Audio",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
         Services.Pending.MarkStructuralChange();
-        var newRow = 1;
         StageAudioEntry(tableName, newRow, itemId, audioItemId, halString, inCm, inClubs);
         Services.Session.RefreshSchema();
         LoadAudioCatalog(tableName, list);
@@ -3335,14 +3336,16 @@ public sealed class TeamsSection : SectionBase
 
         if (loanRow < 0)
         {
-            var duplicate = Services.Session.DuplicateRow("playerloans", 0);
-            if (!duplicate.Success)
+            try
             {
-                MessageBox.Show(this, duplicate.Message, "Create Loan", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                loanRow = DuplicateAppendRow("playerloans");
+            }
+            catch (InvalidOperationException ex)
+            {
+                MessageBox.Show(this, ex.Message, "Create Loan", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
             Services.Pending.MarkStructuralChange();
-            loanRow = 1;
             if (!StageField("playerloans", loanRow, "playerid", _selectedRosterPlayerId.ToString(), _stagingGrid)) return;
         }
 

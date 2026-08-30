@@ -1,6 +1,6 @@
 {
-  "version": "1.0.175",
+  "version": "1.0.176",
   "name": "Creation Master 26",
-  "notes": "v1.0.175 - DBM-style guided creation, save preflight/proof and stable FC26 relationships.",
+  "notes": "v1.0.176 - append-safe guided creation, country-aware links and stable FC26 relationships.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

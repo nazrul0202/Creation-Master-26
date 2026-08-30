@@ -632,7 +632,7 @@ public sealed class CountriesSection : SectionBase
                 ["isocountrycode"] = iso,
                 ["nationstartingfirstletter"] = startingLetter.ToString(),
                 ["top_tier"] = "0",
-            });
+            }, append: true);
             Services.RegisterDraftCountry(id);
             Services.Session.RefreshSchema();
             Services.RefreshDatabaseIndexes();
@@ -692,10 +692,8 @@ public sealed class CountriesSection : SectionBase
                 ["internationalprestige"] = "0", ["clubworth"] = "0",
                 ["overallrating"] = "0", ["attackrating"] = "0",
                 ["midfieldrating"] = "0", ["defenserating"] = "0", ["ballid"] = "0"
-            }, templateRow: 0);
-            var duplicate = Services.Session.DuplicateRow("teamnationlinks", 0);
-            if (!duplicate.Success) throw new InvalidOperationException(duplicate.Message);
-            var linkRow = 1;
+            }, templateRow: 0, append: true);
+            var linkRow = DuplicateAppendRow("teamnationlinks");
             foreach (var (field, value) in new Dictionary<string, string>
             {
                 ["teamid"] = teamId.ToString(), ["nationid"] = nationId.ToString(),

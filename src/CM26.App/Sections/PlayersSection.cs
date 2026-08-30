@@ -192,7 +192,7 @@ public sealed class PlayersSection : SectionBase
                 ["weight"] = "75",
                 ["jerseynumber"] = "0",
                 ["isretiring"] = "0",
-            });
+            }, append: true);
             var nameSaved = TryCreateEditedPlayerName(id, firstName, surname);
             Services.SetPlayerNameOverride(id, firstName, surname);
             Services.Session.RefreshSchema();
@@ -217,9 +217,9 @@ public sealed class PlayersSection : SectionBase
     {
         var names = Services.Session.GetTable("editedplayernames");
         if (names == null || names.RowCount == 0) return false;
-        var duplicate = Services.Session.DuplicateRow("editedplayernames", 0);
-        if (!duplicate.Success) return false;
-        var row = 1;
+        int row;
+        try { row = DuplicateAppendRow("editedplayernames"); }
+        catch (InvalidOperationException) { return false; }
         foreach (var (field, value) in new Dictionary<string, string>
         {
             ["playerid"] = playerId.ToString(),
@@ -1371,7 +1371,8 @@ public sealed class PlayersSection : SectionBase
             if (linkRow < 0)
             {
                 // No link at all: duplicate a template row and stage the ids.
-                var template = links.RowCount - 1;
+                var linkRowToAppend = links.RowCount;
+                var template = linkRowToAppend - 1;
                 var duplicated = Services.Session.DuplicateRow("teamplayerlinks", template);
                 if (!duplicated.Success)
                 {
@@ -1379,7 +1380,10 @@ public sealed class PlayersSection : SectionBase
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
-                linkRow = links.RowCount - 1;
+                // DuplicateRow inserts after the final existing row.  Capture
+                // the old count before the duplicate because the schema cache
+                // is refreshed only after the staged relationship is complete.
+                linkRow = linkRowToAppend;
                 Services.Pending.Stage("teamplayerlinks", linkRow, "playerid", playerId.ToString());
                 Services.Pending.MarkStructuralChange();
             }
@@ -1962,15 +1966,17 @@ public sealed class PlayersSection : SectionBase
         var row = FindRow("playernamemap", "playerid", _currentPlayerId);
         if (row < 0)
         {
-            var duplicate = Services.Session.DuplicateRow("playernamemap", 0);
-            if (!duplicate.Success)
+            try
             {
-                MessageBox.Show(this, duplicate.Message, "Player Callname",
+                row = DuplicateAppendRow("playernamemap");
+            }
+            catch (InvalidOperationException ex)
+            {
+                MessageBox.Show(this, ex.Message, "Player Callname",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
             Services.Pending.MarkStructuralChange();
-            row = 1;
             if (!Services.Pending.Stage("playernamemap", row, "playerid", _currentPlayerId.ToString()).Success)
                 return;
         }

@@ -264,13 +264,17 @@ public partial class PlayersView : UserControl
             }
             if (linkRow < 0)
             {
-                var duplicated = _vm.Session.Database.DuplicateRow("teamplayerlinks", links.RowCount - 1);
+                // DuplicateRow inserts after the requested source row. Capture
+                // the old count so the new relationship is appended without
+                // shifting an existing roster entry.
+                var linkRowToAppend = links.RowCount;
+                var duplicated = _vm.Session.Database.DuplicateRow("teamplayerlinks", linkRowToAppend - 1);
                 if (!duplicated.Success)
                 {
                     MessageBox.Show(duplicated.Message, "Transfer Player", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
-                linkRow = links.RowCount - 1;
+                linkRow = linkRowToAppend;
                 _vm.Session.Pending.Stage("teamplayerlinks", linkRow, "playerid", playerId.ToString());
                 _vm.Session.Pending.MarkStructuralChange();
             }

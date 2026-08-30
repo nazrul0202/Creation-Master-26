@@ -15,6 +15,13 @@ public sealed class SectionLogicTests
         Assert.Equal(8, SectionBase.InsertedRowAfter(7));
 
     [Fact]
+    public void AppendedRecordUsesTheOldRowCountAsItsNewIndex()
+    {
+        Assert.Equal(12, SectionBase.AppendedRowIndex(12));
+        Assert.Throws<ArgumentOutOfRangeException>(() => SectionBase.AppendedRowIndex(0));
+    }
+
+    [Fact]
     public void SafeTeamIdSkipsMappedCrestRange() =>
         Assert.Equal(130, SectionBase.FindSafeTeamId([118, 119], [120, 121, 129]));
 

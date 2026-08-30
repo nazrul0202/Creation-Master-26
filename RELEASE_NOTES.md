@@ -1,5 +1,17 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.176 - append-safe guided creation (2026-08-30)
+
+- Fixed new league, team, country and player creation to append a real row at
+  the end of the source table. Existing row 1 data is no longer overwritten.
+- Fixed all new league/team, team/player, nation/team, name-map, audio and loan
+  relationship links to append safely and preserve the source records.
+- Team creation now keeps the selected league relationship while the league
+  creation wizard presents a friendly country-name picker instead of a raw
+  country ID field.
+- Added an append regression probe and unit coverage for the new-row index;
+  the Save Preflight/Proof and DBM-style Compdata staging remain enabled.
+
 ## Version 1.0.175 - DBM guided creation and save proof (2026-08-29)
 
 - Added one guided **Create New League** flow: choose country and level, add

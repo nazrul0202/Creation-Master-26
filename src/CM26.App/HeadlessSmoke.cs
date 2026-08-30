@@ -999,7 +999,7 @@ internal static class HeadlessSmoke
     /// edits + RefreshSchema) against a COPY of the database and reports exactly
     /// where the duplicated record lands. This is the regression probe for the
     /// template-inheritance bug where a newly created team appeared to keep its
-    /// template club's identity and crest.
+    /// template club's identity and crest, or a second creation overwrote row 1.
     /// </summary>
     public static int CreateTeamProbe(string folder)
     {
@@ -1020,7 +1020,8 @@ internal static class HeadlessSmoke
             var teams = session.GetTable("teams")
                 ?? throw new InvalidOperationException("teams table is unavailable.");
 
-            Console.WriteLine($"teams rows before: {teams.RowCount}");
+            var originalRowCount = teams.RowCount;
+            Console.WriteLine($"teams rows before: {originalRowCount}");
             var idCol = ColumnIndex(teams, "teamid");
             var nameCol = ColumnIndex(teams, "teamname");
             Console.WriteLine($"row 0 (template): id={session.GetCell("teams", 0, "teamid")} name={session.GetCell("teams", 0, "teamname")}");
@@ -1030,11 +1031,11 @@ internal static class HeadlessSmoke
             var idColumn = teams.FindColumn("teamid") ?? throw new InvalidOperationException("teamid column missing.");
             Console.WriteLine($"teamid range: {idColumn.RangeLow}..{idColumn.RangeHigh}");
 
-            // --- replicate the FIXED LeaguesSection.CreateAndLinkTeam flow ---
-            var duplicate = session.DuplicateRow("teams", 0);
-            Console.WriteLine($"DuplicateRow(0): success={duplicate.Success} ({duplicate.Message})");
-            var newRow = 1;
-            Console.WriteLine($"newRow (fixed) = {newRow}");
+            // --- replicate the append-safe LeaguesSection.CreateAndLinkTeam flow ---
+            var newRow = originalRowCount;
+            var duplicate = session.DuplicateRow("teams", newRow - 1);
+            Console.WriteLine($"DuplicateRow({newRow - 1}) [append]: success={duplicate.Success} ({duplicate.Message})");
+            Console.WriteLine($"newRow (append) = {newRow}");
             var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
             services.FrostbiteAssets.Open(gameRoot);
             session.RefreshSchema();
@@ -1060,11 +1061,9 @@ internal static class HeadlessSmoke
 
             Console.WriteLine($"teams rows after: {session.GetTable("teams")?.RowCount ?? -1} (newRow used by the section = {newRow})");
             Console.WriteLine($"row 0 (template): id={session.GetCell("teams", 0, "teamid")} name={session.GetCell("teams", 0, "teamname")}");
-            for (var row = 1; row <= 2; row++)
+            for (var row = Math.Max(1, newRow - 1); row <= newRow; row++)
                 Console.WriteLine($"row {row}: id={session.GetCell("teams", row, "teamid")} name={session.GetCell("teams", row, "teamname")}");
             Console.WriteLine($"row {newRow}: id={session.GetCell("teams", newRow, "teamid")} name={session.GetCell("teams", newRow, "teamname")}");
-            if (newRow - 1 >= 0)
-                Console.WriteLine($"row {newRow - 1}: id={session.GetCell("teams", newRow - 1, "teamid")} name={session.GetCell("teams", newRow - 1, "teamname")}");
 
             var resolverName = services.Resolver?.TeamName(teamId) ?? "(no resolver)";
             Console.WriteLine($"resolver.TeamName({teamId}) = {resolverName}");
@@ -1072,13 +1071,14 @@ internal static class HeadlessSmoke
 
             // --- verdict ---
             var finalTable = session.GetTable("teams")!;
-            var rowOneIsTemplate = session.GetCell("teams", 1, "teamid") == session.GetCell("teams", 0, "teamid");
             var stagedAtRow = session.GetCell("teams", newRow, "teamid") == teamId.ToString();
-            var lastRowIntact = session.GetCell("teams", finalTable.RowCount - 1, "teamid") == lastBeforeId
-                && session.GetCell("teams", finalTable.RowCount - 1, "teamname") == lastBeforeName;
-            Console.WriteLine($"verdict: row 1 staged with new id={!rowOneIsTemplate}; staged row {newRow} has the new id={stagedAtRow}; last original row intact={lastRowIntact}");
-            Console.WriteLine(!rowOneIsTemplate && stagedAtRow && lastRowIntact
-                ? "CREATE-TEAM PROBE: FIXED (duplicate lands at row 1, edits land at row 1, last original row untouched)"
+            var appendedRowCount = finalTable.RowCount == originalRowCount + 1;
+            var lastOriginalRow = newRow - 1;
+            var lastRowIntact = session.GetCell("teams", lastOriginalRow, "teamid") == lastBeforeId
+                && session.GetCell("teams", lastOriginalRow, "teamname") == lastBeforeName;
+            Console.WriteLine($"verdict: appended row count={appendedRowCount}; staged row {newRow} has the new id={stagedAtRow}; last original row intact={lastRowIntact}");
+            Console.WriteLine(appendedRowCount && stagedAtRow && lastRowIntact
+                ? "CREATE-TEAM PROBE: FIXED (new team appends after the final row and leaves every original team intact)"
                 : "CREATE-TEAM PROBE: VERIFICATION FAILED");
             return 0;
         }
@@ -3104,7 +3104,7 @@ internal static class HeadlessSmoke
             {
                 var before = services.Session.GetTable(tableName)!.RowCount;
                 if (before == 0) throw new InvalidDataException($"{tableName} has no template row.");
-                var added = services.Session.DuplicateRow(tableName, 0);
+                var added = services.Session.DuplicateRow(tableName, before - 1);
                 if (!added.Success) throw new InvalidOperationException($"{tableName} insert: {added.Message}");
                 services.Session.RefreshSchema();
                 var afterInsert = services.Session.GetTable(tableName)!.RowCount;

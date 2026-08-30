@@ -450,14 +450,22 @@ public sealed class LeaguesSection : SectionBase
 
     protected override void CreateNewRecord()
     {
-        var defaultCountryId = _fields.TryGetValue("countryid", out var currentCountry)
-            ? currentCountry.RawValue : "0";
+        var countryOptions = BuildCountryOptions();
+        var initialCountry = _fields.TryGetValue("countryid", out var currentCountry)
+            && int.TryParse(currentCountry.RawValue, out var currentCountryId)
+            && countryOptions.Any(option => option.Value == currentCountryId.ToString())
+                ? currentCountryId.ToString()
+                : countryOptions.FirstOrDefault().Value ?? "0";
         if (!EntityCreationDialog.TryShow(this, "League",
-                [("League name", "New League"), ("Country ID", defaultCountryId)], out var values))
+                [
+                    new EntityField("League name", "New League"),
+                    new EntityField("Country", initialCountry,
+                        EntityFieldType.Dropdown, countryOptions)
+                ], out var values))
             return;
         if (!int.TryParse(values[1], out var countryId) || !NationExists(countryId))
         {
-            MessageBox.Show(this, "Enter an existing Country ID. Create the country first with Add Country if needed.",
+            MessageBox.Show(this, "Choose an existing country. Create the country first with Add Country if needed.",
                 "Create League", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
@@ -467,7 +475,7 @@ public sealed class LeaguesSection : SectionBase
             {
                 ["leaguename"] = values[0],
                 ["countryid"] = countryId.ToString(),
-            });
+            }, append: true);
             Services.Session.RefreshSchema();
             Services.RefreshDatabaseIndexes();
             LoadData();
@@ -481,6 +489,25 @@ public sealed class LeaguesSection : SectionBase
         {
             MessageBox.Show(this, ex.Message, "Create League", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+    }
+
+    private List<(string Display, string Value)> BuildCountryOptions()
+    {
+        var options = new List<(string Display, string Value)>();
+        var nations = Services.Session.GetTable("nations");
+        if (nations == null) return options;
+        var idColumn = Col(nations, "nationid");
+        var nameColumn = Col(nations, "nationname");
+        if (idColumn < 0 || nameColumn < 0) return options;
+        for (var row = 0; row < nations.RowCount; row++)
+        {
+            var record = Services.Session.GetRecord("nations", row);
+            if (record == null || !int.TryParse(record.Get(idColumn), out var nationId) || nationId <= 0) continue;
+            var name = Services.Resolver?.NationName(nationId) ?? record.Get(nameColumn);
+            if (!string.IsNullOrWhiteSpace(name)) options.Add(($"{name} [{nationId}]", nationId.ToString()));
+        }
+        options.Sort((left, right) => string.Compare(left.Display, right.Display, StringComparison.OrdinalIgnoreCase));
+        return options;
     }
 
     private bool NationExists(int nationId)
@@ -1024,9 +1051,7 @@ public sealed class LeaguesSection : SectionBase
         }
         try
         {
-            var duplicate = Services.Session.DuplicateRow("teams", 0);
-            if (!duplicate.Success) throw new InvalidOperationException(duplicate.Message);
-            var newRow = 1;
+            var newRow = DuplicateAppendRow("teams");
             Services.Session.RefreshSchema();
             var teamId = FindSafeTeamId();
             var countryId = _fields.TryGetValue("countryid", out var country) ? country.RawValue : "0";
@@ -1108,10 +1133,10 @@ public sealed class LeaguesSection : SectionBase
             }
         }
         if (maxKey >= 4000) { message = "No available league-team link key remains."; return false; }
-        var duplicate = Services.Session.DuplicateRow("leagueteamlinks", 0);
-        if (!duplicate.Success) { message = duplicate.Message; return false; }
+        int newRow;
+        try { newRow = DuplicateAppendRow("leagueteamlinks"); }
+        catch (InvalidOperationException ex) { message = ex.Message; return false; }
         Services.Pending.MarkStructuralChange();
-        var newRow = 1;
         var ok = Stage("artificialkey", (maxKey + 1).ToString()) && Stage("leagueid", _leagueId.ToString()) && Stage("teamid", teamId.ToString());
         if (!ok) { message = "Could not stage the team-to-league link."; return false; }
         return true;
