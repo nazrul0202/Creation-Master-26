@@ -23,6 +23,7 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
     private readonly TextBox _rowSearch = new TextBox();
     private readonly ComboBox _filterField = new ComboBox();
     private readonly TextBox _filterExpression = new TextBox();
+    private readonly CheckBox _changedOnly = new CheckBox();
     private readonly Label _status = new Label();
     private SnapshotDetailTable _active;
     private bool _loading;
@@ -41,6 +42,7 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         tools.Items.Add(Button("Delete Row", (_, _) => DeleteRow()));
         tools.Items.Add(Button("Copy", (_, _) => CopySelection()));
         tools.Items.Add(Button("Paste", (_, _) => PasteSelection()));
+        tools.Items.Add(Button("Set Selected", (_, _) => BulkSet()));
         tools.Items.Add(Button("Replace", (_, _) => BulkReplace()));
         tools.Items.Add(Button("Compare", (_, _) => CompareTsv()));
         tools.Items.Add(Button("Validate XML Ranges", (_, _) => ValidateDescriptorRanges()));
@@ -51,6 +53,8 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Button("Import TSV", (_, _) => ImportTsv()));
         tools.Items.Add(Button("Export TSV", (_, _) => ExportTsv()));
+        tools.Items.Add(Button("Import All", (_, _) => ImportAllTables()));
+        tools.Items.Add(Button("Export All", (_, _) => ExportAllTables()));
 
         _tableSearch.Dock = DockStyle.Top;
         _tableSearch.AccessibleName = "Find table";
@@ -64,6 +68,10 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         _filterExpression.Width = 210;
         _filterExpression.AccessibleName = "Field filter expression";
         _filterExpression.TextChanged += (_, _) => LoadTable();
+        _changedOnly.Text = "Changed records only";
+        _changedOnly.AutoSize = true;
+        _changedOnly.Margin = new Padding(10, 5, 2, 0);
+        _changedOnly.CheckedChanged += (_, _) => LoadTable();
 
         _tables.Dock = DockStyle.Fill;
         _tables.IntegralHeight = false;
@@ -88,6 +96,7 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         filterPanel.Controls.Add(_filterField);
         filterPanel.Controls.Add(new Label { Text = "Expression (=, !=, >, <, >=, <= or contains):", AutoSize = true, Margin = new Padding(8, 6, 2, 0) });
         filterPanel.Controls.Add(_filterExpression);
+        filterPanel.Controls.Add(_changedOnly);
         var dataPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(6) };
         dataPanel.Controls.Add(_grid);
         dataPanel.Controls.Add(filterPanel);
@@ -147,6 +156,7 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         for (var rowIndex = 0; rowIndex < _active.Rows.Count; rowIndex++)
         {
             if (Fc26SnapshotLoader.IsDetailDeleted(_active.Name, rowIndex)) continue;
+            if (_changedOnly.Checked && !Fc26SnapshotLoader.IsDetailRowChanged(_active.Name, rowIndex)) continue;
             var source = _active.Rows[rowIndex];
             if (query.Length > 0 && !source.Any(value => NormalizeText(value).Contains(query))) continue;
             if (!MatchesFieldFilter(source)) continue;
@@ -283,6 +293,30 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         _status.Text = changed + " value(s) staged. File > Save validates, backs up and writes them.";
     }
 
+    private void BulkSet()
+    {
+        if (_active == null || _grid.SelectedCells.Count == 0) return;
+        string value;
+        if (!Prompt("Set selected cells", "New value for every selected writable cell:", string.Empty, out value)) return;
+        var targets = _grid.SelectedCells.Cast<DataGridViewCell>()
+            .Where(cell => cell.ColumnIndex > 0 && !_grid.Columns[cell.ColumnIndex].ReadOnly)
+            .ToArray();
+        if (targets.Length == 0) return;
+        if (MessageBox.Show(this, "Stage " + targets.Length + " selected cell update(s)?",
+            "Bulk edit preview", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+        var changed = 0;
+        foreach (var cell in targets)
+        {
+            var column = cell.ColumnIndex - 1;
+            ValidateCandidate(_active.ColumnDetails[column], value);
+            var row = Convert.ToInt32(_grid.Rows[cell.RowIndex].Cells[0].Value, CultureInfo.InvariantCulture);
+            Fc26SnapshotLoader.StageDetailValue(_active.Name, row, _active.Columns[column], value);
+            cell.Value = value;
+            changed++;
+        }
+        _status.Text = changed + " bulk value(s) staged; use File > Save to validate and commit.";
+    }
+
     private void ShowReferences(bool replace)
     {
         if (_grid.CurrentCell == null || _grid.CurrentCell.ColumnIndex <= 0) return;
@@ -372,6 +406,93 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
                 _status.Text = staged + " imported value(s) staged; source files are still untouched.";
             }
             catch (Exception ex) { Fc26FriendlyError.Show(this, "Import table", ex, "Invalid imported values were not staged. Review the table columns and ranges, then retry."); }
+        }
+    }
+
+    private void ExportAllTables()
+    {
+        using (var dialog = new FolderBrowserDialog { Description = "Choose a folder for the FC26 TSV table export" })
+        {
+            if (dialog.ShowDialog(this) != DialogResult.OK) return;
+            var exported = 0;
+            foreach (var tableName in Fc26SnapshotLoader.DetailTableNames)
+            {
+                var table = Fc26SnapshotLoader.DetailTable(tableName);
+                if (table == null) continue;
+                var fileName = string.Concat(table.Name.Select(character => Path.GetInvalidFileNameChars().Contains(character) ? '_' : character)) + ".tsv";
+                var lines = new List<string> { string.Join("\t", table.Columns) };
+                lines.AddRange(table.Rows.Select(row => string.Join("\t", row.Select(SafeTsv))));
+                File.WriteAllLines(Path.Combine(dialog.SelectedPath, fileName), lines, new UTF8Encoding(false));
+                exported++;
+            }
+            MessageBox.Show(this, exported + " table(s) exported to:\r\n" + dialog.SelectedPath,
+                "Export all FC26 tables", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+    }
+
+    private void ImportAllTables()
+    {
+        using (var dialog = new FolderBrowserDialog { Description = "Choose a folder containing CM26 TSV table exports" })
+        {
+            if (dialog.ShowDialog(this) != DialogResult.OK) return;
+            try
+            {
+                var changes = new List<ImportChange>();
+                var files = Directory.GetFiles(dialog.SelectedPath, "*.tsv", SearchOption.TopDirectoryOnly);
+                foreach (var file in files)
+                {
+                    var table = Fc26SnapshotLoader.DetailTable(Path.GetFileNameWithoutExtension(file));
+                    if (table == null) continue;
+                    var lines = File.ReadAllLines(file);
+                    if (lines.Length == 0 || !lines[0].Split('\t').SequenceEqual(table.Columns))
+                        throw new InvalidDataException(Path.GetFileName(file) + " has a header that does not match the loaded table.");
+                    if (lines.Length - 1 != table.Rows.Count)
+                        throw new InvalidDataException(Path.GetFileName(file) + " has a different row count. Use Clone/Delete for structural changes.");
+                    for (var row = 0; row < table.Rows.Count; row++)
+                    {
+                        var values = lines[row + 1].Split('\t');
+                        if (values.Length != table.Columns.Length)
+                            throw new InvalidDataException(Path.GetFileName(file) + " has a column mismatch at row " + (row + 2) + ".");
+                        for (var column = 0; column < values.Length; column++)
+                        {
+                            if (!table.ColumnDetails[column].IsWritable || values[column] == table.Rows[row][column]) continue;
+                            ValidateCandidate(table.ColumnDetails[column], values[column]);
+                            changes.Add(new ImportChange(table.Name, row, table.Columns[column], table.Rows[row][column], values[column]));
+                        }
+                    }
+                }
+                if (changes.Count == 0)
+                {
+                    MessageBox.Show(this, "No writable differences were found in the TSV folder.", "Import all FC26 tables");
+                    return;
+                }
+                if (MessageBox.Show(this, "Validated " + changes.Count + " writable difference(s) across " +
+                    changes.Select(change => change.Table).Distinct(StringComparer.OrdinalIgnoreCase).Count() +
+                    " table(s). Stage them as one import transaction?", "Import all preview",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+                var applied = new List<ImportChange>();
+                try
+                {
+                    foreach (var change in changes)
+                    {
+                        Fc26SnapshotLoader.StageDetailValue(change.Table, change.Row, change.Field, change.NewValue);
+                        applied.Add(change);
+                    }
+                }
+                catch
+                {
+                    foreach (var change in applied.AsEnumerable().Reverse())
+                        Fc26SnapshotLoader.StageDetailValue(change.Table, change.Row, change.Field, change.OldValue);
+                    throw;
+                }
+                LoadTable();
+                _status.Text = changes.Count + " imported value(s) staged after full-folder validation.";
+            }
+            catch (Exception ex)
+            {
+                Fc26FriendlyError.Show(this, "Import all tables", ex,
+                    "The folder import was rejected and any partially staged values were rolled back.");
+            }
         }
     }
 
@@ -548,5 +669,16 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         internal string Table { get; }
         internal int Row { get; }
         internal string Field { get; }
+    }
+
+    private sealed class ImportChange
+    {
+        internal ImportChange(string table, int row, string field, string oldValue, string newValue)
+        { Table = table; Row = row; Field = field; OldValue = oldValue; NewValue = newValue; }
+        internal string Table { get; }
+        internal int Row { get; }
+        internal string Field { get; }
+        internal string OldValue { get; }
+        internal string NewValue { get; }
     }
 }

@@ -71,7 +71,10 @@ internal sealed class Fc26RosterToolsForm : Form
             Button("Remove from team", (_, _) => RemoveSelected()),
             Button("Release to Free Agents", (_, _) => ReleaseSelected()),
             Button("National call-up", (_, _) => NationalCallUp()),
-            Button("Sync U21 to target", (_, _) => SyncYouth()),
+            Button("Remove national call-up", (_, _) => RemoveNationalCallUp()),
+            Button("Validate national squad", (_, _) => ValidateNationalSquad()),
+            Button("Sync nationality links", (_, _) => SyncNationalityLinks()),
+            Button("Merge / sync U21 → target", (_, _) => SyncYouth()),
             Button("Auto Best XI", (_, _) => AutoBestXi()),
             Button("Repair roster", (_, _) => RepairRoster()),
             Button("Export roster CSV", (_, _) => ExportRoster()),
@@ -291,6 +294,69 @@ internal sealed class Fc26RosterToolsForm : Form
         }
         foreach (var player in players) { player.RemoveCurrentConflictingTeam(national); if (!player.IsPlayingFor(national)) national.AddTeamPlayer(player); }
         RepairTeam(national); MessageBox.Show(this, players.Length + " national-team call-up(s) staged. Use File > Save to commit.");
+    }
+
+    private void RemoveNationalCallUp()
+    {
+        var national = CurrentTeam();
+        var links = SelectedRoster();
+        if (national == null || !national.IsNationalTeam())
+        { MessageBox.Show(this, "Select a national team as Current team."); return; }
+        if (links.Length == 0) return;
+        if (MessageBox.Show(this, "Remove " + links.Length + " selected player(s) from " + national +
+            "? Club links are preserved.", "National-team removal preview",
+            MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+        foreach (var link in links) national.RemoveTeamPlayer(link);
+        RepairTeam(national);
+        Fc26ActivityLog.Add("National squad", "Removed " + links.Length + " call-up(s) from " + national.Id);
+        RefreshAll();
+    }
+
+    private void ValidateNationalSquad()
+    {
+        var national = CurrentTeam();
+        if (national == null || !national.IsNationalTeam())
+        { MessageBox.Show(this, "Select a national team as Current team."); return; }
+        var links = national.Roster.Cast<TeamPlayer>().Where(link => link?.Player != null).ToArray();
+        var duplicateIds = links.GroupBy(link => link.Player.Id).Where(group => group.Count() > 1).Select(group => group.Key).ToArray();
+        var nationalityMismatch = links.Where(link => national.Country == null || link.Player.Country == null ||
+            link.Player.Country.Id != national.Country.Id).Select(link => link.Player.Id).ToArray();
+        var invalidSlots = links.Where(link => link.position < 0 || link.position > 29).Select(link => link.Player.Id).ToArray();
+        var goalkeepers = links.Count(link => link.Player.preferredposition1 == 0);
+        var issues = new List<string>();
+        if (links.Length < 18 || links.Length > 26) issues.Add("Squad size is " + links.Length + " (recommended 18–26).");
+        if (goalkeepers < 2) issues.Add("Only " + goalkeepers + " goalkeeper(s) found; at least two are recommended.");
+        if (duplicateIds.Length > 0) issues.Add("Duplicate player IDs: " + string.Join(", ", duplicateIds));
+        if (nationalityMismatch.Length > 0) issues.Add("Nationality mismatch IDs: " + string.Join(", ", nationalityMismatch));
+        if (invalidSlots.Length > 0) issues.Add("Invalid formation slot IDs: " + string.Join(", ", invalidSlots));
+        MessageBox.Show(this, issues.Count == 0 ? "National squad passes size, goalkeeper, nationality, duplicate and slot checks." :
+            string.Join("\r\n", issues), "National squad validation", MessageBoxButtons.OK,
+            issues.Count == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+    }
+
+    private void SyncNationalityLinks()
+    {
+        var nationalTeams = _teams.Where(team => team.IsNationalTeam() && team.Country != null).ToArray();
+        var moves = (from team in nationalTeams
+                     from link in team.Roster.Cast<TeamPlayer>()
+                     where link?.Player?.Country != null && link.Player.Country.Id != team.Country.Id
+                     let target = nationalTeams.FirstOrDefault(candidate => candidate.Country.Id == link.Player.Country.Id)
+                     select new { Source = team, Link = link, Target = target }).ToArray();
+        if (moves.Length == 0)
+        { MessageBox.Show(this, "All loaded national-team links match player nationality."); return; }
+        var resolvable = moves.Count(move => move.Target != null);
+        if (MessageBox.Show(this, "Found " + moves.Length + " nationality mismatch(es).\r\n" + resolvable +
+            " can be moved to the matching loaded national team; the remainder will be removed from the incorrect squad. Continue?",
+            "Sync nationality links preview", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        foreach (var move in moves)
+        {
+            move.Source.RemoveTeamPlayer(move.Link);
+            if (move.Target != null && !move.Link.Player.IsPlayingFor(move.Target)) move.Target.AddTeamPlayer(move.Link.Player);
+        }
+        foreach (var team in moves.Select(move => move.Source).Concat(moves.Where(move => move.Target != null).Select(move => move.Target)).Distinct())
+            RepairTeam(team);
+        Fc26ActivityLog.Add("National squad", "Synchronized " + moves.Length + " nationality link(s)");
+        RefreshAll();
     }
 
     private void SyncYouth()

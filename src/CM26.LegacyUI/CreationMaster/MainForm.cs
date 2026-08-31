@@ -404,7 +404,9 @@ public class MainForm : Form
 	{
 		using (var launcher = new Fc26ProjectLauncherForm(
 			() => menuOpenFifa16_Click(this, EventArgs.Empty), OpenExtractedFc26Database,
-			OpenFc26ProjectSession, SaveFc26ProjectSession))
+			OpenFc26ProjectSession, SaveFc26ProjectSession,
+			ShowFc26DatabaseWorkspace, ShowFc26RosterTools, ShowFc26CareerSaveModule,
+			ShowFc26CompdataCentre))
 		{
 			var result = launcher.ShowDialog(this);
 			if (result == DialogResult.Retry && launcher.Tag is string recentPath)

@@ -63,6 +63,7 @@ $rootDocs = @('README.md', 'INSTALLATION.md', 'RELEASE_NOTES.md',
               'LICENSE', 'EULA.md', 'version.json',
               'docs\reports\ASSET_INVENTORY.md', 'docs\reports\ASSET_SUPPORT_MATRIX.md',
               'docs\reports\FROSTBITE_ASSET_BRIDGE_STATUS.md',
+              'docs\reports\COMPREHENSIVE_FEATURE_ACCEPTANCE.md',
               'docs\reports\RELEASE_READINESS_REPORT.md',
               'docs\reports\STABLE_RELEASE_MATRIX.md')
 

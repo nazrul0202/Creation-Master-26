@@ -385,16 +385,19 @@ internal static class Program
 					ContainsMenuText(main.MainMenuStrip?.Items, "Roster, National Team") ||
 					ContainsMenuText(main.MainMenuStrip?.Items, "Career Save Module"))
 					throw new InvalidDataException("A raw or separate specialist editor is still exposed in the public menu.");
-				using (var launcher = new Fc26ProjectLauncherForm(() => { }, () => { }, () => { }, () => { }))
+				using (var launcher = new Fc26ProjectLauncherForm(
+					() => { }, () => { }, () => { }, () => { },
+					() => { }, () => { }, () => { }, () => { }))
 				{
-					foreach (var forbiddenLauncherAction in new[]
+					foreach (var requiredLauncherAction in new[]
 					{
-						"Database + localization", "Squads / roster",
-						"Manager / Player Career", "Tournament / Compdata"
+						"Open FC26 Game", "Open extracted database", "Open CM26 project/session",
+						"Database & localisation", "Squads & roster",
+						"Manager / Player Career", "Tournament / competitions"
 					})
 					{
-						if (ContainsControlText(launcher, forbiddenLauncherAction))
-							throw new InvalidDataException("A separate specialist launcher action remains visible: " + forbiddenLauncherAction);
+						if (!ContainsControlText(launcher, requiredLauncherAction))
+							throw new InvalidDataException("The comprehensive project launcher is missing: " + requiredLauncherAction);
 					}
 				}
 				using (var readiness = new Fc26PublicReadinessForm(main))

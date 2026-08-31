@@ -1,5 +1,18 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.191 - comprehensive Classic core (2026-09-01)
+
+- Kept the familiar Classic CM16 interface as the only public desktop and made
+  the Project Launcher reach the real database/localisation, squad, career and
+  competition workflows after an FC26 source is loaded.
+- Added changed-record filtering, validated bulk set, all-table TSV export and
+  prevalidated all-table import with rollback to the Advanced Database Workspace.
+- Added national call-up removal, squad-rule validation and nationality-link
+  synchronization alongside the existing roster, loan and youth merge tools.
+- Added reverse database usage reporting to the Visual Asset Manager and a
+  conservative 1–20 acceptance matrix; incomplete experimental items are no
+  longer presented as finished merely because a control exists.
+
 ## Version 1.0.190 - Studio removed from the public tool (2026-09-01)
 
 - Removed the CM26 Studio executable and all Studio launch switches from the

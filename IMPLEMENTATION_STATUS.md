@@ -1,8 +1,13 @@
-# Creation Master 26 v1.0.190 implementation status
+# Creation Master 26 v1.0.191 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
 ## Complete
+
+- Expanded Classic project launcher for installed/extracted/session sources plus real Database & Localisation, Squad/Roster, Career and Competition entry points, with availability detected from loaded FC26 tables.
+- Advanced Database Workspace adds changed-record filtering, validated bulk set, all-table TSV import/export and rollback of partially staged folder imports.
+- National-team tools add call-up removal, size/goalkeeper/nationality/duplicate/slot validation and nationality-link synchronization; youth merge/sync continues through the same real roster path.
+- Visual Asset Manager adds a reverse database usage report for mapped player, team, kit, country, stadium, ball, boot, glove and competition asset families.
 
 - Original v1.0.148-style Creation Master / CM16 interface as the only public shell; Studio executables and launch switches are removed.
 - Lazy section creation, retained view state, a visible cold-load skeleton and a measured sub-100 ms warm-navigation release gate across all 25 public sections.

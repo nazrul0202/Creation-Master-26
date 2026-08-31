@@ -1,10 +1,12 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.190 (MIT License), 2026-09-01.
+Status: Version 1.0.191 (MIT License), 2026-09-01.
 
 ## User interface
 
-The v1.0.190 public launcher is named `Creation Master 26.exe` and opens only the familiar Creation Master / CM16-style interface. There is no separate Studio executable or Studio launch switch. The x64 host remains behind the classic interface for Frostbite database, asset and preview work. Exotic DPI combinations or very small window sizes may still need refinement.
+The v1.0.191 public launcher is named `Creation Master 26.exe` and opens only the familiar Creation Master / CM16-style interface. There is no separate Studio executable or Studio launch switch. The x64 host remains behind the classic interface for Frostbite database, asset and preview work. Exotic DPI combinations or very small window sizes may still need refinement.
+
+The comprehensive 1–20 feature poster is an acceptance target, not a claim that every experimental feature is complete. Appearance/face recognition, injured-player national-squad replenishment, full youth-specific semantics and the exhaustive Frostbite reverse-dependency catalogue remain under validation; see `docs/reports/COMPREHENSIVE_FEATURE_ACCEPTANCE.md`.
 
 Both **Full Portable** and **Lite Portable** are assembled with checksums. Lite
 requires the Microsoft .NET 8 Desktop Runtime; Full includes its own runtime.

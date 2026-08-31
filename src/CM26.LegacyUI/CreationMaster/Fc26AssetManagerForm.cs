@@ -151,6 +151,7 @@ internal sealed class Fc26AssetManagerForm : Form
             new Label { Text = "Verified logical path", AutoSize = true, Padding = new Padding(8, 6, 0, 0) }, _logicalPath,
             Button("Load / Preview", LoadLegacy), Button("Import image", ImportLegacy), Button("Import native file", ImportFile),
             Button("Export", ExportLegacy), Button("Remove staged", RemoveLegacy), Button("Check family", CheckFamily),
+            Button("Usage / reverse links", DependencyReport),
             Button("Favourite", ToggleFavourite), new Label { Text = "Favourites / recent", AutoSize = true, Padding = new Padding(8, 6, 0, 0) },
             _savedPaths, _assetState
         });
@@ -312,6 +313,58 @@ internal sealed class Fc26AssetManagerForm : Form
         if (family.StartsWith("Boot", StringComparison.OrdinalIgnoreCase))
             return FifaLibrary.FifaEnvironment.Shoes.SearchId(id) == null ? "unlinked ID" : "used by boot record";
         return "usage requires dependency scan";
+    }
+
+    private void DependencyReport(object sender, EventArgs e)
+    {
+        try
+        {
+            var idText = AssetKey().Split('_')[0];
+            if (!int.TryParse(idText, out var id)) throw new InvalidOperationException("The selected asset key does not begin with a numeric database ID.");
+            var family = (_family.SelectedItem as LegacyFamily)?.Name ?? string.Empty;
+            var fields = DependencyFields(family);
+            if (fields.Length == 0) throw new InvalidOperationException("No verified database relationship mapping is available for this custom asset family.");
+            var hits = new List<string>();
+            foreach (var tableName in Fc26SnapshotLoader.DetailTableNames)
+            {
+                var table = Fc26SnapshotLoader.DetailTable(tableName);
+                if (table == null) continue;
+                foreach (var field in fields)
+                {
+                    var column = table.Column(field);
+                    if (column < 0) continue;
+                    for (var row = 0; row < table.Rows.Count; row++)
+                        if (!Fc26SnapshotLoader.IsDetailDeleted(table.Name, row) && column < table.Rows[row].Length &&
+                            int.TryParse(table.Rows[row][column], out var linkedId) && linkedId == id)
+                            hits.Add(table.Name + "[" + row + "]." + table.Columns[column]);
+                }
+            }
+            var paths = (_family.SelectedItem as LegacyFamily)?.Paths.Select(path => path.Replace("{id}", AssetKey())).ToArray() ?? Array.Empty<string>();
+            var installed = paths.Count(path => !string.IsNullOrWhiteSpace(Fc26HostBridge.ExportAsset(path)));
+            var report = family + " " + id + "\r\nKnown files installed: " + installed + "/" + paths.Length +
+                "\r\nReverse database links: " + hits.Count + "\r\n\r\n" +
+                (hits.Count == 0 ? "No matching loaded database relationship was found." : string.Join("\r\n", hits.Take(500)));
+            MessageBox.Show(this, report, "FC26 asset dependency report", MessageBoxButtons.OK,
+                hits.Count == 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
+            Fc26ActivityLog.Add("Asset dependency", family + " " + id + ": " + hits.Count + " reverse link(s), " + installed + "/" + paths.Length + " files");
+        }
+        catch (Exception ex)
+        {
+            Fc26FriendlyError.Show(this, "Asset dependency report", ex, "Select a mapped asset family and a valid numeric ID, then retry.");
+        }
+    }
+
+    private static string[] DependencyFields(string family)
+    {
+        if (family.StartsWith("Player", StringComparison.OrdinalIgnoreCase)) return new[] { "playerid" };
+        if (family.StartsWith("Team", StringComparison.OrdinalIgnoreCase) || family.StartsWith("Kit", StringComparison.OrdinalIgnoreCase)) return new[] { "teamid", "teamtechid" };
+        if (family.StartsWith("Country", StringComparison.OrdinalIgnoreCase)) return new[] { "nationid", "countryid" };
+        if (family.StartsWith("Stadium", StringComparison.OrdinalIgnoreCase)) return new[] { "stadiumid" };
+        if (family.StartsWith("Ball", StringComparison.OrdinalIgnoreCase)) return new[] { "ballid" };
+        if (family.StartsWith("Boot", StringComparison.OrdinalIgnoreCase)) return new[] { "shoetype", "shoeid" };
+        if (family.StartsWith("Goalkeeper", StringComparison.OrdinalIgnoreCase)) return new[] { "gkglovetypecode" };
+        if (family.StartsWith("Competition", StringComparison.OrdinalIgnoreCase)) return new[] { "competitionid", "leagueid" };
+        return Array.Empty<string>();
     }
 
     private string AssetKey()

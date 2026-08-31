@@ -1066,6 +1066,12 @@ internal static class Fc26SnapshotLoader
     internal static bool IsDetailChanged(string tableName, int rowIndex, string fieldName) =>
         s_detailChanges.ContainsKey(tableName + "\u001f" + rowIndex.ToString(CultureInfo.InvariantCulture) + "\u001f" + fieldName);
 
+    internal static bool IsDetailRowChanged(string tableName, int rowIndex) =>
+        s_detailChanges.Keys.Any(key => key.StartsWith(tableName + "\u001f" + rowIndex.ToString(CultureInfo.InvariantCulture) + "\u001f",
+            StringComparison.OrdinalIgnoreCase)) ||
+        s_structuralChanges.Any(change => change.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase) &&
+                                          (change.RowIndex == rowIndex || change.TargetRowIndex == rowIndex));
+
     internal static void StageDetailValue(string tableName, int rowIndex, string fieldName, string value)
     {
         var table = s_snapshot?.Tables.FirstOrDefault(candidate =>
