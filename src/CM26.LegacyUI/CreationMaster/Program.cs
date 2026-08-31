@@ -286,6 +286,38 @@ internal static class Program
 		Application.EnableVisualStyles();
 		Application.SetCompatibleTextRenderingDefault(defaultValue: false);
 		Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+		if (args.Length >= 1 && string.Equals(args[0], "--cm26-workspace-size-test", StringComparison.OrdinalIgnoreCase))
+		{
+			try
+			{
+				using (var main = new MainForm())
+				{
+					main.Size = new System.Drawing.Size(1600, 900);
+					main.Show();
+					Application.DoEvents();
+					var workspace = FindControl(main, "panelMain") as Panel
+						?? throw new InvalidDataException("The classic main workspace panel is missing.");
+					var showEditor = typeof(MainForm).GetMethod("ShowFormOnPanel",
+						System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+						?? throw new InvalidDataException("The classic editor host method is missing.");
+					using (var sizeProbe = new Form { TopLevel = false, FormBorderStyle = FormBorderStyle.None })
+					{
+						showEditor.Invoke(main, new object[] { sizeProbe, workspace });
+						Application.DoEvents();
+						if (sizeProbe.Bounds != workspace.ClientRectangle)
+							throw new InvalidDataException("A hosted editor does not fill the classic workspace: " +
+								sizeProbe.Bounds + " vs " + workspace.ClientRectangle + ".");
+					}
+				}
+				Environment.Exit(0);
+			}
+			catch (Exception ex)
+			{
+				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				Environment.Exit(1);
+			}
+			return;
+		}
 		if (args.Length >= 1 && string.Equals(args[0], "--cm26-ui-integration-test", StringComparison.OrdinalIgnoreCase))
 		{
 			var uiLog = Path.Combine(Path.GetTempPath(), "cm26-ui-integration.log");

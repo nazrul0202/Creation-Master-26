@@ -185,6 +185,19 @@ function Invoke-PackageShellSmoke {
     }
 }
 
+function Invoke-LegacyWorkspaceSizeSmoke {
+    param([string]$PackageDir, [string]$Label)
+
+    $exe = Join-Path $PackageDir 'CM26.LegacyUI\CM26.LegacyUI.exe'
+    if (-not (Test-Path $exe)) { return }
+    $process = Start-Process -FilePath $exe -ArgumentList '--cm26-workspace-size-test' `
+        -WorkingDirectory (Split-Path $exe -Parent) -WindowStyle Hidden -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        $errors.Add("$Label classic workspace sizing smoke failed (exit $($process.ExitCode)).")
+    }
+    else { Write-Host "    classic workspace sizing: passed" }
+}
+
 function Assemble-Package {
     param(
         [string]$PublishDir,   # source publish output
@@ -340,6 +353,7 @@ function Assemble-Package {
     Assert-NoGameContent -PackageDir $PackageDir -Label $Label
     Invoke-PackageSelfTest -PackageDir $PackageDir -Label $Label
     Invoke-PackageShellSmoke -PackageDir $PackageDir -Label $Label
+    Invoke-LegacyWorkspaceSizeSmoke -PackageDir $PackageDir -Label $Label
 }
 
 $fullDir = Join-Path $releaseRoot "Creation_Master_26_v$version`_Full_Portable"

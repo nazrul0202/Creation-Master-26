@@ -1,4 +1,4 @@
-# Creation Master 26 v1.0.185 implementation status
+# Creation Master 26 v1.0.186 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
@@ -34,6 +34,7 @@ This status is intentionally conservative: a visible control is not counted as w
 - Automated Compdata release coverage builds and validates complete direct-save structures for 2, 4, 12, 20 and 24-team double round-robin leagues.
 - Unknown FC26 title-update schema fingerprints now open read-only until explicitly verified; creation also checks league, team, player, relationship and player-name capacity before staging any records.
 - Classic section switches avoid redundant full-form relayout. FC26 Player Info previews and the Team Roster available-player catalogue/miniface are asynchronous, cancellable and cached where safe.
+- The active classic editor is explicitly fitted to the main workspace; runtime and packaging smoke gates verify that the optimized switch path cannot expose the blue host background.
 - Public Readiness can safely recover an interrupted direct transaction from its durable TOC backups and original CAS lengths. Every recovery path is containment-checked and FC26 must be closed.
 - User-facing errors across both the classic editor and x64 support host use friendly summaries and diagnostic IDs; automated source scanning prevents raw exception dialogs from returning.
 

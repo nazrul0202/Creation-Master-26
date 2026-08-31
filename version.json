@@ -1,6 +1,6 @@
 {
-  "version": "1.0.185",
+  "version": "1.0.186",
   "name": "Creation Master 26",
-  "notes": "v1.0.185 - responsive section switching, asynchronous FC26 player previews and non-blocking roster population.",
+  "notes": "v1.0.186 - full-workspace classic editor sizing with the v1.0.185 responsiveness improvements retained.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

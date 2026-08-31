@@ -1,3 +1,9 @@
+Creation Master 26 v1.0.186 - 31 August 2026
+
+- Fixed classic editors not filling the main workspace after v1.0.185.
+- Kept fast non-recursive switching while directly sizing only the active form.
+- Added the classic workspace sizing test to mandatory package verification.
+
 Creation Master 26 v1.0.185 - 31 August 2026
 
 - Removed redundant whole-editor relayout during section switching.

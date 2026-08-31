@@ -803,6 +803,14 @@ public class MainForm : Form
 				panel.Controls.Add(form);
 			if (!form.Visible)
 				form.Show();
+			// ResumeLayout(false) deliberately avoids relaying out every cached
+			// editor. Size only the editor being activated so it still fills the
+			// workspace at the current window/DPI dimensions. Without this explicit
+			// bound update a first-opened form retained its designer size and exposed
+			// the blue MDI background to the right and below it.
+			form.Dock = DockStyle.None;
+			form.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+			form.Bounds = panel.ClientRectangle;
 			form.BringToFront();
 			// Keep editors cached in the main workspace. Removing/re-adding a CM16
 			// form recreates layout and preview state and made every repeat toolbar

@@ -1,5 +1,14 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.186 - classic workspace sizing hotfix (2026-08-31)
+
+- Fixed League, Team and other classic editors remaining at their designer size
+  and exposing the blue host background after the v1.0.185 layout optimization.
+- The selected editor is now sized directly to the current workspace while the
+  expensive recursive relayout remains disabled.
+- Added a runtime 1600×900 workspace-sizing smoke test and made it a mandatory
+  Full/Lite packaging gate.
+
 ## Version 1.0.185 - responsive classic workflow (2026-08-31)
 
 - Section switching no longer forces a recursive layout of every control in the

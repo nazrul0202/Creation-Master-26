@@ -1,5 +1,13 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.186 - classic workspace sizing hotfix (2026-08-31)
+
+- **PASS:** active League, Team and other classic editors are explicitly fitted
+  to the main workspace without restoring recursive full-form layout.
+- **PASS:** a runtime 1600×900 probe asserts the hosted form bounds exactly match
+  the workspace client rectangle.
+- **PASS:** the same workspace probe is mandatory for both packaged runtime models.
+
 ## Version 1.0.185 - responsiveness and preview lifecycle gates (2026-08-31)
 
 - **PASS:** classic section hosting no longer forces a recursive layout pass on

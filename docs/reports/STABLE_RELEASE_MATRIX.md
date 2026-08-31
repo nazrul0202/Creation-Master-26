@@ -1,6 +1,6 @@
 # Creation Master 26 — Public Release Matrix
 
-Version: 1.0.185
+Version: 1.0.186
 Date: 2026-08-31
 Public package: Full Portable (Windows 10/11 x64)
 
@@ -21,8 +21,9 @@ another physical machine or an EA title update that is not available locally.
 | Title-update compatibility | PASS (code gate) | Unknown schema fingerprints are read-only until added to the verified registry. |
 | Package self-test | PASS | Full Portable and internal Lite validation both returned `RELEASE SELF-TEST OK`. |
 | UI shell smoke | PASS | Full Portable and internal Lite shell smoke both passed. |
+| Classic workspace sizing | PASS | Runtime 1600×900 probe verifies the hosted editor exactly fills the main panel. |
 | Package integrity | PASS | 573-file Full Portable payload; Large Address Aware, version, dependencies, no-PDB and no-EA-content gates passed. |
-| ZIP checksum | PASS | Final Full Portable SHA-256 is recorded in `Release/SHA256SUMS_v1.0.185.txt`. |
+| ZIP checksum | PASS | Final Full Portable SHA-256 is recorded in `Release/SHA256SUMS_v1.0.186.txt`. |
 
 ## Machine-local integration evidence
 

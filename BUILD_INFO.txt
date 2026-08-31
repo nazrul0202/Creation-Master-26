@@ -1,4 +1,4 @@
-Creation Master 26 Version: 1.0.185
+Creation Master 26 Version: 1.0.186
 Build Configuration: Release
 Target Framework: .NET 8 Windows host + .NET Framework 4.8 classic UI
 Architecture: x64 Frostbite host + x86 classic UI

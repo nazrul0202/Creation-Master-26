@@ -92,6 +92,7 @@ public sealed class ReleaseSafetyTests
         var team = File.ReadAllText(Path.Combine(legacy, "TeamForm.cs"));
 
         Assert.Contains("panel.ResumeLayout(performLayout: false)", main, StringComparison.Ordinal);
+        Assert.Contains("form.Bounds = panel.ClientRectangle", main, StringComparison.Ordinal);
         Assert.Contains("LoadFc26PlayerInfoAssetsAsync", player, StringComparison.Ordinal);
         Assert.Contains("Task.Run(() => DecodeFc26PlayerInfoAssets", player, StringComparison.Ordinal);
         Assert.Contains("LoadFc26AvailablePlayersAsync", team, StringComparison.Ordinal);
