@@ -1,10 +1,10 @@
-# Creation Master 26 v1.0.188 implementation status
+# Creation Master 26 v1.0.189 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
 ## Complete
 
-- Deco-inspired responsive x64 Studio as the normal public shell; the original v1.0.148-style Creation Master interface remains available through `--classic`.
+- Original v1.0.148-style Creation Master / CM16 interface as the normal public shell; the Deco-inspired responsive x64 Studio remains available explicitly through `--studio`.
 - Lazy section creation, retained view state, a visible cold-load skeleton and a measured sub-100 ms warm-navigation release gate across all 25 public sections.
 - Player, Team, League, Country and all custom-toolbar editors now load and select real records automatically instead of presenting an uninitialised blank canvas.
 - Frostbite preview search, extraction and decoding run away from the UI thread with stale-request cancellation and safe disposal.

@@ -1,5 +1,15 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.189 - classic CM16 default restored (2026-09-01)
+
+- Restored the familiar Creation Master / CM16 interface as the normal public
+  launch experience after user feedback on v1.0.188.
+- Kept the Deco-inspired x64 Studio available explicitly through `--studio`;
+  it no longer replaces the established classic workflow.
+- Retained the v1.0.188 responsiveness work: reduced classic redraw, asynchronous
+  FC26 previews, stale-request cancellation, cached Studio views and performance
+  regression gates.
+
 ## Version 1.0.188 - Deco-first responsive Studio (2026-08-31)
 
 - Made the Deco-inspired x64 Studio the default public interface while retaining

@@ -323,6 +323,17 @@ internal static class ReleaseSelfTest
             return null;
         });
 
+        Check("normal launch keeps the classic CM16 shell", () =>
+        {
+            if (Program.UsesInternalStudio(Array.Empty<string>(), isStudioSmoke: false))
+                return "a normal launch incorrectly selects the internal Studio";
+            if (!Program.UsesInternalStudio(["--studio"], isStudioSmoke: false))
+                return "--studio does not select the optional x64 Studio";
+            if (!Program.UsesInternalStudio(Array.Empty<string>(), isStudioSmoke: true))
+                return "the automated Studio smoke route is unavailable";
+            return null;
+        });
+
         // --- Regression: sidebar navigation must never recurse ---------------
         // Clicking a sidebar item fired StudioSidebar.SetActive -> ItemClicked ->
         // MainForm.NavigateTo -> SetActive ... until the native stack overflowed

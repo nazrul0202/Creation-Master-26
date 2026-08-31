@@ -11,6 +11,11 @@ internal static class Program
 {
     public static string ProductVersion => typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "unknown";
 
+    internal static bool UsesInternalStudio(string[] args, bool isStudioSmoke) =>
+        isStudioSmoke || args.Length >= 1 &&
+        (args[0].Equals("--studio", StringComparison.OrdinalIgnoreCase) ||
+         args[0].Equals("--database", StringComparison.OrdinalIgnoreCase));
+
     public static readonly string LogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Creation Master 26", "cm26.log");
@@ -561,17 +566,14 @@ internal static class Program
 
         try
         {
-            // The responsive x64 Studio is the public interface. It owns the fast,
-            // lazy section workspace and direct Frostbite workflow. The original
-            // CM16 shell remains available through --classic/--legacy for users who
-            // need its compatibility-only surfaces.
+            // Preserve the familiar Creation Master / CM16 desktop as the public
+            // default. The responsive Deco-inspired x64 Studio remains available
+            // explicitly through --studio for users who prefer that workspace.
             var legacyExe = Path.Combine(AppContext.BaseDirectory, "CM26.LegacyUI", "CM26.LegacyUI.exe");
-            var useClassicShell = args.Length >= 1 &&
-                (args[0].Equals("--classic", StringComparison.OrdinalIgnoreCase) ||
-                 args[0].Equals("--legacy", StringComparison.OrdinalIgnoreCase));
+            var useInternalStudio = UsesInternalStudio(args, isStudioSmoke);
             var useWpfCompatibility = args.Length >= 1 &&
                 args[0].Equals("--cm16-studio", StringComparison.OrdinalIgnoreCase);
-            if (useClassicShell && !useWpfCompatibility && !isStudioSmoke && File.Exists(legacyExe))
+            if (!useInternalStudio && !useWpfCompatibility && File.Exists(legacyExe))
             {
                 using var legacy = Process.Start(new ProcessStartInfo
                 {

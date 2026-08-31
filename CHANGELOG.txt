@@ -1,3 +1,9 @@
+Creation Master 26 v1.0.189 - 1 September 2026
+
+- Restored the classic Creation Master / CM16 interface as the normal default launch.
+- Kept the Deco-inspired x64 Studio available explicitly through --studio.
+- Retained all v1.0.188 navigation, caching, async preview and redraw improvements.
+
 Creation Master 26 v1.0.188 - 31 August 2026
 
 - Made the Deco-inspired x64 Studio the default interface; classic CM16 remains under --classic.
