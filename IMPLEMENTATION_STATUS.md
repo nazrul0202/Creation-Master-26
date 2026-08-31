@@ -1,4 +1,4 @@
-# CM26 v1.0.182 implementation status
+# Creation Master 26 v1.0.183 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
@@ -28,6 +28,10 @@ This status is intentionally conservative: a visible control is not counted as w
 - Friendly FC26 Save Preflight with duplicate-ID, country, roster, relationship and asset checks plus Fix Selected navigation, followed by Save Proof reload verification and Career Ready messaging.
 - Compdata toolbar shortcuts for Add New League, Add New Team, Add New Nation and Add New Player, with structured staging kept behind the classic friendly UI.
 - Shared FC26 `playernames` edits detach automatically to unused IDs without rewriting a row referenced by another player; Save Preflight and Diagnostics show compact free-ID ranges for the writable core tables.
+- The public executable and Windows assembly identity are now `Creation Master 26`; the old `CM26_by_Rizco98` public filename is no longer packaged.
+- Direct Frostbite commits maintain an atomic phase journal and preserve rollback material after any failed transaction. An incomplete rollback blocks later saves until its Recovery Required folder is reviewed.
+- Global and workflow errors use friendly diagnostic IDs instead of exposing raw .NET exception dialogs.
+- Automated Compdata release coverage builds and validates complete direct-save structures for 2, 4, 12, 20 and 24-team double round-robin leagues.
 
 ## Functional
 

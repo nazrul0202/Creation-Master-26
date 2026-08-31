@@ -53,7 +53,7 @@ jobs:
       - name: Release self-test (no game installation required)
         shell: pwsh
         run: |
-          $exe = 'src\CM26.App\bin\Release\net8.0-windows\CM26_by_Rizco98.exe'
+          $exe = 'src\CM26.App\bin\Release\net8.0-windows\Creation Master 26.exe'
           if (-not (Test-Path $exe)) { throw "Build output not found: $exe" }
           & $exe --release-selftest
           if ($LASTEXITCODE -ne 0) { throw "Release self-test failed (exit $LASTEXITCODE)." }
@@ -68,7 +68,7 @@ jobs:
           if ($props -ne $manifest) {
             throw "version.json='$manifest' but Directory.Build.props='$props'."
           }
-          $exeVersion = (Get-Item 'src\CM26.App\bin\Release\net8.0-windows\CM26_by_Rizco98.exe').VersionInfo.FileVersion
+          $exeVersion = (Get-Item 'src\CM26.App\bin\Release\net8.0-windows\Creation Master 26.exe').VersionInfo.FileVersion
           if ($exeVersion -notmatch [regex]::Escape($manifest)) {
             throw "Built exe FileVersion '$exeVersion' does not match version.json '$manifest'."
           }

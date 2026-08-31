@@ -81,7 +81,7 @@ internal sealed class Fc26CareerSaveForm : Form
             _save.Enabled = true; _status.Text = "Manager Career budget loaded. Changes are written only when Save is pressed.";
             Fc26ActivityLog.Add("Career", "Loaded Career save: " + fileName);
         }
-        catch (Exception ex) { _editor = null; _save.Enabled = false; MessageBox.Show(this, ex.Message, "Open Career save", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { _editor = null; _save.Enabled = false; Fc26FriendlyError.Show(this, "Open Career save", ex, "Select an unmodified FC26 Career save and retry."); }
         finally { UseWaitCursor = false; }
     }
 
@@ -97,7 +97,7 @@ internal sealed class Fc26CareerSaveForm : Form
             Fc26ActivityLog.Add("Career save", "Saved and reload-verified Career budget; backup: " + backup);
             MessageBox.Show(this, "Career budget saved and reload-verified.\r\n\r\nBackup: " + backup, "Career save", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Career save", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { Fc26FriendlyError.Show(this, "Career save", ex, "The timestamped backup is retained. The editor will not report success unless the written budget reload-verifies."); }
         finally { UseWaitCursor = false; _save.Enabled = _editor != null; }
     }
 

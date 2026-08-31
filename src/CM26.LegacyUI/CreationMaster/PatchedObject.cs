@@ -1158,7 +1158,7 @@ public class PatchedObject
 		{
 			flag5 = !player.IsFreeAgent();
 		}
-		if (webData["website"] != "sofifa" || flag)
+		if (!string.Equals(webData["website"]?.ToString(), "sofifa", StringComparison.OrdinalIgnoreCase) || flag)
 		{
 			player.commonname = webData["commonname"].ToString();
 			if (player.commonname != string.Empty)

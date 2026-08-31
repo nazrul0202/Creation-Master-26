@@ -432,7 +432,7 @@ public sealed class SettingsSection : SectionBase
         AddCardTitle(card, "About");
         var about = new Label
         {
-            Text = $"Creation Master 26 · Version {Program.ProductVersion} — CM26_by_Rizco98\n\n" +
+            Text = $"Creation Master 26 · Version {Program.ProductVersion}\n\n" +
                    "Save writes validated database and legacy changes directly to Data/Patch. " +
                    "File > Restore Original Data restores the immutable CmModData backup.\n\n" +
                    "Player names are resolved read-only from the loaded database folder. In the current database " +

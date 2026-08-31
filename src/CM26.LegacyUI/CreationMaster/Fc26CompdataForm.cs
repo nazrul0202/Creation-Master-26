@@ -545,7 +545,7 @@ internal sealed class Fc26CompdataPanel : UserControl
     private void Run(string busy, Func<string> action)
     {
         try { UseWaitCursor = true; _status.Text = busy; Application.DoEvents(); _status.Text = action(); }
-        catch (Exception ex) { _status.Text = "Operation failed."; MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { _status.Text = "Operation failed safely."; Fc26FriendlyError.Show(this, "Compdata", ex, "No Compdata change from this operation was staged. Review the selected league, team links and calendar, then retry."); }
         finally { UseWaitCursor = false; }
     }
     private static ToolStripItem Item(string text, EventHandler click) { var item = new ToolStripButton(text); item.Click += click; return item; }

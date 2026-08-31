@@ -1,6 +1,6 @@
 {
-  "version": "1.0.182",
+  "version": "1.0.183",
   "name": "Creation Master 26",
-  "notes": "v1.0.182 - verified Career writes, schema compatibility gate, Compdata calendar conflicts and responsive face scans.",
+  "notes": "v1.0.183 - Creation Master 26 branding, crash-safe direct-save recovery, friendly diagnostics and expanded Compdata release gates.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

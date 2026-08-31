@@ -86,7 +86,7 @@ public partial class App : System.Windows.Application
     }
 
     /// <summary>
-    /// Loads App.xaml when Studio is hosted by CM26_by_Rizco98.exe. The normal
+    /// Loads App.xaml when Studio is hosted by Creation Master 26.exe. The normal
     /// WPF-generated entry point calls InitializeComponent itself; a referenced
     /// WPF assembly does not, so the host must call this before Run().
     /// </summary>

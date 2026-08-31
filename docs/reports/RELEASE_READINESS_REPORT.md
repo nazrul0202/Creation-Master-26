@@ -1,5 +1,20 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.183 - public naming and fail-safe gates (2026-08-31)
+
+- **PASS:** public launcher, assembly identity, CI and package script use
+  `Creation Master 26.exe`; the previous public executable name is not shipped.
+- **PASS:** Release solution compiles with zero warnings and zero errors.
+- **PASS:** 155 automated tests cover database/asset safety plus complete
+  2, 4, 12, 20 and 24-team Career Compdata league structures.
+- **PASS:** direct save has an atomic transaction journal and preserves failed
+  rollback evidence; incomplete recovery blocks later saves.
+- **PASS:** supported startup/save failures use friendly diagnostic IDs and
+  keep technical details in a local log.
+- **BOUNDARY:** see `STABLE_RELEASE_MATRIX.md` for physical-machine, DPI,
+  future-title-update, season-playthrough and code-signing checks that are
+  explicitly `NOT TESTED` rather than represented as passes.
+
 ## Version 1.0.161 - classic-section-only public workflow (2026-08-25)
 
 - Public Tools and Project Launcher no longer expose standalone specialist editors.

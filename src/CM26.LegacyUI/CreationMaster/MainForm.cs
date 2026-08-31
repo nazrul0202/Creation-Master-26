@@ -1352,7 +1352,8 @@ public class MainForm : Form
 			catch (Exception ex)
 			{
 				statusBar.Text = "Save cancelled - complete the new league setup.";
-				MessageBox.Show(this, ex.Message, "Save", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+				Fc26FriendlyError.Show(this, "Save", ex,
+					"Nothing is treated as saved unless Save Proof passes. Fix the reported item and retry; check the Recovery Folder if rollback was incomplete.");
 			}
 			finally { Cursor.Current = Cursors.Default; }
 		}
@@ -1379,7 +1380,8 @@ public class MainForm : Form
 			try { SaveFiles(); return m_LastSaveCommitted; }
 			catch (Exception ex)
 			{
-				MessageBox.Show(this, ex.Message, "Save", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+				Fc26FriendlyError.Show(this, "Save", ex,
+					"Nothing is treated as saved unless Save Proof passes. Fix the reported item and retry.");
 				return false;
 			}
 		case DialogResult.OK:

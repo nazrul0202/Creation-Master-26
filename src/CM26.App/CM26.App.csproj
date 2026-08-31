@@ -9,7 +9,7 @@
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RootNamespace>CM26.App</RootNamespace>
-    <AssemblyName>CM26_by_Rizco98</AssemblyName>
+    <AssemblyName>Creation Master 26</AssemblyName>
     <AssemblyTitle>Creation Master 26</AssemblyTitle>
     <Description>Creation Master 26 — database, competition data and legacy asset editor</Description>
     <ApplicationIcon>Assets\Logo\Creation Master 26.ico</ApplicationIcon>

@@ -1,3 +1,12 @@
+Creation Master 26 v1.0.183 - 31 August 2026
+
+- Public executable and application identity renamed to Creation Master 26.
+- Added atomic direct-save transaction journals and Recovery Required blocking.
+- Replaced raw exception dialogs with actionable diagnostic IDs and local logs.
+- Save now blocks for a running game, unreadable snapshot or unsafe free space.
+- Compdata release matrix covers 2, 4, 12, 20 and 24-team Career leagues.
+- Release build and tests complete with zero compiler warnings.
+
 Creation Master 26 v1.0.182 - 31 August 2026
 
 - Career budget writes now reopen and verify the saved EA container, restoring

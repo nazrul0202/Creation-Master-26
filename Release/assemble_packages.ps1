@@ -62,7 +62,8 @@ $rootDocs = @('README.md', 'INSTALLATION.md', 'RELEASE_NOTES.md',
               'LICENSE', 'EULA.md', 'version.json',
               'docs\reports\ASSET_INVENTORY.md', 'docs\reports\ASSET_SUPPORT_MATRIX.md',
               'docs\reports\FROSTBITE_ASSET_BRIDGE_STATUS.md',
-              'docs\reports\RELEASE_READINESS_REPORT.md')
+              'docs\reports\RELEASE_READINESS_REPORT.md',
+              'docs\reports\STABLE_RELEASE_MATRIX.md')
 
 # --- EA content guard -------------------------------------------------------
 # EULA.md states the package redistributes no EA game content. These patterns are
@@ -136,7 +137,7 @@ function Assert-LargeAddressAware {
 function Invoke-PackageSelfTest {
     param([string]$PackageDir, [string]$Label)
 
-    $exe = Join-Path $PackageDir 'CM26_by_Rizco98.exe'
+    $exe = Join-Path $PackageDir 'Creation Master 26.exe'
     if (-not (Test-Path $exe)) { return }
     $stdout = [System.IO.Path]::GetTempFileName()
     $stderr = [System.IO.Path]::GetTempFileName()
@@ -163,7 +164,7 @@ function Invoke-PackageSelfTest {
 function Invoke-PackageShellSmoke {
     param([string]$PackageDir, [string]$Label)
 
-    $exe = Join-Path $PackageDir 'CM26_by_Rizco98.exe'
+    $exe = Join-Path $PackageDir 'Creation Master 26.exe'
     if (-not (Test-Path $exe)) { return }
     $stdout = [System.IO.Path]::GetTempFileName()
     $stderr = [System.IO.Path]::GetTempFileName()
@@ -222,9 +223,9 @@ function Assemble-Package {
     # racing on the shared obj/) can produce a deps.json that omits the bundled
     # runtime packs. The apphost then dies with "Could not resolve CoreCLR path"
     # at launch. A self-contained package MUST reference the runtime packs.
-    $depsFile = Join-Path $PublishDir 'CM26_by_Rizco98.deps.json'
+    $depsFile = Join-Path $PublishDir 'Creation Master 26.deps.json'
     if (-not (Test-Path $depsFile)) {
-        $errors.Add("$Label publish output is missing CM26_by_Rizco98.deps.json.")
+        $errors.Add("$Label publish output is missing Creation Master 26.deps.json.")
     }
     else {
         $deps = Get-Content $depsFile -Raw
@@ -236,7 +237,7 @@ function Assemble-Package {
                 Write-Host "    MISSING targets in deps.json - re-run publish sequentially" -ForegroundColor Red
             }
         }
-        elseif ($deps -notmatch 'CM26_by_Rizco98\.dll') {
+        elseif ($deps -notmatch 'Creation Master 26\.dll') {
             $errors.Add("$Label deps.json does not reference the application assembly (corrupt publish).")
             Write-Host "    deps.json does not reference the app assembly - re-run publish" -ForegroundColor Red
         }
@@ -296,7 +297,7 @@ function Assemble-Package {
     $mb = ($files | Measure-Object Length -Sum).Sum / 1MB
     Write-Host ("    files={0}  size={1:N1} MB" -f $files.Count, $mb)
 
-    $must = @('CM26_by_Rizco98.exe','CM26_by_Rizco98.dll',
+    $must = @('Creation Master 26.exe','Creation Master 26.dll',
               'CM26.Studio.exe','CM26.Studio.dll','CM26.Application.dll',
               'CM26.EngineBridge.dll','CM26.AssetBridge.dll',
               'CM26.MeshKit.dll',
@@ -325,7 +326,7 @@ function Assemble-Package {
     Assert-LargeAddressAware -ExePath (Join-Path $PackageDir 'CM26.LegacyUI\CM26.LegacyUI.exe') -Label $Label
 
     # Both public entry points must report the version being released.
-    foreach ($exeName in @('CM26_by_Rizco98.exe', 'CM26.Studio.exe')) {
+    foreach ($exeName in @('Creation Master 26.exe', 'CM26.Studio.exe')) {
         $exe = Join-Path $PackageDir $exeName
         if (Test-Path $exe) {
             $fileVersion = (Get-Item $exe).VersionInfo.FileVersion

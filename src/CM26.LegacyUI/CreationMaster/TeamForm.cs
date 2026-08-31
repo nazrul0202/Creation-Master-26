@@ -3311,7 +3311,6 @@ public class TeamForm : Form
 	private void listView_ColumnClick(object sender, ColumnClickEventArgs e)
 	{
 		ListView obj = (ListView)sender;
-		SortOrder sortOrder = SortOrder.None;
 		obj.ListViewItemSorter = new ListViewItemComparer(sortOrder: obj.Sorting = ((obj.Sorting != SortOrder.Ascending) ? SortOrder.Ascending : SortOrder.Descending), column: e.Column);
 	}
 
@@ -4101,7 +4100,6 @@ public class TeamForm : Form
 	private void listViewRoster_ColumnClick(object sender, ColumnClickEventArgs e)
 	{
 		ListView obj = (ListView)sender;
-		SortOrder sortOrder = SortOrder.None;
 		obj.ListViewItemSorter = new ListViewItemComparer(sortOrder: obj.Sorting = ((obj.Sorting != SortOrder.Ascending) ? SortOrder.Ascending : SortOrder.Descending), column: e.Column);
 	}
 

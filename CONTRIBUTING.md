@@ -30,7 +30,7 @@ career-mode data — not just what the UI should look like.
 3. Build and run the release self-test before submitting:
    ```bash
    build-managed.cmd
-   CM26_by_Rizco98.exe --release-selftest
+   & '.\Creation Master 26.exe' --release-selftest
    ```
 4. Open a PR describing the change and how you verified it.
 

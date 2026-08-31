@@ -50,7 +50,7 @@ Individual scripts:
 ### Release self-test — no game installation needed
 
 ```bat
-src\CM26.App\bin\Release\net8.0-windows\CM26_by_Rizco98.exe --release-selftest
+& 'src\CM26.App\bin\Release\net8.0-windows\Creation Master 26.exe' --release-selftest
 ```
 
 Verifies portable tool detection (no developer paths), that the build output
@@ -60,7 +60,7 @@ gate CI runs; it must exit `0`.
 ### Studio shell smoke — no game installation needed
 
 ```bat
-src\CM26.App\bin\Release\net8.0-windows\CM26_by_Rizco98.exe --ui-shell-smoke
+& 'src\CM26.App\bin\Release\net8.0-windows\Creation Master 26.exe' --ui-shell-smoke
 ```
 
 Constructs and closes the public x64 Direct Frostbite Studio. This catches missing
@@ -82,15 +82,15 @@ These read a real database and are therefore not part of CI. Each is a headless
 mode of the app and prints its result to the console:
 
 ```bat
-CM26_by_Rizco98.exe --smoke              <dbFolder>
-CM26_by_Rizco98.exe --nav-test           <dbFolder> <assetRoot-or-empty>
-CM26_by_Rizco98.exe --layout-test        <dbFolder> <assetRoot-or-empty>
-CM26_by_Rizco98.exe --squad-probe        <dbFolder>
-CM26_by_Rizco98.exe --formation-test     <dbFolder>
-CM26_by_Rizco98.exe --compdata-test      <workbook.xlsx>
-CM26_by_Rizco98.exe --frostbite-test     [gameRoot]
-CM26_by_Rizco98.exe --workspace-test     [gameRoot]
-CM26_by_Rizco98.exe --backup-audit       [gameRoot]
+Creation Master 26.exe --smoke              <dbFolder>
+Creation Master 26.exe --nav-test           <dbFolder> <assetRoot-or-empty>
+Creation Master 26.exe --layout-test        <dbFolder> <assetRoot-or-empty>
+Creation Master 26.exe --squad-probe        <dbFolder>
+Creation Master 26.exe --formation-test     <dbFolder>
+Creation Master 26.exe --compdata-test      <workbook.xlsx>
+Creation Master 26.exe --frostbite-test     [gameRoot]
+Creation Master 26.exe --workspace-test     [gameRoot]
+Creation Master 26.exe --backup-audit       [gameRoot]
 ```
 
 `--live-save-roundtrip` writes to a real installation and requires an explicit
@@ -103,7 +103,7 @@ published, plus a matching asset bridge for each:
 
 > **Run the four publish commands sequentially, never in parallel.** Two of
 > them publish the same projects into the same `obj\` intermediates; parallel
-> invocations race and can produce a corrupted `CM26_by_Rizco98.deps.json`
+> invocations race and can produce a corrupted `Creation Master 26.deps.json`
 > that omits the bundled runtime packs. The resulting package fails to launch
 > with "Could not resolve CoreCLR path". `assemble_packages.ps1` now fails on
 > that exact corruption, but the corrupted output would still need a clean

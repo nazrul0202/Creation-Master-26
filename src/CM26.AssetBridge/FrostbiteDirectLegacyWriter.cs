@@ -420,15 +420,27 @@ internal static class FrostbiteDirectLegacyWriter
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Creation Master 26", "direct-transactions", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(transaction);
+        var preserveForRecovery = false;
         try
         {
             Commit(root, layout.Catalogs, writes, tocLocations, transaction);
             var clearedCaches = ClearDatabaseAssetCaches();
             return new ApplyResult(edits.Count, skipped, clearedCaches);
         }
+        catch
+        {
+            // Keep the complete journal and staged rollback material for every
+            // failed transaction. A successful rollback is not game-blocking,
+            // but retaining its evidence makes a disk-full or journal-write
+            // failure diagnosable instead of silently deleting the only trace.
+            preserveForRecovery = true;
+            throw;
+        }
         finally
         {
-            try { if (Directory.Exists(transaction)) Directory.Delete(transaction, recursive: true); }
+            preserveForRecovery = preserveForRecovery ||
+                File.Exists(Path.Combine(transaction, "RECOVERY_REQUIRED.json"));
+            try { if (!preserveForRecovery && Directory.Exists(transaction)) Directory.Delete(transaction, recursive: true); }
             catch (Exception cleanupEx)
             {
                 // A stale transaction folder is safe and can be cleaned later,
@@ -621,6 +633,7 @@ internal static class FrostbiteDirectLegacyWriter
         var casLengths = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         var tocStages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var plannedLocations = new Dictionary<Guid, FrostbiteCasLocation>();
+        WriteTransactionJournal(transaction, "Preparing", root, casLengths, Array.Empty<object>());
 
         // CM26ModData starts as a file-symlink mirror of the installed game.
         // Break only links that this transaction will mutate. Without this
@@ -669,8 +682,12 @@ internal static class FrostbiteDirectLegacyWriter
         }
 
         var replacedTocs = new List<(string Live, string Backup)>();
+        WriteTransactionJournal(transaction, "Prepared", root, casLengths,
+            tocStages.Select(pair => new { Live = pair.Key, Staged = pair.Value }).Cast<object>().ToArray());
         try
         {
+            WriteTransactionJournal(transaction, "WritingCAS", root, casLengths,
+                tocStages.Select(pair => new { Live = pair.Key, Staged = pair.Value }).Cast<object>().ToArray());
             foreach (var group in writes.GroupBy(x => ResolveCasPath(root, catalogs, x.Original)))
             {
                 using var stream = new FileStream(group.Key, FileMode.Open, FileAccess.Write, FileShare.Read);
@@ -692,12 +709,21 @@ internal static class FrostbiteDirectLegacyWriter
                 File.Copy(stage, incoming);
                 File.Replace(incoming, live, backup, ignoreMetadataErrors: true);
                 replacedTocs.Add((live, backup));
+                WriteTransactionJournal(transaction, "ReplacingTOC", root, casLengths,
+                    replacedTocs.Select(pair => new { pair.Live, pair.Backup }).Cast<object>().ToArray());
             }
+            WriteTransactionJournal(transaction, "Complete", root, casLengths,
+                replacedTocs.Select(pair => new { pair.Live, pair.Backup }).Cast<object>().ToArray());
         }
-        catch
+        catch (Exception commitError)
         {
+            var rollbackErrors = new List<string>();
             foreach (var (live, backup) in replacedTocs.AsEnumerable().Reverse())
-                if (File.Exists(backup)) File.Copy(backup, live, overwrite: true);
+                try
+                {
+                    if (File.Exists(backup)) File.Copy(backup, live, overwrite: true);
+                }
+                catch (Exception rollbackEx) { rollbackErrors.Add(Path.GetFileName(live) + ": " + rollbackEx.Message); }
             foreach (var (cas, length) in casLengths)
             {
                 try
@@ -708,13 +734,49 @@ internal static class FrostbiteDirectLegacyWriter
                 }
                 catch (Exception rollbackEx)
                 {
-                    // CmModData remains the final recovery source, but never lose
-                    // the fact that a rollback step itself failed.
-                    System.Diagnostics.Debug.WriteLine($"[CM26] CAS rollback failed for {cas}: {rollbackEx.Message}");
+                    rollbackErrors.Add(Path.GetFileName(cas) + ": " + rollbackEx.Message);
                 }
+            }
+            var state = rollbackErrors.Count == 0 ? "RolledBack" : "RecoveryRequired";
+            WriteTransactionJournal(transaction, state, root, casLengths,
+                replacedTocs.Select(pair => new { pair.Live, pair.Backup }).Cast<object>().ToArray(),
+                commitError.Message, rollbackErrors);
+            if (rollbackErrors.Count > 0)
+            {
+                var recoveryMarker = Path.Combine(transaction, "RECOVERY_REQUIRED.json");
+                File.Copy(Path.Combine(transaction, "transaction.json"), recoveryMarker, overwrite: true);
+                throw new IOException(
+                    "The direct save failed and automatic rollback was incomplete. Do not start FC26. " +
+                    "Recovery data was preserved at: " + transaction, commitError);
             }
             throw;
         }
+    }
+
+    private static void WriteTransactionJournal(
+        string transaction,
+        string state,
+        string gameRoot,
+        IReadOnlyDictionary<string, long> casLengths,
+        IReadOnlyList<object> tocFiles,
+        string? failure = null,
+        IReadOnlyList<string>? rollbackErrors = null)
+    {
+        var journal = new
+        {
+            Product = "Creation Master 26",
+            State = state,
+            UpdatedUtc = DateTimeOffset.UtcNow,
+            GameRoot = Path.GetFullPath(gameRoot),
+            CasOriginalLengths = casLengths,
+            TocFiles = tocFiles,
+            Failure = failure,
+            RollbackErrors = rollbackErrors ?? Array.Empty<string>()
+        };
+        var destination = Path.Combine(transaction, "transaction.json");
+        var temporary = destination + ".new";
+        File.WriteAllText(temporary, JsonSerializer.Serialize(journal, new JsonSerializerOptions { WriteIndented = true }));
+        File.Move(temporary, destination, overwrite: true);
     }
 
     private static void MaterializeSymbolicLink(string path)

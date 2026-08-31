@@ -7,6 +7,7 @@
     <UseWPF>true</UseWPF>
     <TargetFramework>net48</TargetFramework>
     <PlatformTarget>x86</PlatformTarget>
+    <RuntimeIdentifiers>win-x86</RuntimeIdentifiers>
     <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -14,6 +15,11 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <RootNamespace />
+    <!-- The classic shell retains decompiled designer/component fields and
+         nullable annotations while targeting net48. These four diagnostics are
+         intentional legacy-source noise; all other warnings remain visible and
+         fail the release warning-baseline check. -->
+    <NoWarn>$(NoWarn);CS8632;CS0649;CS0169;CS0414</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

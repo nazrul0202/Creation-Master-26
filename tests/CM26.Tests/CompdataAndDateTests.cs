@@ -62,6 +62,38 @@ public sealed class CompdataAndDateTests
         Assert.Contains("already has a Compdata object", error.Message);
     }
 
+    [Theory]
+    [InlineData(2)]
+    [InlineData(4)]
+    [InlineData(12)]
+    [InlineData(20)]
+    [InlineData(24)]
+    public void CountryCareerLeagueBuildsCompleteDirectSaveData(int teamCount)
+    {
+        var tables = CareerCompdataTables();
+        var teamIds = Enumerable.Range(700000, teamCount).ToArray();
+        var result = CompdataBuilder.CreateCountryCareerLeague(tables,
+            new CountryCareerBuildRequest("Malaysia", 95, 5, "Malaysia Test League",
+                900000 + teamCount, teamIds));
+
+        var expectedRounds = (teamCount - 1) * 2;
+        Assert.Equal(expectedRounds, tables["schedule"].Rows.Cast<DataRow>().Count(row =>
+            Convert.ToString(row[0]) == result.StageIds.Single().ToString()));
+        Assert.Equal(teamCount, tables["initteams"].Rows.Cast<DataRow>().Count(row =>
+            Convert.ToString(row[0]) == result.CompetitionObjectId.ToString()));
+        Assert.Equal(teamIds, tables["initteams"].Rows.Cast<DataRow>()
+            .Where(row => Convert.ToString(row[0]) == result.CompetitionObjectId.ToString())
+            .OrderBy(row => Convert.ToInt32(row[1]))
+            .Select(row => Convert.ToInt32(row[2])));
+        Assert.Equal(teamCount, tables["standings"].Rows.Cast<DataRow>().Count(row =>
+            Convert.ToString(row[0]) == result.GroupIds.Single().ToString()));
+        Assert.Contains(tables["settings"].Rows.Cast<DataRow>(), row =>
+            Convert.ToString(row[0]) == result.CompetitionObjectId.ToString() &&
+            Convert.ToString(row[1]) == "asset_id" &&
+            Convert.ToString(row[2]) == (900000 + teamCount).ToString());
+        Assert.DoesNotContain(CompdataSchema.Validate(tables), issue => issue.IsError);
+    }
+
     [Fact]
     public void CompdataSchemaRejectsMissingDatabaseAssetMapping()
     {
@@ -234,6 +266,19 @@ public sealed class CompdataAndDateTests
         foreach (var name in new[] { "compobj", "compids", "settings", "standings", "schedule" })
             tables[name] = Table(name);
         tables["compobj"].Rows.Add("0", "0", "World", "World", "-1");
+        return tables;
+    }
+
+    private static Dictionary<string, DataTable> CareerCompdataTables()
+    {
+        var tables = new Dictionary<string, DataTable>(StringComparer.OrdinalIgnoreCase);
+        foreach (var name in new[]
+                 {
+                     "compobj", "compids", "settings", "initteams", "standings", "schedule"
+                 })
+            tables[name] = Table(name);
+        tables["compobj"].Rows.Add("0", "0", "WORLD", "World", "-1");
+        tables["compobj"].Rows.Add("1", "1", "AFC", "AFC", "0");
         return tables;
     }
 

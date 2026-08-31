@@ -24,7 +24,7 @@
 ## 🚀 Quick start
 
 1. Download the [latest release](https://github.com/nazrul0202/Creation-Master-26/releases) — **Full Portable** (self-contained)
-2. Run `CM26_by_Rizco98.exe`
+2. Run `Creation Master 26.exe`
 3. **File > Open Game** → select your FC26 installation folder
 4. Edit any section, press **Validate**, then **Save** to commit
 
@@ -32,12 +32,12 @@
 |---------|------|-------------|
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 
-Checksums: `SHA256SUMS_v1.0.182.txt` is included with the v1.0.182 release assets.
+Checksums: `SHA256SUMS_v1.0.183.txt` is included with the v1.0.183 release assets.
 
 Open **Tools > Public Readiness Centre** for the complete direct-edit workflow:
 Team Complete, Squad Doctor, player/batch/face tools, Compdata Pro, Kit/Asset
 Center, Safe IDs, health checks and **Save Direct to FC26**. These actions stage
-inside CM26 and use its validated backup-and-commit pipeline; they do not depend
+inside Creation Master 26 and use its validated backup-and-commit pipeline; they do not depend
 on FIFA Editing Tool or FIFA Mod Manager.
 
 The **Create** menu now contains only **Create New League** and **Create New Team**.
@@ -54,7 +54,7 @@ existing database row.
 
 ## ✨ Features
 
-### Original CM26 editors with FC26 mapping
+### Original Creation Master 26 editors with FC26 mapping
 
 - **Players** — classic Info, Skills and Face pages with contracts, appearance, named tactical roles, Composure, Defensive Awareness, PlayStyles/PlayStyles+ and direct miniface/face assets
 - **Teams** — classic Generic and Roster pages with crest, Deco-aligned Team Info, separate Club Worth and read-only Transfer Budget estimate, matchday presentation, transfers/loans, real XI/substitutes/reserves, formations and set pieces
@@ -71,7 +71,9 @@ existing database row.
 - **Data Sync** — import squads from CM26 Scraper or Transfermarkt CSV
 
 ### Safety & workflow
-- **Transactional saves** — CAS data is append-only; TOCs verified before replacement; failed commits roll back
+- **Transactional saves** — CAS data is append-only; TOCs verified before replacement; failed commits roll back and retain a readable recovery journal
+- **Friendly diagnostics** — raw .NET exceptions are replaced by an actionable message, diagnostic ID and local technical report
+- **Save safety gate** — blocks writes while FC26 is running, when recovery is required, when the snapshot is unreadable or disk space is unsafe
 - **CmModData backup** — immutable copy of your original game state on first open, restorable anytime
 - **Direct FC26 Save** — validates, backs up and commits database and staged native assets without a FIFA Mod Manager package
 - **Lightweight CM26ModData overlay** — NTFS symlinks mirror unchanged FC26 archives; copy-on-write materialises only modified CAS/TOC files
@@ -82,7 +84,7 @@ existing database row.
 ## 🖼️ Screenshots
 
 The responsive workspace is verified automatically at common laptop and desktop sizes.
-Run `CM26_by_Rizco98.exe --release-selftest` for the offline release checks.
+Run `Creation Master 26.exe --release-selftest` for the offline release checks.
 
 ---
 
@@ -104,7 +106,7 @@ Run `CM26_by_Rizco98.exe --release-selftest` for the offline release checks.
 ```bash
 # Requirements: Windows x64, .NET 8 SDK, Visual Studio 2022+ with C++ workload
 build-managed.cmd                           # Bridge + solution + native engine smoke test
-CM26_by_Rizco98.exe --release-selftest      # Release checks, no game needed
+Creation Master 26.exe --release-selftest   # Release checks, no game needed
 ```
 
 See [`docs/BUILDING.md`](docs/BUILDING.md) for the full build & packaging pipeline.
@@ -146,7 +148,7 @@ Yes! Open issues for bugs/requests and submit PRs — see [Contributing](#-contr
 - **Report bugs** — open an issue with steps to reproduce and a log snippet
 - **Request features** — open an issue tagged `enhancement`
 - **Submit code** — fork, branch, PR against `main`. Keep the MIT license header and run
-  `CM26_by_Rizco98.exe --release-selftest` before submitting
+  `Creation Master 26.exe --release-selftest` before submitting
 - **Share knowledge** — the `docs/reports/` research documents are open for review and correction
 
 ## 💬 Support

@@ -13,7 +13,7 @@ namespace CM26.App;
 ///   * a developer's absolute path baked into tool detection
 ///   * EA-derived game content reaching the package
 ///   * version strings drifting apart across files
-/// Run with: CM26_by_Rizco98.exe --release-selftest
+/// Run with: Creation Master 26.exe --release-selftest
 /// </summary>
 internal static class ReleaseSelfTest
 {

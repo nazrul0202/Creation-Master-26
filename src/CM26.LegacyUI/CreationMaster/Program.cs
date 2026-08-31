@@ -496,7 +496,7 @@ internal static class Program
 			var log = Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log");
 			File.WriteAllText(log, ex.ToString());
 			if (!(args.Length >= 1 && string.Equals(args[0], "--cm26-snapshot", StringComparison.OrdinalIgnoreCase)))
-				MessageBox.Show(ex.Message + "\r\n\r\n" + log, "Creation Master 26", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				Fc26FriendlyError.Show(null, "Startup", ex, "Close the dialog, reopen Creation Master 26 and use the diagnostic ID if the problem repeats.");
 		}
 	}
 
@@ -505,8 +505,8 @@ internal static class Program
 		var log = Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log");
 		File.WriteAllText(log, (exception ?? new Exception("Unknown legacy UI error.")).ToString());
 		if (diagnostic) Environment.Exit(1);
-		MessageBox.Show((exception?.Message ?? "Unknown error") + "\r\n\r\n" + log,
-			"Creation Master 26", MessageBoxButtons.OK, MessageBoxIcon.Error);
+		Fc26FriendlyError.Show(null, "Unexpected error", exception ?? new Exception("Unknown error"),
+			"The current action was stopped. If a Save was in progress, check Public Readiness > Open Recovery Folder before starting FC26.");
 	}
 
 	private static Control FindControl(Control root, string name)

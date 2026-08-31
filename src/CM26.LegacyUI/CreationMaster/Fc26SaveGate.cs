@@ -59,6 +59,25 @@ internal static class Fc26SavePreflight
         checks.Add(new Fc26SaveCheck("FC26 schema compatibility", schemaCompatible ? Fc26CheckState.Pass : Fc26CheckState.Error,
             schemaReport, "country"));
 
+        var runningGame = Fc26RuntimeSafety.RunningGameProcesses();
+        checks.Add(new Fc26SaveCheck("FC26 closed", runningGame.Length == 0 ? Fc26CheckState.Pass : Fc26CheckState.Error,
+            runningGame.Length == 0 ? "No FC26 process is running." : "Close before Save: " + string.Join(", ", runningGame), "competition"));
+
+        var recoveryFolders = Fc26RuntimeSafety.RecoveryRequiredFolders();
+        checks.Add(new Fc26SaveCheck("Transaction recovery", recoveryFolders.Length == 0 ? Fc26CheckState.Pass : Fc26CheckState.Error,
+            recoveryFolders.Length == 0 ? "No incomplete direct-save transaction needs recovery." :
+            "A previous rollback was incomplete. Do not start FC26; open Recovery Folder from Public Readiness.", "competition"));
+
+        var snapshotReadable = Fc26RuntimeSafety.SnapshotIsReadable(out var snapshotDetail);
+        checks.Add(new Fc26SaveCheck("Loaded snapshot", snapshotReadable ? Fc26CheckState.Pass : Fc26CheckState.Error,
+            snapshotDetail, "country"));
+
+        var freeBytes = Fc26RuntimeSafety.AvailableWorkspaceBytes();
+        var freeState = freeBytes < 0 ? Fc26CheckState.Warning : freeBytes < 1024L * 1024 * 1024 ? Fc26CheckState.Error : Fc26CheckState.Pass;
+        checks.Add(new Fc26SaveCheck("Free disk space", freeState,
+            freeBytes < 0 ? "Available workspace disk space could not be determined." :
+            (freeBytes / (1024d * 1024 * 1024)).ToString("N1") + " GB available; at least 1 GB is required before Save.", "competition"));
+
         checks.Add(new Fc26SaveCheck("League country", pendingLeagues.All(value => value.Country != null)
             ? Fc26CheckState.Pass : Fc26CheckState.Error,
             pendingLeagues.Length == 0 ? "No new league is waiting for Compdata." :

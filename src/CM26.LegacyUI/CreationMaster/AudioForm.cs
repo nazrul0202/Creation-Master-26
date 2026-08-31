@@ -611,7 +611,6 @@ public class AudioForm : Form
 	private void listViewNameDictionary_ColumnClick(object sender, ColumnClickEventArgs e)
 	{
 		ListView obj = (ListView)sender;
-		SortOrder sortOrder = SortOrder.None;
 		obj.ListViewItemSorter = new ListViewItemComparer(sortOrder: obj.Sorting = ((obj.Sorting != SortOrder.Ascending) ? SortOrder.Ascending : SortOrder.Descending), column: e.Column);
 		KeepSelectedNameVisible();
 	}

@@ -24,7 +24,7 @@ internal sealed class Fc26PublicReadinessForm : Form
     internal Fc26PublicReadinessForm(MainForm main)
     {
         _main = main ?? throw new ArgumentNullException(nameof(main));
-        Text = "CM26 Public Readiness Centre — Direct FC26 Editing";
+        Text = "Creation Master 26 — Public Readiness Centre";
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(1040, 720);
         MinimumSize = new Size(860, 580);
@@ -69,6 +69,7 @@ internal sealed class Fc26PublicReadinessForm : Form
             Button("Full Database Health", (_, _) => _main.ShowFc26HealthCentre()),
             Button("ID availability", (_, _) => ShowText("Safe ID Availability", Fc26SnapshotLoader.DescribeIdAvailability())),
             Button("Schema compatibility", (_, _) => ShowText("FC26 Schema Compatibility", Fc26SnapshotLoader.DescribeCompatibility())),
+            Button("Open Recovery Folder", (_, _) => Fc26RuntimeSafety.OpenRecoveryFolder()),
             PrimaryButton("Save Direct to FC26", (_, _) => _main.CommitFc26DirectSave())));
         return page;
     }
@@ -176,11 +177,17 @@ internal sealed class Fc26PublicReadinessForm : Form
         var missingKits = teams.Count(value => value.IsClub() && !HasCoreKits(value));
         var unlinkedPlayers = players.Count(value => value.GetClub() == null && !value.IsPlayingFor(FifaEnvironment.Teams.SearchId(111592) as Team));
         var sb = new StringBuilder();
-        sb.AppendLine("CM26 PUBLIC RELEASE FAST AUDIT");
+        sb.AppendLine("CREATION MASTER 26 PUBLIC RELEASE FAST AUDIT");
         sb.AppendLine(new string('=', 39));
         sb.AppendLine("Loaded source: " + Fc26SnapshotLoader.DescribeLoadedSource());
         sb.AppendLine();
         Pass(sb, "Direct writer", Fc26SnapshotLoader.IsLoaded, "CM26 snapshot/change-plan is loaded");
+        var runningGame = Fc26RuntimeSafety.RunningGameProcesses();
+        Pass(sb, "FC26 closed", runningGame.Length == 0, runningGame.Length == 0 ? "no game process is running" : string.Join(", ", runningGame));
+        var recovery = Fc26RuntimeSafety.RecoveryRequiredFolders();
+        Pass(sb, "Transaction recovery", recovery.Length == 0, recovery.Length == 0 ? "no incomplete transaction" : recovery.Length + " recovery folder(s) require attention");
+        var snapshotReadable = Fc26RuntimeSafety.SnapshotIsReadable(out var snapshotDetail);
+        Pass(sb, "Loaded snapshot", snapshotReadable, snapshotDetail);
         Pass(sb, "League records", leagues.Length > 0, leagues.Length.ToString("N0") + " loaded");
         Pass(sb, "Club → league links", missingLeague == 0, missingLeague + " club(s) need a league");
         Pass(sb, "Core Home/Away/GK kit rows", missingKits == 0, missingKits + " club(s) need kit review");

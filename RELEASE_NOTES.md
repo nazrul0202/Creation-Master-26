@@ -1,5 +1,25 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.183 - public naming and fail-safe release gates (2026-08-31)
+
+- Renamed the public Windows executable and application identity to
+  `Creation Master 26`; packages and CI no longer depend on the old launcher
+  filename.
+- Direct Frostbite writes now keep an atomic phase journal through preparation,
+  CAS append, TOC replacement, completion and rollback. Failed transactions
+  retain their evidence, and incomplete rollback creates a Recovery Required
+  marker that blocks another save.
+- Save Preflight now blocks when FC26 is running, a recovery marker exists, the
+  loaded snapshot cannot be read or less than 1 GB is available on its drive.
+- Replaced global, Save, Compdata, Career and startup raw exception dialogs with
+  friendly guidance, a copyable diagnostic ID and a complete local technical log.
+- Added release regression coverage for complete 2, 4, 12, 20 and 24-team
+  Career league structures, including database mapping, `initteams`, standings,
+  schedule rows and schema validation.
+- Release builds now complete with zero compiler warnings after documenting only
+  intentional decompiler-era legacy warnings. The public release remains the
+  self-contained Full Portable package.
+
 ## Version 1.0.182 - verified direct-edit completion and responsiveness (2026-08-31)
 
 - Career transfer-budget saves now reopen the EA Career container and verify

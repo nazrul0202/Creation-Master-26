@@ -117,9 +117,10 @@ public class SpsSoundHeader
 		bw.Write(FifaUtil.SwapEndian(m_Sig));
 		bw.Write(FifaUtil.SwapEndian(m_Size));
 		int codecId = (int)m_CodecId;
-		uint x = (uint)((m_Version << 28) | (codecId << 24) | (m_ChannelConfig << 18) | m_SampleRate);
+		uint x = ((uint)m_Version << 28) | ((uint)codecId << 24) |
+			((uint)m_ChannelConfig << 18) | (uint)m_SampleRate;
 		bw.Write(FifaUtil.SwapEndian(x));
-		x = (m_Type << 30) | (m_LoopFlag << 29) | m_nSamples;
+		x = ((uint)m_Type << 30) | ((uint)m_LoopFlag << 29) | (uint)m_nSamples;
 		bw.Write(FifaUtil.SwapEndian(x));
 		if (m_Size == 20)
 		{
