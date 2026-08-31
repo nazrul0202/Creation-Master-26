@@ -237,6 +237,8 @@ public class KitForm : Form
 
 	private Button buttonExportAllKits;
 	private Button buttonImportKitFolder;
+	private Button buttonBatchTeamKits;
+	private Button buttonValidateTeamKits;
 
 	private Button buttonMinikitPicture;
 
@@ -255,6 +257,24 @@ public class KitForm : Form
 			};
 			buttonImportKitFolder.Click += buttonImportKitFolder_Click;
 			buttonExportAllKits.Parent.Controls.Add(buttonImportKitFolder);
+			buttonBatchTeamKits = new Button
+			{
+				Text = "Batch Team Kits...",
+				Location = new Point(buttonImportKitFolder.Right + 8, buttonImportKitFolder.Top),
+				Size = new Size(112, buttonExportAllKits.Height),
+				UseVisualStyleBackColor = true
+			};
+			buttonBatchTeamKits.Click += buttonBatchTeamKits_Click;
+			buttonExportAllKits.Parent.Controls.Add(buttonBatchTeamKits);
+			buttonValidateTeamKits = new Button
+			{
+				Text = "Validate Team",
+				Location = new Point(buttonBatchTeamKits.Right + 8, buttonBatchTeamKits.Top),
+				Size = new Size(102, buttonExportAllKits.Height),
+				UseVisualStyleBackColor = true
+			};
+			buttonValidateTeamKits.Click += buttonValidateTeamKits_Click;
+			buttonExportAllKits.Parent.Controls.Add(buttonValidateTeamKits);
 		}
 		CmStyleDetailsWindow.Attach(this, "Kit Details", DetailSection.Kit,
 			() => m_CurrentKit?.Id ?? -1);
@@ -458,6 +478,7 @@ public class KitForm : Form
 				m_NewKitCreator.NewKit.Positions[i] = kit.Positions[i];
 			}
 		}
+		RegisterNewFc26Kit(m_NewKitCreator.NewKit);
 		return m_NewKitCreator.NewKit;
 	}
 
@@ -474,7 +495,16 @@ public class KitForm : Form
 			}
 			return null;
 		}
+		RegisterNewFc26Kit(m_NewKitCreator.NewKit);
 		return m_NewKitCreator.NewKit;
+	}
+
+	private static void RegisterNewFc26Kit(Kit kit)
+	{
+		if (FifaEnvironment.Year != 26 || kit == null || kit.Team == null) return;
+		kit.teamid = kit.Team.Id;
+		if (!kit.Team.m_KitList.Contains(kit)) kit.Team.m_KitList.Add(kit);
+		Fc26SnapshotLoader.StageNewKit(kit);
 	}
 
 	private Kit DeleteKit(object sender, object obj)
@@ -1686,11 +1716,12 @@ public class KitForm : Form
 			ShowNewFolderButton = false
 		};
 		if (dialog.ShowDialog(this) != DialogResult.OK) return;
-		string variant = m_CurrentKit.kittype switch
+		if (!Fc26KitSlots.TryGetAssetVariant(m_CurrentKit.kittype, out string variant))
 		{
-			0 => "home", 1 => "away", 2 => "third", 3 => "gk", 4 => "gk_away", 5 => "gk_third", _ => string.Empty
-		};
-		if (variant.Length == 0) return;
+			MessageBox.Show(this, "Direct folder import is available for Home, Away, Goalkeeper and Third club kits.",
+				"Import Kit Folder", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
 		var files = Directory.EnumerateFiles(dialog.SelectedPath, "*", SearchOption.TopDirectoryOnly)
 			.Where(path => new[] { ".png", ".jpg", ".jpeg", ".bmp", ".dds" }
 				.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
@@ -1734,6 +1765,226 @@ public class KitForm : Form
 			Fc26FriendlyError.Show(this, "Import kit folder", ex, "No invalid kit payload was accepted. Check image formats, dimensions and file access, then retry.");
 		}
 		finally { buttonImportKitFolder.Enabled = true; }
+	}
+
+	private void buttonValidateTeamKits_Click(object sender, EventArgs e)
+	{
+		Team team = m_CurrentKit?.Team ?? comboTeam.SelectedItem as Team;
+		if (team == null)
+		{
+			MessageBox.Show(this, "Select a team kit first.", "Validate Team Kits",
+				MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		string report = BuildTeamKitValidationReport(team, out bool ready);
+		MessageBox.Show(this, report, "Team Kit Validation",
+			MessageBoxButtons.OK, ready ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+	}
+
+	private static string BuildTeamKitValidationReport(Team team, out bool ready)
+	{
+		var kits = FifaEnvironment.Kits.Cast<Kit>()
+			.Where(value => value != null && value.teamid == team.Id && value.year == 0)
+			.ToArray();
+		var lines = new List<string>
+		{
+			team.DatabaseName + " (Team ID " + team.Id + ")",
+			string.Empty
+		};
+		ready = true;
+		foreach (int type in new[] { 0, 1, 2 })
+		{
+			var matches = kits.Where(value => value.kittype == type).ToArray();
+			if (matches.Length == 1)
+				lines.Add("[PASS] " + Fc26KitSlots.Label(type) + " — Kit ID " + matches[0].Id);
+			else if (matches.Length == 0)
+			{
+				ready = false;
+				lines.Add("[FIX] " + Fc26KitSlots.Label(type) + " kit is missing.");
+			}
+			else
+			{
+				ready = false;
+				lines.Add("[FIX] " + Fc26KitSlots.Label(type) + " has " + matches.Length + " season-zero records.");
+			}
+		}
+		var third = kits.Where(value => value.kittype == 3).ToArray();
+		lines.Add(third.Length <= 1
+			? "[PASS] Third kit — " + (third.Length == 1 ? "Kit ID " + third[0].Id : "optional / not assigned")
+			: "[FIX] Third kit has duplicate season-zero records.");
+		if (third.Length > 1) ready = false;
+
+		var duplicateIds = kits.GroupBy(value => value.Id).Where(group => group.Count() > 1).Select(group => group.Key).ToArray();
+		if (duplicateIds.Length > 0)
+		{
+			ready = false;
+			lines.Add("[FIX] Duplicate Kit ID: " + string.Join(", ", duplicateIds));
+		}
+		else lines.Add("[PASS] Kit IDs are unique for this team.");
+
+		var wrongOwner = team.m_KitList.Cast<Kit>().Count(value => value != null && value.teamid != team.Id);
+		if (wrongOwner > 0)
+		{
+			ready = false;
+			lines.Add("[FIX] " + wrongOwner + " linked kit record(s) point to another team.");
+		}
+		else lines.Add("[PASS] Team-kit relationships are consistent.");
+
+		lines.Add(string.Empty);
+		lines.Add(ready ? "IN-GAME KIT STRUCTURE READY" : "Use Create Kit or Batch Team Kits to resolve the findings before Save.");
+		return string.Join(Environment.NewLine, lines);
+	}
+
+	private async void buttonBatchTeamKits_Click(object sender, EventArgs e)
+	{
+		Team team = m_CurrentKit?.Team ?? comboTeam.SelectedItem as Team;
+		if (team == null || m_CurrentKit == null)
+		{
+			MessageBox.Show(this, "Select any existing kit from the target team first.", "Batch Team Kits",
+				MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		using var dialog = new FolderBrowserDialog
+		{
+			Description = "Select a folder containing home, away, gk and third kit images or subfolders",
+			ShowNewFolderButton = false
+		};
+		if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+		var requests = DiscoverBatchKitFiles(dialog.SelectedPath).ToArray();
+		if (requests.Length == 0)
+		{
+			MessageBox.Show(this,
+				"No kit files were detected. Use home/away/gk/third.png, or subfolders named Home, Away, GK and Third containing jersey_, shorts_, socks_, brand_ or crest_ images.",
+				"Batch Team Kits", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+
+		// Decode every non-DDS source before changing the pending direct-edit plan.
+		try
+		{
+			foreach (var request in requests)
+			{
+				if (Path.GetExtension(request.Source).Equals(".dds", StringComparison.OrdinalIgnoreCase)) continue;
+				using Image image = Image.FromFile(request.Source);
+				if (image.Width <= 0 || image.Height <= 0) throw new InvalidDataException("Invalid kit image: " + request.Source);
+			}
+		}
+		catch (Exception ex)
+		{
+			Fc26FriendlyError.Show(this, "Validate team kit folder", ex,
+				"Nothing was imported. Replace the invalid image and retry.");
+			return;
+		}
+
+		buttonBatchTeamKits.Enabled = false;
+		try
+		{
+			int created = 0, imported = 0;
+			var kitsByType = new Dictionary<int, Kit>();
+			foreach (int type in requests.Select(value => value.Type).Distinct())
+			{
+				Kit kit = FifaEnvironment.Kits.GetKit(team.Id, type);
+				if (kit == null)
+				{
+					kit = FifaEnvironment.Kits.CloneId(m_CurrentKit) as Kit;
+					if (kit == null) throw new InvalidOperationException("No unused Kit ID is available.");
+					kit.Team = team;
+					kit.teamid = team.Id;
+					kit.kittype = type;
+					kit.year = 0;
+					kit.ResetKitTextures();
+					RegisterNewFc26Kit(kit);
+					created++;
+				}
+				kitsByType[type] = kit;
+			}
+
+			foreach (var request in requests)
+			{
+				Kit kit = kitsByType[request.Type];
+				string logicalPath = BatchLogicalPath(team.Id, kit, request);
+				int width = 2048, height = 2048;
+				if (!Path.GetExtension(request.Source).Equals(".dds", StringComparison.OrdinalIgnoreCase))
+				{
+					using Image image = Image.FromFile(request.Source);
+					width = image.Width; height = image.Height;
+				}
+				await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.StageImage(logicalPath, request.Source, width, height));
+				imported++;
+			}
+
+			Preset();
+			Kit selected = kitsByType.OrderBy(value => value.Key).First().Value;
+			pickUpControl.combo.SelectedItem = selected;
+			string validation = BuildTeamKitValidationReport(team, out bool ready);
+			MessageBox.Show(this,
+				$"Staged {imported} texture(s) across {kitsByType.Count} kit slot(s); created {created} missing kit record(s).\r\n\r\n" +
+				validation + "\r\n\r\nUse File > Save to write the database and Frostbite assets directly to FC26.",
+				"Batch Team Kits", MessageBoxButtons.OK, ready ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+		}
+		catch (Exception ex)
+		{
+			Fc26FriendlyError.Show(this, "Batch team kits", ex,
+				"The operation stopped safely. Review the staged-change list before Save; no direct game write occurs until Save.");
+		}
+		finally { buttonBatchTeamKits.Enabled = true; }
+	}
+
+	private sealed class BatchKitFile
+	{
+		internal int Type;
+		internal string Source;
+		internal string AssetName;
+		internal bool IsPrimaryColour;
+	}
+
+	private static IEnumerable<BatchKitFile> DiscoverBatchKitFiles(string root)
+	{
+		var slots = new[]
+		{
+			(Type: 0, Aliases: new[] { "home" }),
+			(Type: 1, Aliases: new[] { "away" }),
+			(Type: 2, Aliases: new[] { "gk", "goalkeeper", "keeper" }),
+			(Type: 3, Aliases: new[] { "third", "3rd" }),
+		};
+		var supported = new HashSet<string>(new[] { ".png", ".jpg", ".jpeg", ".bmp", ".dds" }, StringComparer.OrdinalIgnoreCase);
+		foreach (var slot in slots)
+		{
+			string single = Directory.EnumerateFiles(root, "*", SearchOption.TopDirectoryOnly)
+				.FirstOrDefault(path => supported.Contains(Path.GetExtension(path)) &&
+					slot.Aliases.Contains(Path.GetFileNameWithoutExtension(path), StringComparer.OrdinalIgnoreCase));
+			if (single != null)
+				yield return new BatchKitFile { Type = slot.Type, Source = single, IsPrimaryColour = true };
+
+			string folder = Directory.EnumerateDirectories(root, "*", SearchOption.TopDirectoryOnly)
+				.FirstOrDefault(path => slot.Aliases.Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase));
+			if (folder == null) continue;
+			foreach (string source in Directory.EnumerateFiles(folder, "*", SearchOption.TopDirectoryOnly)
+				.Where(path => supported.Contains(Path.GetExtension(path))))
+			{
+				string name = Path.GetFileNameWithoutExtension(source);
+				if (!(name.StartsWith("jersey", StringComparison.OrdinalIgnoreCase) ||
+					name.StartsWith("shorts", StringComparison.OrdinalIgnoreCase) ||
+					name.StartsWith("socks", StringComparison.OrdinalIgnoreCase) ||
+					name.StartsWith("brand", StringComparison.OrdinalIgnoreCase) ||
+					name.StartsWith("crest", StringComparison.OrdinalIgnoreCase))) continue;
+				yield return new BatchKitFile { Type = slot.Type, Source = source, AssetName = name + ".dds" };
+			}
+		}
+	}
+
+	private static string BatchLogicalPath(int teamId, Kit kit, BatchKitFile request)
+	{
+		if (!Fc26KitSlots.TryGetAssetVariant(request.Type, out string variant))
+			throw new InvalidOperationException("Unsupported core kit slot " + request.Type + ".");
+		if (request.IsPrimaryColour)
+			return Fc26KitSlots.ColourTexturePath(teamId, request.Type, kit.Id);
+		string assetName = request.AssetName;
+		if (assetName.Equals("jersey.dds", StringComparison.OrdinalIgnoreCase) ||
+			assetName.Equals("jersey_color.dds", StringComparison.OrdinalIgnoreCase))
+			assetName = "jersey_" + kit.Id + "_1_0_color.dds";
+		return $"content/character/kit/{teamId}/{variant}_1_0/{assetName}";
 	}
 
 	protected override void Dispose(bool disposing)

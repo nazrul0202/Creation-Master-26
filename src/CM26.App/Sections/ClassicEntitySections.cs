@@ -1384,17 +1384,7 @@ public sealed class KitsSection : ClassicEntitySection
             return;
         }
 
-        var variant = kitType switch
-        {
-            0 => "home",
-            1 => "away",
-            2 => "third",
-            3 => "gk",
-            4 => "gk_away",
-            5 => "gk_third",
-            _ => string.Empty,
-        };
-        if (variant.Length == 0)
+        if (!Fc26KitSlot.TryGetAssetVariant(kitType, out var variant))
         {
             SetAssetStatus($"Unsupported kit type {kitType}.", isError: true);
             return;
@@ -1511,14 +1501,7 @@ public sealed class KitsSection : ClassicEntitySection
             !TryRawInt("teamkittypetechid", out var kitType) ||
             !TryRawInt("teamkitid", out var kitId))
             return null;
-        var variant = kitType switch
-        {
-            0 => "home", 1 => "away", 2 => "third",
-            3 => "gk", 4 => "gk_away", 5 => "gk_third",
-            _ => string.Empty,
-        };
-        if (variant.Length == 0) return null;
-        return $"content/character/kit/{teamId}/{variant}_1_0/jersey_{kitId}_1_0_color.dds";
+        return Fc26KitSlot.BuildColourTexturePath(teamId, kitType, kitId);
     }
 
     private void ImportKitTexture()

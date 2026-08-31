@@ -681,16 +681,8 @@ internal static class Program
             if (!int.TryParse(kitTypeText, out var kitType))
                 throw new ArgumentException("Invalid FC26 kit type.");
 
-            var variant = kitType switch
-            {
-                0 => "home",
-                1 => "away",
-                2 => "third",
-                3 => "gk",
-                4 => "gk_away",
-                5 => "gk_third",
-                _ => throw new ArgumentOutOfRangeException(nameof(kitType), "Unsupported FC26 kit type."),
-            };
+            if (!Fc26KitSlot.TryGetAssetVariant(kitType, out var variant))
+                throw new ArgumentOutOfRangeException(nameof(kitType), "Only Home, Away, Goalkeeper and Third kit textures use the core FC26 club-kit path.");
             var cached = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Creation Master 26", "legacy-kit-textures-v2", $"{teamId}_{kitType}.png");

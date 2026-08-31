@@ -139,6 +139,13 @@ absolute output path:
 pwsh -File Release\assemble_packages.ps1 -ReleaseDirectory 'D:\CM 26 Final\Release'
 ```
 
+The public download is currently Full Portable only. Release maintainers can
+assemble that single self-contained package with:
+
+```powershell
+pwsh -File Release\assemble_packages.ps1 -ReleaseDirectory 'D:\CM 26 Final\Release' -FullOnly
+```
+
 The script reads the version from `version.json` only, and **fails** (rather than
 warning) if any of these is true:
 

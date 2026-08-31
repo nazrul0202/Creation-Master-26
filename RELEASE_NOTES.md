@@ -1,5 +1,21 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.187 - direct Team Kit Manager (2026-08-31)
+
+- Added **Batch Team Kits** to the classic Kit section. One folder can now
+  stage Home, Away, Goalkeeper and Third textures directly into the active
+  FC26 transaction; missing slots receive a duplicated database record first.
+- Added **Validate Team** with friendly checks for Home/Away/GK coverage,
+  duplicate season-zero slots, duplicate Kit IDs and mismatched team links.
+- Corrected one canonical mapping used by the database list, x64 texture
+  extractor and classic importer: FC26/CM kit type `2` is Goalkeeper and type
+  `3` is Third. Preview and import can no longer silently cross those slots.
+- Creating or cloning a kit now stages the corresponding `teamkits` row with
+  team, ID and type relationships before Save.
+- Batch input accepts `home.png`, `away.png`, `gk.png` and `third.png`, or
+  matching subfolders containing jersey/shorts/socks/brand/crest images.
+  All changes remain pending until validated direct Save; no FET hand-off is used.
+
 ## Version 1.0.186 - classic workspace sizing hotfix (2026-08-31)
 
 - Fixed League, Team and other classic editors remaining at their designer size

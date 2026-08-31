@@ -1,4 +1,4 @@
-# Creation Master 26 v1.0.186 implementation status
+# Creation Master 26 v1.0.187 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
@@ -35,6 +35,8 @@ This status is intentionally conservative: a visible control is not counted as w
 - Unknown FC26 title-update schema fingerprints now open read-only until explicitly verified; creation also checks league, team, player, relationship and player-name capacity before staging any records.
 - Classic section switches avoid redundant full-form relayout. FC26 Player Info previews and the Team Roster available-player catalogue/miniface are asynchronous, cancellable and cached where safe.
 - The active classic editor is explicitly fitted to the main workspace; runtime and packaging smoke gates verify that the optimized switch path cannot expose the blue host background.
+- Team Kit Manager stages Home, Away, Goalkeeper and Third textures in one direct workflow, creates missing `teamkits` rows from the selected team template and validates required slots, duplicate IDs and ownership links before Save.
+- Database kit type, friendly labels, Frostbite preview and direct import share one verified mapping (`2 = Goalkeeper`, `3 = Third`) so a successful import cannot target the wrong club-kit slot.
 - Public Readiness can safely recover an interrupted direct transaction from its durable TOC backups and original CAS lengths. Every recovery path is containment-checked and FC26 must be closed.
 - User-facing errors across both the classic editor and x64 support host use friendly summaries and diagnostic IDs; automated source scanning prevents raw exception dialogs from returning.
 

@@ -1,3 +1,11 @@
+Creation Master 26 v1.0.187 - 31 August 2026
+
+- Added a direct Batch Team Kits workflow for Home, Away, Goalkeeper and Third kits.
+- Added friendly per-team kit validation for required slots, duplicate IDs and ownership links.
+- Corrected the FC26 mapping so database type 2 is Goalkeeper and type 3 is Third everywhere.
+- New and cloned kits now stage a real teamkits row before direct Save.
+- Added automated kit-slot/path regression tests; the complete suite now contains 167 tests.
+
 Creation Master 26 v1.0.186 - 31 August 2026
 
 - Fixed classic editors not filling the main workspace after v1.0.185.

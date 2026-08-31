@@ -98,6 +98,20 @@ internal static class ReleaseSelfTest
             }
         });
 
+        Check("FC26 kit slots cannot cross Goalkeeper and Third assets", () =>
+        {
+            if (Fc26KitSlot.Label(2) != "Goalkeeper" ||
+                !Fc26KitSlot.TryGetAssetVariant(2, out var goalkeeper) || goalkeeper != "gk")
+                return "database kit type 2 is not mapped to the goalkeeper asset folder";
+            if (Fc26KitSlot.Label(3) != "Third" ||
+                !Fc26KitSlot.TryGetAssetVariant(3, out var third) || third != "third")
+                return "database kit type 3 is not mapped to the third-kit asset folder";
+            var path = Fc26KitSlot.BuildColourTexturePath(11, 2, 1366);
+            return path == "content/character/kit/11/gk_1_0/jersey_1366_1_0_color.dds"
+                ? null
+                : "goalkeeper direct-edit path was not deterministic";
+        });
+
         // --- Tool detection must never depend on a developer machine ---------
         Check("scraper detection contains no hardcoded developer path", () =>
         {

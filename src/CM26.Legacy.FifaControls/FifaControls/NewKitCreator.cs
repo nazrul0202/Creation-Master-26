@@ -54,6 +54,8 @@ public class NewKitCreator : Form
 	{
 		set
 		{
+			m_NewKit = null;
+			m_NewId = -1;
 			m_SourceKit = value;
 			m_Team = m_SourceKit.Team;
 			m_KitType = m_SourceKit.kittype;
@@ -118,6 +120,7 @@ public class NewKitCreator : Form
 		m_NewKit.ResetKitTextures();
 		if (m_NewKit != null)
 		{
+			m_NewId = m_NewKit.Id;
 			m_NewKit.Team = m_Team;
 			m_NewKit.kittype = m_KitType;
 			m_NewKit.year = m_YearTournamentId;

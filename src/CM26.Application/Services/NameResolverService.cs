@@ -309,11 +309,7 @@ public sealed class NameResolverService
 
     public static string PreferredFootLabel(int code) => code switch { 1 => "Right", 2 => "Left", _ => $"Foot {code}" };
 
-    public static string KitTypeLabel(int code) => code switch
-    {
-        0 => "Home", 1 => "Away", 2 => "Third", 3 => "Goalkeeper", 4 => "GK Away", 5 => "GK Third",
-        _ => $"Kit {code}",
-    };
+    public static string KitTypeLabel(int code) => Fc26KitSlot.Label(code);
 
     // FC26 confederation codes, derived from the actual nations table in this database:
     //   1 = special (Gibraltar, Greenland, International, Rest of World, created/free-agents)

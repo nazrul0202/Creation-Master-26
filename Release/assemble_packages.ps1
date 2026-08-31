@@ -10,7 +10,8 @@
 #   * no EA-derived game content is redistributed (see EULA.md)
 #   * SHA256SUMS is generated and the zips are produced by this script
 param(
-    [string]$ReleaseDirectory
+    [string]$ReleaseDirectory,
+    [switch]$FullOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -361,8 +362,10 @@ $liteDir = Join-Path $releaseRoot "Creation_Master_26_v$version`_Lite"
 
 Assemble-Package (Join-Path $root "publish_sc_v$publishVersion") $fullDir `
     (Join-Path $root "publish_assetbridge_sc_v$publishVersion") 'Full Portable'
-Assemble-Package (Join-Path $root "publish_lite_v$publishVersion") $liteDir `
-    (Join-Path $root "publish_assetbridge_lite_v$publishVersion") 'Lite'
+if (-not $FullOnly) {
+    Assemble-Package (Join-Path $root "publish_lite_v$publishVersion") $liteDir `
+        (Join-Path $root "publish_assetbridge_lite_v$publishVersion") 'Lite'
+}
 
 # --- Fail before publishing anything unusable -------------------------------
 if ($errors.Count -gt 0) {
@@ -375,7 +378,8 @@ if ($errors.Count -gt 0) {
 # --- Zip + checksums --------------------------------------------------------
 Write-Host '=== Creating archives and checksums ==='
 $sums = New-Object System.Collections.Generic.List[string]
-foreach ($pkg in @($fullDir, $liteDir)) {
+$packages = if ($FullOnly) { @($fullDir) } else { @($fullDir, $liteDir) }
+foreach ($pkg in $packages) {
     if (-not (Test-Path $pkg)) { continue }
     $zip = "$pkg.zip"
     if (Test-Path $zip) { Remove-Item $zip -Force }
