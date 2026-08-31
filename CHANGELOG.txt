@@ -1,3 +1,14 @@
+Creation Master 26 v1.0.182 - 31 August 2026
+
+- Career budget writes now reopen and verify the saved EA container, restoring
+  the timestamped backup automatically when verification fails.
+- Save Preflight/Proof now include an FC26 schema fingerprint and required-field
+  compatibility gate.
+- Compdata validates cross-competition team/day collisions and supports batch
+  promotion/relegation rank paths.
+- Face scans are asynchronous and cancellable; Public Readiness adds Manager,
+  Career, Kit Health and full unsaved-database rollback actions.
+
 Creation Master 26 v1.0.181 - 31 August 2026
 ------------------------------------------------
 * Added the direct-edit Public Readiness Centre and Team Complete audit/repair.

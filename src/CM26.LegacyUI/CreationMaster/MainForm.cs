@@ -368,9 +368,12 @@ public class MainForm : Form
 		healthCentre.Click += (_, _) => ShowFc26HealthCentre();
 		var publicReadiness = new ToolStripMenuItem("Public Readiness Centre...") { Name = "menuPublicReadiness" };
 		publicReadiness.Click += (_, _) => ShowFc26PublicReadiness();
+		var revertUnsaved = new ToolStripMenuItem("Revert All Unsaved FC26 Database Changes...") { Name = "menuRevertFc26Unsaved" };
+		revertUnsaved.Click += (_, _) => RevertFc26UnsavedDatabaseChanges();
 		menuTools.DropDownItems.Add(new ToolStripSeparator());
 		menuTools.DropDownItems.Add(publicReadiness);
 		menuTools.DropDownItems.Add(healthCentre);
+		menuTools.DropDownItems.Add(revertUnsaved);
 		buttonSponsor.Visible = true;
 		buttonTv.Visible = true;
 		m_SplitterDistanceBottom = splitHoriz.Height * 2 / 3;
@@ -1471,6 +1474,8 @@ public class MainForm : Form
 		};
 		var reloadOk = false;
 		var linkOk = true;
+		var schemaOk = false;
+		var schemaDetail = "Schema was not reloaded.";
 		try
 		{
 			string snapshot = null;
@@ -1480,6 +1485,7 @@ public class MainForm : Form
 			{
 				LoadFc26Snapshot(snapshot, showCountry: false);
 				reloadOk = true;
+				schemaOk = Fc26SnapshotLoader.IsSchemaCompatible(out schemaDetail);
 				foreach (var id in leagues)
 				{
 					var league = FifaEnvironment.Leagues.SearchId(id) as League;
@@ -1496,9 +1502,10 @@ public class MainForm : Form
 			lines.Add("[CHECK] Reload snapshot: " + ex.Message);
 		}
 		lines.Add(reloadOk ? "[PASS] Reload snapshot: current database was reloaded." : "[CHECK] Reload snapshot: source could not be reloaded; save is still committed.");
+		lines.Add((schemaOk ? "[PASS] " : "[CHECK] ") + "Schema compatibility: " + schemaDetail);
 		lines.Add(linkOk ? "[PASS] Proof rows: league/team IDs and links are present." : "[CHECK] Proof rows: review the League/Team relationship section.");
 		lines.Add(string.Empty);
-		lines.Add(!committed ? "NO CHANGES COMMITTED" : reloadOk && linkOk ? "CAREER READY" : "CAREER READY WITH REVIEW");
+		lines.Add(!committed ? "NO CHANGES COMMITTED" : reloadOk && linkOk && schemaOk ? "CAREER READY" : "CAREER READY WITH REVIEW");
 		lines.Add("Start a new Career after database or Compdata changes; an existing Career keeps its old competition snapshot.");
 		using (var proof = new Fc26SaveProofDialog(committed ? "Save Proof — Career Ready" : "Save Proof — No Changes",
 			string.Join(Environment.NewLine, lines)))
@@ -3212,6 +3219,32 @@ public class MainForm : Form
 		SaveFiles();
 	}
 
+	internal void RevertFc26UnsavedDatabaseChanges()
+	{
+		if (!Fc26SnapshotLoader.IsLoaded)
+		{
+			MessageBox.Show(this, "Open FC26 first.",
+				"Revert Unsaved Changes", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		var snapshot = Fc26SnapshotLoader.CurrentSnapshotPath;
+		if (string.IsNullOrWhiteSpace(snapshot) || !File.Exists(snapshot))
+		{
+			MessageBox.Show(this, "The original loaded snapshot is no longer available. Reopen FC26 to discard the transaction safely.",
+				"Revert Unsaved Changes", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+			return;
+		}
+		if (MessageBox.Show(this,
+			"Discard every unsaved database/detail/structural change in the current FC26 session?\r\n\r\nStaged visual assets are managed separately and are not removed by this command.",
+			"Revert Entire Unsaved Database Transaction", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+		LoadFc26Snapshot(snapshot, showCountry: false);
+		m_PendingLeagueCompdataIds.Clear();
+		m_PendingTeamIds.Clear();
+		m_PendingPlayerIds.Clear();
+		statusBar.Text = "All unsaved FC26 database/detail/structural changes were reverted.";
+		Fc26ActivityLog.Add("Rollback", "Reverted the complete unsaved FC26 database transaction");
+	}
+
 	internal void LoadFc26Snapshot(string snapshotPath, bool showCountry)
 	{
 		Fc26SnapshotLoader.Load(snapshotPath);
@@ -3296,12 +3329,13 @@ public class MainForm : Form
 	internal void ShowFc26Section(string section)
 	{
 		Form form;
-		switch ((section ?? string.Empty).ToLowerInvariant())
+			switch ((section ?? string.Empty).ToLowerInvariant())
 		{
 			case "league": form = m_LeagueForm; break;
 			case "team": form = m_TeamForm; break;
 			case "kit": form = m_KitForm; break;
 			case "player": form = m_PlayerForm; break;
+			case "manager": form = m_ManagerForm; break;
 			case "stadium": form = m_StadiumForm; break;
 			case "formation": form = m_FormationForm; break;
 			case "ball": form = m_BallForm; break;

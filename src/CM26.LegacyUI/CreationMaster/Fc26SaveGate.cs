@@ -55,6 +55,10 @@ internal static class Fc26SavePreflight
         var pendingLeagues = leagues.Where(value => leagueIds.Contains(value.Id)).ToArray();
         var pendingTeams = teams.Where(value => teamIds.Contains(value.Id) || pendingLeagues.Any(league => league.PlayingTeams.SearchId(value.Id) != null)).ToArray();
 
+        var schemaCompatible = Fc26SnapshotLoader.IsSchemaCompatible(out var schemaReport);
+        checks.Add(new Fc26SaveCheck("FC26 schema compatibility", schemaCompatible ? Fc26CheckState.Pass : Fc26CheckState.Error,
+            schemaReport, "country"));
+
         checks.Add(new Fc26SaveCheck("League country", pendingLeagues.All(value => value.Country != null)
             ? Fc26CheckState.Pass : Fc26CheckState.Error,
             pendingLeagues.Length == 0 ? "No new league is waiting for Compdata." :

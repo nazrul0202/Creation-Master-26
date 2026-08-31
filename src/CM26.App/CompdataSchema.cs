@@ -133,8 +133,70 @@ internal static class CompdataSchema
         ValidateUniqueRows(tables, "compids", [0], "Competition object is registered more than once.", issues);
         ValidateCompetitionMappings(tables, objects, issues);
         ValidateCalendar(tables, issues);
+        foreach (var conflict in FindTeamCalendarConflicts(tables).Take(200))
+            issues.Add(CompdataValidationIssue.Warning("schedule", conflict.ScheduleRow,
+                $"Team {conflict.TeamId} is assigned to competitions {conflict.FirstCompetitionId} and {conflict.SecondCompetitionId}, both scheduled on day {conflict.Day}. Review calendar spacing."));
         ValidateAdvancement(tables, issues);
         return issues;
+    }
+
+    internal static IReadOnlyList<CompdataCalendarConflict> FindTeamCalendarConflicts(
+        IReadOnlyDictionary<string, DataTable> tables)
+    {
+        if (!tables.TryGetValue("compobj", out var objects) ||
+            !tables.TryGetValue("initteams", out var initTeams) ||
+            !tables.TryGetValue("schedule", out var schedule))
+            return Array.Empty<CompdataCalendarConflict>();
+
+        var parentByObject = new Dictionary<int, int>();
+        var typeByObject = new Dictionary<int, int>();
+        foreach (DataRow row in objects.Rows)
+            if (TryInt(row, 0, out var id) && TryInt(row, 1, out var type) && TryInt(row, 4, out var parent))
+            { parentByObject[id] = parent; typeByObject[id] = type; }
+
+        int CompetitionOf(int objectId)
+        {
+            var visited = new HashSet<int>();
+            while (visited.Add(objectId) && typeByObject.TryGetValue(objectId, out var type))
+            {
+                if (type == 3) return objectId;
+                if (!parentByObject.TryGetValue(objectId, out objectId)) break;
+            }
+            return -1;
+        }
+
+        var teamsByCompetition = initTeams.Rows.Cast<DataRow>()
+            .Where(row => TryInt(row, 0, out _) && TryInt(row, 2, out _))
+            .GroupBy(row => { TryInt(row, 0, out var id); return id; })
+            .ToDictionary(group => group.Key,
+                group => group.Select(row => { TryInt(row, 2, out var id); return id; }).Distinct().ToHashSet());
+        var scheduled = schedule.Rows.Cast<DataRow>().Select((row, index) => new
+            {
+                Row = index + 1,
+                Object = TryInt(row, 0, out var id) ? id : -1,
+                Day = TryInt(row, 1, out var day) ? day : -1
+            })
+            .Select(value => new { value.Row, Competition = CompetitionOf(value.Object), value.Day })
+            .Where(value => value.Competition >= 0 && value.Day >= 0)
+            .GroupBy(value => new { value.Competition, value.Day })
+            .Select(group => new { group.Key.Competition, group.Key.Day, Row = group.Min(value => value.Row) })
+            .ToArray();
+
+        var conflicts = new List<CompdataCalendarConflict>();
+        foreach (var day in scheduled.GroupBy(value => value.Day))
+        {
+            var entries = day.ToArray();
+            for (var left = 0; left < entries.Length; left++)
+                for (var right = left + 1; right < entries.Length; right++)
+                {
+                    if (!teamsByCompetition.TryGetValue(entries[left].Competition, out var first) ||
+                        !teamsByCompetition.TryGetValue(entries[right].Competition, out var second)) continue;
+                    foreach (var teamId in first.Intersect(second))
+                        conflicts.Add(new CompdataCalendarConflict(entries[right].Row, day.Key, teamId,
+                            entries[left].Competition, entries[right].Competition));
+                }
+        }
+        return conflicts;
     }
 
     private static void ValidateCompetitionMappings(IReadOnlyDictionary<string, DataTable> tables,
@@ -276,4 +338,8 @@ internal static class CompdataSchema
 internal sealed record CompdataValidationIssue(string Sheet, int Row, string Message, bool IsError)
 {
     public static CompdataValidationIssue Error(string sheet, int row, string message) => new(sheet, row, message, true);
+    public static CompdataValidationIssue Warning(string sheet, int row, string message) => new(sheet, row, message, false);
 }
+
+internal sealed record CompdataCalendarConflict(int ScheduleRow, int Day, int TeamId,
+    int FirstCompetitionId, int SecondCompetitionId);

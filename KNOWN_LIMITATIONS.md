@@ -1,10 +1,10 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.181 (MIT License), 2026-08-31.
+Status: Version 1.0.182 (MIT License), 2026-08-31.
 
 ## User interface
 
-The v1.0.181 public launcher preserves the original Creation Master / CM16-style interface used by v1.0.148. Raw database/schema editors and oversized embedded forms are not exposed in the normal section workflow. The Public Readiness Centre opens specialist functions by football task while FC26 data remains mapped to friendly controls and the x64 Frostbite host runs behind the interface. Exotic DPI combinations or very small window sizes may still need refinement.
+The v1.0.182 public launcher preserves the original Creation Master / CM16-style interface used by v1.0.148. Raw database/schema editors and oversized embedded forms are not exposed in the normal section workflow. The Public Readiness Centre opens specialist functions by football task while FC26 data remains mapped to friendly controls and the x64 Frostbite host runs behind the interface. Exotic DPI combinations or very small window sizes may still need refinement.
 
 Team Generic's Transfer Budget is a Deco-compatible estimate when a base squads
 database is loaded. FC26 does not store an editable per-team budget on the
@@ -73,9 +73,11 @@ existing Career must be restarted after database or Compdata changes.
 ## Structural edits
 
 The current native engine supports the row operations used by roster transfers,
-free-agent links and loans. Structural undo is not available after an insert or
-delete has been staged; use Revert/close without Save, or Restore after a saved
-live-game change.
+free-agent links and loans. **Revert All Unsaved FC26 Database Changes** reloads
+the original session snapshot and discards the complete unsaved database/detail/
+structural transaction. It is intentionally a whole-transaction rollback rather
+than an unsafe guessed inverse for only the latest inserted row. Staged visual
+assets are managed separately.
 
 ## Visual assets
 
@@ -124,15 +126,17 @@ in that case the page can load with zero recognised rows.
 
 ## Compdata
 
-The integrated editor works on `.xlsx` Compdata workbooks and saves to a new
-copy. It validates documented object/parent links and the most important linked
-worksheets, but it does not compile the workbook into game archives; use the
-established Compdata build/export step after editing. Complex formulas or macros
-are outside the supported workbook format.
+The integrated Competition editor loads the 11 installed FC26 Compdata TXT
+assets, validates object/parent/database/team links, row limits, schedules and
+advancement paths, then stages the complete set into CM26's normal direct Save
+transaction. No FIFA Editing Tool build/import step is required. Workbook/TXT
+copy commands remain optional authoring and backup tools only; complex formulas
+or macros are outside the supported workbook format.
 
-The League/Cup builder creates a safe starting structure. Teams, custom task
-logic, standings rules, settings and detailed scheduling still need to be set in
-their named worksheets before the external Compdata build/export step.
+The League builder creates the country/league/stage/group graph, initial-team
+links, standings and a complete double round-robin calendar automatically. The
+generic Tournament Wizard creates a conservative starting structure; custom
+task formulas and unusual competition rules still require explicit user choices.
 
 The local scraper import creates database records from its supplied squad
 fields and links them to the selected team. It does not download or assign

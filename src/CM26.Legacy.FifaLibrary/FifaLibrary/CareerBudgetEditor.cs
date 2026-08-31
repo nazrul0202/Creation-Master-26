@@ -13,6 +13,7 @@ public sealed class CareerBudgetEditor
 {
 	private readonly CareerFile m_CareerFile;
 	private readonly Record m_ManagerPreference;
+	private readonly string m_XmlFileName;
 
 	public string FileName => m_CareerFile.FileName;
 
@@ -24,11 +25,12 @@ public sealed class CareerBudgetEditor
 
 	public int StartOfSeasonTransferBudget => m_ManagerPreference.GetIntField("startofseasontransferbudget");
 
-	private CareerBudgetEditor(CareerFile careerFile, Record managerPreference, int clubTeamId)
+	private CareerBudgetEditor(CareerFile careerFile, Record managerPreference, int clubTeamId, string xmlFileName)
 	{
 		m_CareerFile = careerFile;
 		m_ManagerPreference = managerPreference;
 		ClubTeamId = clubTeamId;
+		m_XmlFileName = xmlFileName;
 	}
 
 	/// <summary>
@@ -98,7 +100,7 @@ public sealed class CareerBudgetEditor
 
 		Record user = FindUserRecord(users);
 		Record managerPreference = FindClubPreferenceRecord(preferences);
-		return new CareerBudgetEditor(careerFile, managerPreference, user.GetIntField("clubteamid"));
+		return new CareerBudgetEditor(careerFile, managerPreference, user.GetIntField("clubteamid"), xmlFileName);
 	}
 
 	public string Save(int transferBudget, int startOfSeasonTransferBudget)
@@ -121,13 +123,32 @@ public sealed class CareerBudgetEditor
 			{
 				throw new IOException("Creation Master could not write the Career save.");
 			}
+
+			// Do not report a successful Career write until the EA container can be
+			// reopened and the two exact fields contain the requested values.  A
+			// failed verification is rolled back from the backup immediately.
+			CareerBudgetEditor verified = Open(FileName, m_XmlFileName);
+			if (verified.ClubTeamId != ClubTeamId || verified.TransferBudget != transferBudget ||
+				verified.StartOfSeasonTransferBudget != startOfSeasonTransferBudget)
+			{
+				throw new InvalidDataException("Career save verification failed: the reopened budget values do not match the requested values.");
+			}
 		}
-		catch
+		catch (Exception saveError)
 		{
-			// Keep this editor instance consistent with the untouched/backup save when
-			// the EA container writer rejects the operation.
+			// Restore the original container as well as this editor instance. The
+			// backup remains available as an additional recovery point.
 			m_ManagerPreference.SetField("transferbudget", originalTransferBudget);
 			m_ManagerPreference.SetField("startofseasontransferbudget", originalStartOfSeasonBudget);
+			try
+			{
+				File.Copy(backupFile, FileName, overwrite: true);
+			}
+			catch (Exception restoreError)
+			{
+				throw new IOException("Career save verification failed and CM26 could not restore the original automatically. Restore this backup manually: " + backupFile,
+					new AggregateException(saveError, restoreError));
+			}
 			throw;
 		}
 		return backupFile;

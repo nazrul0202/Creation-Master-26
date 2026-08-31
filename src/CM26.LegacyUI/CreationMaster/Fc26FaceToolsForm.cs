@@ -4,6 +4,8 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using ThreadingTask = System.Threading.Tasks.Task;
 using System.Windows.Forms;
 using FifaLibrary;
 
@@ -18,7 +20,10 @@ internal sealed class Fc26FaceToolsForm : Form
 	private readonly DataGridView _grid = new DataGridView();
 	private readonly PictureBox _preview = new PictureBox { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.FromArgb(36, 36, 36) };
 	private readonly Label _status = new Label { Dock = DockStyle.Bottom, Height = 25, Padding = new Padding(6, 4, 0, 0) };
+	private readonly Button _scanButton = new Button { Text = "Scan selected", AutoSize = true };
+	private readonly Button _cancelScan = new Button { Text = "Cancel scan", AutoSize = true, Enabled = false };
 	private List<Row> _rows = new List<Row>();
+	private CancellationTokenSource _scanCancellation;
 
 	internal Fc26FaceToolsForm()
 	{
@@ -26,6 +31,7 @@ internal sealed class Fc26FaceToolsForm : Form
 		StartPosition = FormStartPosition.CenterParent;
 		Size = new Size(1120, 720);
 		MinimumSize = new Size(900, 580);
+		AutoScaleMode = AutoScaleMode.Dpi;
 		Icon = Form.ActiveForm?.Icon;
 		_team.Items.Add(new TeamChoice(null));
 		foreach (Team team in FifaEnvironment.Teams.Cast<Team>().OrderBy(item => item.TeamNameFull)) _team.Items.Add(new TeamChoice(team));
@@ -35,12 +41,15 @@ internal sealed class Fc26FaceToolsForm : Form
 		{
 			new Label { Text = "Player / ID", AutoSize = true, Padding = new Padding(0, 6, 0, 0) }, _search,
 			new Label { Text = "Team", AutoSize = true, Padding = new Padding(8, 6, 0, 0) }, _team,
-			Button("Refresh", (_, _) => RefreshRows()), Button("Scan selected", ScanSelected),
+			Button("Refresh", (_, _) => RefreshRows()), _scanButton, _cancelScan,
 			Button("Batch import minifaces", BatchImport), Button("Export visible", ExportVisible),
 			Button("Missing report", MissingReport), Button("Rename linked assets", RenameAssets),
 			Button("Assign specific face", AssignSpecificFace), Button("Generic appearance...", GenericAppearance),
 			Button("Import native cranium/face", ImportNativeFace)
 		});
+		_scanButton.Click += ScanSelected;
+		_cancelScan.Click += (_, _) => _scanCancellation?.Cancel();
+		FormClosed += (_, _) => _scanCancellation?.Cancel();
 		_search.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { RefreshRows(); e.SuppressKeyPress = true; } };
 		_team.SelectedIndexChanged += (_, _) => RefreshRows();
 		_grid.Dock = DockStyle.Fill;
@@ -86,15 +95,43 @@ internal sealed class Fc26FaceToolsForm : Form
 		return selected.Length == 0 ? _rows.Take(500) : selected;
 	}
 
-	private void ScanSelected(object sender, EventArgs e)
+	private async void ScanSelected(object sender, EventArgs e)
 	{
-		Run("Scanning FC26 face assets...", () =>
+		if (_scanCancellation != null) return;
+		var targets = SelectedRows().ToArray();
+		_scanCancellation = new CancellationTokenSource();
+		_scanButton.Enabled = false;
+		_cancelScan.Enabled = true;
+		_status.Text = "Scanning " + targets.Length + " player(s) in the background...";
+		var progress = new Progress<int>(value => _status.Text = "Scanning FC26 face assets... " + value + "/" + targets.Length);
+		try
 		{
-			var targets = SelectedRows().ToArray();
-			foreach (var row in targets) row.Scan();
+			var token = _scanCancellation.Token;
+			await ThreadingTask.Run(() =>
+			{
+				for (var index = 0; index < targets.Length; index++)
+				{
+					token.ThrowIfCancellationRequested();
+					targets[index].Scan();
+					((IProgress<int>)progress).Report(index + 1);
+				}
+			}, token);
 			_grid.Refresh();
-			return "Scanned " + targets.Length + " player(s); installed/missing state refreshed.";
-		});
+			_status.Text = "Scanned " + targets.Length + " player(s); installed/missing state refreshed.";
+		}
+		catch (OperationCanceledException) { _status.Text = "Face scan cancelled safely."; }
+		catch (Exception ex)
+		{
+			_status.Text = "Failed: " + ex.Message;
+			MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+		}
+		finally
+		{
+			_scanCancellation.Dispose();
+			_scanCancellation = null;
+			_scanButton.Enabled = true;
+			_cancelScan.Enabled = false;
+		}
 	}
 
 	private void BatchImport(object sender, EventArgs e)

@@ -23,7 +23,7 @@
 
 ## 🚀 Quick start
 
-1. Download the [latest release](https://github.com/nazrul0202/Creation-Master-26/releases) — **Full Portable** (self-contained) or **Lite** (needs .NET 8)
+1. Download the [latest release](https://github.com/nazrul0202/Creation-Master-26/releases) — **Full Portable** (self-contained)
 2. Run `CM26_by_Rizco98.exe`
 3. **File > Open Game** → select your FC26 installation folder
 4. Edit any section, press **Validate**, then **Save** to commit
@@ -31,9 +31,8 @@
 | Package | Size | Description |
 |---------|------|-------------|
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
-| **Lite** | See release asset | Framework-dependent, requires .NET 8 Desktop Runtime x64 |
 
-Checksums: `SHA256SUMS_v1.0.181.txt` is included with the v1.0.181 release assets.
+Checksums: `SHA256SUMS_v1.0.182.txt` is included with the v1.0.182 release assets.
 
 Open **Tools > Public Readiness Centre** for the complete direct-edit workflow:
 Team Complete, Squad Doctor, player/batch/face tools, Compdata Pro, Kit/Asset
@@ -65,7 +64,7 @@ existing database row.
 - **Roster integrity tools** — repair broken/duplicate club links and missing team-sheet players, assign unique shirt numbers, and run the engine's full key/relationship validator
 
 ### Data & assets
-- **Compdata in Competition** — friendly structure tree, visual calendar/conflict view, league/cup wizard, advancement links and validated XLSX/TXT export without exposing raw database fields
+- **Compdata in Competition** — friendly structure tree, visual calendar/team-day conflict view, league/cup wizard, multi-rank promotion/relegation links and direct validated staging into the normal FC26 Save transaction
 - **Direct native asset import/remove** — images plus format-compatible RX3/DDS/BIG payloads for verified player, kit, stadium, ball, boot, glove and presentation paths
 - **Deco asset-pack discovery** — automatically uses a local `FC Editor by decoruiz Alpha v21` folder (including the standard Downloads location) for supported visual previews
 - **Frostbite asset search** — RES/Ebx search, NewWave audio bank metadata inspection

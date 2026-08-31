@@ -1,5 +1,25 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.182 - verified direct-edit completion and responsiveness (2026-08-31)
+
+- Career transfer-budget saves now reopen the EA Career container and verify
+  club ID plus both budget fields. A failed verification restores the timestamped
+  backup instead of reporting a false success.
+- Added an FC26 schema compatibility fingerprint to Save Preflight, Save Proof
+  and Public Readiness. Missing required league/team/player relationship fields
+  now block direct Save with a friendly report.
+- Compdata validation now detects a club scheduled in two competitions on the
+  same FC calendar day. Promotion/relegation editing supports consecutive rank
+  paths while retaining the verified group-to-group row format.
+- Added whole-transaction rollback for all unsaved database/detail/structural
+  changes, plus direct Manager, Career and Kit Health entry points in Public
+  Readiness.
+- Face/miniface asset scanning now runs off the UI thread with live progress and
+  cancellation, preventing the classic shell from freezing during large scans.
+- Public distribution remains focused on the self-contained Full Portable build;
+  all database, Compdata and asset commits remain internal to CM26 with no FIFA
+  Editing Tool import/export dependency.
+
 ## Version 1.0.181 - direct-edit public readiness workflows (2026-08-31)
 
 - Added a friendly **Public Readiness Centre** that brings Team Complete,

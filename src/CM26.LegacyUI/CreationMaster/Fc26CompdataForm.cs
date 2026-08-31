@@ -32,7 +32,7 @@ internal sealed class Fc26CompdataPanel : UserControl
         tools.Items.Add(Item("Open Workbook", (_, _) => OpenWorkbook()));
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Item("Create Tournament", (_, _) => TournamentWizard()));
-        tools.Items.Add(Item("Add Advancement", (_, _) => AddAdvancement()));
+        tools.Items.Add(Item("Promotion / Relegation Paths", (_, _) => AddAdvancement()));
         tools.Items.Add(Item("Assign Teams", (_, _) => AssignTeams()));
         tools.Items.Add(Item("Generate Schedule", (_, _) => GenerateSchedule()));
         tools.Items.Add(Item("Career Ready Check", (_, _) => ShowCareerReadyReport()));
@@ -205,13 +205,17 @@ internal sealed class Fc26CompdataPanel : UserControl
         if (groups.Length < 2) { MessageBox.Show(this, "At least two Compdata Group objects are required.", Text); return; }
         using var dialog = new AdvancementDialog(groups);
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
-        Run("Adding group-to-group advancement path...", () =>
+        Run("Adding validated group-to-group advancement paths...", () =>
         {
             var snapshot = WriteSnapshot();
             try
             {
-                var result = Fc26HostBridge.AddCompdataAdvancement(snapshot, dialog.Source.Id, dialog.SourceRank, dialog.Destination.Id, dialog.DestinationRank);
-                LoadSnapshot(snapshot); return result;
+                string result = string.Empty;
+                for (var offset = 0; offset < dialog.PathCount; offset++)
+                    result = Fc26HostBridge.AddCompdataAdvancement(snapshot, dialog.Source.Id,
+                        dialog.SourceRank + offset, dialog.Destination.Id, dialog.DestinationRank + offset);
+                LoadSnapshot(snapshot);
+                return dialog.PathCount + " promotion/relegation path(s) added and validated. " + result;
             }
             finally { try { File.Delete(snapshot); } catch { } }
         });
@@ -570,22 +574,24 @@ internal sealed class Fc26CompdataPanel : UserControl
     private sealed class AdvancementDialog : Form
     {
         private readonly ComboBox _source = new ComboBox { Width = 260, DropDownStyle = ComboBoxStyle.DropDownList }, _destination = new ComboBox { Width = 260, DropDownStyle = ComboBoxStyle.DropDownList };
-        private readonly NumericUpDown _sourceRank = Number(0, 128, 0), _destinationRank = Number(0, 128, 0);
+        private readonly NumericUpDown _sourceRank = Number(0, 128, 0), _destinationRank = Number(0, 128, 0), _pathCount = Number(1, 64, 1);
         internal AdvancementDialog(GroupChoice[] groups)
         {
-            Text = "Group Advancement"; FormBorderStyle = FormBorderStyle.FixedDialog; StartPosition = FormStartPosition.CenterParent; ClientSize = new Size(500, 220); MaximizeBox = false; MinimizeBox = false;
+            Text = "Promotion / Relegation Paths"; FormBorderStyle = FormBorderStyle.FixedDialog; StartPosition = FormStartPosition.CenterParent; ClientSize = new Size(500, 255); MaximizeBox = false; MinimizeBox = false;
             _source.Items.AddRange(groups); _destination.Items.AddRange(groups); _source.SelectedIndex = 0; _destination.SelectedIndex = 1;
-            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 2, RowCount = 5 };
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 2, RowCount = 6 };
             layout.Controls.Add(new Label { Text = "Source group", AutoSize = true }, 0, 0); layout.Controls.Add(_source, 1, 0);
             layout.Controls.Add(new Label { Text = "Source rank", AutoSize = true }, 0, 1); layout.Controls.Add(_sourceRank, 1, 1);
             layout.Controls.Add(new Label { Text = "Destination group", AutoSize = true }, 0, 2); layout.Controls.Add(_destination, 1, 2);
             layout.Controls.Add(new Label { Text = "Destination rank", AutoSize = true }, 0, 3); layout.Controls.Add(_destinationRank, 1, 3);
-            var ok = new Button { Text = "Add", DialogResult = DialogResult.OK, AutoSize = true }; var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true };
-            var buttons = new FlowLayoutPanel { AutoSize = true }; buttons.Controls.AddRange(new Control[] { ok, cancel }); layout.Controls.Add(buttons, 1, 4);
+            layout.Controls.Add(new Label { Text = "Consecutive rank paths", AutoSize = true }, 0, 4); layout.Controls.Add(_pathCount, 1, 4);
+            var ok = new Button { Text = "Add Paths", DialogResult = DialogResult.OK, AutoSize = true }; var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true };
+            var buttons = new FlowLayoutPanel { AutoSize = true }; buttons.Controls.AddRange(new Control[] { ok, cancel }); layout.Controls.Add(buttons, 1, 5);
             Controls.Add(layout); AcceptButton = ok; CancelButton = cancel;
         }
         internal GroupChoice Source => (GroupChoice)_source.SelectedItem; internal GroupChoice Destination => (GroupChoice)_destination.SelectedItem;
         internal int SourceRank => Decimal.ToInt32(_sourceRank.Value); internal int DestinationRank => Decimal.ToInt32(_destinationRank.Value);
+        internal int PathCount => Decimal.ToInt32(_pathCount.Value);
     }
     private sealed class GroupChoice
     {

@@ -84,6 +84,51 @@ public sealed class CompdataAndDateTests
     }
 
     [Fact]
+    public void CompdataCalendarDetectsSharedTeamOnSameDayAcrossCompetitions()
+    {
+        var tables = new Dictionary<string, DataTable>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["compobj"] = Table("compobj"),
+            ["initteams"] = Table("initteams"),
+            ["schedule"] = Table("schedule")
+        };
+        tables["compobj"].Rows.Add("0", "0", "WORLD", "World", "-1");
+        tables["compobj"].Rows.Add("10", "3", "C100", "League", "0");
+        tables["compobj"].Rows.Add("11", "4", "S1", "League stage", "10");
+        tables["compobj"].Rows.Add("20", "3", "C200", "Cup", "0");
+        tables["compobj"].Rows.Add("21", "4", "S1", "Cup stage", "20");
+        tables["initteams"].Rows.Add("10", "0", "501");
+        tables["initteams"].Rows.Add("20", "0", "501");
+        tables["schedule"].Rows.Add("11", "210", "1", "1", "1", "1500");
+        tables["schedule"].Rows.Add("21", "210", "1", "1", "1", "2000");
+
+        var conflict = Assert.Single(CompdataSchema.FindTeamCalendarConflicts(tables));
+        Assert.Equal(501, conflict.TeamId);
+        Assert.Equal(210, conflict.Day);
+        Assert.Equal(10, conflict.FirstCompetitionId);
+        Assert.Equal(20, conflict.SecondCompetitionId);
+    }
+
+    [Fact]
+    public void CompdataCalendarAllowsSeveralKickoffRowsInsideOneCompetition()
+    {
+        var tables = new Dictionary<string, DataTable>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["compobj"] = Table("compobj"),
+            ["initteams"] = Table("initteams"),
+            ["schedule"] = Table("schedule")
+        };
+        tables["compobj"].Rows.Add("0", "0", "WORLD", "World", "-1");
+        tables["compobj"].Rows.Add("10", "3", "C100", "League", "0");
+        tables["compobj"].Rows.Add("11", "4", "S1", "League stage", "10");
+        tables["initteams"].Rows.Add("10", "0", "501");
+        tables["schedule"].Rows.Add("11", "210", "1", "1", "1", "1500");
+        tables["schedule"].Rows.Add("11", "210", "1", "1", "1", "2000");
+
+        Assert.Empty(CompdataSchema.FindTeamCalendarConflicts(tables));
+    }
+
+    [Fact]
     public void LegacyAssetBatchStagingRejectsPartialInputBeforeChangingState()
     {
         var temp = Path.Combine(Path.GetTempPath(), "cm26-tests-" + Guid.NewGuid().ToString("N"));

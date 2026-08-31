@@ -28,6 +28,7 @@ internal sealed class Fc26PublicReadinessForm : Form
         StartPosition = FormStartPosition.CenterParent;
         Size = new Size(1040, 720);
         MinimumSize = new Size(860, 580);
+        AutoScaleMode = AutoScaleMode.Dpi;
         Icon = main.Icon;
 
         var banner = new Panel { Dock = DockStyle.Top, Height = 68, BackColor = Color.FromArgb(12, 49, 92), Padding = new Padding(14, 8, 14, 6) };
@@ -67,6 +68,7 @@ internal sealed class Fc26PublicReadinessForm : Form
             Button("Refresh fast audit", (_, _) => RefreshReleaseReport()),
             Button("Full Database Health", (_, _) => _main.ShowFc26HealthCentre()),
             Button("ID availability", (_, _) => ShowText("Safe ID Availability", Fc26SnapshotLoader.DescribeIdAvailability())),
+            Button("Schema compatibility", (_, _) => ShowText("FC26 Schema Compatibility", Fc26SnapshotLoader.DescribeCompatibility())),
             PrimaryButton("Save Direct to FC26", (_, _) => _main.CommitFc26DirectSave())));
         return page;
     }
@@ -97,6 +99,8 @@ internal sealed class Fc26PublicReadinessForm : Form
             Button("Open Player Info", (_, _) => OpenSection("player")),
             Button("Batch Player Editor", (_, _) => _main.ShowFc26BatchPlayerEditor()),
             Button("Miniface & Face Tools", (_, _) => _main.ShowFc26FaceTools()),
+            Button("Manager Editor", (_, _) => OpenSection("manager")),
+            Button("Career Save", (_, _) => _main.ShowFc26CareerSaveModule()),
             Button("Player Names & Safe IDs", (_, _) => _main.ShowFc26ModdingUtilities()),
             "Manager data remains linked through the Team section. Team Complete flags a missing manager ID instead of inventing a raw manager relationship."));
         return page;
@@ -123,6 +127,7 @@ internal sealed class Fc26PublicReadinessForm : Form
             "Stable direct asset workflow",
             "Open team kits, import verified kit/crest/miniface assets, preview when decoding is supported and keep editing usable when a texture cannot be decoded.",
             Button("Open Kit Editor", (_, _) => OpenSection("kit")),
+            Button("Kit Health Report", (_, _) => ShowText("FC26 Kit Health", BuildKitHealthReport())),
             Button("Direct Kit Assets", (_, _) => _main.ShowFc26AssetManager("Kit")),
             Button("All Visual Assets", (_, _) => _main.ShowFc26AssetManager()),
             Button("Miniface Batch Tools", (_, _) => _main.ShowFc26FaceTools()),
@@ -141,6 +146,7 @@ internal sealed class Fc26PublicReadinessForm : Form
             Button("Safe ID Migration", (_, _) => _main.ShowFc26ModdingUtilities()),
             Button("Advanced Database Workspace", (_, _) => _main.ShowFc26DatabaseWorkspace()),
             Button("Database Health", (_, _) => _main.ShowFc26HealthCentre()),
+            Button("Revert All Unsaved DB Changes", (_, _) => { _main.RevertFc26UnsavedDatabaseChanges(); RefreshReleaseReport(); }),
             "Use advanced mode only when a friendly section cannot express the change. File > Save still blocks invalid references and creates the recovery backup."));
         return page;
     }
@@ -251,6 +257,35 @@ internal sealed class Fc26PublicReadinessForm : Form
         var types = new HashSet<int>(team.m_KitList.Cast<Kit>().Where(value => value != null).Select(value => value.kittype));
         return "Home " + (types.Contains(0) ? "OK" : "missing") + ", Away " + (types.Contains(1) ? "OK" : "missing") +
                ", GK " + (types.Contains(2) ? "OK" : "missing") + (types.Contains(3) ? ", Third OK" : string.Empty);
+    }
+
+    private static string BuildKitHealthReport()
+    {
+        var clubs = FifaEnvironment.Teams?.Cast<Team>().Where(team => team != null && team.IsClub())
+            .OrderBy(team => team.TeamNameFull, StringComparer.CurrentCultureIgnoreCase).ToArray() ?? Array.Empty<Team>();
+        var builder = new StringBuilder();
+        builder.AppendLine("CM26 CORE KIT HEALTH");
+        builder.AppendLine(new string('=', 28));
+        var findings = 0;
+        foreach (var team in clubs)
+        {
+            var kits = team.m_KitList.Cast<Kit>().Where(kit => kit != null).ToArray();
+            var types = kits.Select(kit => kit.kittype).ToArray();
+            var missing = new[] { 0, 1, 2 }.Where(type => !types.Contains(type)).ToArray();
+            var duplicate = types.GroupBy(type => type).Where(group => group.Count() > 1).Select(group => group.Key).ToArray();
+            var wrongOwner = kits.Count(kit => kit.teamid != team.Id);
+            if (missing.Length == 0 && duplicate.Length == 0 && wrongOwner == 0) continue;
+            findings++;
+            builder.Append("[FIX] ").Append(team.TeamNameFull).Append(" [").Append(team.Id).Append("]: ");
+            if (missing.Length > 0) builder.Append("missing ").Append(string.Join("/", missing.Select(type => type == 0 ? "Home" : type == 1 ? "Away" : "GK"))).Append("; ");
+            if (duplicate.Length > 0) builder.Append("duplicate kit type ").Append(string.Join(",", duplicate)).Append("; ");
+            if (wrongOwner > 0) builder.Append(wrongOwner).Append(" wrong team link(s); ");
+            builder.AppendLine();
+        }
+        if (findings == 0) builder.AppendLine("[PASS] Every club has one Home, Away and GK kit row with valid team ownership.");
+        builder.AppendLine();
+        builder.AppendLine("This report checks database kit rows. Use Direct Kit Assets to inspect or stage the corresponding FC26 textures.");
+        return builder.ToString();
     }
 
     private static void Pass(StringBuilder builder, string label, bool passed, string detail)

@@ -24,6 +24,7 @@ internal sealed class Fc26CareerSaveForm : Form
         StartPosition = FormStartPosition.CenterParent;
         ClientSize = new Size(690, 340);
         MinimumSize = new Size(620, 330);
+        AutoScaleMode = AutoScaleMode.Dpi;
         Icon = Form.ActiveForm?.Icon;
 
         var header = new Panel { Dock = DockStyle.Top, Height = 72, BackColor = Color.FromArgb(5, 38, 82), Padding = new Padding(16) };
@@ -92,9 +93,9 @@ internal sealed class Fc26CareerSaveForm : Form
         {
             UseWaitCursor = true; _save.Enabled = false;
             var backup = await ThreadingTask.Run(() => _editor.Save((int)_current.Value, (int)_season.Value));
-            _status.Text = "Career budget saved. Backup: " + backup;
-            Fc26ActivityLog.Add("Career save", "Saved Career budget; backup: " + backup);
-            MessageBox.Show(this, "Career budget saved.\r\n\r\nBackup: " + backup, "Career save", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            _status.Text = "Career budget saved and reload-verified. Backup: " + backup;
+            Fc26ActivityLog.Add("Career save", "Saved and reload-verified Career budget; backup: " + backup);
+            MessageBox.Show(this, "Career budget saved and reload-verified.\r\n\r\nBackup: " + backup, "Career save", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Career save", MessageBoxButtons.OK, MessageBoxIcon.Error); }
         finally { UseWaitCursor = false; _save.Enabled = _editor != null; }

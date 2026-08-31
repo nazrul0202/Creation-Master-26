@@ -6,6 +6,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using FifaLibrary;
@@ -69,6 +70,19 @@ internal static class Fc26SnapshotLoader
     private static readonly Dictionary<string, string> s_detailOriginalValues =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private static readonly List<StructuralChange> s_structuralChanges = new List<StructuralChange>();
+    private static readonly Dictionary<string, string[]> s_requiredSchema =
+        new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["nations"] = new[] { "nationid" },
+            ["leagues"] = new[] { "leagueid", "countryid" },
+            ["teams"] = new[] { "teamid" },
+            ["leagueteamlinks"] = new[] { "leagueid", "teamid" },
+            ["players"] = new[] { "playerid" },
+            ["teamplayerlinks"] = new[] { "teamid", "playerid" },
+            ["playernames"] = new[] { "nameid", "name" },
+            ["stadiums"] = new[] { "stadiumid" },
+            ["teamkits"] = new[] { "teamid", "teamkittypetechid" }
+        };
 
     internal static void Load(string path)
     {
@@ -902,6 +916,63 @@ internal static class Fc26SnapshotLoader
     }
 
     internal static int PendingDetailCount => s_detailChanges.Count + s_structuralChanges.Count;
+
+    internal static string CurrentSnapshotPath => s_snapshotPath;
+
+    internal static bool IsSchemaCompatible(out string report)
+    {
+        if (s_snapshot == null)
+        {
+            report = "No FC26 snapshot is loaded.";
+            return false;
+        }
+
+        var missing = new List<string>();
+        var tables = s_snapshot.Tables.ToDictionary(table => table.Name, StringComparer.OrdinalIgnoreCase);
+        foreach (var requirement in s_requiredSchema)
+        {
+            if (!tables.TryGetValue(requirement.Key, out var table))
+            {
+                missing.Add(requirement.Key + " (table)");
+                continue;
+            }
+            foreach (var field in requirement.Value)
+                if (!table.Columns.Contains(field, StringComparer.OrdinalIgnoreCase))
+                    missing.Add(requirement.Key + "." + field);
+        }
+
+        report = (missing.Count == 0
+            ? "Required direct-edit tables and fields are present."
+            : "Missing required schema item(s): " + string.Join(", ", missing)) +
+            " Fingerprint: " + SchemaFingerprint();
+        return missing.Count == 0;
+    }
+
+    internal static string DescribeCompatibility()
+    {
+        var compatible = IsSchemaCompatible(out var result);
+        var builder = new StringBuilder();
+        builder.AppendLine("CM26 FC26 SCHEMA COMPATIBILITY");
+        builder.AppendLine(new string('=', 34));
+        builder.AppendLine("State: " + (compatible ? "COMPATIBLE" : "BLOCKED"));
+        builder.AppendLine(result);
+        builder.AppendLine();
+        builder.AppendLine("This fingerprint identifies the loaded table/field layout. CM26 blocks direct Save when required FC26 relationships are missing.");
+        return builder.ToString();
+    }
+
+    private static string SchemaFingerprint()
+    {
+        if (s_snapshot == null) return "none";
+        var canonical = string.Join("\n", s_snapshot.Tables
+            .OrderBy(table => table.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(table => table.Name.ToLowerInvariant() + "|" + string.Join(",", table.Columns.Select(column => column.ToLowerInvariant()))));
+        using (var sha = SHA256.Create())
+        {
+            var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(canonical));
+            return string.Concat(hash.Take(8).Select(value => value.ToString("x2", CultureInfo.InvariantCulture)));
+        }
+    }
 
     internal static bool IsDetailDeleted(string tableName, int rowIndex) => s_structuralChanges.Any(change =>
         change.Kind == "delete" && change.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase) && change.RowIndex == rowIndex);

@@ -1,10 +1,10 @@
-CM26 Version: 1.0.181
+CM26 Version: 1.0.182
 Build Configuration: Release
 Target Framework: .NET 8 Windows host + .NET Framework 4.8 classic UI
 Architecture: x64 Frostbite host + x86 classic UI
 Source Project: GitHub_CM26\Creation-Master-26
 Previous Baseline: v1.0.148
-Build Date: 2026-08-30
+Build Date: 2026-08-31
 Save Model: Validated direct Frostbite Data/Patch editing with automatic backup
 Source Repository: https://github.com/nazrul0202/Creation-Master-26
 EA Game Content Included: No
