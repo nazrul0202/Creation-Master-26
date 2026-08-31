@@ -1547,8 +1547,7 @@ public sealed class KitsSection : ClassicEntitySection
         }
         catch (Exception ex)
         {
-            MessageBox.Show(FindForm(), ex.Message, "Import Kit Texture",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(FindForm()!, "Import Kit Texture", ex, "No kit texture was staged. Select a supported image and retry.");
         }
     }
 
@@ -1579,8 +1578,7 @@ public sealed class KitsSection : ClassicEntitySection
         try { File.Copy(path, dialog.FileName, overwrite: true); SetAssetStatus("Kit texture exported."); }
         catch (Exception ex)
         {
-            MessageBox.Show(FindForm(), ex.Message, "Export Kit Texture",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            FriendlyErrorDialog.Show(FindForm()!, "Export Kit Texture", ex, "No output was reported complete. Re-index the kit asset and retry.");
         }
     }
 

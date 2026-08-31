@@ -405,6 +405,15 @@ internal static class Fc26HostBridge
         return result;
     }
 
+    internal static string RecoverDirectTransactions()
+    {
+        var result = RunHost("--legacy-recover", DatabaseCommandTimeoutMs,
+            "FC26 direct-save recovery", allowValidationIssues: true);
+        return string.IsNullOrWhiteSpace(result.StandardOutput)
+            ? "Recovery completed. Refresh the release audit to verify the result."
+            : result.StandardOutput.Trim();
+    }
+
     internal sealed class IndexedAsset
     {
         internal IndexedAsset(string type, string name, string resType, string originalSize, string compressedSize, string sha1)

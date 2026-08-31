@@ -331,7 +331,7 @@ internal sealed class Fc26AssetManagerForm : Form
             SaveLibraryState(); RefreshSavedPaths();
             _status.Text = _favourites.Contains(path) ? "Added to favourites: " + path : "Removed from favourites: " + path;
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { Fc26FriendlyError.Show(this, "Asset favourites", ex, "The favourites list was left unchanged. Check the local profile folder, then retry."); }
     }
 
     private void AddRecent(string path)
@@ -471,7 +471,7 @@ internal sealed class Fc26AssetManagerForm : Form
         catch (Exception ex)
         {
             _status.Text = "Operation failed.";
-            MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Fc26FriendlyError.Show(this, "Asset Manager", ex, "No unverified asset operation was accepted. Re-select a supported indexed asset and retry.");
         }
         finally { UseWaitCursor = false; }
     }

@@ -112,7 +112,7 @@ public sealed class ModManagerSection : SectionBase
         using var dialog = new OpenFileDialog { Filter = "CM26 Mod (*.cm26mod)|*.cm26mod", Multiselect = false };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         try { CM26ModLibraryService.Import(dialog.FileName); RefreshLibrary(); _status.Text = "CM26 mod imported."; }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Import CM26 Mod", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { FriendlyErrorDialog.Show(this, "Import CM26 Mod", ex); }
     }
 
     private void RefreshLibrary()
@@ -179,7 +179,7 @@ public sealed class ModManagerSection : SectionBase
             else
                 await Task.Delay(TimeSpan.FromSeconds(5));
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Launch FC26", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { FriendlyErrorDialog.Show(this, "Launch FC26", ex); }
         finally { button.Enabled = true; }
     }
 
@@ -206,7 +206,7 @@ public sealed class ModManagerSection : SectionBase
             else
                 await Task.Delay(TimeSpan.FromSeconds(5));
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Launch FC26", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { FriendlyErrorDialog.Show(this, "Launch FC26", ex); }
         finally { button.Enabled = true; }
     }
 

@@ -209,7 +209,7 @@ public sealed class PlayersSection : SectionBase
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Create Player", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Create Player", ex, "No incomplete player record was accepted. Review available player and name IDs, then retry.");
         }
     }
 
@@ -1148,8 +1148,7 @@ public sealed class PlayersSection : SectionBase
             if (IsDisposed) return;
             _facePreviewCaption.Text = "3D face export failed.";
             _face3DHost.ShowStatus("3D face export failed.");
-            MessageBox.Show(this, ex.Message, "3D Face Viewer",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "3D Face Viewer", ex, "Player data was not changed. Re-index the face assets and retry.");
         }
     }
 
@@ -1185,8 +1184,7 @@ public sealed class PlayersSection : SectionBase
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "3D Face Viewer",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "3D Face Viewer", ex, "Player data was not changed. Select a supported FBX source and retry.");
         }
     }
 
@@ -1217,8 +1215,7 @@ public sealed class PlayersSection : SectionBase
         catch (Exception ex)
         {
             _facePreviewCaption.Text = "Face FBX export failed.";
-            MessageBox.Show(this, ex.Message, "Export Face FBX",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Export Face FBX", ex, "No output was reported complete. Re-index the face assets and retry.");
             return;
         }
         if (IsDisposed || playerId != _currentPlayerId) return;
@@ -1246,8 +1243,7 @@ public sealed class PlayersSection : SectionBase
         catch (Exception ex)
         {
             _facePreviewCaption.Text = "Face FBX save failed.";
-            MessageBox.Show(this, ex.Message, "Export Face FBX",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Export Face FBX", ex, "No output was reported complete. Check the destination and retry.");
         }
     }
 
@@ -1399,8 +1395,7 @@ public sealed class PlayersSection : SectionBase
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Transfer Player",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            FriendlyErrorDialog.Show(this, "Transfer Player", ex, "The previous roster relationship was retained. Review the destination squad and retry.");
         }
     }
 
@@ -1972,8 +1967,7 @@ public sealed class PlayersSection : SectionBase
             }
             catch (InvalidOperationException ex)
             {
-                MessageBox.Show(this, ex.Message, "Player Callname",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                FriendlyErrorDialog.Show(this, "Player Callname", ex, "No callname change was accepted.");
                 return;
             }
             Services.Pending.MarkStructuralChange();

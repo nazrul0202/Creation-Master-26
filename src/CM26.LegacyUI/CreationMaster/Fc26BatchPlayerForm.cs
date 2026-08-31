@@ -136,7 +136,7 @@ internal sealed class Fc26BatchPlayerForm : Form
             BindPreview();
             _status.Text = _pending.Count.ToString("N0") + " player(s) previewed; " + _pending.Count(row => row.Before != row.After).ToString("N0") + " would change.";
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { Fc26FriendlyError.Show(this, "Batch Player preview", ex, "No batch values were applied. Review the selected players and filters, then retry."); }
     }
 
     private Player[] SelectedPlayers()
@@ -208,7 +208,7 @@ internal sealed class Fc26BatchPlayerForm : Form
             _status.Text = _pending.Select(row => row.Player.Id).Distinct().Count().ToString("N0") + " player(s), " +
                 _pending.Count(row => row.Before != row.After).ToString("N0") + " field change(s) previewed.";
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { Fc26FriendlyError.Show(this, "Batch Player development preview", ex, "No development values were applied. Review the age curve and selection, then retry."); }
     }
 
     private void PreviewPlaystyle(bool add, bool plus)
@@ -229,7 +229,7 @@ internal sealed class Fc26BatchPlayerForm : Form
             BindPreview();
             _status.Text = _pending.Count(row => row.Before != row.After).ToString("N0") + " PlayStyle mask change(s) previewed.";
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { Fc26FriendlyError.Show(this, "Batch PlayStyle preview", ex, "No PlayStyle values were applied. Review the three-state selections, then retry."); }
     }
 
     private void PositionPreset(Player player)

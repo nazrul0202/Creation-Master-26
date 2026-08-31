@@ -1731,7 +1731,7 @@ public class KitForm : Form
 		}
 		catch (Exception ex)
 		{
-			MessageBox.Show(this, ex.Message, "Import Kit Folder", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			Fc26FriendlyError.Show(this, "Import kit folder", ex, "No invalid kit payload was accepted. Check image formats, dimensions and file access, then retry.");
 		}
 		finally { buttonImportKitFolder.Enabled = true; }
 	}

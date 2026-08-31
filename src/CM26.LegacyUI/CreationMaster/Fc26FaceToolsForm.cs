@@ -122,8 +122,8 @@ internal sealed class Fc26FaceToolsForm : Form
 		catch (OperationCanceledException) { _status.Text = "Face scan cancelled safely."; }
 		catch (Exception ex)
 		{
-			_status.Text = "Failed: " + ex.Message;
-			MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+			_status.Text = "Face operation stopped safely.";
+			Fc26FriendlyError.Show(this, "Face tools", ex, "No face assignment was accepted. Review the source image and selected player, then retry.");
 		}
 		finally
 		{
@@ -305,7 +305,7 @@ internal sealed class Fc26FaceToolsForm : Form
 	private void Run(string message, Func<string> action)
 	{
 		try { Cursor = Cursors.WaitCursor; _status.Text = message; Application.DoEvents(); _status.Text = action(); }
-		catch (Exception ex) { _status.Text = "Failed: " + ex.Message; MessageBox.Show(this, ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+		catch (Exception ex) { _status.Text = "Face operation stopped safely."; Fc26FriendlyError.Show(this, "Face tools", ex, "No unverified face or miniface change was accepted."); }
 		finally { Cursor = Cursors.Default; }
 	}
 

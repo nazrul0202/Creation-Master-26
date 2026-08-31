@@ -423,7 +423,7 @@ public class MainForm : Form
 		{
 			if (dialog.ShowDialog(this) != DialogResult.OK) return;
 			try { Fc26ProjectSessionService.Save(dialog.FileName); statusBar.Text = "CM26 project session saved: " + dialog.FileName; }
-			catch (Exception ex) { MessageBox.Show(this, ex.Message, "Save CM26 project", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+			catch (Exception ex) { Fc26FriendlyError.Show(this, "Save CM26 project", ex, "The project file was not reported as saved. Choose a writable folder and retry."); }
 		}
 	}
 
@@ -569,8 +569,8 @@ public class MainForm : Form
 		}
 		catch (Exception ex)
 		{
-			MessageBox.Show(this, ex.Message, "Database Health Centre",
-				MessageBoxButtons.OK, MessageBoxIcon.Error);
+			Fc26FriendlyError.Show(this, "Database Health Centre", ex,
+				"No repair was accepted. Reopen the database if needed, then run the health scan again.");
 			statusBar.Text = "Database health scan failed.";
 		}
 		finally { Cursor.Current = Cursors.Default; }
@@ -3289,14 +3289,9 @@ public class MainForm : Form
 		}
 		catch (Exception ex)
 		{
-			var errorLog = Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log");
-			try { File.WriteAllText(errorLog, ex.ToString()); } catch { }
-			var message = ex is OutOfMemoryException
-				? "FC26 data could not be loaded into memory. Close other memory-heavy applications and retry."
-				: "FC26 data could not be opened: " + ex.Message;
 			if (!IsDisposed && !Disposing)
-				MessageBox.Show(this, message + "\r\n\r\nDiagnostic log:\r\n" + errorLog,
-					dialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+				Fc26FriendlyError.Show(this, dialogTitle, ex,
+					"The database was not opened. Close memory-heavy applications, verify the FC26 source and retry.");
 			return false;
 		}
 		finally
@@ -3386,8 +3381,8 @@ public class MainForm : Form
 				// Do not leave a picker-only record behind when it could not be
 				// represented by a writable FC26 database row.
 				pickUp.ObjectList?.Remove(created);
-				MessageBox.Show(this, ex.Message, "Create New " + section,
-					MessageBoxButtons.OK, MessageBoxIcon.Error);
+				Fc26FriendlyError.Show(this, "Create new " + section, ex,
+					"The incomplete picker record was removed. Resolve the reported database requirement and retry.");
 				return null;
 			}
 		}
@@ -3429,7 +3424,8 @@ public class MainForm : Form
 			catch (Exception ex)
 			{
 				statusBar.Text = "League staged — fix the highlighted item before saving.";
-				MessageBox.Show(this, ex.Message, "Create New League", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+				Fc26FriendlyError.Show(this, "Create New League", ex,
+					"The league was not reported as saved. Review Save Preflight, fix the highlighted item and retry.");
 			}
 		}
 	}
@@ -3438,6 +3434,7 @@ public class MainForm : Form
 	{
 		if (draft == null || draft.Country == null || string.IsNullOrWhiteSpace(draft.LeagueName))
 			throw new InvalidOperationException("Choose a country and league name first.");
+		Fc26SnapshotLoader.ValidateCreationCapacity(1, draft.TeamNames.Count, draft.TeamNames.Count * 23);
 		var league = FifaEnvironment.Leagues.CreateNewId() as League;
 		if (league == null) throw new InvalidOperationException("No free league ID is available in the FC26 database.");
 		league.leaguename = draft.LeagueName.Trim();
@@ -3487,7 +3484,8 @@ public class MainForm : Form
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show(this, ex.Message, "Create New Team", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+				Fc26FriendlyError.Show(this, "Create New Team", ex,
+					"The team was not completed. Review its country, league and available IDs, then retry.");
 				return null;
 			}
 		}
@@ -3506,8 +3504,8 @@ public class MainForm : Form
 		}
 		catch (Exception ex)
 		{
-			MessageBox.Show(this, ex.Message, "Create Team in League",
-				MessageBoxButtons.OK, MessageBoxIcon.Error);
+			Fc26FriendlyError.Show(this, "Create Team in League", ex,
+				"The team was not completed. Review its league and available IDs, then retry.");
 			return null;
 		}
 	}
@@ -3534,6 +3532,7 @@ public class MainForm : Form
 	private Team CreateTeamRecord(string name, Country country, League league, Team template, Fc26StandaloneTeamDraft draft)
 	{
 		if (country == null || league == null) throw new InvalidOperationException("Choose a valid country and league for the team.");
+		Fc26SnapshotLoader.ValidateCreationCapacity(0, 1, 23);
 		var team = FifaEnvironment.Teams.CreateNewId() as Team;
 		if (team == null) throw new InvalidOperationException("No free team ID is available in the FC26 database.");
 		SetTeamNames(team, name);

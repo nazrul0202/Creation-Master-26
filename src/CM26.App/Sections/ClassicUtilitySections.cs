@@ -185,7 +185,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Open Compdata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Open Compdata", ex, "No Compdata was changed. Select a complete workbook and retry.");
         }
     }
 
@@ -289,7 +289,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Open Compdata from Game Folder", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Open installed Compdata", ex, "No Compdata was changed. Re-index the installed FC26 source and retry.");
         }
     }
 
@@ -325,7 +325,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Compdata Worksheet", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Compdata worksheet", ex);
         }
     }
 
@@ -368,7 +368,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Build League / Cup", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Build League / Cup", ex, "The competition structure was not accepted. Review teams and calendar settings, then retry.");
         }
     }
 
@@ -385,7 +385,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Promotion / Relegation", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Promotion / Relegation", ex, "No advancement rule was accepted. Review linked tiers and retry.");
         }
     }
 
@@ -422,7 +422,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
         {
             _compdataStatus.Text = "Compdata validation failed: " + ex.Message;
             _compdataStatus.ForeColor = Theme.Danger;
-            MessageBox.Show(this, ex.Message, "Compdata Validation", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Compdata Validation", ex);
             return false;
         }
     }
@@ -445,7 +445,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Save Compdata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Save Compdata", ex, "Compdata was not reported as saved. Resolve validation findings and retry.");
         }
     }
 
@@ -462,7 +462,7 @@ public sealed class CompetitionsSection : ClassicEntitySection
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Export Compdata TXT", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Export Compdata TXT", ex);
         }
     }
 

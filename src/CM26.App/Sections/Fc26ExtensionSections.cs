@@ -519,8 +519,7 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
         }
         catch (Exception ex)
         {
-            MessageBox.Show(FindForm(), ex.Message, "Export NewWave Bank",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(FindForm()!, "Export NewWave Bank", ex, "No audio bank output was reported complete.");
             return;
         }
         _bankDetails.Text = $"Exported to {dialog.FileName}";
@@ -542,7 +541,7 @@ internal sealed class AudioNationSection : Fc26ExtensionSection
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Audio Preview", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            FriendlyErrorDialog.Show(this, "Audio Preview", ex, "No audio mapping was changed. Check the local media file and retry.");
         }
     }
 

@@ -319,7 +319,7 @@ public abstract class SectionBase : UserControl
         catch (Exception ex)
         {
             Header.Clear("Load error");
-            MessageBox.Show(this, ex.Message, SectionTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, SectionTitle, ex);
         }
     }
 

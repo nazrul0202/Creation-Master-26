@@ -157,8 +157,7 @@ internal static class ThreeDViewerLauncher
         }
         catch (Exception ex)
         {
-            MessageBox.Show(owner.FindForm(), ex.Message, "CM26 3D Viewer",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(owner.FindForm()!, "3D Viewer", ex, "Editor data was not changed. Check the exported mesh and viewer availability, then retry.");
         }
     }
 

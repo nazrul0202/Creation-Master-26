@@ -1,6 +1,6 @@
 # Creation Master 26 — Public Release Matrix
 
-Version: 1.0.183
+Version: 1.0.184
 Date: 2026-08-31
 Public package: Full Portable (Windows 10/11 x64)
 
@@ -13,22 +13,23 @@ another physical machine or an EA title update that is not available locally.
 | Gate | Result | Evidence |
 |---|---|---|
 | Release solution build | PASS | Release build completes with 0 warnings and 0 errors. |
-| Regression suite | PASS | 155 tests, including Compdata leagues with 2/4/12/20/24 teams. |
+| Regression suite | PASS | 158 tests, including Compdata leagues with 2/4/12/20/24 teams and interrupted-transaction fault injection. |
 | Public executable identity | PASS | `Creation Master 26.exe`, assembly identity and package manifest agree. |
-| Compdata integrity | PASS | Hierarchy, database mapping, teams, standings, schedule, conflicts and TXT round-trip are validated. |
-| Direct-save failure recovery | PASS (code gate) | Atomic journal covers prepare/write/replace/complete/rollback and preserves failed transaction evidence. |
-| Friendly diagnostics | PASS (code gate) | Startup and supported save workflows issue diagnostic IDs instead of raw exception dialogs. |
+| Compdata integrity | PASS | 20 focused tests pass; the retained 90-competition installed snapshot has no structural errors (34 shipped-calendar overlap advisories remain warnings). |
+| Direct-save failure recovery | PASS (code gate) | Atomic journal recovery restores TOC/CAS state; path escape is rejected by regression test. |
+| Friendly diagnostics | PASS (code gate) | Automated scanning confirms supported UI surfaces do not expose raw exception dialogs. |
+| Title-update compatibility | PASS (code gate) | Unknown schema fingerprints are read-only until added to the verified registry. |
 | Package self-test | PASS | Full Portable and internal Lite validation both returned `RELEASE SELF-TEST OK`. |
 | UI shell smoke | PASS | Full Portable and internal Lite shell smoke both passed. |
 | Package integrity | PASS | 573-file Full Portable payload; Large Address Aware, version, dependencies, no-PDB and no-EA-content gates passed. |
-| ZIP checksum | PASS | Final Full Portable SHA-256 is recorded in `Release/SHA256SUMS_v1.0.183.txt`. |
+| ZIP checksum | PASS | Final Full Portable SHA-256 is recorded in `Release/SHA256SUMS_v1.0.184.txt`. |
 
 ## Machine-local integration evidence
 
 | Area | Result | Boundary |
 |---|---|---|
 | Installed FC26 asset indexing and Compdata extraction | PASS on development machine | Does not prove every future EA title update. |
-| Real 11-file FC26 Compdata snapshot validation | PASS | Validated snapshot contains 90 competitions; no database content is redistributed. |
+| Real 11-file FC26 Compdata snapshot validation | PASS WITH ADVISORIES | Snapshot contains 90 competitions and no structural errors; 34 existing cross-competition calendar overlaps are reported for review, not silently altered. No database content is redistributed. |
 | Direct Frostbite prepare/verify | PASS | Live commit only occurs after an explicit user Save while FC26 is closed. |
 | Career container budget write/reopen verification | PASS on verified sample workflow | Other unknown Career structures remain unsupported. |
 

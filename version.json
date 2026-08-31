@@ -1,6 +1,6 @@
 {
-  "version": "1.0.183",
+  "version": "1.0.184",
   "name": "Creation Master 26",
-  "notes": "v1.0.183 - Creation Master 26 branding, crash-safe direct-save recovery, friendly diagnostics and expanded Compdata release gates.",
+  "notes": "v1.0.184 - verified-schema protection, guided transaction recovery, creation capacity checks and complete friendly diagnostics.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

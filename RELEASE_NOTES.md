@@ -1,5 +1,19 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.184 - verified compatibility and guided recovery (2026-08-31)
+
+- Unknown FC26 title-update schema fingerprints now remain read-only until
+  verified, even if a small subset of familiar fields happens to exist.
+- Added **Attempt Safe Recovery** to Public Readiness. It restores journaled TOC
+  backups and truncates appended CAS data only after validating every path and
+  confirming FC26 is closed.
+- Create New League and Create New Team now preflight unused IDs, safe templates,
+  relationship rows and starter-player/name capacity before staging mutations.
+- Completed friendly error boundaries across the classic UI and x64 host. Full
+  details remain in the diagnostic log; dialogs give an actionable summary and ID.
+- Added fault-injection recovery, path-containment and raw-dialog regression tests.
+  The public download remains the self-contained Full Portable package only.
+
 ## Version 1.0.183 - public naming and fail-safe release gates (2026-08-31)
 
 - Renamed the public Windows executable and application identity to

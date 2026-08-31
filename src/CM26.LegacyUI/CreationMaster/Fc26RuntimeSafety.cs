@@ -100,6 +100,38 @@ internal static class Fc26RuntimeSafety
         }
     }
 
+    internal static bool BackupBaselineIsReady(out string detail)
+    {
+        var gameRoot = Fc26SnapshotLoader.CurrentGameRoot;
+        if (string.IsNullOrWhiteSpace(gameRoot))
+        {
+            detail = "Extracted database mode does not write installed Data/Patch; its source folder remains the recovery boundary.";
+            return true;
+        }
+        try
+        {
+            var backup = Path.Combine(Path.GetFullPath(gameRoot), "CmModData");
+            var data = Path.Combine(backup, "Data");
+            var patch = Path.Combine(backup, "Patch");
+            if (!Directory.Exists(data) || !Directory.Exists(patch))
+            {
+                detail = "A complete CmModData\\Data and CmModData\\Patch baseline is required before direct Save.";
+                return false;
+            }
+            var dataReady = Directory.EnumerateFiles(data, "*", SearchOption.AllDirectories).Take(1).Any();
+            var patchReady = Directory.EnumerateFiles(patch, "*", SearchOption.AllDirectories).Take(1).Any();
+            detail = dataReady && patchReady
+                ? "CmModData contains both original Data and Patch payloads."
+                : "CmModData exists but one original payload is empty; refresh the baseline before Save.";
+            return dataReady && patchReady;
+        }
+        catch (Exception ex)
+        {
+            detail = "The original backup baseline could not be verified: " + ex.Message;
+            return false;
+        }
+    }
+
     internal static void OpenRecoveryFolder()
     {
         Directory.CreateDirectory(TransactionRoot);

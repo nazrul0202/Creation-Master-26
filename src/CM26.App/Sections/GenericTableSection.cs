@@ -125,7 +125,7 @@ public class GenericTableSection : SectionBase
         {
             Header.Clear("Record unavailable");
             Header.SetRecord(SectionTitle, "This record could not be loaded.", IconService.Get(SectionKey, 44));
-            MessageBox.Show(this, ex.Message, SectionTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            FriendlyErrorDialog.Show(this, SectionTitle, ex);
         }
     }
 }

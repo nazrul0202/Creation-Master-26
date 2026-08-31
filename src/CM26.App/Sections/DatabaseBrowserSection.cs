@@ -388,7 +388,7 @@ public sealed class DatabaseBrowserSection : SectionBase
         catch (Exception ex)
         {
             while (staged-- > 0) Services.Pending.Undo();
-            MessageBox.Show(this, $"Nothing was pasted. {ex.Message}", "Paste", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            FriendlyErrorDialog.Show(this, "Paste database values", ex, "Nothing was staged. Review the clipboard shape and writable columns, then retry.");
             return;
         }
         Services.NotifyPendingChanged();
@@ -411,7 +411,7 @@ public sealed class DatabaseBrowserSection : SectionBase
             TableWorkspaceService.ExportTable(Services.Session, _activeTable.Name, dialog.FileName);
             _info.Text = $"Exported {_activeTable.RowCount:N0} {_activeTable.Name} row(s) to {dialog.FileName}.";
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Export table", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { FriendlyErrorDialog.Show(this, "Export table", ex); }
     }
 
     private void ExportAllTables()
@@ -425,7 +425,7 @@ public sealed class DatabaseBrowserSection : SectionBase
                     Path.Combine(dialog.SelectedPath, SafeFileName(table.Name) + ".tsv"));
             _info.Text = $"Exported {Services.Session.Tables.Count:N0} table(s) to {dialog.SelectedPath}.";
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Export all tables", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { FriendlyErrorDialog.Show(this, "Export all tables", ex); }
     }
 
     private void ImportTable()
@@ -468,7 +468,7 @@ public sealed class DatabaseBrowserSection : SectionBase
             BindGrid(_activeTable);
             _info.Text = $"Imported and staged {plan.Count:N0} validated cell change(s). Ctrl+S to commit.";
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Import table", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { FriendlyErrorDialog.Show(this, "Import table", ex, "Invalid rows were not staged. Review the columns and ranges, then retry."); }
     }
 
     private void ShowPendingChanges()
@@ -642,7 +642,7 @@ public sealed class DatabaseBrowserSection : SectionBase
             if (plan.Count > 500) lines.Add($"… and {plan.Count - 500:N0} more.");
             ShowTextDialog("Table comparison", string.Join(Environment.NewLine, lines));
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Compare table", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { FriendlyErrorDialog.Show(this, "Compare table", ex); }
     }
 
     private void SaveRowTemplate()
@@ -660,7 +660,7 @@ public sealed class DatabaseBrowserSection : SectionBase
             TableWorkspaceService.ExportRowTemplate(Services.Session, _activeTable.Name, rowIndex, dialog.FileName);
             _info.Text = $"Saved a reusable {_activeTable.Name} field template to {dialog.FileName}.";
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Save template", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { FriendlyErrorDialog.Show(this, "Save template", ex); }
     }
 
     private void ApplyRowTemplate()
@@ -678,7 +678,7 @@ public sealed class DatabaseBrowserSection : SectionBase
             if (!ConfirmAndStage(plan, "Apply row template")) return;
             BindGrid(_activeTable);
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Apply template", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { FriendlyErrorDialog.Show(this, "Apply template", ex, "No invalid template value was accepted."); }
     }
 
     private void ReplaceReferences()
@@ -752,7 +752,7 @@ public sealed class DatabaseBrowserSection : SectionBase
         catch (Exception ex)
         {
             for (var i = 0; i < staged; i++) Services.Pending.Undo();
-            MessageBox.Show(this, $"Nothing was staged. {ex.Message}", title, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, title, ex, "Nothing was staged. Review the selected records and retry.");
             return false;
         }
         Services.NotifyPendingChanged();

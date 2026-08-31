@@ -78,6 +78,10 @@ internal static class Fc26SavePreflight
             freeBytes < 0 ? "Available workspace disk space could not be determined." :
             (freeBytes / (1024d * 1024 * 1024)).ToString("N1") + " GB available; at least 1 GB is required before Save.", "competition"));
 
+        var backupReady = Fc26RuntimeSafety.BackupBaselineIsReady(out var backupDetail);
+        checks.Add(new Fc26SaveCheck("Original backup baseline", backupReady ? Fc26CheckState.Pass : Fc26CheckState.Error,
+            backupDetail, "competition"));
+
         checks.Add(new Fc26SaveCheck("League country", pendingLeagues.All(value => value.Country != null)
             ? Fc26CheckState.Pass : Fc26CheckState.Error,
             pendingLeagues.Length == 0 ? "No new league is waiting for Compdata." :

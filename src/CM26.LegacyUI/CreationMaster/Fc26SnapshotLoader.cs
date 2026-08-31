@@ -83,6 +83,14 @@ internal static class Fc26SnapshotLoader
             ["stadiums"] = new[] { "stadiumid" },
             ["teamkits"] = new[] { "teamid", "teamkittypetechid" }
         };
+    // Schema fingerprints are based only on ordered table/column names, never
+    // database content. Add a fingerprint only after that FC26 title update
+    // passes extraction, direct-save verification and the release matrix.
+    private static readonly HashSet<string> s_verifiedSchemaFingerprints =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "a828de1dbf6238ab"
+        };
 
     internal static void Load(string path)
     {
@@ -847,6 +855,47 @@ internal static class Fc26SnapshotLoader
             string.Join("\r\n", lines);
     }
 
+    /// <summary>Fails before a guided creator mutates the in-memory graph when
+    /// the loaded schema lacks a template or enough identity values. This keeps
+    /// predictable capacity failures out of the middle of a multi-row wizard.</summary>
+    internal static void ValidateCreationCapacity(int leagueCount, int teamCount, int playerCount)
+    {
+        if (s_snapshot == null) throw new InvalidOperationException("Open FC26 before creating records.");
+        var requirements = new[]
+        {
+            new { Table = "leagues", Id = "leagueid", Needed = Math.Max(0, leagueCount) },
+            new { Table = "teams", Id = "teamid", Needed = Math.Max(0, teamCount) },
+            new { Table = "players", Id = "playerid", Needed = Math.Max(0, playerCount) }
+        };
+        foreach (var requirement in requirements.Where(value => value.Needed > 0))
+        {
+            var table = s_snapshot.Tables.FirstOrDefault(value => value.Name.Equals(requirement.Table, StringComparison.OrdinalIgnoreCase));
+            if (table != null) EnsureRows(table, s_snapshotPath);
+            if (table == null || table.Rows.Count == 0)
+                throw new InvalidOperationException("The FC26 " + requirement.Table + " table has no safe creation template.");
+            var column = Column(table, requirement.Id);
+            if (column < 0) throw new InvalidOperationException("The FC26 " + requirement.Table + " identity field is unavailable.");
+            var descriptor = table.ColumnDetails.FirstOrDefault(value => value.Name.Equals(requirement.Id, StringComparison.OrdinalIgnoreCase));
+            if (descriptor == null) continue;
+            var used = new HashSet<int>(table.Rows.Select(row => ParseIntAt(row, column)));
+            long free = 0;
+            for (var id = Math.Max(1L, descriptor.RangeLow); id <= Math.Min(int.MaxValue, descriptor.RangeHigh) && free < requirement.Needed; id++)
+                if (!used.Contains((int)id)) free++;
+            if (free < requirement.Needed)
+                throw new InvalidOperationException("Not enough unused " + requirement.Id + " values remain. Needed " + requirement.Needed + ", available " + free + ".");
+        }
+        foreach (var tableName in new[] { "leagueteamlinks", "teamplayerlinks", "playernames" })
+        {
+            if ((tableName == "leagueteamlinks" && teamCount == 0) ||
+                (tableName == "teamplayerlinks" && playerCount == 0) ||
+                (tableName == "playernames" && playerCount == 0)) continue;
+            var table = s_snapshot.Tables.FirstOrDefault(value => value.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
+            if (table != null) EnsureRows(table, s_snapshotPath);
+            if (table == null || table.Rows.Count == 0)
+                throw new InvalidOperationException("The FC26 " + tableName + " table has no safe creation template.");
+        }
+    }
+
     private static string FormatFreeIdRanges(HashSet<int> used, long low, long high, int maxRanges)
     {
         var ranges = new List<string>();
@@ -941,11 +990,14 @@ internal static class Fc26SnapshotLoader
                     missing.Add(requirement.Key + "." + field);
         }
 
+        var fingerprint = SchemaFingerprint();
+        var verified = s_verifiedSchemaFingerprints.Contains(fingerprint);
         report = (missing.Count == 0
             ? "Required direct-edit tables and fields are present."
             : "Missing required schema item(s): " + string.Join(", ", missing)) +
-            " Fingerprint: " + SchemaFingerprint();
-        return missing.Count == 0;
+            " Fingerprint: " + fingerprint + (verified ? " (verified FC26 schema)." :
+            " (unknown Title Update schema; direct Save is read-only until verified).");
+        return missing.Count == 0 && verified;
     }
 
     internal static string DescribeCompatibility()
@@ -961,7 +1013,7 @@ internal static class Fc26SnapshotLoader
         return builder.ToString();
     }
 
-    private static string SchemaFingerprint()
+    internal static string SchemaFingerprint()
     {
         if (s_snapshot == null) return "none";
         var canonical = string.Join("\n", s_snapshot.Tables

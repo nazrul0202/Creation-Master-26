@@ -51,8 +51,7 @@ internal static class LegacyAssetActions
             }
             catch (Exception ex)
             {
-                MessageBox.Show(picture.FindForm(), ex.Message, "Remove asset",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                FriendlyErrorDialog.Show(picture.FindForm()!, "Remove asset", ex, "The staged asset state was left unchanged.");
             }
         };
         export.Click += (_, _) => Export(services, picture);
@@ -83,8 +82,7 @@ internal static class LegacyAssetActions
         }
         catch (Exception ex)
         {
-            MessageBox.Show(picture.FindForm(), ex.Message, "Import asset",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(picture.FindForm()!, "Import asset", ex, "No asset was staged. Select a supported source and retry.");
         }
     }
 
@@ -109,8 +107,7 @@ internal static class LegacyAssetActions
         try { File.Copy(path, dialog.FileName, overwrite: true); }
         catch (Exception ex)
         {
-            MessageBox.Show(picture.FindForm(), ex.Message, "Export asset",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            FriendlyErrorDialog.Show(picture.FindForm()!, "Export asset", ex, "No output was reported complete. Re-index the asset and retry.");
         }
     }
 }

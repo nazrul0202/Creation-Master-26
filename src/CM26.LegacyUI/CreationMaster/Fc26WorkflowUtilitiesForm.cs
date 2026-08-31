@@ -66,7 +66,7 @@ internal sealed class Fc26WorkflowUtilitiesForm : Form
     {
         if (MessageBox.Show(this, "Clear locally cached FC26 image previews? Source game assets and staged edits are not removed.", "Preview cache", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
         try { MessageBox.Show(this, Fc26HostBridge.ClearPreviewCache(), "Preview cache", MessageBoxButtons.OK, MessageBoxIcon.Information); RefreshReport(); }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Preview cache", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { Fc26FriendlyError.Show(this, "Preview cache", ex, "The cache was not cleared. Close preview windows, check free space, then retry."); }
     }
     private static Button Button(string text, EventHandler action) { var button = new Button { Text = text, AutoSize = true }; button.Click += action; return button; }
 }

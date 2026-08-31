@@ -1,5 +1,20 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.184 - compatibility, recovery and diagnostics gates (2026-08-31)
+
+- **PASS:** unknown title-update schema fingerprints are blocked read-only rather
+  than accepted from a partial field match.
+- **PASS:** interrupted direct transactions can be recovered from their journal;
+  fault injection verifies TOC restore, CAS truncation and path containment.
+- **PASS:** New League/New Team capacity is checked before records are staged.
+- **PASS:** 158 automated tests pass and raw exception-dialog regression scanning
+  covers both public UI processes.
+- **PASS WITH ADVISORIES:** the retained installed 11-file Compdata snapshot has
+  no structural errors; its 34 existing cross-competition calendar overlaps are
+  surfaced as warnings and are not rewritten automatically.
+- **BOUNDARY:** physical clean-PC, multi-DPI, full-season and Authenticode checks
+  remain explicitly NOT TESTED/NOT AVAILABLE in the stable release matrix.
+
 ## Version 1.0.183 - public naming and fail-safe gates (2026-08-31)
 
 - **PASS:** public launcher, assembly identity, CI and package script use

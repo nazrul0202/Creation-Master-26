@@ -172,7 +172,7 @@ public sealed class Fc26TransfermarktForm : Form
 		catch (Exception ex)
 		{
 			_status.Text = "Transfermarkt request failed.";
-			MessageBox.Show(this, ex.Message, "Transfermarkt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+			Fc26FriendlyError.Show(this, "Transfermarkt preview", ex, "No player data was applied. Check the URL or source page, then retry.");
 		}
 		finally { loadButton.Enabled = true; }
 	}

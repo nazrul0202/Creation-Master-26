@@ -69,9 +69,28 @@ internal sealed class Fc26PublicReadinessForm : Form
             Button("Full Database Health", (_, _) => _main.ShowFc26HealthCentre()),
             Button("ID availability", (_, _) => ShowText("Safe ID Availability", Fc26SnapshotLoader.DescribeIdAvailability())),
             Button("Schema compatibility", (_, _) => ShowText("FC26 Schema Compatibility", Fc26SnapshotLoader.DescribeCompatibility())),
+            Button("Attempt Safe Recovery", (_, _) => AttemptSafeRecovery()),
             Button("Open Recovery Folder", (_, _) => Fc26RuntimeSafety.OpenRecoveryFolder()),
             PrimaryButton("Save Direct to FC26", (_, _) => _main.CommitFc26DirectSave())));
         return page;
+    }
+
+    private void AttemptSafeRecovery()
+    {
+        if (MessageBox.Show(this,
+                "CM26 will use the preserved transaction journal to restore TOC backups and truncate CAS files to their verified original lengths. FC26 must be closed. Continue?",
+                "Safe Direct-Save Recovery", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            return;
+        try
+        {
+            var report = Fc26HostBridge.RecoverDirectTransactions();
+            ShowText("Direct-Save Recovery", report);
+            RefreshReleaseReport();
+        }
+        catch (Exception ex)
+        {
+            Fc26FriendlyError.Show(this, "Direct-save recovery", ex);
+        }
     }
 
     private TabPage BuildTeamPage()
@@ -188,6 +207,14 @@ internal sealed class Fc26PublicReadinessForm : Form
         Pass(sb, "Transaction recovery", recovery.Length == 0, recovery.Length == 0 ? "no incomplete transaction" : recovery.Length + " recovery folder(s) require attention");
         var snapshotReadable = Fc26RuntimeSafety.SnapshotIsReadable(out var snapshotDetail);
         Pass(sb, "Loaded snapshot", snapshotReadable, snapshotDetail);
+        var schemaCompatible = Fc26SnapshotLoader.IsSchemaCompatible(out var schemaDetail);
+        Pass(sb, "Verified Title Update schema", schemaCompatible, schemaDetail);
+        var freeBytes = Fc26RuntimeSafety.AvailableWorkspaceBytes();
+        Pass(sb, "Save workspace", freeBytes >= 1024L * 1024 * 1024,
+            freeBytes < 0 ? "free space could not be determined" :
+            (freeBytes / (1024d * 1024 * 1024)).ToString("N1") + " GB free (1 GB minimum)");
+        var backupReady = Fc26RuntimeSafety.BackupBaselineIsReady(out var backupDetail);
+        Pass(sb, "Original backup baseline", backupReady, backupDetail);
         Pass(sb, "League records", leagues.Length > 0, leagues.Length.ToString("N0") + " loaded");
         Pass(sb, "Club → league links", missingLeague == 0, missingLeague + " club(s) need a league");
         Pass(sb, "Core Home/Away/GK kit rows", missingKits == 0, missingKits + " club(s) need kit review");

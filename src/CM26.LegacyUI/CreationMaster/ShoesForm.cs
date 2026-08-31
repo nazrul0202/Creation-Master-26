@@ -250,7 +250,7 @@ public class ShoesForm : Form
 				var preview = await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.ExportEquipmentPreview("boot", m_CurrentShoes.Id));
 				if (request == m_Fc26PreviewRequest && !IsDisposed) m_Fc26Preview.LoadMesh(preview.MeshPath, preview.TexturePath);
 			}
-			catch (Exception ex) { if (request == m_Fc26PreviewRequest && !IsDisposed) m_Fc26Preview.ShowStatus(ex.Message); }
+			catch (Exception) { if (request == m_Fc26PreviewRequest && !IsDisposed) m_Fc26Preview.ShowStatus("Preview unavailable; the editor remains usable."); }
 			return;
 		}
 		if (!buttonShow3DModel.Checked)

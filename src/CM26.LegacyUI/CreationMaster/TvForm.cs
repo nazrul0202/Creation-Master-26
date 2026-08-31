@@ -48,7 +48,7 @@ public class TvForm : Form
 			}
 			fileInfo.Text = rows.Length + " scoreboard / broadcast assets found.";
 		}
-		catch (System.Exception ex) { fileInfo.Text = ex.Message; }
+		catch (System.Exception) { fileInfo.Text = "Scoreboard data could not be loaded safely."; }
 	}
 
 	private async System.Threading.Tasks.Task LoadSelectedAsset()

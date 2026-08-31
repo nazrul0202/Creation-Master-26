@@ -1,3 +1,11 @@
+Creation Master 26 v1.0.184 - 31 August 2026
+
+- Unknown title-update schemas are read-only until their fingerprint is verified.
+- Added guided journal recovery for interrupted direct TOC/CAS transactions.
+- Added pre-mutation capacity checks for New League and New Team workflows.
+- Extended friendly diagnostic handling across classic and x64 UI surfaces.
+- Added fault-injection recovery and raw-dialog regression gates (158 tests).
+
 Creation Master 26 v1.0.183 - 31 August 2026
 
 - Public executable and application identity renamed to Creation Master 26.

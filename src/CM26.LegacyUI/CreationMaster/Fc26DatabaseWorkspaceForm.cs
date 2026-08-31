@@ -191,7 +191,7 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
             ValidateCandidate(_active.ColumnDetails[e.ColumnIndex - 1], value);
             Fc26SnapshotLoader.StageDetailValue(_active.Name, rowIndex, field, value);
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Stage database value", MessageBoxButtons.OK, MessageBoxIcon.Error); LoadTable(); }
+        catch (Exception ex) { Fc26FriendlyError.Show(this, "Stage database value", ex, "The value was not staged. Review its supported range and retry."); LoadTable(); }
         UpdateStatus();
     }
 
@@ -219,7 +219,7 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
                 { gridRow.Selected = true; _grid.CurrentCell = gridRow.Cells[Math.Min(1, gridRow.Cells.Count - 1)]; break; }
             _status.Text = "Cloned " + _active.Name + "[" + row + "] to new row " + newIndex + ". Change its identity fields before File > Save.";
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Clone record", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { Fc26FriendlyError.Show(this, "Clone database record", ex, "No clone was accepted. Save or revert other structural edits, then retry."); }
     }
 
     private void DeleteRow()
@@ -236,7 +236,7 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
             LoadTable();
             _status.Text = "Deletion staged in isolation. Use File > Save to validate, back up and commit it.";
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Delete record", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        catch (Exception ex) { Fc26FriendlyError.Show(this, "Delete database record", ex, "No deletion was accepted. Resolve pending edits and dependency warnings first."); }
     }
 
     private void PasteSelection()
@@ -371,7 +371,7 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
                 LoadTable();
                 _status.Text = staged + " imported value(s) staged; source files are still untouched.";
             }
-            catch (Exception ex) { MessageBox.Show(this, ex.Message, "Import table", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            catch (Exception ex) { Fc26FriendlyError.Show(this, "Import table", ex, "Invalid imported values were not staged. Review the table columns and ranges, then retry."); }
         }
     }
 
@@ -459,7 +459,7 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
                 MessageBox.Show(this, differences.Count == 0 ? "No differences." : differences.Count + " different cell(s):\r\n\r\n" +
                     string.Join("\r\n", differences.Take(300)), "Compare " + _active.Name, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
-            catch (Exception ex) { MessageBox.Show(this, ex.Message, "Compare table", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            catch (Exception ex) { Fc26FriendlyError.Show(this, "Compare table", ex, "The active database was not changed. Reopen the comparison snapshot and retry."); }
         }
     }
 

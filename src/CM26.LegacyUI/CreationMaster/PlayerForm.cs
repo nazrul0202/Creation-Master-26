@@ -1043,8 +1043,8 @@ public class PlayerForm : Form
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show(this, "The portrait could not be analysed.\r\n\r\n" + ex.Message,
-					"Appearance Assistant", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+				Fc26FriendlyError.Show(this, "Appearance Assistant", ex,
+					"No appearance suggestion was applied. Use a clear front-facing portrait and retry.");
 			}
 		}
 	}
@@ -1184,7 +1184,7 @@ public class PlayerForm : Form
 		if (FifaEnvironment.Year == 26)
 		{
 			try { Fc26HostBridge.StageFile(m_CurrentPlayer.SpecificHairTexturesFileName(), rx3FileName); return true; }
-			catch (Exception ex) { MessageBox.Show(this, ex.Message, "FC26 Hair Import", MessageBoxButtons.OK, MessageBoxIcon.Error); return false; }
+			catch (Exception ex) { Fc26FriendlyError.Show(this, "FC26 Hair Import", ex, "No hair asset was staged. Select a compatible replacement and retry."); return false; }
 		}
 		bool num = m_CurrentPlayer.SetHairTextures(rx3FileName);
 		if (num)
@@ -1201,7 +1201,7 @@ public class PlayerForm : Form
 		if (FifaEnvironment.Year == 26)
 		{
 			try { Fc26HostBridge.RemoveStagedAsset(m_CurrentPlayer.SpecificHairTexturesFileName()); return true; }
-			catch (Exception ex) { MessageBox.Show(this, ex.Message, "FC26 Hair", MessageBoxButtons.OK, MessageBoxIcon.Error); return false; }
+			catch (Exception ex) { Fc26FriendlyError.Show(this, "FC26 Hair", ex, "The hair asset was not exported. Re-index installed assets and retry."); return false; }
 		}
 		return m_CurrentPlayer.DeleteHairTextures();
 	}
@@ -1229,7 +1229,7 @@ public class PlayerForm : Form
 		if (FifaEnvironment.Year == 26)
 		{
 			try { Fc26HostBridge.StageFile(m_CurrentPlayer.SpecificFaceTextureFileName(), rx3FileName); return true; }
-			catch (Exception ex) { MessageBox.Show(this, ex.Message, "FC26 Face Import", MessageBoxButtons.OK, MessageBoxIcon.Error); return false; }
+			catch (Exception ex) { Fc26FriendlyError.Show(this, "FC26 Face Import", ex, "No face asset was staged. Select a compatible replacement and retry."); return false; }
 		}
 		bool num = m_CurrentPlayer.SetFaceTextures(rx3FileName);
 		if (num)
@@ -1246,7 +1246,7 @@ public class PlayerForm : Form
 		if (FifaEnvironment.Year == 26)
 		{
 			try { Fc26HostBridge.RemoveStagedAsset(m_CurrentPlayer.SpecificFaceTextureFileName()); return true; }
-			catch (Exception ex) { MessageBox.Show(this, ex.Message, "FC26 Face", MessageBoxButtons.OK, MessageBoxIcon.Error); return false; }
+			catch (Exception ex) { Fc26FriendlyError.Show(this, "FC26 Face", ex, "The face asset was not exported. Re-index installed assets and retry."); return false; }
 		}
 		bool num = m_CurrentPlayer.DeleteFaceTexture();
 		if (num)
@@ -1269,7 +1269,7 @@ public class PlayerForm : Form
 		}
 		catch (Exception ex)
 		{
-			MessageBox.Show(this, ex.Message, "FC26 Asset Export", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			Fc26FriendlyError.Show(this, "FC26 Asset Export", ex, "No output was accepted. Re-index the player assets and retry.");
 			return false;
 		}
 	}
@@ -1287,7 +1287,7 @@ public class PlayerForm : Form
 		}
 		catch (Exception ex)
 		{
-			MessageBox.Show(this, ex.Message, "FC26 Miniface Import", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			Fc26FriendlyError.Show(this, "FC26 Miniface Import", ex, "No miniface was staged. Select a supported image and retry.");
 			return false;
 		}
 		finally { try { if (File.Exists(temporary)) File.Delete(temporary); } catch { } }
@@ -1303,7 +1303,7 @@ public class PlayerForm : Form
 		}
 		catch (Exception ex)
 		{
-			MessageBox.Show(this, ex.Message, "FC26 Miniface", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			Fc26FriendlyError.Show(this, "FC26 Miniface", ex, "The miniface was not exported. Re-index installed assets and retry.");
 			return false;
 		}
 	}
@@ -1488,12 +1488,12 @@ public class PlayerForm : Form
 			m_Fc26Face3dStatus.Text = $"FC26 face mesh loaded — Player ID {playerId}. Drag to rotate; mouse wheel to zoom.";
 			m_Fc26Face3dButton.Text = "Reload FC26 3D face mesh";
 		}
-		catch (Exception ex)
+		catch (Exception)
 		{
 			if (!IsDisposed && request == m_Fc26FaceMeshRequest)
 			{
 				m_Fc26Mesh3DHost.ShowStatus("No viewable FC26 head mesh was exported for this player.");
-				m_Fc26Face3dStatus.Text = "FC26 face mesh unavailable: " + ex.Message;
+				m_Fc26Face3dStatus.Text = "FC26 face mesh unavailable; no player data was changed.";
 				m_Fc26Face3dButton.Text = "Retry FC26 3D face mesh";
 			}
 		}

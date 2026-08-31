@@ -381,7 +381,7 @@ public sealed class MainForm : Form
         catch (Exception ex)
         {
             Program.Log("Open game failed: " + ex);
-            MessageBox.Show(this, ex.Message, "Open Game", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Open Game", ex, "Close FC26, verify the game folder and backup baseline, then retry.");
             SetStatus("Failed to open game data.");
         }
         finally
@@ -452,7 +452,7 @@ if (choice == DialogResult.No)
         catch (Exception ex)
         {
             Program.Log("Open game failed: " + ex);
-            MessageBox.Show(this, ex.Message, "Open Game", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Open extracted database", ex, "Confirm the selected folder contains a complete readable database, then retry.");
             SetStatus("Failed to open game data.");
         }
         finally
@@ -600,7 +600,7 @@ if (choice == DialogResult.No)
         catch (Exception ex)
         {
             Program.Log("Draft save failed: " + ex);
-            MessageBox.Show(this, ex.Message, "Draft save failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Save draft", ex, "The draft was not reported as saved. Check free space and folder access, then retry.");
             SetStatus("Draft save failed - FC26 Data/Patch was not modified.");
         }
         finally
@@ -678,7 +678,7 @@ if (choice == DialogResult.No)
         catch (Exception ex)
         {
             Program.Log("Direct save failed: " + ex);
-            MessageBox.Show(this, ex.Message, "Direct edit failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Direct edit", ex, "Do not start FC26 until the recovery status is clear. Verify the backup and retry only after resolving the reported item.");
             SetStatus("Direct edit failed; the live transaction was not completed.");
         }
         finally { SetBusy(false, null); }
@@ -812,7 +812,7 @@ if (choice == DialogResult.No)
         catch (Exception ex)
         {
             Program.Log("FIFA mod export failed: " + ex);
-            MessageBox.Show(this, ex.Message, "Export FIFA Mod", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Export FIFA Mod", ex, "No package was reported as complete. Check the destination and staged payloads, then retry.");
             SetStatus("FIFA mod export failed.");
         }
         finally
@@ -890,12 +890,9 @@ if (choice == DialogResult.No)
         {
             Program.Log("Live reload verification failed after direct save: " + ex);
             SetStatus("Direct save completed, but reload verification failed. Reopen FC26 data before editing.");
-            MessageBox.Show(this,
-                "The direct Data/Patch transaction completed, but Creation Master could not reload the " +
-                "fresh database payload. The previous editor session has been retained.\n\n" +
-                "Close and reopen FC26 data before making more edits. If the game rejects the change, use " +
-                "File > Restore Original Data.\n\n" + ex.Message,
-                "Reload verification failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            FriendlyErrorDialog.Show(this, "Reload verification", ex,
+                "The direct transaction completed. Close and reopen FC26 data before making more edits. " +
+                "If the game rejects the change, use File > Restore Original Data.");
             return false;
         }
     }

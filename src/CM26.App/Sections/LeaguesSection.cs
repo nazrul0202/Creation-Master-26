@@ -487,7 +487,7 @@ public sealed class LeaguesSection : SectionBase
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Create League", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Create League", ex, "No incomplete league record was accepted. Review country, teams and available IDs, then retry.");
         }
     }
 
@@ -646,8 +646,7 @@ public sealed class LeaguesSection : SectionBase
         }
         catch (Exception ex)
         {
-            MessageBox.Show(FindForm(), ex.Message, "Import League Logo",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(FindForm()!, "Import League Logo", ex, "No logo was staged. Select a supported image and retry.");
         }
     }
 
@@ -661,8 +660,7 @@ public sealed class LeaguesSection : SectionBase
         }
         catch (Exception ex)
         {
-            MessageBox.Show(FindForm(), ex.Message, "Remove League Logo",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            FriendlyErrorDialog.Show(FindForm()!, "Remove League Logo", ex, "The staged logo state was left unchanged.");
         }
     }
 
@@ -686,8 +684,7 @@ public sealed class LeaguesSection : SectionBase
         try { File.Copy(source, dialog.FileName, overwrite: true); }
         catch (Exception ex)
         {
-            MessageBox.Show(FindForm(), ex.Message, "Export League Logo",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            FriendlyErrorDialog.Show(FindForm()!, "Export League Logo", ex, "No output was reported complete. Re-index the league asset and retry.");
         }
     }
 
@@ -1093,7 +1090,7 @@ public sealed class LeaguesSection : SectionBase
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Add New Team", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Add New Team", ex, "No incomplete team or league link was accepted.");
         }
     }
 

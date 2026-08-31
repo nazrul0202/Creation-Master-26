@@ -3,6 +3,7 @@ using System.Windows.Forms;
 using WinApp = System.Windows.Forms.Application;
 
 using CM26.Application.Services;
+using CM26.AssetBridge;
 
 namespace CM26.App;
 
@@ -172,6 +173,12 @@ internal static class Program
         if (args.Length >= 2 && args[0] == "--legacy-health-report")
         {
             Environment.ExitCode = WriteLegacyHealthReport(args[1]);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--legacy-recover")
+        {
+            Environment.ExitCode = RecoverLegacyTransactions();
             return;
         }
 
@@ -1051,7 +1058,8 @@ internal static class Program
             var report = issues.Count == 0 ? "Compdata validation passed. No issues found."
                 : string.Join(Environment.NewLine, issues.Select(issue =>
                     $"[{(issue.IsError ? "Error" : "Warning")}] {issue.Sheet} row {issue.Row}: {issue.Message}"));
-            Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
+            var reportDirectory = Path.GetDirectoryName(Path.GetFullPath(reportPath));
+            if (!string.IsNullOrWhiteSpace(reportDirectory)) Directory.CreateDirectory(reportDirectory);
             File.WriteAllText(reportPath, report);
             Console.WriteLine(issues.Count);
             return issues.Any(issue => issue.IsError) ? 2 : 0;
@@ -1241,6 +1249,21 @@ internal static class Program
             Directory.CreateDirectory(Path.GetDirectoryName(responsePath)!);
             File.WriteAllText(responsePath, report);
             return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        }
+    }
+
+    private static int RecoverLegacyTransactions()
+    {
+        try
+        {
+            var result = DirectTransactionRecoveryService.RecoverPending();
+            Console.WriteLine(result.ToDisplayText());
+            return result.Success ? 0 : 2;
         }
         catch (Exception ex)
         {

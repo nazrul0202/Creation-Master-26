@@ -269,7 +269,7 @@ public sealed class TransfersSection : SectionBase
         {
             _scraperWorkbookPath = string.Empty;
             _importToTeam.Enabled = false;
-            if (showMissingMessage) MessageBox.Show(this, ex.Message, "Data Sync", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            if (showMissingMessage) FriendlyErrorDialog.Show(this, "Data Sync", ex, "No squad data was applied. Configure a valid local scraper folder and retry.");
         }
     }
 
@@ -298,7 +298,7 @@ public sealed class TransfersSection : SectionBase
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         _scraperWorkbookPath = dialog.FileName;
         try { LoadScraperPreview(_scraperWorkbookPath); _importToTeam.Enabled = _destinationTeam.Items.Count > 0; }
-        catch (Exception ex) { _scraperWorkbookPath = string.Empty; _importToTeam.Enabled = false; MessageBox.Show(this, ex.Message, "Data Sync", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+        catch (Exception ex) { _scraperWorkbookPath = string.Empty; _importToTeam.Enabled = false; FriendlyErrorDialog.Show(this, "Data Sync", ex, "No squad data was applied. Check the scraper workbook and retry."); }
     }
 
     private void LoadScraperPreview(string path)
@@ -361,8 +361,7 @@ public sealed class TransfersSection : SectionBase
         catch (Exception ex)
         {
             _status.Text = "Transfermarkt request failed.";
-            MessageBox.Show(this, ex.Message, "Transfermarkt",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Transfermarkt", ex, "No player data was applied. Check the URL or source response and retry.");
         }
         finally
         {
@@ -424,7 +423,7 @@ public sealed class TransfersSection : SectionBase
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Export CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Export CSV", ex, "No output was reported complete. Check the destination and retry.");
             return;
         }
         _status.Text = $"Exported {_players.Count} players to {dialog.FileName}";
@@ -465,7 +464,7 @@ public sealed class TransfersSection : SectionBase
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Data Sync", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Data Sync", ex, "No squad data was applied. Review the workbook mapping and retry.");
         }
     }
 

@@ -4360,8 +4360,8 @@ public class TeamForm : Form
 			m_Locked = true;
 			comboTeamLeague.SelectedItem = previousLeague;
 			m_Locked = false;
-			MessageBox.Show(this, ex.Message, "Change Team League",
-				MessageBoxButtons.OK, MessageBoxIcon.Error);
+			Fc26FriendlyError.Show(this, "Change Team League", ex,
+				"The previous league relationship was retained. Select a valid league and retry.");
 		}
 	}
 
@@ -4579,8 +4579,8 @@ public class TeamForm : Form
 		}
 		catch (Exception ex)
 		{
-			MessageBox.Show(this, "Flags could not be created.\r\n\r\n" + ex.Message,
-				"Create Flags", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			Fc26FriendlyError.Show(this, "Create Flags", ex,
+				"No flag asset was staged. Check the source image and output folder, then retry.");
 		}
 	}
 

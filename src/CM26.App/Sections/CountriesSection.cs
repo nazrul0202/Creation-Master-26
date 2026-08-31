@@ -646,7 +646,7 @@ public sealed class CountriesSection : SectionBase
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Create Country", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Create Country", ex, "No incomplete country record was accepted. Review available IDs and retry.");
         }
     }
 
@@ -717,7 +717,7 @@ public sealed class CountriesSection : SectionBase
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Create National Team", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Create National Team", ex, "No incomplete national-team relationship was accepted.");
         }
     }
 

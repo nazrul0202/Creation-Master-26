@@ -123,6 +123,7 @@ internal static class Fc26DirectAssetUi
 
 	private static void ShowError(IWin32Window owner, string description, Exception ex)
 	{
-		MessageBox.Show(owner, description + " failed.\r\n\r\n" + ex.Message, "CM26 Direct Asset", MessageBoxButtons.OK, MessageBoxIcon.Error);
+		Fc26FriendlyError.Show(owner, "Direct asset — " + description, ex,
+			"No asset replacement was accepted. Select a supported indexed target and a format-compatible file, then retry.");
 	}
 }

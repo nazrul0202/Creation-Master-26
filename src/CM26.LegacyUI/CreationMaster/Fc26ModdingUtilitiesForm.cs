@@ -242,7 +242,7 @@ internal sealed class Fc26ModdingUtilitiesForm : Form
         var fromInternal = Button("FIFA -> Date", (_, _) =>
         {
             try { _date.Value = FifaUtil.ConvertFromFifaDate((int)_fifaDate.Value); }
-            catch (Exception ex) { MessageBox.Show(this, ex.Message, "FIFA date", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            catch (Exception ex) { Fc26FriendlyError.Show(this, "FIFA date conversion", ex, "Choose a valid supported date value and retry."); }
         });
         fromInternal.SetBounds(585, 35, 105, 26);
         dates.Controls.AddRange(new Control[] { _date, _fifaDate, toInternal, fromInternal });
@@ -275,7 +275,7 @@ internal sealed class Fc26ModdingUtilitiesForm : Form
                     var alternate = Fc26HostBridge.OpenExtractedFolder(dialog.SelectedPath);
                     output.Text = Fc26SnapshotLoader.CompareWithSnapshot(alternate);
                 }
-                catch (Exception ex) { MessageBox.Show(this, ex.Message, "Compare databases", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                catch (Exception ex) { Fc26FriendlyError.Show(this, "Compare databases", ex, "No database was changed. Confirm that the comparison snapshot is readable and retry."); }
                 finally { Cursor = Cursors.Default; }
             }
         });

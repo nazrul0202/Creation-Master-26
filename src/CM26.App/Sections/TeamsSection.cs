@@ -328,7 +328,7 @@ public sealed class TeamsSection : SectionBase
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Create Team", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Create Team", ex, "No incomplete team record was accepted. Review the league and available IDs, then retry.");
         }
     }
 
@@ -376,7 +376,7 @@ public sealed class TeamsSection : SectionBase
         try { ImportScraperSquadWorkbook(Parse(Services.Session.GetCell(TableName, CurrentRecordIndex, "teamid")), dialog.FileName); }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Import Scraper Squad", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Import Scraper Squad", ex, "No squad rows were applied. Check the workbook and selected team, then retry.");
         }
     }
 
@@ -385,7 +385,7 @@ public sealed class TeamsSection : SectionBase
         try { ImportScraperSquadWorkbook(teamId, workbookPath); }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Import Scraper Squad", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            FriendlyErrorDialog.Show(this, "Import Scraper Squad", ex, "No squad rows were applied. Check the workbook and selected team, then retry.");
         }
     }
 
@@ -2819,8 +2819,7 @@ public sealed class TeamsSection : SectionBase
         try { newRow = DuplicateAppendRow(tableName); }
         catch (InvalidOperationException ex)
         {
-            MessageBox.Show(this, ex.Message, "Team Audio",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            FriendlyErrorDialog.Show(this, "Team Audio", ex, "No team-audio mapping was accepted.");
             return;
         }
         Services.Pending.MarkStructuralChange();
@@ -3342,7 +3341,7 @@ public sealed class TeamsSection : SectionBase
             }
             catch (InvalidOperationException ex)
             {
-                MessageBox.Show(this, ex.Message, "Create Loan", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                FriendlyErrorDialog.Show(this, "Create Loan", ex, "No incomplete loan relationship was accepted.");
                 return;
             }
             Services.Pending.MarkStructuralChange();

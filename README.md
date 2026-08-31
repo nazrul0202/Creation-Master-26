@@ -32,7 +32,7 @@
 |---------|------|-------------|
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 
-Checksums: `SHA256SUMS_v1.0.183.txt` is included with the v1.0.183 release assets.
+Checksums: `SHA256SUMS_v1.0.184.txt` is included with the v1.0.184 release assets.
 
 Open **Tools > Public Readiness Centre** for the complete direct-edit workflow:
 Team Complete, Squad Doctor, player/batch/face tools, Compdata Pro, Kit/Asset

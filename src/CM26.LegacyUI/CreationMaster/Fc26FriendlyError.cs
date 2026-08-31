@@ -78,7 +78,7 @@ internal static class Fc26FriendlyError
         }
     }
 
-    private static string FriendlySummary(Exception exception)
+    internal static string FriendlySummary(Exception exception)
     {
         if (exception is OutOfMemoryException)
             return "The current preview or database operation exceeded the available memory. Database changes were not marked as saved.";
