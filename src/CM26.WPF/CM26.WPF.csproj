@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <!-- Internal WPF control library used only by the classic shell's embedded
+         3D preview host. It is deliberately not a launchable Studio app. -->
+    <OutputType>Library</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -9,14 +11,22 @@
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RootNamespace>CM26.Studio</RootNamespace>
-    <AssemblyName>CM26.Studio</AssemblyName>
-    <AssemblyTitle>Creation Master 26 Studio</AssemblyTitle>
-    <Description>Creation Master 26 Studio - modern WPF shell over the CM26 database engine</Description>
+    <AssemblyName>CM26.PreviewHost</AssemblyName>
+    <AssemblyTitle>Creation Master 26 Preview Host</AssemblyTitle>
+    <Description>Internal WPF controls for embedded CM26 3D previews</Description>
     <ApplicationIcon>..\CM26.App\Assets\Logo\Creation Master 26.ico</ApplicationIcon>
     <HighDpiAwareness>PerMonitorV2</HighDpiAwareness>
     <!-- Version, Company, Product, Copyright and release debug/PathMap settings
          are inherited from Directory.Build.props (single source of truth). -->
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The former Studio application entry point is intentionally excluded.
+         Only reusable WPF controls (not a second desktop) are built. -->
+    <ApplicationDefinition Remove="App.xaml" />
+    <Compile Remove="App.xaml.cs" />
+    <None Include="App.xaml" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CM26.Application\CM26.Application.csproj" />

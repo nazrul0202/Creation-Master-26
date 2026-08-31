@@ -162,30 +162,6 @@ function Invoke-PackageSelfTest {
     }
 }
 
-function Invoke-PackageShellSmoke {
-    param([string]$PackageDir, [string]$Label)
-
-    $exe = Join-Path $PackageDir 'Creation Master 26.exe'
-    if (-not (Test-Path $exe)) { return }
-    $stdout = [System.IO.Path]::GetTempFileName()
-    $stderr = [System.IO.Path]::GetTempFileName()
-    try {
-        $process = Start-Process -FilePath $exe -ArgumentList '--ui-shell-smoke' `
-            -WorkingDirectory $PackageDir -WindowStyle Hidden -Wait -PassThru `
-            -RedirectStandardOutput $stdout -RedirectStandardError $stderr
-        $standardOutput = [string](Get-Content $stdout -Raw -ErrorAction SilentlyContinue)
-        $standardError = [string](Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
-        $output = [string]::Concat($standardOutput, $standardError).Trim()
-        if ($process.ExitCode -ne 0 -or $output -notmatch 'SHELL SMOKE OK') {
-            $errors.Add("$Label Studio shell smoke failed (exit $($process.ExitCode)): $output")
-        }
-        else { Write-Host "    Studio shell smoke: passed" }
-    }
-    finally {
-        Remove-Item -LiteralPath $stdout, $stderr -Force -ErrorAction SilentlyContinue
-    }
-}
-
 function Invoke-LegacyWorkspaceSizeSmoke {
     param([string]$PackageDir, [string]$Label)
 
@@ -270,6 +246,13 @@ function Assemble-Package {
             Copy-Item $_.FullName $dest -Force
         }
 
+    # CM26.Studio is retained only as a control library for the embedded 3D
+    # preview host. Remove every standalone Studio launch artifact so the release
+    # exposes one desktop only: the classic CM16 interface.
+    foreach ($studioPath in @(Get-ChildItem -LiteralPath $PackageDir -Filter 'CM26.Studio*' -File -ErrorAction SilentlyContinue)) {
+        Remove-Item -LiteralPath $studioPath.FullName -Force
+    }
+
     # CM26.LegacyUI is x86 Windows-only. NuGet restores Assimp natives for every
     # platform, but Linux, macOS and win-x64 cannot be loaded by that process.
     foreach ($runtime in @('linux-x64', 'osx-x64', 'win-x64')) {
@@ -312,7 +295,7 @@ function Assemble-Package {
     Write-Host ("    files={0}  size={1:N1} MB" -f $files.Count, $mb)
 
     $must = @('Creation Master 26.exe','Creation Master 26.dll',
-              'CM26.Studio.exe','CM26.Studio.dll','CM26.Application.dll',
+              'CM26.PreviewHost.dll','CM26.Application.dll',
               'CM26.EngineBridge.dll','CM26.AssetBridge.dll',
               'CM26.MeshKit.dll',
               'Ijwhost.dll','msvcp140.dll','vcruntime140.dll','vcruntime140_1.dll',
@@ -320,6 +303,9 @@ function Assemble-Package {
               'RELEASE_NOTES.md','INSTALLATION.md','LICENSE','EULA.md','version.json')
     foreach ($m in $must) {
         if (-not (Test-Path (Join-Path $PackageDir $m))) { $errors.Add("$Label MISSING required file: $m") }
+    }
+    if (Get-ChildItem -LiteralPath $PackageDir -Filter 'CM26.Studio*' -File -ErrorAction SilentlyContinue) {
+        $errors.Add("$Label still contains a removed CM26 Studio artifact.")
     }
 
     # The bundled 3D viewer is the largest optional payload; verify it arrived.
@@ -339,8 +325,8 @@ function Assemble-Package {
 
     Assert-LargeAddressAware -ExePath (Join-Path $PackageDir 'CM26.LegacyUI\CM26.LegacyUI.exe') -Label $Label
 
-    # Both public entry points must report the version being released.
-    foreach ($exeName in @('Creation Master 26.exe', 'CM26.Studio.exe')) {
+    # The one public entry point must report the version being released.
+    foreach ($exeName in @('Creation Master 26.exe')) {
         $exe = Join-Path $PackageDir $exeName
         if (Test-Path $exe) {
             $fileVersion = (Get-Item $exe).VersionInfo.FileVersion
@@ -353,7 +339,6 @@ function Assemble-Package {
 
     Assert-NoGameContent -PackageDir $PackageDir -Label $Label
     Invoke-PackageSelfTest -PackageDir $PackageDir -Label $Label
-    Invoke-PackageShellSmoke -PackageDir $PackageDir -Label $Label
     Invoke-LegacyWorkspaceSizeSmoke -PackageDir $PackageDir -Label $Label
 }
 

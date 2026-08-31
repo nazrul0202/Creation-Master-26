@@ -11,10 +11,7 @@ internal static class Program
 {
     public static string ProductVersion => typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "unknown";
 
-    internal static bool UsesInternalStudio(string[] args, bool isStudioSmoke) =>
-        isStudioSmoke || args.Length >= 1 &&
-        (args[0].Equals("--studio", StringComparison.OrdinalIgnoreCase) ||
-         args[0].Equals("--database", StringComparison.OrdinalIgnoreCase));
+    internal static bool UsesClassicPublicShell(string[] args) => true;
 
     public static readonly string LogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -541,10 +538,7 @@ internal static class Program
                 Log("CM26 mod recovery: " + recovery.Message);
         }
 
-        // Automated public-shell smoke has no interactive desktop for the EULA dialog;
-        // normal launches retain the acknowledgement requirement unchanged.
-        var isStudioSmoke = args.Length >= 1 && args[0] is "--ui-smoke" or "--ui-shell-smoke";
-        if (!SettingsService.EulaAccepted && !isStudioSmoke)
+        if (!SettingsService.EulaAccepted)
         {
             var accepted = CM26.App.Controls.EulaDialog.Show(null);
             if (!accepted)
@@ -566,14 +560,11 @@ internal static class Program
 
         try
         {
-            // Preserve the familiar Creation Master / CM16 desktop as the public
-            // default. The responsive Deco-inspired x64 Studio remains available
-            // explicitly through --studio for users who prefer that workspace.
+            // Creation Master / CM16 is the only public desktop. The experimental
+            // Studio launch routes were removed; the x64 executable remains the
+            // invisible Frostbite host used by the classic process.
             var legacyExe = Path.Combine(AppContext.BaseDirectory, "CM26.LegacyUI", "CM26.LegacyUI.exe");
-            var useInternalStudio = UsesInternalStudio(args, isStudioSmoke);
-            var useWpfCompatibility = args.Length >= 1 &&
-                args[0].Equals("--cm16-studio", StringComparison.OrdinalIgnoreCase);
-            if (!useInternalStudio && !useWpfCompatibility && File.Exists(legacyExe))
+            if (UsesClassicPublicShell(args) && File.Exists(legacyExe))
             {
                 using var legacy = Process.Start(new ProcessStartInfo
                 {
@@ -584,28 +575,11 @@ internal static class Program
                 });
                 legacy?.WaitForExit();
             }
-            else if (useWpfCompatibility)
-            {
-                var studio = new CM26.Studio.App();
-                studio.InitializeForHost();
-                Environment.ExitCode = studio.Run();
-            }
             else
             {
-                var initialDatabaseFolder = args.Length >= 2 &&
-                    (args[0].Equals("--studio", StringComparison.OrdinalIgnoreCase) ||
-                     args[0].Equals("--database", StringComparison.OrdinalIgnoreCase)) &&
-                    Directory.Exists(args[1]) ? args[1] : null;
-                using var mainForm = new MainForm(initialDatabaseFolder);
-                if (isStudioSmoke)
-                {
-                    mainForm.Shown += (_, _) =>
-                    {
-                        Console.WriteLine("SHELL SMOKE OK: feature-complete x64 Studio");
-                        mainForm.Close();
-                    };
-                }
-                WinApp.Run(mainForm);
+                MessageBox.Show(
+                    "The Classic CM16 interface is missing from this installation. Reinstall Creation Master 26 from the complete release package.",
+                    "Creation Master 26", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         catch (Exception ex)

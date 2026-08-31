@@ -1,6 +1,6 @@
 {
-  "version": "1.0.189",
+  "version": "1.0.190",
   "name": "Creation Master 26",
-  "notes": "v1.0.189 - classic CM16 restored as the default interface while retaining the v1.0.188 performance improvements.",
+  "notes": "v1.0.190 - CM26 Studio launch routes removed; classic CM16 is the only public interface.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

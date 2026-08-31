@@ -323,14 +323,13 @@ internal static class ReleaseSelfTest
             return null;
         });
 
-        Check("normal launch keeps the classic CM16 shell", () =>
+        Check("classic CM16 is the only public shell", () =>
         {
-            if (Program.UsesInternalStudio(Array.Empty<string>(), isStudioSmoke: false))
-                return "a normal launch incorrectly selects the internal Studio";
-            if (!Program.UsesInternalStudio(["--studio"], isStudioSmoke: false))
-                return "--studio does not select the optional x64 Studio";
-            if (!Program.UsesInternalStudio(Array.Empty<string>(), isStudioSmoke: true))
-                return "the automated Studio smoke route is unavailable";
+            if (!Program.UsesClassicPublicShell(Array.Empty<string>()))
+                return "a normal launch does not select the classic shell";
+            if (!Program.UsesClassicPublicShell(["--studio"]) ||
+                !Program.UsesClassicPublicShell(["--cm16-studio"]))
+                return "a removed Studio switch can still replace the classic shell";
             return null;
         });
 

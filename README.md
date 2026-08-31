@@ -33,12 +33,12 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite Portable** | See release asset | Smaller package for systems that already have the .NET 8 Desktop Runtime |
 
-Checksums: `SHA256SUMS_v1.0.189.txt` is included with the v1.0.189 release assets.
+Checksums: `SHA256SUMS_v1.0.190.txt` is included with the v1.0.190 release assets.
 
-The familiar Creation Master / CM16 interface remains the default. Its section
-switching and FC26 previews retain the v1.0.188 responsiveness improvements.
-The separate Deco-inspired x64 Studio is optional through
-`Creation Master 26.exe --studio`.
+The familiar Creation Master / CM16 interface is the only public desktop. Its
+section switching and FC26 previews retain the v1.0.188 responsiveness
+improvements. The experimental CM26 Studio executable and launch switches are
+not included.
 
 Open **Tools > Public Readiness Centre** for the complete direct-edit workflow:
 Team Complete, Squad Doctor, player/batch/face tools, Compdata Pro, Kit/Asset

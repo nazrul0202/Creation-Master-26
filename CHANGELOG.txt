@@ -1,3 +1,9 @@
+Creation Master 26 v1.0.190 - 1 September 2026
+
+- Removed the CM26 Studio executable and all Studio launch switches from public packages.
+- Made Classic CM16 the only desktop while retaining the hidden x64 FC26 host.
+- Updated package and CI gates to reject a standalone Studio executable.
+
 Creation Master 26 v1.0.189 - 1 September 2026
 
 - Restored the classic Creation Master / CM16 interface as the normal default launch.

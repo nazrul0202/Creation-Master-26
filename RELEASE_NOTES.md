@@ -1,5 +1,16 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.190 - Studio removed from the public tool (2026-09-01)
+
+- Removed the CM26 Studio executable and all Studio launch switches from the
+  public launcher and Full/Lite packages.
+- Creation Master / CM16 is now the single desktop workflow. The x64 process
+  continues only as its hidden FC26 database and Frostbite asset host.
+- Kept the non-visual performance work from v1.0.188/v1.0.189: asynchronous
+  previews, stale-request cancellation, cached data and reduced classic redraw.
+- Updated CI and package verification to test the Classic CM16 workspace and to
+  fail if a standalone `CM26.Studio.exe` returns.
+
 ## Version 1.0.189 - classic CM16 default restored (2026-09-01)
 
 - Restored the familiar Creation Master / CM16 interface as the normal public

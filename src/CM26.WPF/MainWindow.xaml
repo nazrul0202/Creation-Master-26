@@ -20,34 +20,34 @@
             <MenuItem Header="_File">
                 <MenuItem x:Name="MenuOpenFifa16" Header="Open - FC 26" Click="MenuOpenGame_Click">
                     <MenuItem.Icon>
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuOpenFifa16_Image.png" Width="16" Height="16" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuOpenFifa16_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem x:Name="MenuOpenLang16" Header="Open Extracted Database + Localization…" Click="MenuOpenDatabaseFolder_Click">
                     <MenuItem.Icon>
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuOpenLang16_Image.png" Width="16" Height="16" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuOpenLang16_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem x:Name="MenuOpenAll" Header="Open FC26 Data / Patch" Click="MenuOpenGame_Click">
                     <MenuItem.Icon>
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuOpenAll_Image.png" Width="16" Height="16" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuOpenAll_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem x:Name="MenuReopen" Header="Open Recent" SubmenuOpened="MenuRecent_SubmenuOpened" />
                 <MenuItem x:Name="MenuSave" Header="Save" IsEnabled="False" Click="MenuTool_Click" Tag="save">
                     <MenuItem.Icon>
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuSave_Image.png" Width="16" Height="16" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuSave_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem x:Name="MenuClose" Header="Close" IsEnabled="False" Click="MenuTool_Click" Tag="close">
                     <MenuItem.Icon>
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuClose_Image.png" Width="16" Height="16" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuClose_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
                 <Separator />
                 <MenuItem Header="E_xit" Click="MenuExit_Click">
                     <MenuItem.Icon>
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuExit_Image.png" Width="16" Height="16" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuExit_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
@@ -60,17 +60,17 @@
                 <Separator />
                 <MenuItem Header="Enable all messages" IsEnabled="False" Click="MenuTool_Click" Tag="enable-messages">
                     <MenuItem.Icon>
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuEnableAllMessages_Image.png" Width="16" Height="16" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuEnableAllMessages_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem x:Name="MenuRegenerate" Header="Regenerate BH" Click="MenuTool_Click" Tag="regenerate">
                     <MenuItem.Icon>
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuRegenerate_Image.png" Width="16" Height="16" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuRegenerate_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem x:Name="MenuExpandDatabase" Header="Expand Database" IsEnabled="False" Click="MenuTool_Click" Tag="expand-db">
                     <MenuItem.Icon>
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuExpandDatabase_Image.png" Width="16" Height="16" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuExpandDatabase_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem x:Name="MenuAlignLanguageDB" Header="Align Language DB" IsEnabled="False" Click="MenuTool_Click" Tag="align-langdb" />
@@ -101,12 +101,12 @@
             <MenuItem x:Name="MenuPatch" Header="_Patch" IsEnabled="False">
                 <MenuItem Header="Create" Click="MenuTool_Click" Tag="create-patch">
                     <MenuItem.Icon>
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuCreatePatch_Image.png" Width="16" Height="16" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuCreatePatch_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="Load" Click="MenuTool_Click" Tag="load-patch">
                     <MenuItem.Icon>
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuLoadPatch_Image.png" Width="16" Height="16" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuLoadPatch_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
@@ -121,12 +121,12 @@
             <MenuItem Header="_Help">
                 <MenuItem Header="Help" Click="MenuTool_Click" Tag="help">
                     <MenuItem.Icon>
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuHelp_Image.png" Width="16" Height="16" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuHelp_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="About" Click="MenuAbout_Click">
                     <MenuItem.Icon>
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuAbout_Image.png" Width="16" Height="16" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuAbout_Image.png" Width="16" Height="16" />
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
@@ -138,67 +138,67 @@
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                 <StackPanel Orientation="Horizontal" x:Name="SectionBar" Margin="4,2">
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="countries" Checked="Nav_Checked" ToolTip="Country">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonCountry_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonCountry_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="leagues" Checked="Nav_Checked" ToolTip="League">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonLeague_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonLeague_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="teams" Checked="Nav_Checked" ToolTip="Team">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonTeam_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonTeam_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="kits" Checked="Nav_Checked" ToolTip="Kit">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonKit_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonKit_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="players" Checked="Nav_Checked" IsChecked="True" ToolTip="Player">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonPlayer_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonPlayer_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="stadiums" Checked="Nav_Checked" ToolTip="Stadium">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonStadium_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonStadium_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="tournament" Checked="Nav_Checked" ToolTip="Tournament">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonTournament_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonTournament_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="referees" Checked="Nav_Checked" ToolTip="Referee">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonReferee_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonReferee_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="balls" Checked="Nav_Checked" ToolTip="Ball">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonBall_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonBall_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="shoes" Checked="Nav_Checked" ToolTip="Shoes">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonShoes_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonShoes_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="managers" Checked="Nav_Checked" ToolTip="Manager">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonManager_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonManager_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="formations" Checked="Nav_Checked" ToolTip="Formation">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonFormation_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonFormation_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="sponsor" Checked="Nav_Checked" ToolTip="Sponsor" Visibility="Collapsed">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonSponsor_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonSponsor_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="tv" Checked="Nav_Checked" ToolTip="Tv" Visibility="Collapsed">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonTv_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonTv_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="newspaper" Checked="Nav_Checked" ToolTip="Newspaper">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonNewspaper_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonNewspaper_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="gloves" Checked="Nav_Checked" ToolTip="Gloves">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonGloves_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonGloves_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="audio" Checked="Nav_Checked" ToolTip="Audio">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonAudio_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonAudio_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="gamegraphics" Checked="Nav_Checked" ToolTip="GameGraphics">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonGameGraphics_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonGameGraphics_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="browser" Checked="Nav_Checked" ToolTip="Browser">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonBrowser_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonBrowser_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="importgraphics" Checked="Nav_Checked" ToolTip="ImportGraphics" Visibility="Collapsed">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonImportGraphics_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonImportGraphics_Image.png" Width="48" Height="48" />
                     </RadioButton>
                     <RadioButton Style="{StaticResource SectionButton}" GroupName="Sec" Tag="dashboard" Checked="Nav_Checked" ToolTip="Dashboard" Visibility="Collapsed">
-                        <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__menuOpenFifa16_Image.png" Width="48" Height="48" />
+                        <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__menuOpenFifa16_Image.png" Width="48" Height="48" />
                     </RadioButton>
                 </StackPanel>
             </ScrollViewer>
@@ -234,10 +234,10 @@
                             BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="0,0,1,0">
                         <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                             <Button x:Name="BtnShowRight" ToolTip="show" Click="ShowRight_Click" Style="{StaticResource StripButton}">
-                                <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonShowRight_Image.png" Width="16" Height="16" />
+                                <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonShowRight_Image.png" Width="16" Height="16" />
                             </Button>
                             <Button x:Name="BtnHideRight" ToolTip="hide" Visibility="Collapsed" Click="HideRight_Click" Style="{StaticResource StripButton}">
-                                <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonHideRight_Image.png" Width="16" Height="16" />
+                                <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonHideRight_Image.png" Width="16" Height="16" />
                             </Button>
                             <TextBlock x:Name="StripLabelRight" Text="Empty" FontSize="11" Margin="0,4,0,0"
                                        HorizontalAlignment="Center">
@@ -277,10 +277,10 @@
                         BorderBrush="{StaticResource BorderBrushBase}" BorderThickness="0,0,0,1" Padding="2,0">
                     <StackPanel Orientation="Horizontal">
                         <Button x:Name="BtnShowBottom" ToolTip="show" Click="ShowBottom_Click" Style="{StaticResource StripButton}">
-                            <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonShowBottom_Image.png" Width="16" Height="16" />
+                            <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonShowBottom_Image.png" Width="16" Height="16" />
                         </Button>
                         <Button x:Name="BtnHideBottom" ToolTip="hide" Visibility="Collapsed" Click="HideBottom_Click" Style="{StaticResource StripButton}">
-                            <Image Source="/CM26.Studio;component/Assets/Cm16/CreationMaster_MainForm__buttonHideBottom_Image.png" Width="16" Height="16" />
+                            <Image Source="/CM26.PreviewHost;component/Assets/Cm16/CreationMaster_MainForm__buttonHideBottom_Image.png" Width="16" Height="16" />
                         </Button>
                         <TextBlock x:Name="StripLabelBottom" Text="Empty" FontSize="12" Margin="6,0,0,0" />
                     </StackPanel>
