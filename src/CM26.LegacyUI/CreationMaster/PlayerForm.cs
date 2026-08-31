@@ -1039,8 +1039,8 @@ public class PlayerForm : Form
 				using (var loaded = Image.FromFile(picker.FileName))
 				using (var portrait = new Bitmap(loaded))
 				{
-					var suggestion = AppearanceAssistant.Analyze(portrait);
-					if (!AppearanceAssistant.ConfirmApply(this, portrait, suggestion)) return;
+					var suggestions = AppearanceAssistant.AnalyzeAlternatives(portrait, m_CurrentPlayer.Country?.Confederation ?? -1);
+					if (!AppearanceAssistant.ConfirmApply(this, portrait, suggestions, out var suggestion)) return;
 					m_CurrentPlayer.skintonecode = suggestion.SkinToneCode;
 					m_CurrentPlayer.hairtypecode = suggestion.HairTypeCode;
 					m_CurrentPlayer.headtypecode = suggestion.HeadTypeCode;

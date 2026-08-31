@@ -2,6 +2,8 @@ using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace CreationMaster;
@@ -103,8 +105,34 @@ internal static class AppearanceAssistant
 		}
 	}
 
+	public static IReadOnlyList<Suggestion> AnalyzeAlternatives(Image source, int confederation)
+	{
+		var primary = Analyze(source);
+		var hairCodes = primary.SkinToneCode >= 8
+			? new[] { primary.HairTypeCode, 71, 26, 8 }
+			: new[] { primary.HairTypeCode, 2, 17, 36 };
+		var alternatives = hairCodes.Distinct().Select((hair, index) => new Suggestion
+		{
+			SkinToneCode = primary.SkinToneCode,
+			HairTypeCode = hair,
+			HeadTypeCode = confederation == 4 && primary.SkinToneCode < 7 ? 500 : primary.HeadTypeCode,
+			FacialHairTypeCode = index == 2 && primary.FacialHairTypeCode == 0 ? 6 : primary.FacialHairTypeCode,
+			Confidence = Math.Max(12, primary.Confidence - index * 7),
+			HairCategory = index == 0 ? primary.HairCategory : "Alternative " + (index + 1),
+			HeadCategory = confederation == 4 && primary.SkinToneCode < 7 ? "Asiatic" : primary.HeadCategory,
+			Notes = index == 0 ? primary.Notes : "Alternative generic match using skin tone and nationality region as a tie-breaker."
+		}).ToList();
+		return alternatives;
+	}
+
 	public static bool ConfirmApply(IWin32Window owner, Image preview, Suggestion suggestion)
 	{
+		return ConfirmApply(owner, preview, new[] { suggestion }, out _);
+	}
+
+	public static bool ConfirmApply(IWin32Window owner, Image preview, IReadOnlyList<Suggestion> suggestions, out Suggestion selected)
+	{
+		selected = suggestions?.FirstOrDefault() ?? throw new ArgumentException("At least one appearance suggestion is required.", nameof(suggestions));
 		using (var dialog = new Form())
 		using (var picture = new PictureBox())
 		using (var summary = new Label())
@@ -112,6 +140,7 @@ internal static class AppearanceAssistant
 		using (var hair = new ComboBox())
 		using (var head = new ComboBox())
 		using (var beard = new ComboBox())
+		using (var profile = new ComboBox())
 		using (var apply = new Button())
 		using (var cancel = new Button())
 		{
@@ -120,50 +149,62 @@ internal static class AppearanceAssistant
 			dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
 			dialog.MaximizeBox = false;
 			dialog.MinimizeBox = false;
-			dialog.ClientSize = new Size(660, 410);
+			dialog.ClientSize = new Size(660, 440);
 			picture.Location = new Point(18, 18);
 			picture.Size = new Size(230, 270);
 			picture.SizeMode = PictureBoxSizeMode.Zoom;
 			picture.Image = preview;
 			summary.Location = new Point(270, 22);
-			summary.Size = new Size(365, 145);
+			summary.Size = new Size(365, 125);
 			summary.Font = new Font(SystemFonts.MessageBoxFont.FontFamily, 10f);
 			summary.Text = "Suggested FC26 generic appearance\r\n\r\n" +
-				"Confidence: " + suggestion.Confidence + "%\r\n\r\n" + suggestion.Notes +
+				"Confidence: " + selected.Confidence + "%\r\n\r\n" + selected.Notes +
 				"\r\n\r\nChoose alternatives or manually override before applying:";
-			var fieldLabel = new Label { Location = new Point(270, 174), Size = new Size(105, 120),
-				Text = "Skin tone\r\n\r\nHair model\r\n\r\nGeneric head\r\n\r\nFacial hair" };
-			skin.Location = new Point(380, 170);
+			profile.Location = new Point(380, 148); profile.Size = new Size(235, 24); profile.DropDownStyle = ComboBoxStyle.DropDownList;
+			for (var index = 0; index < suggestions.Count; index++) profile.Items.Add("Suggestion " + (index + 1) + " — " + suggestions[index].Confidence + "%");
+			var fieldLabel = new Label { Location = new Point(270, 152), Size = new Size(105, 170),
+				Text = "Profile\r\n\r\nSkin tone\r\n\r\nHair model\r\n\r\nGeneric head\r\n\r\nFacial hair" };
+			skin.Location = new Point(380, 188);
 			skin.Size = new Size(80, 24);
-			skin.Minimum = 1; skin.Maximum = 10; skin.Value = suggestion.SkinToneCode;
+			skin.Minimum = 1; skin.Maximum = 10; skin.Value = selected.SkinToneCode;
 			string[] hairNames = { "Shaven (0)", "Very Short (26)", "Short (2)", "Modern (17)", "Medium (36)", "Long (8)", "Afro (71)" };
 			int[] hairCodes = { 0, 26, 2, 17, 36, 8, 71 };
-			hair.Location = new Point(380, 210); hair.Size = new Size(235, 24); hair.DropDownStyle = ComboBoxStyle.DropDownList;
-			hair.Items.AddRange(hairNames); hair.SelectedIndex = Math.Max(0, Array.IndexOf(hairCodes, suggestion.HairTypeCode));
+			hair.Location = new Point(380, 228); hair.Size = new Size(235, 24); hair.DropDownStyle = ComboBoxStyle.DropDownList;
+			hair.Items.AddRange(hairNames); hair.SelectedIndex = Math.Max(0, Array.IndexOf(hairCodes, selected.HairTypeCode));
 			string[] headNames = { "Caucasic (0)", "Asiatic (500)", "African (1000)", "Latin (1500)", "Female (5500)" };
 			int[] headCodes = { 0, 500, 1000, 1500, 5500 };
-			head.Location = new Point(380, 250); head.Size = new Size(235, 24); head.DropDownStyle = ComboBoxStyle.DropDownList;
-			head.Items.AddRange(headNames); head.SelectedIndex = Math.Max(0, Array.IndexOf(headCodes, suggestion.HeadTypeCode));
+			head.Location = new Point(380, 268); head.Size = new Size(235, 24); head.DropDownStyle = ComboBoxStyle.DropDownList;
+			head.Items.AddRange(headNames); head.SelectedIndex = Math.Max(0, Array.IndexOf(headCodes, selected.HeadTypeCode));
 			string[] beardNames = { "None (0)", "Stubble (6)", "Full Beard (8)" };
 			int[] beardCodes = { 0, 6, 8 };
-			beard.Location = new Point(380, 290); beard.Size = new Size(235, 24); beard.DropDownStyle = ComboBoxStyle.DropDownList;
-			beard.Items.AddRange(beardNames); beard.SelectedIndex = Math.Max(0, Array.IndexOf(beardCodes, suggestion.FacialHairTypeCode));
+			beard.Location = new Point(380, 308); beard.Size = new Size(235, 24); beard.DropDownStyle = ComboBoxStyle.DropDownList;
+			beard.Items.AddRange(beardNames); beard.SelectedIndex = Math.Max(0, Array.IndexOf(beardCodes, selected.FacialHairTypeCode));
 			apply.Text = "Apply Suggestions";
 			apply.DialogResult = DialogResult.OK;
-			apply.Location = new Point(393, 350);
+			apply.Location = new Point(393, 380);
 			apply.Size = new Size(135, 34);
 			cancel.Text = "Cancel";
 			cancel.DialogResult = DialogResult.Cancel;
-			cancel.Location = new Point(537, 350);
+			cancel.Location = new Point(537, 380);
 			cancel.Size = new Size(78, 34);
-			dialog.Controls.AddRange(new Control[] { picture, summary, fieldLabel, skin, hair, head, beard, apply, cancel });
+			profile.SelectedIndexChanged += (_, _) =>
+			{
+				var choice = suggestions[Math.Max(0, profile.SelectedIndex)];
+				skin.Value = choice.SkinToneCode;
+				hair.SelectedIndex = Math.Max(0, Array.IndexOf(hairCodes, choice.HairTypeCode));
+				head.SelectedIndex = Math.Max(0, Array.IndexOf(headCodes, choice.HeadTypeCode));
+				beard.SelectedIndex = Math.Max(0, Array.IndexOf(beardCodes, choice.FacialHairTypeCode));
+			};
+			profile.SelectedIndex = 0;
+			dialog.Controls.AddRange(new Control[] { picture, summary, fieldLabel, profile, skin, hair, head, beard, apply, cancel });
 			dialog.AcceptButton = apply;
 			dialog.CancelButton = cancel;
 			if (dialog.ShowDialog(owner) != DialogResult.OK) return false;
-			suggestion.SkinToneCode = (int)skin.Value;
-			suggestion.HairTypeCode = hairCodes[Math.Max(0, hair.SelectedIndex)];
-			suggestion.HeadTypeCode = headCodes[Math.Max(0, head.SelectedIndex)];
-			suggestion.FacialHairTypeCode = beardCodes[Math.Max(0, beard.SelectedIndex)];
+			selected = suggestions[Math.Max(0, profile.SelectedIndex)];
+			selected.SkinToneCode = (int)skin.Value;
+			selected.HairTypeCode = hairCodes[Math.Max(0, hair.SelectedIndex)];
+			selected.HeadTypeCode = headCodes[Math.Max(0, head.SelectedIndex)];
+			selected.FacialHairTypeCode = beardCodes[Math.Max(0, beard.SelectedIndex)];
 			return true;
 		}
 	}

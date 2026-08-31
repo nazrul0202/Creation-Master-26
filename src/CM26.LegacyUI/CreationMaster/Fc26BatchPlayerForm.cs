@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.IO;
+using System.Text;
+using System.Globalization;
 using System.Reflection;
 using System.Windows.Forms;
 using FifaLibrary;
@@ -107,6 +110,7 @@ internal sealed class Fc26BatchPlayerForm : Form
             Button("Technical +5", (_, _) => PreviewPreset("technical")), Label("PlayStyle"), _playstyle,
             Button("Add", (_, _) => PreviewPlaystyle(true, false)), Button("Remove", (_, _) => PreviewPlaystyle(false, false)),
             Button("Add +", (_, _) => PreviewPlaystyle(true, true)), Button("Remove +", (_, _) => PreviewPlaystyle(false, true)),
+            Button("Export Excel CSV", ExportPlayers), Button("Import/Create FC25/Excel CSV", ImportPlayers),
             Button("Apply staged", Apply), _onlyChanged
         });
         _preview.Dock = DockStyle.Fill; _preview.ReadOnly = true; _preview.AllowUserToAddRows = false;
@@ -286,6 +290,85 @@ internal sealed class Fc26BatchPlayerForm : Form
         _pending.Clear(); BindPreview();
     }
 
+    private void ExportPlayers(object sender, EventArgs e)
+    {
+        using var dialog = new SaveFileDialog { Filter = "Excel-compatible CSV (*.csv)|*.csv", FileName = "CM26_players.csv" };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        var lines = new List<string> { "playerid,firstname,lastname,nationality,teamid,position,overall,potential,birthdate,height,weight" };
+        lines.AddRange(SelectedPlayers().Select(player => string.Join(",", new[]
+        {
+            player.Id.ToString(CultureInfo.InvariantCulture), Csv(player.firstname), Csv(player.lastname), player.nationality.ToString(CultureInfo.InvariantCulture),
+            (player.GetClub()?.Id ?? -1).ToString(CultureInfo.InvariantCulture), player.preferredposition1.ToString(CultureInfo.InvariantCulture),
+            player.overallrating.ToString(CultureInfo.InvariantCulture), player.potential.ToString(CultureInfo.InvariantCulture),
+            player.birthdate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), player.height.ToString(CultureInfo.InvariantCulture), player.weight.ToString(CultureInfo.InvariantCulture)
+        })));
+        File.WriteAllLines(dialog.FileName, lines, new UTF8Encoding(true));
+        _status.Text = (lines.Count - 1).ToString("N0") + " player(s) exported for Excel/FC25 mapping.";
+    }
+
+    private void ImportPlayers(object sender, EventArgs e)
+    {
+        using var dialog = new OpenFileDialog { Filter = "Excel/FC25 CSV (*.csv)|*.csv|All files (*.*)|*.*" };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        try
+        {
+            var lines = File.ReadAllLines(dialog.FileName);
+            if (lines.Length < 2) throw new InvalidDataException("The CSV contains no player rows.");
+            var header = ParseCsv(lines[0]);
+            var required = new[] { "firstname", "lastname", "nationality", "teamid", "position", "overall", "potential", "birthdate", "height", "weight" };
+            if (required.Any(name => !header.Contains(name, StringComparer.OrdinalIgnoreCase)))
+                throw new InvalidDataException("CSV header must contain: " + string.Join(", ", required));
+            var indexes = header.Select((name, index) => new { name, index }).ToDictionary(item => item.name, item => item.index, StringComparer.OrdinalIgnoreCase);
+            var drafts = new List<PlayerDraft>();
+            foreach (var line in lines.Skip(1).Where(line => !string.IsNullOrWhiteSpace(line)))
+            {
+                var values = ParseCsv(line); string Value(string name) => indexes[name] < values.Length ? values[indexes[name]].Trim() : string.Empty;
+                if (!int.TryParse(Value("nationality"), out var nationality) || !int.TryParse(Value("teamid"), out var teamId) ||
+                    !int.TryParse(Value("position"), out var position) || !int.TryParse(Value("overall"), out var overall) ||
+                    !int.TryParse(Value("potential"), out var potential) || !DateTime.TryParse(Value("birthdate"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var birthdate) ||
+                    !int.TryParse(Value("height"), out var height) || !int.TryParse(Value("weight"), out var weight))
+                    throw new InvalidDataException("Invalid numeric/date value at CSV line " + (drafts.Count + 2) + ".");
+                var team = FifaEnvironment.Teams.SearchId(teamId) as Team;
+                var country = FifaEnvironment.Countries.SearchId(nationality) as Country;
+                if (team == null || country == null) throw new InvalidDataException("Unknown team/nationality ID at CSV line " + (drafts.Count + 2) + ".");
+                drafts.Add(new PlayerDraft(Value("firstname"), Value("lastname"), team, country, Math.Max(0, Math.Min(27, position)),
+                    Math.Max(1, Math.Min(99, overall)), Math.Max(1, Math.Min(99, potential)), birthdate,
+                    Math.Max(150, Math.Min(220, height)), Math.Max(45, Math.Min(130, weight))));
+            }
+            var duplicates = drafts.GroupBy(draft => (draft.First + " " + draft.Last).Trim(), StringComparer.CurrentCultureIgnoreCase).Where(group => group.Count() > 1).ToArray();
+            if (MessageBox.Show(this, "Validated " + drafts.Count + " player row(s). " + duplicates.Length +
+                " duplicate-name group(s) detected. Create new FC26 player IDs and team links?",
+                "FC25/Excel conversion preview", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            foreach (var draft in drafts)
+            {
+                var player = FifaEnvironment.Players.CreateNewId() as Player ?? throw new InvalidOperationException("No free FC26 player ID remains.");
+                player.firstname = draft.First; player.lastname = draft.Last; player.commonname = string.Empty; player.playerjerseyname = draft.Last;
+                player.Country = draft.Country; player.birthdate = draft.BirthDate; player.height = draft.Height; player.weight = draft.Weight;
+                player.preferredposition1 = draft.Position; player.overallrating = draft.Overall; player.potential = Math.Max(draft.Overall, draft.Potential);
+                player.joindate = DateTime.Today; player.contractvaliduntil = DateTime.Today.Year + 3;
+                Fc26SnapshotLoader.StageNewEntity("player", player); Fc26SnapshotLoader.StageNewPlayerNames(player);
+                var link = draft.Team.AddTeamPlayer(player); link.position = draft.Position; Fc26SnapshotLoader.StageNewTeamPlayerLink(link);
+            }
+            _status.Text = drafts.Count + " FC25/Excel player row(s) converted and staged with new FC26 IDs.";
+        }
+        catch (Exception ex) { Fc26FriendlyError.Show(this, "Import/Create players", ex, "No unvalidated batch player row was accepted."); }
+    }
+
+    private static string Csv(string value) => "\"" + (value ?? string.Empty).Replace("\"", "\"\"") + "\"";
+    private static string[] ParseCsv(string line)
+    {
+        var values = new List<string>(); var value = new StringBuilder(); var quoted = false;
+        for (var index = 0; index < line.Length; index++)
+        {
+            var character = line[index];
+            if (character == '"' && quoted && index + 1 < line.Length && line[index + 1] == '"') { value.Append('"'); index++; }
+            else if (character == '"') quoted = !quoted;
+            else if (character == ',' && !quoted) { values.Add(value.ToString()); value.Clear(); }
+            else value.Append(character);
+        }
+        values.Add(value.ToString()); return values.ToArray();
+    }
+
     private static Label Label(string text) => new Label { Text = text, AutoSize = true, Padding = new Padding(5, 6, 0, 0) };
     private static Button Button(string text, EventHandler handler) { var button = new Button { Text = text, AutoSize = true }; button.Click += handler; return button; }
 
@@ -309,5 +392,13 @@ internal sealed class Fc26BatchPlayerForm : Form
     {
         internal LeagueChoice(League league) { League = league; } internal League League { get; }
         public override string ToString() => League == null ? "All leagues" : League.ToString();
+    }
+    private sealed class PlayerDraft
+    {
+        internal PlayerDraft(string first, string last, Team team, Country country, int position, int overall, int potential, DateTime birthDate, int height, int weight)
+        { First = first; Last = last; Team = team; Country = country; Position = position; Overall = overall; Potential = potential; BirthDate = birthDate; Height = height; Weight = weight; }
+        internal string First { get; } internal string Last { get; } internal Team Team { get; } internal Country Country { get; }
+        internal int Position { get; } internal int Overall { get; } internal int Potential { get; } internal DateTime BirthDate { get; }
+        internal int Height { get; } internal int Weight { get; }
     }
 }

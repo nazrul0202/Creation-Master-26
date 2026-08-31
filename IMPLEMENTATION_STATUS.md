@@ -1,8 +1,10 @@
-# Creation Master 26 v1.0.191 implementation status
+# Creation Master 26 v1.0.192 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
 ## Complete
+
+- Completed the comprehensive 1–20 Classic feature checklist: multi-profile Appearance Assistant; aligned miniface and visual similarity helper; native face/cranium round-trip; injury-aware national squads; dedicated U21 exchange; FC25/Excel player conversion; saved filters and row templates; safe reference removal; batch asset-family exchange and validation reports.
 
 - Expanded Classic project launcher for installed/extracted/session sources plus real Database & Localisation, Squad/Roster, Career and Competition entry points, with availability detected from loaded FC26 tables.
 - Advanced Database Workspace adds changed-record filtering, validated bulk set, all-table TSV import/export and rollback of partially staged folder imports.

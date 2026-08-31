@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Windows.Forms;
 
 namespace CreationMaster;
@@ -151,7 +152,8 @@ internal sealed class Fc26AssetManagerForm : Form
             new Label { Text = "Verified logical path", AutoSize = true, Padding = new Padding(8, 6, 0, 0) }, _logicalPath,
             Button("Load / Preview", LoadLegacy), Button("Import image", ImportLegacy), Button("Import native file", ImportFile),
             Button("Export", ExportLegacy), Button("Remove staged", RemoveLegacy), Button("Check family", CheckFamily),
-            Button("Usage / reverse links", DependencyReport),
+            Button("Import family folder", ImportFamily), Button("Export family", ExportFamily),
+            Button("Usage / reverse links", DependencyReport), Button("Export validation report", ExportValidationReport),
             Button("Favourite", ToggleFavourite), new Label { Text = "Favourites / recent", AutoSize = true, Padding = new Padding(8, 6, 0, 0) },
             _savedPaths, _assetState
         });
@@ -315,6 +317,43 @@ internal sealed class Fc26AssetManagerForm : Form
         return "usage requires dependency scan";
     }
 
+    private void ExportFamily(object sender, EventArgs e)
+    {
+        if (_family.SelectedItem is not LegacyFamily family) return;
+        using var dialog = new FolderBrowserDialog { Description = "Choose output folder for the selected FC26 asset family" };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        Run("Exporting asset family...", () =>
+        {
+            var exported = 0; var missing = 0;
+            foreach (var path in family.Paths.Select(path => path.Replace("{id}", AssetKey())))
+            {
+                var source = Fc26HostBridge.ExportAsset(path);
+                if (string.IsNullOrWhiteSpace(source) || !File.Exists(source)) { missing++; continue; }
+                File.Copy(source, Path.Combine(dialog.SelectedPath, Path.GetFileName(path)), true); exported++;
+            }
+            return exported + " family file(s) exported; " + missing + " missing.";
+        });
+    }
+
+    private void ImportFamily(object sender, EventArgs e)
+    {
+        if (_family.SelectedItem is not LegacyFamily family) return;
+        using var dialog = new FolderBrowserDialog { Description = "Choose a folder containing native files named for the selected FC26 family" };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        var matches = family.Paths.Select(path => path.Replace("{id}", AssetKey()))
+            .Select(path => new { Target = path, Source = Path.Combine(dialog.SelectedPath, Path.GetFileName(path)) })
+            .Where(item => File.Exists(item.Source)).ToArray();
+        if (matches.Length == 0) { MessageBox.Show(this, "No exact native family filenames were found in that folder."); return; }
+        if (MessageBox.Show(this, "Stage " + matches.Length + " native asset replacement(s)?\r\n\r\n" +
+            string.Join("\r\n", matches.Select(item => Path.GetFileName(item.Target))), "Batch family import preview",
+            MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+        Run("Staging asset family...", () =>
+        {
+            foreach (var item in matches) Fc26HostBridge.StageFile(item.Target, item.Source);
+            return matches.Length + " native family file(s) staged. Use File > Save to validate and commit.";
+        });
+    }
+
     private void DependencyReport(object sender, EventArgs e)
     {
         try
@@ -365,6 +404,21 @@ internal sealed class Fc26AssetManagerForm : Form
         if (family.StartsWith("Goalkeeper", StringComparison.OrdinalIgnoreCase)) return new[] { "gkglovetypecode" };
         if (family.StartsWith("Competition", StringComparison.OrdinalIgnoreCase)) return new[] { "competitionid", "leagueid" };
         return Array.Empty<string>();
+    }
+
+    private void ExportValidationReport(object sender, EventArgs e)
+    {
+        if (_family.SelectedItem is not LegacyFamily family) return;
+        using var dialog = new SaveFileDialog { Filter = "CSV report (*.csv)|*.csv", FileName = "CM26_asset_validation_" + AssetKey() + ".csv" };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        var lines = new List<string> { "family,assetkey,logicalpath,state" };
+        foreach (var path in family.Paths.Select(path => path.Replace("{id}", AssetKey())))
+        {
+            var installed = !string.IsNullOrWhiteSpace(Fc26HostBridge.ExportAsset(path));
+            lines.Add("\"" + family.Name.Replace("\"", "\"\"") + "\",\"" + AssetKey() + "\",\"" + path.Replace("\"", "\"\"") + "\"," + (installed ? "installed" : "missing"));
+        }
+        File.WriteAllLines(dialog.FileName, lines, Encoding.UTF8);
+        _status.Text = "Asset validation report exported: " + dialog.FileName;
     }
 
     private string AssetKey()

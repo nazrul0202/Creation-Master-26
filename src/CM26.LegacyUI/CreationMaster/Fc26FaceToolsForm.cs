@@ -37,7 +37,7 @@ internal sealed class Fc26FaceToolsForm : Form
 		foreach (Team team in FifaEnvironment.Teams.Cast<Team>().OrderBy(item => item.TeamNameFull)) _team.Items.Add(new TeamChoice(team));
 		_team.SelectedIndex = 0;
 		var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, Padding = new Padding(8), WrapContents = true };
-		top.Controls.AddRange(new Control[]
+			top.Controls.AddRange(new Control[]
 		{
 			new Label { Text = "Player / ID", AutoSize = true, Padding = new Padding(0, 6, 0, 0) }, _search,
 			new Label { Text = "Team", AutoSize = true, Padding = new Padding(8, 6, 0, 0) }, _team,
@@ -45,7 +45,8 @@ internal sealed class Fc26FaceToolsForm : Form
 			Button("Batch import minifaces", BatchImport), Button("Export visible", ExportVisible),
 			Button("Missing report", MissingReport), Button("Rename linked assets", RenameAssets),
 			Button("Assign specific face", AssignSpecificFace), Button("Generic appearance...", GenericAppearance),
-			Button("Import native cranium/face", ImportNativeFace)
+			Button("Auto-align miniface", AlignMiniface), Button("Face similarity helper", FaceSimilarity),
+			Button("Import native cranium/face", ImportNativeFace), Button("Export native cranium/face", ExportNativeFace)
 		});
 		_scanButton.Click += ScanSelected;
 		_cancelScan.Click += (_, _) => _scanCancellation?.Cancel();
@@ -284,6 +285,94 @@ internal sealed class Fc26FaceToolsForm : Form
 				_status.Text = "Native face/cranium asset staged at " + target + ". Use File > Save to validate and commit.";
 			}
 		}
+	}
+
+	private void ExportNativeFace(object sender, EventArgs e)
+	{
+		var row = Current(); if (row == null) return;
+		var labels = new[] { "Specific head model", "Specific face texture", "Specific hair model", "Specific hair LOD", "Specific hair texture", "Player skin", "Tattoo / cranium container" };
+		var paths = new[] { Player.SpecificHeadModelFileName(row.Id), Player.SpecificFaceTextureFileName(row.Id), Player.SpecificHairModelFileName(row.Id), Player.SpecificHairLodModelFileName(row.Id), Player.SpecificHairTexturesFileName(row.Id), "data/sceneassets/body/playerskin_" + row.Id + "_textures.rx3", "data/sceneassets/tattoo/tattoo_" + row.Id + "_0.rx3" };
+		using (var dialog = new Form { Text = "Export Native FC26 Face Asset", StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog, ClientSize = new Size(430, 150) })
+		using (var choice = new ComboBox { Location = new Point(25, 25), Width = 375, DropDownStyle = ComboBoxStyle.DropDownList })
+		{
+			choice.Items.AddRange(labels); choice.SelectedIndex = 0;
+			dialog.Controls.AddRange(new Control[] { choice, new Button { Text = "Export...", DialogResult = DialogResult.OK, Location = new Point(250, 85), AutoSize = true }, new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(340, 85), AutoSize = true } });
+			if (dialog.ShowDialog(this) != DialogResult.OK) return;
+			var source = Fc26HostBridge.ExportAsset(paths[choice.SelectedIndex]);
+			if (string.IsNullOrWhiteSpace(source) || !File.Exists(source)) { MessageBox.Show(this, "That native asset is not installed for the selected player."); return; }
+			using var save = new SaveFileDialog { Filter = "Native FC26 asset|*" + Path.GetExtension(source) + "|All files|*.*", FileName = Path.GetFileName(source) };
+			if (save.ShowDialog(this) != DialogResult.OK) return;
+			File.Copy(source, save.FileName, true); _status.Text = "Native face/cranium asset exported: " + save.FileName;
+		}
+	}
+
+	private void AlignMiniface(object sender, EventArgs e)
+	{
+		var row = Current(); if (row == null) return;
+		using var open = new OpenFileDialog { Filter = "Portrait image|*.png;*.jpg;*.jpeg;*.bmp|All files|*.*", CheckFileExists = true };
+		if (open.ShowDialog(this) != DialogResult.OK) return;
+		try
+		{
+			using var source = new Bitmap(open.FileName);
+			var side = Math.Min(source.Width, source.Height);
+			var x = Math.Max(0, (source.Width - side) / 2);
+			var y = Math.Max(0, Math.Min(source.Height - side, (source.Height - side) / 3));
+			using var aligned = new Bitmap(180, 180, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+			using (var graphics = Graphics.FromImage(aligned))
+			{
+				graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+				graphics.DrawImage(source, new Rectangle(0, 0, 180, 180), new Rectangle(x, y, side, side), GraphicsUnit.Pixel);
+			}
+			var temp = Path.Combine(Path.GetTempPath(), "cm26_miniface_" + row.Id + "_" + Guid.NewGuid().ToString("N") + ".png");
+			aligned.Save(temp, System.Drawing.Imaging.ImageFormat.Png);
+			try { Fc26HostBridge.StageImage(Player.SpecificPhotoDdsFileName(row.Id), temp, 180, 180); }
+			finally { try { File.Delete(temp); } catch { } }
+			ReplacePreview(new Bitmap(aligned));
+			_status.Text = "180×180 centred miniface staged for " + row.PlayerName + ". Preview and use File > Save to commit.";
+		}
+		catch (Exception ex) { Fc26FriendlyError.Show(this, "Align miniface", ex, "No miniface was staged."); }
+	}
+
+	private async void FaceSimilarity(object sender, EventArgs e)
+	{
+		using var open = new OpenFileDialog { Filter = "Portrait image|*.png;*.jpg;*.jpeg;*.bmp|All files|*.*", CheckFileExists = true };
+		if (open.ShowDialog(this) != DialogResult.OK) return;
+		try
+		{
+			_status.Text = "Comparing portrait with installed minifaces in the background...";
+			var targets = SelectedRows().Take(500).ToArray();
+			var sourcePath = open.FileName;
+			var matches = await ThreadingTask.Run(() =>
+			{
+				using var source = new Bitmap(sourcePath); var signature = ImageSignature(source);
+				return targets.Select(target =>
+				{
+					var file = Fc26HostBridge.ExportAsset(Player.SpecificPhotoDdsFileName(target.Id));
+					if (string.IsNullOrWhiteSpace(file) || !File.Exists(file)) return new { Row = target, Score = double.MaxValue };
+					try { using var image = new Bitmap(file); return new { Row = target, Score = SignatureDistance(signature, ImageSignature(image)) }; }
+					catch { return new { Row = target, Score = double.MaxValue }; }
+				}).Where(result => result.Score < double.MaxValue).OrderBy(result => result.Score).Take(10).ToArray();
+			});
+			var report = matches.Length == 0 ? "No readable installed minifaces were found." : string.Join("\r\n", matches.Select((match, index) => (index + 1) + ". " + match.Row.PlayerName + " [" + match.Row.Id + "] — similarity " + Math.Max(0, 100 - match.Score).ToString("0.0") + "%"));
+			MessageBox.Show(this, report + "\r\n\r\nThis is a visual colour/layout helper, not biometric identification.", "Face similarity helper");
+			_status.Text = "Face similarity comparison complete.";
+		}
+		catch (Exception ex) { Fc26FriendlyError.Show(this, "Face similarity", ex, "No player assignment was changed."); }
+	}
+
+	private static double[] ImageSignature(Bitmap source)
+	{
+		using var sample = new Bitmap(8, 8);
+		using (var graphics = Graphics.FromImage(sample)) graphics.DrawImage(source, new Rectangle(0, 0, 8, 8));
+		var values = new List<double>(192);
+		for (var y = 0; y < 8; y++) for (var x = 0; x < 8; x++) { var color = sample.GetPixel(x, y); values.Add(color.R / 255d); values.Add(color.G / 255d); values.Add(color.B / 255d); }
+		return values.ToArray();
+	}
+
+	private static double SignatureDistance(double[] left, double[] right)
+	{
+		var sum = 0d; for (var index = 0; index < Math.Min(left.Length, right.Length); index++) { var delta = left[index] - right[index]; sum += delta * delta; }
+		return Math.Min(100, Math.Sqrt(sum / Math.Max(1, left.Length)) * 100);
 	}
 
 	private void PreviewSelected()

@@ -400,6 +400,21 @@ internal static class Program
 							throw new InvalidDataException("The comprehensive project launcher is missing: " + requiredLauncherAction);
 					}
 				}
+				using (var workspace = new Fc26DatabaseWorkspaceForm())
+					foreach (var required in new[] { "Add / Clone Row", "Set Selected", "Changed records only", "Remove References", "Import All", "Export All", "Save Filter", "Load Filter", "Save Row Template", "Apply Row Template" })
+						if (!ContainsControlText(workspace, required)) throw new InvalidDataException("Advanced Database Workspace is missing: " + required);
+				using (var roster = new Fc26RosterToolsForm())
+					foreach (var required in new[] { "Replace injured call-ups", "Export U21 CSV", "Import / merge U21 CSV", "Sync nationality links" })
+						if (!ContainsControlText(roster, required)) throw new InvalidDataException("Roster/National/Youth tools are missing: " + required);
+				using (var faces = new Fc26FaceToolsForm())
+					foreach (var required in new[] { "Auto-align miniface", "Face similarity helper", "Import native cranium/face", "Export native cranium/face" })
+						if (!ContainsControlText(faces, required)) throw new InvalidDataException("Face tools are missing: " + required);
+				using (var batchPlayers = new Fc26BatchPlayerForm())
+					foreach (var required in new[] { "Export Excel CSV", "Import/Create FC25/Excel CSV" })
+						if (!ContainsControlText(batchPlayers, required)) throw new InvalidDataException("Batch Player tools are missing: " + required);
+				using (var assets = new Fc26AssetManagerForm())
+					foreach (var required in new[] { "Import family folder", "Export family", "Usage / reverse links", "Export validation report" })
+						if (!ContainsControlText(assets, required)) throw new InvalidDataException("Asset tools are missing: " + required);
 				using (var readiness = new Fc26PublicReadinessForm(main))
 				{
 					foreach (var required in new[]

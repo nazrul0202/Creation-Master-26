@@ -1,11 +1,11 @@
-# Installation — Creation Master 26 1.0.191
+# Installation — Creation Master 26 1.0.192
 
 Use the Full Portable package on Windows 10/11 x64. It contains the required
 .NET 8 desktop runtime; no separate runtime installation is needed.
 
 Creation Master 26 is distributed unsigned, so Windows SmartScreen may show an "unknown
 publisher" warning on first run. Choose **More info > Run anyway** if you trust
-the download. Verify your download against `SHA256SUMS_v1.0.191.txt` if
+the download. Verify your download against `SHA256SUMS_v1.0.192.txt` if
 you obtained it from anywhere other than the official releases page.
 
 The built-in CM26 3D viewer remains included. For optional F3D FBX viewing,

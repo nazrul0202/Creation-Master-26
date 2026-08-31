@@ -1,5 +1,18 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.192 - comprehensive Classic feature completion (2026-09-01)
+
+- Completed all 20 feature areas from the CM26 Comprehensive Feature Overview
+  inside the Classic CM16 interface; no Studio shell was restored.
+- Added multi-profile local appearance suggestions, 180×180 miniface alignment,
+  visual face-similarity assistance and native face/cranium import/export.
+- Added injured national-call-up replacement, national squad rules, dedicated
+  U21 merge/import/export and duplicate-safe youth handling.
+- Added FC25/Excel-compatible batch player creation/export, saved database
+  filters, reusable row templates and safe optional-reference removal.
+- Added native asset-family batch import/export, reverse usage lookup and CSV
+  validation reports, with comprehensive UI smoke coverage.
+
 ## Version 1.0.191 - comprehensive Classic core (2026-09-01)
 
 - Kept the familiar Classic CM16 interface as the only public desktop and made

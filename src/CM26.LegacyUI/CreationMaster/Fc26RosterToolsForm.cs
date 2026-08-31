@@ -74,7 +74,10 @@ internal sealed class Fc26RosterToolsForm : Form
             Button("Remove national call-up", (_, _) => RemoveNationalCallUp()),
             Button("Validate national squad", (_, _) => ValidateNationalSquad()),
             Button("Sync nationality links", (_, _) => SyncNationalityLinks()),
+            Button("Replace injured call-ups", (_, _) => ReplaceInjuredCallUps()),
             Button("Merge / sync U21 → target", (_, _) => SyncYouth()),
+            Button("Export U21 CSV", (_, _) => ExportYouth()),
+            Button("Import / merge U21 CSV", (_, _) => ImportYouth()),
             Button("Auto Best XI", (_, _) => AutoBestXi()),
             Button("Repair roster", (_, _) => RepairRoster()),
             Button("Export roster CSV", (_, _) => ExportRoster()),
@@ -359,6 +362,32 @@ internal sealed class Fc26RosterToolsForm : Form
         RefreshAll();
     }
 
+    private void ReplaceInjuredCallUps()
+    {
+        var national = CurrentTeam();
+        if (national == null || !national.IsNationalTeam() || national.Country == null)
+        { MessageBox.Show(this, "Select a national team as Current team."); return; }
+        var injured = national.Roster.Cast<TeamPlayer>().Where(link => link?.Player != null && link.injury > 0).ToArray();
+        if (injured.Length == 0) { MessageBox.Show(this, "No injured call-ups were found in this national squad."); return; }
+        var currentIds = new HashSet<int>(national.Roster.Cast<TeamPlayer>().Where(link => link?.Player != null).Select(link => link.Player.Id));
+        var replacements = FifaEnvironment.Players.Cast<Player>()
+            .Where(player => player?.Country != null && player.Country.Id == national.Country.Id && !currentIds.Contains(player.Id))
+            .OrderByDescending(player => player.overallrating).ThenByDescending(player => player.potential).Take(injured.Length).ToArray();
+        if (replacements.Length < injured.Length)
+        { MessageBox.Show(this, "Only " + replacements.Length + " eligible replacement(s) were found for " + injured.Length + " injured player(s)."); return; }
+        var preview = string.Join("\r\n", injured.Select((link, index) => link.Player + " → " + replacements[index]));
+        if (MessageBox.Show(this, "Replace " + injured.Length + " injured call-up(s)?\r\n\r\n" + preview,
+            "Injury replacement preview", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+        for (var index = 0; index < injured.Length; index++)
+        {
+            national.RemoveTeamPlayer(injured[index]);
+            if (!replacements[index].IsPlayingFor(national)) national.AddTeamPlayer(replacements[index]);
+        }
+        RepairTeam(national);
+        Fc26ActivityLog.Add("National squad", "Replaced " + injured.Length + " injured call-up(s) for " + national.Id);
+        RefreshAll();
+    }
+
     private void SyncYouth()
     {
         var source = CurrentTeam(); var target = TargetTeam(); if (source == null || target == null || source == target) return;
@@ -368,6 +397,41 @@ internal sealed class Fc26RosterToolsForm : Form
             "Youth squad sync preview", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
         foreach (var player in youth) { player.RemoveCurrentConflictingTeam(target); if (!player.IsPlayingFor(target)) target.AddTeamPlayer(player); }
         RepairTeam(source); RepairTeam(target); RefreshAll();
+    }
+
+    private void ExportYouth()
+    {
+        var team = CurrentTeam(); if (team == null) return;
+        using var dialog = new SaveFileDialog { Filter = "CSV (*.csv)|*.csv", FileName = "youth_u21_" + team.Id + ".csv" };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        var youth = team.Roster.Cast<TeamPlayer>().Where(link => link?.Player != null && Age(link.Player) <= 21).ToArray();
+        var lines = new List<string> { "playerid,name,age,overall,potential,jerseynumber,position" };
+        lines.AddRange(youth.Select(link => link.Player.Id + ",\"" + (link.Player.ToString() ?? string.Empty).Replace("\"", "\"\"") + "\"," +
+            Age(link.Player) + "," + link.Player.overallrating + "," + link.Player.potential + "," + link.jerseynumber + "," + link.position));
+        File.WriteAllLines(dialog.FileName, lines, new UTF8Encoding(true));
+    }
+
+    private void ImportYouth()
+    {
+        var team = CurrentTeam(); if (team == null) return;
+        using var dialog = new OpenFileDialog { Filter = "Youth CSV (*.csv)|*.csv|All files (*.*)|*.*" };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        var resolved = File.ReadAllLines(dialog.FileName).Skip(1).Select(line => line.Split(','))
+            .Where(parts => parts.Length >= 7 && int.TryParse(parts[0], out _))
+            .Select(parts => new { Player = FifaEnvironment.Players.SearchId(Parse(parts[0])) as Player,
+                Number = Parse(parts[parts.Length - 2]), Position = Parse(parts[parts.Length - 1]) })
+            .Where(item => item.Player != null && Age(item.Player) <= 21).GroupBy(item => item.Player.Id).Select(group => group.First()).ToArray();
+        var existing = new HashSet<int>(team.Roster.Cast<TeamPlayer>().Where(link => link?.Player != null).Select(link => link.Player.Id));
+        var additions = resolved.Where(item => !existing.Contains(item.Player.Id)).ToArray();
+        if (additions.Length == 0) { MessageBox.Show(this, "No new valid U21 player IDs were found."); return; }
+        if (MessageBox.Show(this, "Merge " + additions.Length + " U21 player(s) into " + team + "? Existing senior and youth links are retained.",
+            "Youth import preview", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+        foreach (var item in additions)
+        {
+            item.Player.RemoveCurrentConflictingTeam(team);
+            var link = team.AddTeamPlayer(item.Player, item.Number); link.position = item.Position;
+        }
+        RepairTeam(team); Fc26ActivityLog.Add("Youth squad", "Merged " + additions.Length + " U21 player(s) into " + team.Id); RefreshAll();
     }
 
     private void AutoBestXi()

@@ -38,7 +38,7 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
 
         var tools = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden, Dock = DockStyle.Top };
         tools.Items.Add(Button("Refresh", (_, _) => LoadTable()));
-        tools.Items.Add(Button("Clone Row", (_, _) => CloneRow()));
+        tools.Items.Add(Button("Add / Clone Row", (_, _) => CloneRow()));
         tools.Items.Add(Button("Delete Row", (_, _) => DeleteRow()));
         tools.Items.Add(Button("Copy", (_, _) => CopySelection()));
         tools.Items.Add(Button("Paste", (_, _) => PasteSelection()));
@@ -49,12 +49,18 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Button("Find References", (_, _) => ShowReferences(replace: false)));
         tools.Items.Add(Button("Replace References", (_, _) => ShowReferences(replace: true)));
+        tools.Items.Add(Button("Remove References", (_, _) => RemoveReferences()));
         tools.Items.Add(Button("Swap IDs", (_, _) => SwapIds()));
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Button("Import TSV", (_, _) => ImportTsv()));
         tools.Items.Add(Button("Export TSV", (_, _) => ExportTsv()));
         tools.Items.Add(Button("Import All", (_, _) => ImportAllTables()));
         tools.Items.Add(Button("Export All", (_, _) => ExportAllTables()));
+        tools.Items.Add(new ToolStripSeparator());
+        tools.Items.Add(Button("Save Filter", (_, _) => SaveFilterPreset()));
+        tools.Items.Add(Button("Load Filter", (_, _) => LoadFilterPreset()));
+        tools.Items.Add(Button("Save Row Template", (_, _) => SaveRowTemplate()));
+        tools.Items.Add(Button("Apply Row Template", (_, _) => ApplyRowTemplate()));
 
         _tableSearch.Dock = DockStyle.Top;
         _tableSearch.AccessibleName = "Find table";
@@ -111,6 +117,13 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         Controls.Add(tablePanel);
         Controls.Add(_status);
         Controls.Add(tools);
+        FormClosing += (_, e) =>
+        {
+            if (Fc26SnapshotLoader.PendingDetailCount == 0 || e.CloseReason == CloseReason.ApplicationExitCall) return;
+            if (MessageBox.Show(this, "There are " + Fc26SnapshotLoader.PendingDetailCount +
+                " staged database change(s). Closing this workspace keeps them pending for File > Save. Close workspace?",
+                "Unsaved changes", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) e.Cancel = true;
+        };
         PopulateTables();
     }
 
@@ -346,6 +359,32 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
         _status.Text = hits.Count + " dependency-aware update(s) staged as one save operation.";
     }
 
+    private void RemoveReferences()
+    {
+        if (_grid.CurrentCell == null || _grid.CurrentCell.ColumnIndex <= 0) return;
+        var field = _active.Columns[_grid.CurrentCell.ColumnIndex - 1];
+        var value = Convert.ToString(_grid.CurrentCell.Value, CultureInfo.InvariantCulture) ?? string.Empty;
+        var hits = FindReferences(field, value).Where(hit => !hit.Table.Equals(_active.Name, StringComparison.OrdinalIgnoreCase) || hit.Row != CurrentSourceRow()).ToArray();
+        var removable = new List<ReferenceHit>(); var blocked = new List<ReferenceHit>();
+        foreach (var hit in hits)
+        {
+            var table = Fc26SnapshotLoader.DetailTable(hit.Table); var column = table?.Column(hit.Field) ?? -1;
+            var detail = column >= 0 ? table.ColumnDetails[column] : null;
+            if (detail != null && detail.IsWritable && (detail.Kind != 3 || detail.RangeLow <= 0)) removable.Add(hit); else blocked.Add(hit);
+        }
+        if (removable.Count == 0)
+        {
+            MessageBox.Show(this, "No optional references can be cleared safely. " + blocked.Count +
+                " required relationship(s) are protected; delete their link rows through the dependency-aware Delete workflow if appropriate.",
+                "Remove references", MessageBoxButtons.OK, MessageBoxIcon.Warning); return;
+        }
+        if (MessageBox.Show(this, "Clear " + removable.Count + " optional reference(s) by setting them to 0?\r\n" + blocked.Count +
+            " required reference(s) will remain protected.", "Remove references preview", MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        foreach (var hit in removable) Fc26SnapshotLoader.StageDetailValue(hit.Table, hit.Row, hit.Field, "0");
+        LoadTable(); _status.Text = removable.Count + " optional reference(s) cleared; " + blocked.Count + " required link(s) protected.";
+    }
+
     private static List<ReferenceHit> FindReferences(string field, string value)
     {
         var hits = new List<ReferenceHit>();
@@ -494,6 +533,58 @@ internal sealed class Fc26DatabaseWorkspaceForm : Form
                     "The folder import was rejected and any partially staged values were rolled back.");
             }
         }
+    }
+
+    private void SaveFilterPreset()
+    {
+        if (_active == null) return;
+        using var dialog = new SaveFileDialog { Filter = "CM26 filter preset (*.cm26filter)|*.cm26filter", FileName = _active.Name + ".cm26filter" };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        File.WriteAllLines(dialog.FileName, new[] { _active.Name, _filterField.Text, _filterExpression.Text, _rowSearch.Text }, new UTF8Encoding(false));
+    }
+
+    private void LoadFilterPreset()
+    {
+        using var dialog = new OpenFileDialog { Filter = "CM26 filter preset (*.cm26filter)|*.cm26filter|All files (*.*)|*.*" };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        var lines = File.ReadAllLines(dialog.FileName); if (lines.Length < 4) throw new InvalidDataException("Invalid CM26 filter preset.");
+        if (_tables.Items.Contains(lines[0])) _tables.SelectedItem = lines[0];
+        if (_filterField.Items.Contains(lines[1])) _filterField.SelectedItem = lines[1];
+        _filterExpression.Text = lines[2]; _rowSearch.Text = lines[3]; LoadTable();
+    }
+
+    private void SaveRowTemplate()
+    {
+        var row = CurrentSourceRow(); if (_active == null || row < 0) return;
+        using var dialog = new SaveFileDialog { Filter = "CM26 row template (*.cm26template)|*.cm26template", FileName = _active.Name + ".cm26template" };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        var columns = Enumerable.Range(0, _active.Columns.Length).Where(index => _active.ColumnDetails[index].IsWritable && !_active.Columns[index].EndsWith("id", StringComparison.OrdinalIgnoreCase)).ToArray();
+        File.WriteAllLines(dialog.FileName, new[] { _active.Name, string.Join("\t", columns.Select(index => _active.Columns[index])),
+            string.Join("\t", columns.Select(index => SafeTsv(_active.Rows[row][index]))) }, new UTF8Encoding(false));
+    }
+
+    private void ApplyRowTemplate()
+    {
+        if (_active == null) return;
+        using var dialog = new OpenFileDialog { Filter = "CM26 row template (*.cm26template)|*.cm26template|All files (*.*)|*.*" };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        var lines = File.ReadAllLines(dialog.FileName);
+        if (lines.Length < 3 || !lines[0].Equals(_active.Name, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Template does not match " + _active.Name + ".");
+        var fields = lines[1].Split('\t'); var values = lines[2].Split('\t');
+        if (fields.Length != values.Length) throw new InvalidDataException("Template field/value count does not match.");
+        var rows = _grid.SelectedCells.Cast<DataGridViewCell>().Select(cell => cell.RowIndex).Distinct().Select(index => Convert.ToInt32(_grid.Rows[index].Cells[0].Value, CultureInfo.InvariantCulture)).ToArray();
+        if (rows.Length == 0) return;
+        var edits = new List<ImportChange>();
+        for (var index = 0; index < fields.Length; index++)
+        {
+            var column = _active.Column(fields[index]); if (column < 0 || !_active.ColumnDetails[column].IsWritable || fields[index].EndsWith("id", StringComparison.OrdinalIgnoreCase)) continue;
+            ValidateCandidate(_active.ColumnDetails[column], values[index]);
+            foreach (var row in rows) if (_active.Rows[row][column] != values[index]) edits.Add(new ImportChange(_active.Name, row, fields[index], _active.Rows[row][column], values[index]));
+        }
+        if (MessageBox.Show(this, "Apply " + edits.Count + " template field update(s) across " + rows.Length + " selected row(s)? Identity fields are protected.",
+            "Row template preview", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+        foreach (var edit in edits) Fc26SnapshotLoader.StageDetailValue(edit.Table, edit.Row, edit.Field, edit.NewValue);
+        LoadTable(); _status.Text = edits.Count + " row-template update(s) staged.";
     }
 
     private bool MatchesFieldFilter(string[] row)
