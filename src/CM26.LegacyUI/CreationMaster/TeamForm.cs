@@ -44,6 +44,14 @@ public class TeamForm : Form
 
 	private bool m_AvailablePlayerLocked;
 
+	private int m_Fc26AvailablePlayersLoadGeneration;
+
+	private int m_Fc26AvailablePlayersAllCount = -1;
+
+	private int m_Fc26AvailablePlayerPhotoGeneration;
+
+	private Image m_Fc26AvailablePlayerPhoto;
+
 	private bool m_ChangeNumberFlag;
 
 	private Label m_DraggedLabel;
@@ -2530,7 +2538,76 @@ public class TeamForm : Form
 		object filter = null;
 		if (pickUpAvailablePlayers.comboFilterBy.SelectedIndex > 0)
 			filter = pickUpAvailablePlayers.comboFilterValue.SelectedItem;
+		if (FifaEnvironment.Year == 26 && filter == null)
+		{
+			if (m_Fc26AvailablePlayersAllCount == FifaEnvironment.Players.Count &&
+				listViewPlayersAvailable.Items.Count == m_Fc26AvailablePlayersAllCount)
+				return;
+			LoadFc26AvailablePlayersAsync();
+			return;
+		}
 		AvailablePlayersFilterChanged(pickUpAvailablePlayers, filter);
+	}
+
+	private async void LoadFc26AvailablePlayersAsync()
+	{
+		int generation = ++m_Fc26AvailablePlayersLoadGeneration;
+		var players = new Player[FifaEnvironment.Players.Count];
+		for (int index = 0; index < players.Length; index++) players[index] = (Player)FifaEnvironment.Players[index];
+
+		listViewPlayersAvailable.BeginUpdate();
+		listViewPlayersAvailable.Items.Clear();
+		listViewPlayersAvailable.EndUpdate();
+		labelRosterNameFrom.Text = "Loading available players…";
+		try
+		{
+			var items = await System.Threading.Tasks.Task.Run(() =>
+			{
+				var rows = new ListViewItem[players.Length];
+				for (int index = 0; index < players.Length; index++)
+				{
+					Player player = players[index];
+					var item = new ListViewItem(player.Name) { Tag = player };
+					item.SubItems.Add(player.firstname);
+					item.SubItems.Add(player.GetRoleAcronym());
+					item.SubItems.Add(player.GetAverageRoleAttribute().ToString());
+					rows[index] = item;
+				}
+				return rows;
+			});
+
+			if (IsDisposed || Disposing || generation != m_Fc26AvailablePlayersLoadGeneration) return;
+			IComparer sorter = listViewPlayersAvailable.ListViewItemSorter;
+			listViewPlayersAvailable.ListViewItemSorter = null;
+			const int batchSize = 500;
+			for (int offset = 0; offset < items.Length; offset += batchSize)
+			{
+				if (IsDisposed || Disposing || generation != m_Fc26AvailablePlayersLoadGeneration)
+				{
+					listViewPlayersAvailable.ListViewItemSorter = sorter;
+					return;
+				}
+				int count = Math.Min(batchSize, items.Length - offset);
+				var batch = new ListViewItem[count];
+				Array.Copy(items, offset, batch, 0, count);
+				listViewPlayersAvailable.BeginUpdate();
+				listViewPlayersAvailable.Items.AddRange(batch);
+				listViewPlayersAvailable.EndUpdate();
+				await System.Threading.Tasks.Task.Yield();
+			}
+			listViewPlayersAvailable.ListViewItemSorter = sorter;
+			m_Fc26AvailablePlayersAllCount = players.Length;
+			SelectFirstAvailablePlayer();
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine(ex);
+			if (!IsDisposed && generation == m_Fc26AvailablePlayersLoadGeneration)
+			{
+				labelRosterNameFrom.Text = "Player list unavailable";
+				EnableRosterButtons();
+			}
+		}
 	}
 
 	private void SelectFc26FormationPreset()
@@ -3294,6 +3371,8 @@ public class TeamForm : Form
 
 	private Team AvailablePlayersFilterChanged(object sender, object obj)
 	{
+		++m_Fc26AvailablePlayersLoadGeneration;
+		m_Fc26AvailablePlayersAllCount = -1;
 		if (m_AvailablePlayerLocked)
 		{
 			return null;
@@ -3320,7 +3399,15 @@ public class TeamForm : Form
 		{
 			m_CurrentAvailablePlayer = (Player)listViewPlayersAvailable.SelectedItems[0].Tag;
 			labelRosterNameFrom.Text = m_CurrentAvailablePlayer.Name;
-			pictureAvailablePlayer.Image = m_CurrentAvailablePlayer.GetPhoto();
+			if (FifaEnvironment.Year == 26)
+			{
+				pictureAvailablePlayer.Image = null;
+				LoadFc26AvailablePlayerPhotoAsync(m_CurrentAvailablePlayer);
+			}
+			else
+			{
+				pictureAvailablePlayer.Image = m_CurrentAvailablePlayer.GetPhoto();
+			}
 			int averageRoleAttribute = m_CurrentAvailablePlayer.GetAverageRoleAttribute();
 			averageRoleAttribute = (averageRoleAttribute - 45) / 5;
 			if (averageRoleAttribute < 0)
@@ -3336,12 +3423,38 @@ public class TeamForm : Form
 		}
 		else if (!m_AvailablePlayerLocked)
 		{
+			++m_Fc26AvailablePlayerPhotoGeneration;
 			m_CurrentAvailablePlayer = null;
 			labelRosterNameFrom.Text = string.Empty;
 			pictureAvailablePlayer.Image = null;
 			labelAvailablePlayerStars.ImageIndex = 0;
 			EnableRosterButtons();
 		}
+	}
+
+	private async void LoadFc26AvailablePlayerPhotoAsync(Player player)
+	{
+		int generation = ++m_Fc26AvailablePlayerPhotoGeneration;
+		try
+		{
+			await System.Threading.Tasks.Task.Delay(60);
+			if (generation != m_Fc26AvailablePlayerPhotoGeneration) return;
+			Image photo = await System.Threading.Tasks.Task.Run(() =>
+			{
+				Fc26HostBridge.PreloadAssets(new[] { player.SpecificPhotoDdsFileName() });
+				using (Bitmap source = player.GetPhoto()) return source == null ? null : new Bitmap(source);
+			});
+			if (IsDisposed || Disposing || generation != m_Fc26AvailablePlayerPhotoGeneration ||
+				m_CurrentAvailablePlayer != player)
+			{
+				photo?.Dispose();
+				return;
+			}
+			m_Fc26AvailablePlayerPhoto?.Dispose();
+			m_Fc26AvailablePlayerPhoto = photo;
+			pictureAvailablePlayer.Image = photo;
+		}
+		catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
 	}
 
 	private void listViewPlayersAvailable_DoubleClick(object sender, EventArgs e)
@@ -5228,6 +5341,9 @@ public class TeamForm : Form
 	{
 		if (disposing)
 		{
+			++m_Fc26AvailablePlayersLoadGeneration;
+			++m_Fc26AvailablePlayerPhotoGeneration;
+			m_Fc26AvailablePlayerPhoto?.Dispose();
 			foreach (Image image in m_Fc26MiniFaceCache.Values) image.Dispose();
 			m_Fc26MiniFaceCache.Clear();
 			if (m_Fc26PitchBackground != null) m_Fc26PitchBackground.Dispose();

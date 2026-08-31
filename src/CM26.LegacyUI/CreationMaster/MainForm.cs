@@ -819,7 +819,12 @@ public class MainForm : Form
 		finally
 		{
 			Cursor.Current = Cursors.Default;
-			panel.ResumeLayout(performLayout: true);
+			// Every hosted editor is already DockStyle.Fill. Forcing a recursive
+			// PerformLayout here made a section click relayout the entire legacy
+			// form (including large list views and preview controls) even when no
+			// bounds changed. Resume without the redundant full layout pass; the
+			// normal WinForms layout messages still handle an actual resize.
+			panel.ResumeLayout(performLayout: false);
 			GraphicUtil.ResumeDrawing(panel);
 		}
 		if (panelBottom.Controls.Count == 0)

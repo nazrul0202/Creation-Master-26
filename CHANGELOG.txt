@@ -1,3 +1,11 @@
+Creation Master 26 v1.0.185 - 31 August 2026
+
+- Removed redundant whole-editor relayout during section switching.
+- Moved FC26 Player Info photo, crest and boot previews off the UI thread.
+- Added cancellable, batched Team Roster player-list and miniface loading.
+- Added preview bitmap lifecycle cleanup for stable long editing sessions.
+- Added a regression gate that prevents synchronous preview/layout hot paths returning.
+
 Creation Master 26 v1.0.184 - 31 August 2026
 
 - Unknown title-update schemas are read-only until their fingerprint is verified.

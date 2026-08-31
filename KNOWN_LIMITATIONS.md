@@ -1,10 +1,10 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.184 (MIT License), 2026-08-31.
+Status: Version 1.0.185 (MIT License), 2026-08-31.
 
 ## User interface
 
-The v1.0.184 public launcher is named `Creation Master 26.exe` and preserves the original Creation Master / CM16-style interface used by v1.0.148. Raw database/schema editors and oversized embedded forms are not exposed in the normal section workflow. The Public Readiness Centre opens specialist functions by football task while FC26 data remains mapped to friendly controls and the x64 Frostbite host runs behind the interface. Exotic DPI combinations or very small window sizes may still need refinement.
+The v1.0.185 public launcher is named `Creation Master 26.exe` and preserves the original Creation Master / CM16-style interface used by v1.0.148. Raw database/schema editors and oversized embedded forms are not exposed in the normal section workflow. The Public Readiness Centre opens specialist functions by football task while FC26 data remains mapped to friendly controls and the x64 Frostbite host runs behind the interface. Exotic DPI combinations or very small window sizes may still need refinement.
 
 Only **Full Portable** is published for users. A framework-dependent Lite build
 is produced solely as an internal packaging/runtime gate and is not a public
@@ -31,6 +31,10 @@ assets must be extracted from the installed game, but the UI remains responsive
 and subsequent visits to cached players are immediate. Formation cards are
 visually reflowed when database-native centre points are too close; this does not
 rewrite the stored FC26 position coordinates.
+
+v1.0.185 removes the main synchronous preview hot paths from Player Info and
+Team Roster. A first uncached Frostbite extraction can still take time, but it
+runs outside the UI thread and stale navigation requests are discarded.
 
 ## Direct editing
 

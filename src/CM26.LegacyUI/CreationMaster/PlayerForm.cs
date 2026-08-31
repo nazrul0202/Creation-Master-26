@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
 using FifaControls;
 using FifaLibrary;
@@ -94,6 +96,12 @@ public class PlayerForm : Form
 	private string m_Fc26FaceMeshKey;
 
 	private string m_Fc26RenderedFaceMeshKey;
+
+	private CancellationTokenSource m_Fc26PlayerInfoAssetsCancellation;
+
+	private Bitmap m_Fc26PlayerInfoPhoto;
+
+	private Bitmap m_Fc26PlayerInfoShoes;
 
 	private IContainer components;
 
@@ -1365,7 +1373,7 @@ public class PlayerForm : Form
 	{
 		RefreshFc26Roles();
 		SetNumericValue(numericPlayerId, m_CurrentPlayer.Id);
-		if (viewer2DPhoto.ShowButton)
+		if (viewer2DPhoto.ShowButton && FifaEnvironment.Year != 26)
 		{
 			viewer2DPhoto.CurrentBitmap = m_CurrentPlayer.GetPhoto();
 		}
@@ -1373,7 +1381,7 @@ public class PlayerForm : Form
 		{
 			viewer2DPhoto.CurrentBitmap = null;
 		}
-		InitListViewPlayingTeams(m_CurrentPlayer.m_PlayingForTeams);
+		InitListViewPlayingTeams(m_CurrentPlayer.m_PlayingForTeams, loadLogos: FifaEnvironment.Year != 26);
 		pictureColorAcc1.BackColor = SafePaletteColor(m_CurrentPlayer.accessorycolourcode1);
 		pictureColorAcc2.BackColor = SafePaletteColor(m_CurrentPlayer.accessorycolourcode2);
 		pictureColorAcc3.BackColor = SafePaletteColor(m_CurrentPlayer.accessorycolourcode3);
@@ -1399,7 +1407,120 @@ public class PlayerForm : Form
 			pictureColorShoes2.Enabled = false;
 			numericShoesDesign.Value = 0m;
 		}
-		viewer2DShoes.CurrentBitmap = Shoes.GetShoesColorTexture(m_CurrentPlayer.shoetypecode, m_CurrentPlayer.shoedesigncode);
+		if (FifaEnvironment.Year == 26)
+		{
+			viewer2DPhoto.CurrentBitmap = null;
+			viewer2DShoes.CurrentBitmap = null;
+			LoadFc26PlayerInfoAssetsAsync(m_CurrentPlayer);
+		}
+		else
+		{
+			viewer2DShoes.CurrentBitmap = Shoes.GetShoesColorTexture(m_CurrentPlayer.shoetypecode, m_CurrentPlayer.shoedesigncode);
+		}
+	}
+
+	private async void LoadFc26PlayerInfoAssetsAsync(Player player)
+	{
+		m_Fc26PlayerInfoAssetsCancellation?.Cancel();
+		m_Fc26PlayerInfoAssetsCancellation?.Dispose();
+		var cancellation = new CancellationTokenSource();
+		m_Fc26PlayerInfoAssetsCancellation = cancellation;
+		var token = cancellation.Token;
+		var teams = new List<Team>();
+		for (int index = 0; index < player.m_PlayingForTeams.Count; index++)
+			teams.Add((Team)player.m_PlayingForTeams[index]);
+		try
+		{
+			// A short debounce prevents rapid keyboard/list navigation from queuing
+			// dozens of Frostbite decodes that the user will never see.
+			await System.Threading.Tasks.Task.Delay(80, token);
+			var assets = await System.Threading.Tasks.Task.Run(() => DecodeFc26PlayerInfoAssets(player, teams, token), token);
+			if (token.IsCancellationRequested || IsDisposed || Disposing || m_CurrentPlayer != player ||
+				tabEditPlayer.SelectedTab != pageInfo)
+			{
+				DisposeFc26PlayerInfoAssets(assets);
+				return;
+			}
+
+			m_Fc26PlayerInfoPhoto?.Dispose();
+			m_Fc26PlayerInfoShoes?.Dispose();
+			m_Fc26PlayerInfoPhoto = assets.Photo;
+			m_Fc26PlayerInfoShoes = assets.Shoes;
+			viewer2DPhoto.CurrentBitmap = m_Fc26PlayerInfoPhoto;
+			viewer2DShoes.CurrentBitmap = m_Fc26PlayerInfoShoes;
+			foreach (ListViewItem item in listViewPlayingTeams.Items)
+			{
+				var team = item.Tag as Team;
+				Bitmap crest;
+				if (team == null || !assets.TeamCrests.TryGetValue(team.Id, out crest)) continue;
+				string key = team.Id.ToString();
+				if (!imageListTeamLogos.Images.ContainsKey(key)) imageListTeamLogos.Images.Add(key, crest);
+				item.ImageKey = key;
+			}
+			foreach (Bitmap crest in assets.TeamCrests.Values) crest?.Dispose();
+			assets.TeamCrests.Clear();
+			listViewPlayingTeams.Invalidate();
+		}
+		catch (OperationCanceledException) { }
+		catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+	}
+
+	private sealed class Fc26PlayerInfoAssets
+	{
+		public Bitmap Photo;
+		public Bitmap Shoes;
+		public readonly Dictionary<int, Bitmap> TeamCrests = new Dictionary<int, Bitmap>();
+	}
+
+	private static Fc26PlayerInfoAssets DecodeFc26PlayerInfoAssets(Player player, IEnumerable<Team> teams,
+		CancellationToken token)
+	{
+		var result = new Fc26PlayerInfoAssets();
+		try
+		{
+			var teamArray = teams.ToArray();
+			var paths = new List<string> { player.SpecificPhotoDdsFileName() };
+			paths.AddRange(teamArray.Select(team => team.Crest32DdsFileName()));
+			Fc26HostBridge.PreloadAssets(paths);
+			token.ThrowIfCancellationRequested();
+			try
+			{
+				using (Bitmap photo = player.GetPhoto())
+					if (photo != null) result.Photo = new Bitmap(photo);
+			}
+			catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+			token.ThrowIfCancellationRequested();
+			try
+			{
+				using (Bitmap shoes = Shoes.GetShoesColorTexture(player.shoetypecode, player.shoedesigncode))
+					if (shoes != null) result.Shoes = new Bitmap(shoes);
+			}
+			catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+			foreach (Team team in teamArray)
+			{
+				token.ThrowIfCancellationRequested();
+				try
+				{
+					using (Bitmap crest = team.GetCrest32())
+						if (crest != null) result.TeamCrests[team.Id] = new Bitmap(crest);
+				}
+				catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+			}
+			return result;
+		}
+		catch
+		{
+			DisposeFc26PlayerInfoAssets(result);
+			throw;
+		}
+	}
+
+	private static void DisposeFc26PlayerInfoAssets(Fc26PlayerInfoAssets assets)
+	{
+		if (assets == null) return;
+		assets.Photo?.Dispose();
+		assets.Shoes?.Dispose();
+		foreach (Bitmap crest in assets.TeamCrests.Values) crest?.Dispose();
 	}
 
 	public void AuditFc26RecordsForSmoke()
@@ -1841,7 +1962,7 @@ public class PlayerForm : Form
 		pickUpControl.ObjectList = FifaEnvironment.Players;
 	}
 
-	private void InitListViewPlayingTeams(TeamList playingTeams)
+	private void InitListViewPlayingTeams(TeamList playingTeams, bool loadLogos = true)
 	{
 		listViewPlayingTeams.BeginUpdate();
 		listViewPlayingTeams.Items.Clear();
@@ -1849,15 +1970,14 @@ public class PlayerForm : Form
 		for (int i = 0; i < playingTeams.Count; i++)
 		{
 			Team team = (Team)playingTeams[i];
-			Bitmap bitmap = null;
-			bitmap = team.GetCrest32();
+			Bitmap bitmap = loadLogos ? team.GetCrest32() : null;
 			if (bitmap != null)
 			{
 				imageListTeamLogos.Images.Add(team.ToString(), bitmap);
 			}
 			ListViewItem listViewItem = new ListViewItem(team.ToString());
 			listViewItem.Tag = team;
-			listViewItem.ImageKey = team.ToString();
+			listViewItem.ImageKey = loadLogos ? team.ToString() : string.Empty;
 			listViewPlayingTeams.Items.Add(listViewItem);
 		}
 		if (listViewPlayingTeams.Items.Count > 0)
@@ -4204,9 +4324,13 @@ public class PlayerForm : Form
 
 	protected override void Dispose(bool disposing)
 	{
-		if (disposing && components != null)
+		if (disposing)
 		{
-			components.Dispose();
+			m_Fc26PlayerInfoAssetsCancellation?.Cancel();
+			m_Fc26PlayerInfoAssetsCancellation?.Dispose();
+			m_Fc26PlayerInfoPhoto?.Dispose();
+			m_Fc26PlayerInfoShoes?.Dispose();
+			if (components != null) components.Dispose();
 		}
 		base.Dispose(disposing);
 	}

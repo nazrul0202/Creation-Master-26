@@ -82,6 +82,23 @@ public sealed class ReleaseSafetyTests
             "Raw exception text is displayed by: " + string.Join(", ", violations));
     }
 
+    [Fact]
+    public void ClassicNavigationKeepsHeavyFc26PreviewWorkOffTheUiThread()
+    {
+        var repository = FindRepositoryRoot();
+        var legacy = Path.Combine(repository, "src", "CM26.LegacyUI", "CreationMaster");
+        var main = File.ReadAllText(Path.Combine(legacy, "MainForm.cs"));
+        var player = File.ReadAllText(Path.Combine(legacy, "PlayerForm.cs"));
+        var team = File.ReadAllText(Path.Combine(legacy, "TeamForm.cs"));
+
+        Assert.Contains("panel.ResumeLayout(performLayout: false)", main, StringComparison.Ordinal);
+        Assert.Contains("LoadFc26PlayerInfoAssetsAsync", player, StringComparison.Ordinal);
+        Assert.Contains("Task.Run(() => DecodeFc26PlayerInfoAssets", player, StringComparison.Ordinal);
+        Assert.Contains("LoadFc26AvailablePlayersAsync", team, StringComparison.Ordinal);
+        Assert.Contains("const int batchSize = 500", team, StringComparison.Ordinal);
+        Assert.Contains("LoadFc26AvailablePlayerPhotoAsync", team, StringComparison.Ordinal);
+    }
+
     private static void WriteJournal(string transaction, string game, string cas, long length,
         string? liveToc, string? backupToc)
     {

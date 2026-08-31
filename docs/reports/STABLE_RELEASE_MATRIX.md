@@ -1,6 +1,6 @@
 # Creation Master 26 — Public Release Matrix
 
-Version: 1.0.184
+Version: 1.0.185
 Date: 2026-08-31
 Public package: Full Portable (Windows 10/11 x64)
 
@@ -13,7 +13,7 @@ another physical machine or an EA title update that is not available locally.
 | Gate | Result | Evidence |
 |---|---|---|
 | Release solution build | PASS | Release build completes with 0 warnings and 0 errors. |
-| Regression suite | PASS | 158 tests, including Compdata leagues with 2/4/12/20/24 teams and interrupted-transaction fault injection. |
+| Regression suite | PASS | 159 tests, including UI responsiveness guards, Compdata leagues with 2/4/12/20/24 teams and interrupted-transaction fault injection. |
 | Public executable identity | PASS | `Creation Master 26.exe`, assembly identity and package manifest agree. |
 | Compdata integrity | PASS | 20 focused tests pass; the retained 90-competition installed snapshot has no structural errors (34 shipped-calendar overlap advisories remain warnings). |
 | Direct-save failure recovery | PASS (code gate) | Atomic journal recovery restores TOC/CAS state; path escape is rejected by regression test. |
@@ -22,7 +22,7 @@ another physical machine or an EA title update that is not available locally.
 | Package self-test | PASS | Full Portable and internal Lite validation both returned `RELEASE SELF-TEST OK`. |
 | UI shell smoke | PASS | Full Portable and internal Lite shell smoke both passed. |
 | Package integrity | PASS | 573-file Full Portable payload; Large Address Aware, version, dependencies, no-PDB and no-EA-content gates passed. |
-| ZIP checksum | PASS | Final Full Portable SHA-256 is recorded in `Release/SHA256SUMS_v1.0.184.txt`. |
+| ZIP checksum | PASS | Final Full Portable SHA-256 is recorded in `Release/SHA256SUMS_v1.0.185.txt`. |
 
 ## Machine-local integration evidence
 

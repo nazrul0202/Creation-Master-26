@@ -1,5 +1,18 @@
 ﻿# CM26 Release Readiness Report
 
+## Version 1.0.185 - responsiveness and preview lifecycle gates (2026-08-31)
+
+- **PASS:** classic section hosting no longer forces a recursive layout pass on
+  unchanged Dock-fill editors.
+- **PASS:** Player Info Frostbite previews are asynchronous, debounced and
+  cancelled when the selected player changes.
+- **PASS:** Team Roster builds the full available-player catalogue away from the
+  UI thread, adds it in yielding batches and reuses a valid completed catalogue.
+- **PASS:** generated preview bitmap ownership is released on replacement or
+  editor disposal; 159 automated regressions and UI shell smoke pass.
+- **BOUNDARY:** cold asset extraction still depends on storage speed; clean-PC,
+  multi-DPI, full-season and Authenticode checks remain external gates.
+
 ## Version 1.0.184 - compatibility, recovery and diagnostics gates (2026-08-31)
 
 - **PASS:** unknown title-update schema fingerprints are blocked read-only rather

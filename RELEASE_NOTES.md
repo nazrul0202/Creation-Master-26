@@ -1,5 +1,18 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.185 - responsive classic workflow (2026-08-31)
+
+- Section switching no longer forces a recursive layout of every control in the
+  hosted legacy editor when its bounds have not changed.
+- FC26 Player Info now loads miniface, club crests and boot texture away from
+  the UI thread, with debounce and cancellation during rapid navigation.
+- The Team Roster available-player catalogue is prepared in the background,
+  rendered in responsive batches and reused on repeat visits.
+- Available-player minifaces are also cancellable and asynchronous, preventing
+  repeated Frostbite decodes from queuing while the selection is moving.
+- Added explicit ownership and disposal for generated preview bitmaps to keep
+  long editing sessions within the classic x86 UI memory budget.
+
 ## Version 1.0.184 - verified compatibility and guided recovery (2026-08-31)
 
 - Unknown FC26 title-update schema fingerprints now remain read-only until
