@@ -3023,9 +3023,22 @@ internal static class HeadlessSmoke
             {
                 try
                 {
+                    var cold = System.Diagnostics.Stopwatch.StartNew();
                     using var section = make();
                     section.CreateControl();           // force handle + child creation
                     section.ActivateSection();          // load the record list
+                    cold.Stop();
+                    var warmTimes = new List<long>();
+                    for (var pass = 0; pass < 5; pass++)
+                    {
+                        var warm = System.Diagnostics.Stopwatch.StartNew();
+                        section.ActivateSection();
+                        warm.Stop();
+                        warmTimes.Add(warm.ElapsedMilliseconds);
+                    }
+                    var warmMax = warmTimes.Max();
+                    if (warmMax > 100)
+                        throw new InvalidOperationException($"Warm activation exceeded 100 ms ({warmMax} ms).");
                     var forbiddenTabs = Descendants(section)
                         .OfType<System.Windows.Forms.TabPage>()
                         .Select(tab => tab.Text.Trim())
@@ -3035,7 +3048,15 @@ internal static class HeadlessSmoke
                     if (forbiddenTabs.Length > 0)
                         throw new InvalidOperationException(
                             $"Public UI exposes forbidden raw-data tab(s): {string.Join(", ", forbiddenTabs)}");
-                    Console.WriteLine($"  [{key,-12}] OK  ({section.SectionTitle})");
+                    var emptyTabs = Descendants(section)
+                        .OfType<System.Windows.Forms.TabPage>()
+                        .Where(tab => tab.Controls.Count == 0 || !Descendants(tab).Any(IsMeaningfulEditorControl))
+                        .Select(tab => tab.Text.Trim())
+                        .Where(text => !string.IsNullOrWhiteSpace(text))
+                        .ToArray();
+                    if (emptyTabs.Length > 0)
+                        throw new InvalidOperationException($"Empty public tab(s): {string.Join(", ", emptyTabs)}");
+                    Console.WriteLine($"  [{key,-12}] OK  ({section.SectionTitle}) cold={cold.ElapsedMilliseconds}ms warmMax={warmMax}ms");
                     ok++;
                 }
                 catch (Exception ex)
@@ -3055,6 +3076,22 @@ internal static class HeadlessSmoke
             return 11;
         }
     }
+
+    private static bool IsMeaningfulEditorControl(System.Windows.Forms.Control control) => control switch
+    {
+        System.Windows.Forms.TextBoxBase => true,
+        System.Windows.Forms.ComboBox => true,
+        System.Windows.Forms.NumericUpDown => true,
+        System.Windows.Forms.CheckBox => true,
+        System.Windows.Forms.RadioButton => true,
+        System.Windows.Forms.Button => true,
+        System.Windows.Forms.DataGridView => true,
+        System.Windows.Forms.ListView => true,
+        System.Windows.Forms.TreeView => true,
+        System.Windows.Forms.PictureBox => true,
+        System.Windows.Forms.Label label => !string.IsNullOrWhiteSpace(label.Text),
+        _ => false
+    };
 
     private static IEnumerable<System.Windows.Forms.Control> Descendants(System.Windows.Forms.Control root)
     {

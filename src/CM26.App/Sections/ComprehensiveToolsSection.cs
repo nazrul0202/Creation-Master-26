@@ -14,6 +14,7 @@ namespace CM26.App.Sections;
 /// </summary>
 public sealed class ComprehensiveToolsSection : SectionBase
 {
+    private bool _rendered;
     private sealed record Module(int Number, string Group, string Title, string Route, string Summary);
 
     private static readonly Module[] Modules =
@@ -69,6 +70,7 @@ public sealed class ComprehensiveToolsSection : SectionBase
     protected override string TableName => string.Empty;
     protected override bool SinglePane => true;
     protected override bool ShowRecordCommandStrip => false;
+    protected override bool UsesRecordData => false;
 
     public ComprehensiveToolsSection(AppServices services) : base(services)
     {
@@ -99,10 +101,15 @@ public sealed class ComprehensiveToolsSection : SectionBase
 
     protected override IReadOnlyList<RecordListItem> GetRecords() => Array.Empty<RecordListItem>();
     protected override void ShowRecord(int recordIndex) { }
-    public override void ActivateSection() => Render();
+    public override void ActivateSection()
+    {
+        if (_rendered) return;
+        Render();
+    }
 
     private void Render()
     {
+        _rendered = true;
         var query = _search?.Text.Trim() ?? string.Empty;
         var visible = Modules.Where(module => string.IsNullOrWhiteSpace(query) ||
             module.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||

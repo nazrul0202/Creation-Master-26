@@ -53,6 +53,7 @@ public sealed class PlayersSection : SectionBase
     private bool _syncSkillSliders;
     private bool _syncReferencePickers;
     private bool _syncClubPicker;
+    private int _cachedRecordCount = -1;
     private int _currentPlayerId;
     private int _currentHeadAssetId;
     private readonly Dictionary<string, ComboBox> _referencePickers = new(StringComparer.OrdinalIgnoreCase);
@@ -279,14 +280,12 @@ public sealed class PlayersSection : SectionBase
             _toolbar.RecordCountText = "0 records";
             return;
         }
-        try
+        if (_cachedRecordCount < 0)
         {
-            _toolbar.RecordCountText = $"{GetRecords().Count:N0} records";
+            try { _cachedRecordCount = GetRecords().Count; }
+            catch { _cachedRecordCount = 0; }
         }
-        catch
-        {
-            _toolbar.RecordCountText = string.Empty;
-        }
+        _toolbar.RecordCountText = $"{_cachedRecordCount:N0} records";
     }
 
     private void StepRecord(int delta)

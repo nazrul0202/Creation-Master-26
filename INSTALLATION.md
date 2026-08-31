@@ -1,11 +1,11 @@
-# Installation — Creation Master 26 1.0.187
+# Installation — Creation Master 26 1.0.188
 
 Use the Full Portable package on Windows 10/11 x64. It contains the required
 .NET 8 desktop runtime; no separate runtime installation is needed.
 
 Creation Master 26 is distributed unsigned, so Windows SmartScreen may show an "unknown
 publisher" warning on first run. Choose **More info > Run anyway** if you trust
-the download. Verify your download against `SHA256SUMS_v1.0.187.txt` if
+the download. Verify your download against `SHA256SUMS_v1.0.188.txt` if
 you obtained it from anywhere other than the official releases page.
 
 The built-in CM26 3D viewer remains included. For optional F3D FBX viewing,
@@ -27,6 +27,10 @@ first open CM26 creates the complete immutable original backup at
 Every Save commits the validated database/legacy replacements directly into
 that installation's live `Data` and `Patch`, then re-extracts and reloads the
 saved database from the archives to verify the result.
+
+The Deco-inspired Studio is the default interface. Use
+`Creation Master 26.exe --classic` only when you need the original CM16
+compatibility shell.
 
 ## No EA game content is included
 

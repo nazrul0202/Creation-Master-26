@@ -1,3 +1,11 @@
+Creation Master 26 v1.0.188 - 31 August 2026
+
+- Made the Deco-inspired x64 Studio the default interface; classic CM16 remains under --classic.
+- Added lazy section creation, cached view state, a cold-load skeleton and sub-100 ms warm navigation gate.
+- Fixed blank custom-toolbar editors so every data section loads and selects a real record.
+- Moved shared Frostbite search/extraction/preview decoding off the UI thread with stale-request cancellation.
+- Added owner-drawn Deco tabs, coherent light colours and content audits for every public tab.
+
 Creation Master 26 v1.0.187 - 31 August 2026
 
 - Added a direct Batch Team Kits workflow for Home, Away, Goalkeeper and Third kits.

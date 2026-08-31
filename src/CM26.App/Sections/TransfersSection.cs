@@ -34,12 +34,14 @@ public sealed class TransfersSection : SectionBase
     private readonly List<TransfermarktPlayer> _players = [];
     private readonly StudioToolbar _toolbar;
     private string _scraperWorkbookPath = string.Empty;
+    private bool _initialized;
 
     public override string SectionKey => "transfers";
     public override string SectionTitle => "Data Sync";
     protected override string TableName => "";
     protected override bool SinglePane => true;
     protected override bool ShowRecordCommandStrip => false;
+    protected override bool UsesRecordData => false;
 
     public TransfersSection(AppServices services) : base(services)
     {
@@ -193,8 +195,10 @@ public sealed class TransfersSection : SectionBase
     public override void ActivateSection()
     {
         base.ActivateSection();
+        if (_initialized) return;
         PopulateDestinationTeams();
         DetectScraperOutput(showMissingMessage: false);
+        _initialized = true;
     }
 
     private void HighlightSquadPlayer(string query)

@@ -520,8 +520,8 @@ internal static class Program
         // Apply the saved UI language (defaults to the OS UI culture).
         Localization.SetCulture(SettingsService.Language);
 
-        // CM26 Studio uses the dark scouting workspace as its primary visual mode.
-        CM26.App.Theming.Theme.IsDark = true;
+        // Deco-inspired light mode is the default; users can retain dark mode in Settings.
+        CM26.App.Theming.Theme.IsDark = SettingsService.DarkMode;
 
         // First-run End User License Agreement. If the user declines, do not continue.
         // Recover a CM26-owned folder swap before any editor/archive session is
@@ -561,16 +561,17 @@ internal static class Program
 
         try
         {
-            // Preserve the familiar Creation Master / CM16 desktop as CM26's public
-            // interface.  Its FC26 commands call back into this x64 host for direct
-            // Frostbite database and asset work.  The newer internal Studio remains
-            // available only through an explicit switch for diagnostics/development.
+            // The responsive x64 Studio is the public interface. It owns the fast,
+            // lazy section workspace and direct Frostbite workflow. The original
+            // CM16 shell remains available through --classic/--legacy for users who
+            // need its compatibility-only surfaces.
             var legacyExe = Path.Combine(AppContext.BaseDirectory, "CM26.LegacyUI", "CM26.LegacyUI.exe");
-            var useInternalStudio = args.Length >= 1 &&
-                args[0].Equals("--studio", StringComparison.OrdinalIgnoreCase);
+            var useClassicShell = args.Length >= 1 &&
+                (args[0].Equals("--classic", StringComparison.OrdinalIgnoreCase) ||
+                 args[0].Equals("--legacy", StringComparison.OrdinalIgnoreCase));
             var useWpfCompatibility = args.Length >= 1 &&
                 args[0].Equals("--cm16-studio", StringComparison.OrdinalIgnoreCase);
-            if (!useInternalStudio && !useWpfCompatibility && !isStudioSmoke && File.Exists(legacyExe))
+            if (useClassicShell && !useWpfCompatibility && !isStudioSmoke && File.Exists(legacyExe))
             {
                 using var legacy = Process.Start(new ProcessStartInfo
                 {
@@ -590,7 +591,8 @@ internal static class Program
             else
             {
                 var initialDatabaseFolder = args.Length >= 2 &&
-                    args[0].Equals("--studio", StringComparison.OrdinalIgnoreCase) &&
+                    (args[0].Equals("--studio", StringComparison.OrdinalIgnoreCase) ||
+                     args[0].Equals("--database", StringComparison.OrdinalIgnoreCase)) &&
                     Directory.Exists(args[1]) ? args[1] : null;
                 using var mainForm = new MainForm(initialDatabaseFolder);
                 if (isStudioSmoke)

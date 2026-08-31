@@ -18,6 +18,7 @@ public sealed class DiagnosticsSection : SectionBase
     protected override string TableName => "";
     protected override bool SinglePane => true;
     protected override bool ShowRecordCommandStrip => false;
+    protected override bool UsesRecordData => false;
 
     public DiagnosticsSection(AppServices s) : base(s)
     {

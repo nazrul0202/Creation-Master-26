@@ -31,8 +31,14 @@
 | Package | Size | Description |
 |---------|------|-------------|
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
+| **Lite Portable** | See release asset | Smaller package for systems that already have the .NET 8 Desktop Runtime |
 
-Checksums: `SHA256SUMS_v1.0.187.txt` is included with the v1.0.187 release assets.
+Checksums: `SHA256SUMS_v1.0.188.txt` is included with the v1.0.188 release assets.
+
+The default interface is now the responsive, Deco-inspired CM26 Studio. Sections
+are created only when first opened, retained for instant return navigation and
+show a clear loading state during uncached setup. The compatibility CM16 shell
+remains available with `Creation Master 26.exe --classic`.
 
 Open **Tools > Public Readiness Centre** for the complete direct-edit workflow:
 Team Complete, Squad Doctor, player/batch/face tools, Compdata Pro, Kit/Asset
@@ -77,7 +83,7 @@ existing database row.
 - **CmModData backup** — immutable copy of your original game state on first open, restorable anytime
 - **Direct FC26 Save** — validates, backs up and commits database and staged native assets without a FIFA Mod Manager package
 - **Lightweight CM26ModData overlay** — NTFS symlinks mirror unchanged FC26 archives; copy-on-write materialises only modified CAS/TOC files
-- **Automated quality gate** — xUnit regression suite, all-section multi-resolution layout smoke test and GitHub Actions CI
+- **Automated quality gate** — xUnit regression suite, all-section multi-resolution layout smoke test, non-empty tab audit, sub-100 ms warm-navigation gate and GitHub Actions CI
 
 ---
 

@@ -1,43 +1,60 @@
 using System.Drawing;
+using CM26.App.Theming;
 
 namespace CM26.App.Controls.Studio;
 
 /// <summary>
-/// Modern dark football database palette used by the Studio control set.
-/// These values match the target visual system while remaining independent
-/// of the legacy Theme class so the rebuild can be validated in isolation.
+/// Deco-inspired football database palette used by the Studio control set.
+/// It follows the live application theme so light mode never contains dark islands.
 /// </summary>
 public static class StudioColors
 {
-    public static readonly Color AppBackground = Color.FromArgb(0x0D, 0x10, 0x14);
-    public static readonly Color Surface = Color.FromArgb(0x15, 0x1A, 0x21);
-    public static readonly Color RaisedSurface = Color.FromArgb(0x1D, 0x25, 0x30);
-    public static readonly Color InputBackground = Color.FromArgb(0x11, 0x16, 0x1C);
-    public static readonly Color CardBorder = Color.FromArgb(0x2D, 0x39, 0x47);
-    public static readonly Color Divider = Color.FromArgb(0x23, 0x2D, 0x38);
+    // The Studio control set follows the same live palette as the rest of CM26.
+    // This makes Deco-inspired light mode cohesive instead of leaving dark islands
+    // in custom sidebar/cards when the application theme changes.
+    public static Color AppBackground => Theme.Background;
+    public static Color Surface => Theme.Panel;
+    public static Color RaisedSurface => Theme.Raised;
+    public static Color InputBackground => Theme.Input;
+    public static Color CardBorder => Theme.Border;
+    public static Color Divider => Theme.Border;
 
-    public static readonly Color PrimaryText = Color.FromArgb(0xF3, 0xF6, 0xF8);
-    public static readonly Color MutedText = Color.FromArgb(0x8E, 0x9A, 0xA8);
-    public static readonly Color DisabledText = Color.FromArgb(0x5A, 0x66, 0x74);
+    public static Color PrimaryText => Theme.Text;
+    public static Color MutedText => Theme.Muted;
+    public static Color DisabledText => Theme.IsDark
+        ? Color.FromArgb(0x5A, 0x66, 0x74)
+        : Color.FromArgb(150, 150, 150);
 
-    public static readonly Color CyanAccent = Color.FromArgb(0x38, 0xBD, 0xF8);
-    public static readonly Color CyanAccentHover = Color.FromArgb(0x0E, 0xA5, 0xE8);
+    public static Color CyanAccent => Theme.Accent;
+    public static Color CyanAccentHover => Theme.AccentHover;
 
-    public static readonly Color Green = Color.FromArgb(0x84, 0xCC, 0x16);
-    public static readonly Color GreenHover = Color.FromArgb(0x74, 0xB9, 0x22);
-    public static readonly Color GreenSoft = Color.FromArgb(0x22, 0x3D, 0x11);
+    public static Color Green => Theme.Success;
+    public static Color GreenHover => Theme.IsDark
+        ? Color.FromArgb(0x74, 0xB9, 0x22)
+        : Color.FromArgb(92, 154, 24);
+    public static Color GreenSoft => Theme.IsDark
+        ? Color.FromArgb(0x22, 0x3D, 0x11)
+        : Color.FromArgb(232, 245, 216);
 
-    public static readonly Color Yellow = Color.FromArgb(0xF5, 0x9E, 0x0B);
-    public static readonly Color YellowSoft = Color.FromArgb(0x3D, 0x2E, 0x0A);
+    public static Color Yellow => Theme.Warning;
+    public static Color YellowSoft => Theme.IsDark
+        ? Color.FromArgb(0x3D, 0x2E, 0x0A)
+        : Color.FromArgb(255, 244, 214);
 
     public static readonly Color Orange = Color.FromArgb(0xF9, 0x73, 0x16);
-    public static readonly Color OrangeSoft = Color.FromArgb(0x3D, 0x1E, 0x0A);
+    public static Color OrangeSoft => Theme.IsDark
+        ? Color.FromArgb(0x3D, 0x1E, 0x0A)
+        : Color.FromArgb(255, 240, 229);
 
-    public static readonly Color Red = Color.FromArgb(0xEF, 0x44, 0x44);
-    public static readonly Color RedSoft = Color.FromArgb(0x3D, 0x12, 0x12);
+    public static Color Red => Theme.Danger;
+    public static Color RedSoft => Theme.IsDark
+        ? Color.FromArgb(0x3D, 0x12, 0x12)
+        : Color.FromArgb(253, 232, 232);
 
     public static readonly Color Purple = Color.FromArgb(0xA8, 0x55, 0xF7);
-    public static readonly Color PurpleSoft = Color.FromArgb(0x2D, 0x1A, 0x47);
+    public static Color PurpleSoft => Theme.IsDark
+        ? Color.FromArgb(0x2D, 0x1A, 0x47)
+        : Color.FromArgb(240, 231, 250);
 
     public static readonly Color PitchGreen = Color.FromArgb(0x10, 0x3D, 0x28);
     public static readonly Color PitchLine = Color.FromArgb(0xFF, 0xFF, 0xFF);
@@ -61,9 +78,9 @@ public static class StudioColors
         return rating switch
         {
             >= 90 => GreenSoft,
-            >= 80 => Color.FromArgb(0x2A, 0x3D, 0x0F),
+            >= 80 => Theme.IsDark ? Color.FromArgb(0x2A, 0x3D, 0x0F) : Color.FromArgb(239, 248, 220),
             >= 75 => YellowSoft,
-            >= 70 => Color.FromArgb(0x3D, 0x28, 0x0A),
+            >= 70 => Theme.IsDark ? Color.FromArgb(0x3D, 0x28, 0x0A) : Color.FromArgb(255, 241, 218),
             >= 60 => OrangeSoft,
             _ => RedSoft,
         };

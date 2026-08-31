@@ -22,6 +22,7 @@ public sealed class ModManagerSection : SectionBase
     protected override string TableName => "";
     protected override bool SinglePane => true;
     protected override bool ShowRecordCommandStrip => false;
+    protected override bool UsesRecordData => false;
 
     public ModManagerSection(AppServices services) : base(services)
     {

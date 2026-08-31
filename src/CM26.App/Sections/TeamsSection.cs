@@ -816,7 +816,7 @@ public sealed class TeamsSection : SectionBase
     {
         var card = StudioGroup("Team Metadata", StudioColors.Purple);
         card.Width = 260;
-        card.Height = 290;
+        card.Height = 306;
 
         _teamFoundationLabel = MakeLabel("Founded: —", StudioFonts.DataValue, StudioColors.PrimaryText, false);
         _teamFoundationLabel.Location = new Point(StudioSpacing.Medium, 30);
@@ -862,7 +862,7 @@ public sealed class TeamsSection : SectionBase
 
         var careerNote = MakeLabel("Career budget opens from the Career Save module", StudioFonts.DataLabel, StudioColors.MutedText, false);
         careerNote.Location = new Point(StudioSpacing.Medium, 252);
-        careerNote.Size = new Size(228, 20);
+        careerNote.Size = new Size(228, 36);
         card.Controls.Add(careerNote);
 
         return card;

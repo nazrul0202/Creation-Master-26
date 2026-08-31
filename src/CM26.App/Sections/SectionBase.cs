@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using CM26.App.Controls;
+using CM26.App.Controls.Studio;
 using CM26.App.Theming;
 using CM26.Application.Models;
 using CM26.Application.Services;
@@ -16,6 +17,8 @@ namespace CM26.App.Sections;
 /// </summary>
 public abstract class SectionBase : UserControl
 {
+    private bool _hasLoadedData;
+    protected int LoadedRecordCount { get; private set; }
     private static readonly Font ClassicFont = Theme.Body;
     protected readonly AppServices Services;
     protected readonly RecordListPanel Browser;
@@ -50,6 +53,12 @@ public abstract class SectionBase : UserControl
     /// must not display the empty record-picker command strip.
     /// </summary>
     protected virtual bool ShowRecordCommandStrip => true;
+    /// <summary>
+    /// False only for workflow pages that do not represent a database record set.
+    /// A section may hide the base command strip and still use record data through
+    /// its own Studio toolbar.
+    /// </summary>
+    protected virtual bool UsesRecordData => true;
 
     public abstract string SectionKey { get; }
     public abstract string SectionTitle { get; }
@@ -74,7 +83,7 @@ public abstract class SectionBase : UserControl
         // as the data/selection adapter; it is deliberately collapsed below.
         Browser = new RecordListPanel { Dock = DockStyle.Fill };
         Header = new EditorHeader { Dock = DockStyle.Top, Visible = false };
-        Tabs = new TabControl { Dock = DockStyle.Fill, Font = ClassicFont, Padding = new Point(3, 1), BackColor = Theme.Background };
+        Tabs = new StudioTabControl { Dock = DockStyle.Fill, Font = ClassicFont, BackColor = Theme.Background };
         Validation = new ValidationSummary { Dock = DockStyle.Bottom };
         EmptyState = new EmptyStatePanel("Select a record to edit") { Dock = DockStyle.Fill, Visible = false };
 
@@ -289,7 +298,11 @@ public abstract class SectionBase : UserControl
     public virtual void ActivateSection()
     {
         ConfigureSplit();
-        LoadData();
+        // Section instances are cached by the shell. Rebuilding the record browser,
+        // picker and detail surface on every navigation click was the largest source
+        // of warm-switch latency. Explicit Refresh commands and database reloads still
+        // call LoadData; a normal return to an existing section keeps its live state.
+        if (!_hasLoadedData) LoadData();
     }
 
     public void LoadData()
@@ -297,10 +310,11 @@ public abstract class SectionBase : UserControl
         // Workflow-only pages such as Data Sync do not have records to select.
         // Their controls must remain visible instead of being covered by the
         // generic record empty state.
-        if (!ShowRecordCommandStrip)
+        if (!UsesRecordData)
         {
             EmptyState.Visible = false;
             Tabs.BringToFront();
+            _hasLoadedData = true;
             return;
         }
         if (!Services.Session.IsLoaded)
@@ -308,13 +322,16 @@ public abstract class SectionBase : UserControl
             Browser.SetItems(Array.Empty<RecordListItem>());
             SetPickerItems(Array.Empty<RecordListItem>());
             Header.Clear("No database loaded");
+            _hasLoadedData = true;
             return;
         }
         try
         {
             var records = GetRecords();
+            LoadedRecordCount = records.Count;
             Browser.SetItems(records);
             SetPickerItems(records);
+            _hasLoadedData = true;
         }
         catch (Exception ex)
         {
@@ -520,6 +537,9 @@ public abstract class SectionBase : UserControl
         }
         return FindNextAvailableId(used, column.RangeLow, column.RangeHigh, idField);
     }
+
+    /// <summary>Marks cached records stale so the next activation performs a real reload.</summary>
+    public void InvalidateCachedData() => _hasLoadedData = false;
 
     internal static int FindNextAvailableId(
         IEnumerable<int> existingIds, int rangeLow, int rangeHigh, string idField = "id")

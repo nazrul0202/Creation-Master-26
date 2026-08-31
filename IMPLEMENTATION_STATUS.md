@@ -1,10 +1,13 @@
-# Creation Master 26 v1.0.187 implementation status
+# Creation Master 26 v1.0.188 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
 ## Complete
 
-- Original v1.0.148-style Creation Master interface as the normal public shell.
+- Deco-inspired responsive x64 Studio as the normal public shell; the original v1.0.148-style Creation Master interface remains available through `--classic`.
+- Lazy section creation, retained view state, a visible cold-load skeleton and a measured sub-100 ms warm-navigation release gate across all 25 public sections.
+- Player, Team, League, Country and all custom-toolbar editors now load and select real records automatically instead of presenting an uninitialised blank canvas.
+- Frostbite preview search, extraction and decoding run away from the UI thread with stale-request cancellation and safe disposal.
 - Public Readiness Centre unifies Team Complete, Squad Doctor, player/batch/face workflows, Compdata Pro, Kit/Asset Center, Safe IDs, health checks and direct Save without an external editor hand-off.
 - DBM Studio, RDM26 and Deco-derived logic mapped behind the original Player, Team, Formation, Country, League, Competition, Stadium, Kit, Ball, Boots, Gloves, Manager and presentation controls.
 - Public UI exposes friendly football concepts and relationship selectors only; raw database, XML, hash and schema fields are not exposed.

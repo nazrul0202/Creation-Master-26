@@ -69,10 +69,10 @@ public static class SettingsService
         set { _values["Language"] = value; Save(); }
     }
 
-    /// <summary>Visual theme mode: true = dark (default), false = explicit light mode.</summary>
+    /// <summary>Visual theme mode: false = Deco-inspired light mode (default), true = optional dark mode.</summary>
     public static bool DarkMode
     {
-        get => !_values.TryGetValue("DarkMode", out var v) || v != "0";
+        get => _values.TryGetValue("DarkMode", out var v) && v == "1";
         set { _values["DarkMode"] = value ? "1" : "0"; Save(); }
     }
 

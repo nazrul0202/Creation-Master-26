@@ -25,6 +25,7 @@ public sealed class SettingsSection : SectionBase
     protected override string TableName => "";
     protected override bool SinglePane => true;
     protected override bool ShowRecordCommandStrip => false;
+    protected override bool UsesRecordData => false;
 
     public SettingsSection(AppServices s) : base(s)
     {

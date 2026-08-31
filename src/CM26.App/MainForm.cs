@@ -15,6 +15,7 @@ public sealed class MainForm : Form
     private readonly AppServices _services = new();
 
     private readonly Panel _workspace;
+    private readonly LoadingStatePanel _sectionLoading;
     private readonly MenuStrip _menu;
     private readonly StudioToolbar _toolbar;
     private readonly StudioSidebar _sidebar;
@@ -25,6 +26,10 @@ public sealed class MainForm : Form
     private readonly ToolTip _toolTip = new() { AutoPopDelay = 8000, InitialDelay = 400, ReshowDelay = 100 };
     private readonly WelcomePanel _welcome;
     private string? _activeKey;
+    private int _navigationGeneration;
+    private string? _pendingRecordKey;
+    private int _pendingRecordIndex = -1;
+    private (int TeamId, string WorkbookPath)? _pendingSquadImport;
 
     // Section registry (key, title, factory). Editors are created lazily.
     private readonly List<(string key, string title, Func<AppServices, SectionBase> factory)> _registry;
@@ -191,9 +196,11 @@ public sealed class MainForm : Form
         // ---- Workspace ----
         _workspace = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Background, Padding = new Padding(0) };
         _welcome = new WelcomePanel { Dock = DockStyle.Fill };
+        _sectionLoading = new LoadingStatePanel { Dock = DockStyle.Fill, Visible = false };
         _welcome.OpenRequested += async (_, _) => await OpenFc26Async();
         _welcome.FolderRequested += async (_, folder) => await LoadDatabaseFolderAsync(folder);
         ShowEmptyWorkspace();
+        _workspace.Controls.Add(_sectionLoading);
 
         Controls.Add(_workspace);
         Controls.Add(_sidebar);
@@ -269,6 +276,7 @@ public sealed class MainForm : Form
 
     public void NavigateTo(string key)
     {
+        var started = Stopwatch.StartNew();
         if (key.Equals("$health", StringComparison.OrdinalIgnoreCase))
         {
             ShowDatabaseHealthCentre();
@@ -279,42 +287,99 @@ public sealed class MainForm : Form
             SetStatus("Open game data first (Ctrl+O).");
             return;
         }
-        // Warn when leaving a section with staged changes that have not been saved,
-        // unless the target is the same section (harmless re-selection).
-        if (_activeKey != null && !_activeKey.Equals(key, StringComparison.OrdinalIgnoreCase) &&
-            (_services.Pending.HasChanges || _services.LegacyMods.HasChanges))
-        {
-            var count = _services.Pending.Count + _services.LegacyMods.Count;
-            var proceed = MessageBox.Show(this,
-                $"You have {count} unsaved change(s) staged. " +
-                "They remain staged (not lost) when you switch sections.\n\n" +
-                $"Switch from {_activeKey} to {key} and continue editing?",
-                "Unsaved changes", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-            if (proceed != DialogResult.Yes) return;
-        }
+        if (_activeKey != null && _activeKey.Equals(key, StringComparison.OrdinalIgnoreCase) &&
+            _sections.TryGetValue(key, out var alreadyActive) && alreadyActive.Visible)
+            return;
         if (!_sections.TryGetValue(key, out var section))
         {
-            var reg = _registry.Find(r => r.key == key);
-            if (reg.factory == null) return;
-            section = reg.factory(_services);
-            section.Dock = DockStyle.Fill;
-            Theme.ApplyControlTree(section);
-            _sections[key] = section;
+            var generation = ++_navigationGeneration;
+            ShowSectionSkeleton(key);
+            // Headless automation and embedders can navigate before the top-level
+            // window owns a native handle. BeginInvoke is illegal in that state.
+            if (!IsHandleCreated)
+            {
+                CompleteColdNavigation(key, generation, started);
+                return;
+            }
+            // Let the skeleton paint before constructing a large first-use editor.
+            // The continuation stays on the UI thread because WinForms controls must
+            // be created there, but the user receives immediate visual feedback.
+            BeginInvoke((Action)(() => BeginInvoke((Action)(() =>
+                CompleteColdNavigation(key, generation, started)))));
+            return;
         }
 
-        _workspace.SuspendLayout();
-        _workspace.Controls.Clear();
+        ActivateCachedSection(key, section, started);
+    }
+
+    private void ShowSectionSkeleton(string key)
+    {
+        if (_activeKey != null && _sections.TryGetValue(_activeKey, out var previous))
+            previous.Visible = false;
+        if (_sectionLoading.Parent != _workspace) _workspace.Controls.Add(_sectionLoading);
+        var title = _registry.Find(item => item.key == key).title ?? key;
+        _sectionLoading.SetMessage($"Loading {title}…");
+        _sectionLoading.Show();
+        _sidebar.SetActive(key);
+        SetStatus($"Preparing {title}…");
+    }
+
+    private void CompleteColdNavigation(string key, int generation, Stopwatch started)
+    {
+        if (IsDisposed || Disposing || generation != _navigationGeneration) return;
+        var reg = _registry.Find(item => item.key == key);
+        if (reg.factory == null) return;
+        var section = reg.factory(_services);
+        section.Dock = DockStyle.Fill;
+        Theme.ApplyControlTree(section);
+        section.Visible = false;
+        _sections[key] = section;
         _workspace.Controls.Add(section);
-        _workspace.ResumeLayout();
+        ActivateCachedSection(key, section, started);
+        if (_pendingRecordKey != null && _pendingRecordKey.Equals(key, StringComparison.OrdinalIgnoreCase))
+        {
+            var recordIndex = _pendingRecordIndex;
+            _pendingRecordKey = null;
+            _pendingRecordIndex = -1;
+            if (recordIndex >= 0) section.GoToRecord(recordIndex);
+        }
+        if (key.Equals("teams", StringComparison.OrdinalIgnoreCase) &&
+            section is TeamsSection teams && _pendingSquadImport is { } import)
+        {
+            _pendingSquadImport = null;
+            teams.ImportScraperSquadFromDataSync(import.TeamId, import.WorkbookPath);
+        }
+    }
+
+    private void ActivateCachedSection(string key, SectionBase section, Stopwatch started)
+    {
+        ++_navigationGeneration;
+
+        _workspace.SuspendLayout();
+        if (_activeKey != null && _sections.TryGetValue(_activeKey, out var previous))
+            previous.Visible = false;
+        section.Visible = true;
+        section.BringToFront();
+        _sectionLoading.Hide();
+        _workspace.ResumeLayout(performLayout: false);
 
         _activeKey = key;
         _sidebar.SetActive(key);
         section.ActivateSection();
-        SetStatus($"{section.SectionTitle} — {_services.Session.Tables.Count} tables loaded.");
+        started.Stop();
+        var pending = _services.Pending.Count + _services.LegacyMods.Count;
+        var staged = pending > 0 ? $" · {pending} change(s) safely staged" : string.Empty;
+        SetStatus($"{section.SectionTitle} — {_services.Session.Tables.Count} tables loaded{staged} · {started.ElapsedMilliseconds} ms");
+        Program.Log($"[UX] section={key} activationMs={started.ElapsedMilliseconds} cached={_sections.ContainsKey(key)}");
     }
 
     private void NavigateToRecord(string key, int recordIndex)
     {
+        if (!_sections.ContainsKey(key))
+        {
+            _pendingRecordKey = key;
+            _pendingRecordIndex = recordIndex;
+        }
         NavigateTo(key);
         if (_sections.TryGetValue(key, out var section) && recordIndex >= 0)
             section.GoToRecord(recordIndex);
@@ -327,6 +392,8 @@ public sealed class MainForm : Form
             BeginInvoke(() => ImportScraperSquad(teamId, workbookPath));
             return;
         }
+        if (!_sections.ContainsKey("teams"))
+            _pendingSquadImport = (teamId, workbookPath);
         NavigateTo("teams");
         if (_sections.TryGetValue("teams", out var section) && section is TeamsSection teams)
             teams.ImportScraperSquadFromDataSync(teamId, workbookPath);
@@ -526,9 +593,14 @@ if (choice == DialogResult.No)
         _assetStatus.ToolTipText = _services.FrostbiteAssets.Status +
             (string.IsNullOrWhiteSpace(_services.FrostbiteAssets.GameRoot)
                 ? string.Empty : Environment.NewLine + _services.FrostbiteAssets.GameRoot);
-        // Refresh current section so it shows the new data.
-        if (_activeKey != null && _sections.TryGetValue(_activeKey, out var s))
-            s.ActivateSection();
+        // A newly opened source invalidates every cached picker/detail surface.
+        // Recreate only the active section now; all others remain genuinely lazy.
+        var target = _activeKey ?? "dashboard";
+        foreach (var section in _sections.Values) section.Dispose();
+        _sections.Clear();
+        _workspace.Controls.Clear();
+        _activeKey = null;
+        NavigateTo(target);
     }
 
     private void OnFrostbiteAssetsReady()

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.187",
+  "version": "1.0.188",
   "name": "Creation Master 26",
-  "notes": "v1.0.187 - direct Team Kit Manager, corrected FC26 kit-slot mapping and verified teamkits creation.",
+  "notes": "v1.0.188 - Deco-first Studio, instant cached navigation, complete section loading and cancellable previews.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

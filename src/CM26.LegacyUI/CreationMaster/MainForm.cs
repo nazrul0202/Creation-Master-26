@@ -781,6 +781,26 @@ public class MainForm : Form
 		if (ReferenceEquals(form.Parent, panel) && form.Visible)
 			return;
 
+		// Warm navigation must be a visibility swap only. Calling WM_SETREDRAW and
+		// Refresh on panelMain forced a synchronous repaint of a control tree holding
+		// every large CM16 editor, which made repeat section clicks feel delayed.
+		if (ReferenceEquals(panel, panelMain) && ReferenceEquals(form.Parent, panel) &&
+			form.IsHandleCreated)
+		{
+			panel.SuspendLayout();
+			try
+			{
+				foreach (Control control in panel.Controls)
+					control.Visible = ReferenceEquals(control, form);
+				if (form.Bounds != panel.ClientRectangle) form.Bounds = panel.ClientRectangle;
+				form.BringToFront();
+			}
+			finally { panel.ResumeLayout(performLayout: false); }
+			// Queue painting instead of blocking the click handler with Refresh().
+			form.Invalidate(invalidateChildren: false);
+			return;
+		}
+
 		// Some original CM16 forms synchronously resolve several FC26 Frostbite
 		// previews the first time they are shown. Freeze the host panel (which still
 		// contains the previous form) until the replacement is fully initialized;
@@ -833,7 +853,10 @@ public class MainForm : Form
 			// bounds changed. Resume without the redundant full layout pass; the
 			// normal WinForms layout messages still handle an actual resize.
 			panel.ResumeLayout(performLayout: false);
-			GraphicUtil.ResumeDrawing(panel);
+			// Re-enable drawing and queue a paint. GraphicUtil.ResumeDrawing calls
+			// Refresh(), which is intentionally avoided for responsive navigation.
+			GraphicUtil.SendMessage(panel.Handle, 11, true, 0);
+			form.Invalidate(invalidateChildren: false);
 		}
 		if (panelBottom.Controls.Count == 0)
 		{

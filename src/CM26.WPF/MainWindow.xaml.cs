@@ -11,6 +11,7 @@ namespace CM26.Studio;
 
 public partial class MainWindow : Window
 {
+    private readonly Dictionary<string, FrameworkElement> _sectionCache = new(StringComparer.OrdinalIgnoreCase);
     private AppSession _session = new();
     private double _bottomHeight = 160;
     private double _rightWidth = 320;
@@ -141,100 +142,122 @@ public partial class MainWindow : Window
     private void ShowSection(string key)
     {
         _activeSectionKey = key;
+        if (_sectionCache.TryGetValue(key, out var cached))
+        {
+            ContentHost.Content = cached;
+            RightPanelTitle.Text = SectionTitle(key);
+            UpdateStripLabelRight();
+            return;
+        }
         var vm = new ViewModel(_session);
+        FrameworkElement view;
         switch (key)
         {
             case "dashboard":
                 RightPanelTitle.Text = "Preview";
-                ContentHost.Content = new DashboardView(vm);
+                view = new DashboardView(vm);
                 break;
             case "players":
                 RightPanelTitle.Text = "Player";
-                ContentHost.Content = new PlayersView(vm);
+                view = new PlayersView(vm);
                 break;
             case "teams":
                 RightPanelTitle.Text = "Team";
-                ContentHost.Content = new TeamView(vm);
+                view = new TeamView(vm);
                 break;
             case "countries":
                 RightPanelTitle.Text = "Country";
-                ContentHost.Content = new CountryView(vm);
+                view = new CountryView(vm);
                 break;
             case "leagues":
                 RightPanelTitle.Text = "League";
-                ContentHost.Content = new LeagueView(vm);
+                view = new LeagueView(vm);
                 break;
             case "managers":
                 RightPanelTitle.Text = "Manager";
-                ContentHost.Content = new ManagerView(vm);
+                view = new ManagerView(vm);
                 break;
             case "stadiums":
                 RightPanelTitle.Text = "Stadium";
-                ContentHost.Content = new StadiumView(vm);
+                view = new StadiumView(vm);
                 break;
             case "referees":
                 RightPanelTitle.Text = "Referee";
-                ContentHost.Content = new RefereeView(vm);
+                view = new RefereeView(vm);
                 break;
             case "formations":
                 RightPanelTitle.Text = "Formation";
-                ContentHost.Content = new FormationView(vm);
+                view = new FormationView(vm);
                 break;
             case "kits":
                 RightPanelTitle.Text = "Kit";
-                ContentHost.Content = new KitView(vm);
+                view = new KitView(vm);
                 break;
             case "tournament":
                 RightPanelTitle.Text = "Tournament";
-                ContentHost.Content = new TournamentView(vm);
+                view = new TournamentView(vm);
                 break;
             case "balls":
                 RightPanelTitle.Text = "Ball";
-                ContentHost.Content = new BallView(vm);
+                view = new BallView(vm);
                 break;
             case "shoes":
                 RightPanelTitle.Text = "Shoes";
-                ContentHost.Content = new ShoesView(vm);
+                view = new ShoesView(vm);
                 break;
             case "sponsor":
                 RightPanelTitle.Text = "Sponsor";
-                ContentHost.Content = new SponsorView(vm);
+                view = new SponsorView(vm);
                 break;
             case "gloves":
                 RightPanelTitle.Text = "Gloves";
-                ContentHost.Content = new GlovesView(vm);
+                view = new GlovesView(vm);
                 break;
             case "tv":
                 RightPanelTitle.Text = "Tv";
-                ContentHost.Content = new TvView();
+                view = new TvView();
                 break;
             case "newspaper":
                 RightPanelTitle.Text = "Newspaper";
-                ContentHost.Content = new NewspaperView();
+                view = new NewspaperView();
                 break;
             case "audio":
                 RightPanelTitle.Text = "Audio";
-                ContentHost.Content = new AudioView();
+                view = new AudioView();
                 break;
             case "gamegraphics":
                 RightPanelTitle.Text = "Game Graphics";
-                ContentHost.Content = new GameGraphicsView();
+                view = new GameGraphicsView();
                 break;
             case "browser":
                 RightPanelTitle.Text = "Browser";
-                ContentHost.Content = new BrowserView();
+                view = new BrowserView();
                 break;
             case "importgraphics":
                 RightPanelTitle.Text = "Import Graphics";
-                ContentHost.Content = new ImportGraphicsView();
+                view = new ImportGraphicsView();
                 break;
             default:
                 RightPanelTitle.Text = "Details";
-                ContentHost.Content = new PlaceholderView(key);
+                view = new PlaceholderView(key);
                 break;
         }
+        _sectionCache[key] = view;
+        ContentHost.Content = view;
         UpdateStripLabelRight();
     }
+
+    private static string SectionTitle(string key) => key switch
+    {
+        "dashboard" => "Preview", "players" => "Player", "teams" => "Team",
+        "countries" => "Country", "leagues" => "League", "managers" => "Manager",
+        "stadiums" => "Stadium", "referees" => "Referee", "formations" => "Formation",
+        "kits" => "Kit", "tournament" => "Tournament", "balls" => "Ball",
+        "shoes" => "Shoes", "sponsor" => "Sponsor", "gloves" => "Gloves",
+        "tv" => "Tv", "newspaper" => "Newspaper", "audio" => "Audio",
+        "gamegraphics" => "Game Graphics", "browser" => "Browser",
+        "importgraphics" => "Import Graphics", _ => "Details"
+    };
 
     private void ShowDashboard() => ShowSection("dashboard");
 
@@ -263,6 +286,7 @@ public partial class MainWindow : Window
             StatusBarText.Text = loaded ? "FC26 database and Frostbite assets loaded." : message;
             if (loaded)
             {
+                _sectionCache.Clear();
                 ApplyDatabaseState(true);
                 OpenDefaultCm16Section();
             }
@@ -315,6 +339,7 @@ public partial class MainWindow : Window
                 return;
             }
             ApplyDatabaseState(true);
+            _sectionCache.Clear();
             OpenDefaultCm16Section();
         }
         finally
@@ -382,6 +407,7 @@ public partial class MainWindow : Window
         {
             if (!ConfirmDiscardPendingChanges()) return;
             _session.CloseDatabase();
+            _sectionCache.Clear();
             ContentHost.Content = null;
             RightPanelHost.Content = null;
             ApplyDatabaseState(false);

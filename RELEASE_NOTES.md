@@ -1,5 +1,23 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.188 - Deco-first responsive Studio (2026-08-31)
+
+- Made the Deco-inspired x64 Studio the default public interface while retaining
+  the original CM16 shell behind the explicit `--classic` compatibility switch.
+- Added lazy section construction, persistent view caching and an immediate
+  loading surface. Returning to any loaded section is enforced below 100 ms.
+- Fixed custom-toolbar editors (including Player, Team, League and Country) that
+  could show blank fields because their hidden base picker also suppressed data
+  loading. They now select and render a real record on first open.
+- Moved shared Frostbite search, extraction and image decoding off the UI thread;
+  rapid record changes cancel stale requests and safely discard obsolete images.
+- Added clean owner-drawn Deco tabs, a coherent light palette by default and
+  matching light variants for cards, badges, validation states and controls.
+- WPF compatibility views are cached instead of recreated on every navigation;
+  the legacy shell also avoids redundant redraw and synchronous parent refresh.
+- Extended the navigation gate to audit meaningful content on every public tab,
+  plus cold/warm activation timing for all 25 sections.
+
 ## Version 1.0.187 - direct Team Kit Manager (2026-08-31)
 
 - Added **Batch Team Kits** to the classic Kit section. One folder can now

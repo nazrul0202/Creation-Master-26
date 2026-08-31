@@ -14,6 +14,8 @@ internal static class FrostbitePreviewLoader
     // TextureAsset resource type used by the FC26 visual assets indexed by the bridge.
     private const uint TextureResType = 0x6BDE20BA;
 
+    private sealed record PreviewRequest(Guid Id, CancellationTokenSource Cancellation);
+
     public static void Load(
         PictureBox viewer,
         AppServices services,
@@ -23,33 +25,33 @@ internal static class FrostbitePreviewLoader
         Func<FrostbiteAssetSession.AssetMatch, bool>? accept = null,
         bool linearColor = false)
     {
-        var request = Guid.NewGuid();
-        viewer.Tag = request;
+        var request = BeginRequest(viewer);
+        var size = PreviewSize(viewer);
+        var hasLocal = !string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath);
 
-        if (!string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath))
-        {
-            apply(CreatePreview(services, localPath, viewer, linearColor), "local asset");
-            return;
-        }
-
-        if (!services.FrostbiteAssets.IsAvailable)
+        if (!hasLocal && !services.FrostbiteAssets.IsAvailable)
         {
             apply(null, null);
             return;
         }
 
-        _ = Task.Run(() => FindTexture(services, queries, accept))
+        _ = Task.Run(() =>
+            {
+                request.Cancellation.Token.ThrowIfCancellationRequested();
+                var path = hasLocal ? localPath : FindTexture(services, queries, accept, request.Cancellation.Token);
+                request.Cancellation.Token.ThrowIfCancellationRequested();
+                var preview = CreatePreview(services, path, size.Width, size.Height, linearColor);
+                return (Path: path, Preview: preview);
+            }, request.Cancellation.Token)
             .ContinueWith(task =>
             {
-                var path = task.Status == TaskStatus.RanToCompletion ? task.Result : null;
-                var preview = CreatePreview(services, path, viewer, linearColor);
-                if (viewer.IsDisposed || viewer.Tag is not Guid current || current != request)
+                var result = task.Status == TaskStatus.RanToCompletion
+                    ? task.Result : (Path: (string?)null, Preview: (Image?)null);
+                Deliver(viewer, request, result.Preview, () =>
                 {
-                    preview?.Dispose();
-                    return;
-                }
-                apply(preview, path == null ? null : "Installed game asset");
-            }, TaskScheduler.FromCurrentSynchronizationContext());
+                    apply(result.Preview, result.Path == null ? null : hasLocal ? "local asset" : "Installed game asset");
+                });
+            }, TaskScheduler.Default);
     }
 
     /// <summary>
@@ -73,14 +75,10 @@ internal static class FrostbitePreviewLoader
         IEnumerable<string> legacyPaths, Action<Image?, string?> apply,
         Action<string>? resolvedLegacyPath = null)
     {
-        var request = Guid.NewGuid();
-        viewer.Tag = request;
-        if (!string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath))
-        {
-            apply(CreatePreview(services, localPath, viewer, linearColor: false), "local asset");
-            return;
-        }
-        if (!services.FrostbiteAssets.IsAvailable)
+        var request = BeginRequest(viewer);
+        var size = PreviewSize(viewer);
+        var hasLocal = !string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath);
+        if (!hasLocal && !services.FrostbiteAssets.IsAvailable)
         {
             apply(null, null);
             return;
@@ -91,12 +89,18 @@ internal static class FrostbitePreviewLoader
             .ToArray();
         _ = Task.Run(() =>
         {
+            if (hasLocal)
+                return (FilePath: localPath, LegacyPath: (string?)null,
+                    Preview: CreatePreview(services, localPath, size.Width, size.Height));
             foreach (var legacyPath in candidates)
             {
+                request.Cancellation.Token.ThrowIfCancellationRequested();
                 try
                 {
                     var path = services.FrostbiteAssets.ExportLegacyAsset(legacyPath);
-                    if (!string.IsNullOrWhiteSpace(path)) return (FilePath: path, LegacyPath: legacyPath);
+                    if (!string.IsNullOrWhiteSpace(path))
+                        return (FilePath: path, LegacyPath: legacyPath,
+                            Preview: CreatePreview(services, path, size.Width, size.Height));
                 }
                 catch (FileNotFoundException ex)
                 {
@@ -114,31 +118,75 @@ internal static class FrostbitePreviewLoader
                     // Asset bridge unavailable for this candidate; preserve the rest.
                 }
             }
-            return (FilePath: (string?)null, LegacyPath: (string?)null);
-        })
+            return (FilePath: (string?)null, LegacyPath: (string?)null, Preview: (Image?)null);
+        }, request.Cancellation.Token)
             .ContinueWith(task =>
             {
                 var result = task.Status == TaskStatus.RanToCompletion
-                    ? task.Result : (FilePath: (string?)null, LegacyPath: (string?)null);
-                var preview = CreatePreview(services, result.FilePath, viewer, linearColor: false);
-                if (viewer.IsDisposed || viewer.Tag is not Guid current || current != request)
+                    ? task.Result : (FilePath: (string?)null, LegacyPath: (string?)null, Preview: (Image?)null);
+                Deliver(viewer, request, result.Preview, () =>
+                {
+                    if (!string.IsNullOrWhiteSpace(result.LegacyPath))
+                        resolvedLegacyPath?.Invoke(result.LegacyPath);
+                    apply(result.Preview, result.FilePath == null ? null : hasLocal ? "local asset" : "Installed UI asset");
+                });
+            }, TaskScheduler.Default);
+    }
+
+    private static void Deliver(PictureBox viewer, PreviewRequest request, Image? preview, Action apply)
+    {
+        if (viewer.IsDisposed || !viewer.IsHandleCreated || !ReferenceEquals(viewer.Tag, request))
+        {
+            preview?.Dispose();
+            return;
+        }
+        try
+        {
+            viewer.BeginInvoke((Action)(() =>
+            {
+                if (viewer.IsDisposed || !ReferenceEquals(viewer.Tag, request))
                 {
                     preview?.Dispose();
                     return;
                 }
-                if (!string.IsNullOrWhiteSpace(result.LegacyPath))
-                    resolvedLegacyPath?.Invoke(result.LegacyPath);
-                apply(preview, result.FilePath == null ? null : "Installed UI asset");
-            }, TaskScheduler.FromCurrentSynchronizationContext());
+                apply();
+            }));
+        }
+        catch (InvalidOperationException)
+        {
+            preview?.Dispose();
+        }
+    }
+
+    private static PreviewRequest BeginRequest(PictureBox viewer)
+    {
+        if (viewer.Tag is PreviewRequest previous)
+        {
+            previous.Cancellation.Cancel();
+            previous.Cancellation.Dispose();
+        }
+        var request = new PreviewRequest(Guid.NewGuid(), new CancellationTokenSource());
+        viewer.Tag = request;
+        return request;
+    }
+
+    private static Size PreviewSize(PictureBox viewer)
+    {
+        float scale = viewer.DeviceDpi / 96f;
+        return new Size(
+            Math.Max(1, (int)(viewer.Width * scale)),
+            Math.Max(1, (int)(viewer.Height * scale)));
     }
 
     private static string? FindTexture(
         AppServices services,
         IEnumerable<string> queries,
-        Func<FrostbiteAssetSession.AssetMatch, bool>? accept)
+        Func<FrostbiteAssetSession.AssetMatch, bool>? accept,
+        CancellationToken cancellationToken)
     {
         foreach (var query in queries.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var match = services.FrostbiteAssets.SearchAssets(query, "Res", 150)
                 .Where(x => x.ResType == TextureResType && x.Name.EndsWith("_color", StringComparison.OrdinalIgnoreCase))
                 .OrderBy(x => Score(x.Name))
@@ -183,13 +231,4 @@ internal static class FrostbitePreviewLoader
         catch { return null; }
     }
 
-    private static Image? CreatePreview(AppServices services, string? path, PictureBox viewer, bool linearColor)
-    {
-        // The app is PerMonitorV2 DPI-aware: viewer.Width/Height are LOGICAL pixels.
-        // Pre-scale to physical pixels so images stay sharp on 125%/150%/200% displays.
-        float scale = viewer.DeviceDpi / 96f;
-        int w = Math.Max(1, (int)(viewer.Width * scale));
-        int h = Math.Max(1, (int)(viewer.Height * scale));
-        return CreatePreview(services, path, w, h, linearColor);
-    }
 }

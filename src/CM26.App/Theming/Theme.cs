@@ -7,7 +7,9 @@ namespace CM26.App.Theming;
 /// <summary>Central design system: palette, typography, spacing. Every control uses these.</summary>
 public static class Theme
 {
-    private static bool _dark = true;
+    // Deco's compact light workspace is the public default. Dark mode remains
+    // available in Settings for users who explicitly prefer it.
+    private static bool _dark;
 
     static Theme() => ApplyPalette();
 

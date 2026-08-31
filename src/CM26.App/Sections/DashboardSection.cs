@@ -13,6 +13,7 @@ namespace CM26.App.Sections;
 /// <summary>Modern tool dashboard: database status, metrics, quick actions and health.</summary>
 public sealed class DashboardSection : SectionBase
 {
+    private bool _rendered;
     private readonly Panel _host;
     private readonly StudioToolbar _toolbar;
 
@@ -20,6 +21,7 @@ public sealed class DashboardSection : SectionBase
     public override string SectionTitle => "Dashboard";
     protected override string TableName => "";
     protected override bool SinglePane => true;
+    protected override bool UsesRecordData => false;
 
     public DashboardSection(AppServices s) : base(s)
     {
@@ -52,7 +54,9 @@ public sealed class DashboardSection : SectionBase
 
     public override void ActivateSection()
     {
+        if (_rendered) return;
         RenderDashboard();
+        _rendered = true;
     }
 
     private void RenderDashboard()
