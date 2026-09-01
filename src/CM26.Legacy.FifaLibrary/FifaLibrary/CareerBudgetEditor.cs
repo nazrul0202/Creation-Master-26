@@ -14,6 +14,7 @@ public sealed class CareerBudgetEditor
 	private readonly CareerFile m_CareerFile;
 	private readonly Record m_ManagerPreference;
 	private readonly string m_XmlFileName;
+	private readonly int m_TableCount;
 
 	public string FileName => m_CareerFile.FileName;
 
@@ -21,16 +22,23 @@ public sealed class CareerBudgetEditor
 
 	public int ClubTeamId { get; }
 
-	public int TransferBudget => m_ManagerPreference.GetIntField("transferbudget");
+	public bool SupportsBudgetEditing => m_ManagerPreference != null;
 
-	public int StartOfSeasonTransferBudget => m_ManagerPreference.GetIntField("startofseasontransferbudget");
+	public string CareerType => SupportsBudgetEditing ? "Manager Career" : "Player Career / read-only";
 
-	private CareerBudgetEditor(CareerFile careerFile, Record managerPreference, int clubTeamId, string xmlFileName)
+	public int TableCount => m_TableCount;
+
+	public int TransferBudget => SupportsBudgetEditing ? m_ManagerPreference.GetIntField("transferbudget") : 0;
+
+	public int StartOfSeasonTransferBudget => SupportsBudgetEditing ? m_ManagerPreference.GetIntField("startofseasontransferbudget") : 0;
+
+	private CareerBudgetEditor(CareerFile careerFile, Record managerPreference, int clubTeamId, string xmlFileName, int tableCount)
 	{
 		m_CareerFile = careerFile;
 		m_ManagerPreference = managerPreference;
 		ClubTeamId = clubTeamId;
 		m_XmlFileName = xmlFileName;
+		m_TableCount = tableCount;
 	}
 
 	/// <summary>
@@ -92,19 +100,34 @@ public sealed class CareerBudgetEditor
 		}
 
 		DbFile database = careerFile.Databases[0];
-		Table users = GetRequiredTable(database, "career_users");
-		Table preferences = GetRequiredTable(database, "career_managerpref");
-		EnsureField(users, "clubteamid");
-		EnsureField(preferences, "transferbudget");
-		EnsureField(preferences, "startofseasontransferbudget");
+		int clubTeamId = 0;
+		int usersIndex = database.GetTableIndex("career_users");
+		if (usersIndex >= 0)
+		{
+			Table users = database.Table[usersIndex];
+			if (users?.Records != null && users.TableDescriptor.GetFieldIndex("clubteamid") >= 0)
+			{
+				Record user = FindUserRecordOrFirst(users);
+				if (user != null) clubTeamId = Math.Max(0, user.GetIntField("clubteamid"));
+			}
+		}
 
-		Record user = FindUserRecord(users);
-		Record managerPreference = FindClubPreferenceRecord(preferences);
-		return new CareerBudgetEditor(careerFile, managerPreference, user.GetIntField("clubteamid"), xmlFileName);
+		Record managerPreference = null;
+		int preferenceIndex = database.GetTableIndex("career_managerpref");
+		if (preferenceIndex >= 0)
+		{
+			Table preferences = database.Table[preferenceIndex];
+			if (preferences?.Records != null && preferences.Records.Length > 0 &&
+				preferences.TableDescriptor.GetFieldIndex("transferbudget") >= 0 &&
+				preferences.TableDescriptor.GetFieldIndex("startofseasontransferbudget") >= 0)
+				managerPreference = FindClubPreferenceRecord(preferences);
+		}
+		return new CareerBudgetEditor(careerFile, managerPreference, clubTeamId, xmlFileName, database.NTables);
 	}
 
 	public string Save(int transferBudget, int startOfSeasonTransferBudget)
 	{
+		if (!SupportsBudgetEditing) throw new InvalidOperationException("This Career save has no verified Manager budget table and is read-only in CM26.");
 		if (transferBudget < 0 || startOfSeasonTransferBudget < 0)
 		{
 			throw new ArgumentOutOfRangeException(nameof(transferBudget), "Transfer budgets cannot be negative.");
@@ -177,7 +200,7 @@ public sealed class CareerBudgetEditor
 		}
 	}
 
-	private static Record FindUserRecord(Table users)
+	private static Record FindUserRecordOrFirst(Table users)
 	{
 		foreach (Record record in users.Records)
 		{
@@ -186,7 +209,7 @@ public sealed class CareerBudgetEditor
 				return record;
 			}
 		}
-		throw new InvalidDataException("The Career save does not contain an active club team.");
+		return users.Records.FirstOrDefault(record => record != null);
 	}
 
 	private static Record FindClubPreferenceRecord(Table preferences)

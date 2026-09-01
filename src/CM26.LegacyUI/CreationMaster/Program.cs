@@ -561,6 +561,9 @@ internal static class Program
 				using (var batchPlayers = new Fc26BatchPlayerForm())
 					foreach (var required in new[] { "Export Excel workbook", "Import/Create FC25/Excel" })
 						if (!ContainsControlText(batchPlayers, required)) throw new InvalidDataException("Batch Player tools are missing: " + required);
+				using (var career = new Fc26CareerSaveForm())
+					foreach (var required in new[] { "Career type / tables", "Open Career save", "Load latest Career", "Save budget + backup" })
+						if (!ContainsControlText(career, required)) throw new InvalidDataException("Manager/Player Career workflow is missing: " + required);
 				var workbookProbe = Path.Combine(Path.GetTempPath(), "cm26-player-workbook-probe-" + Guid.NewGuid().ToString("N") + ".xlsx");
 				try
 				{
@@ -614,6 +617,8 @@ internal static class Program
 				if (ContainsControlText(main.m_ManagerForm, "Manager Records") ||
 					ContainsControlText(main.m_RefereeForm, "Competition Kits"))
 					throw new InvalidDataException("A disconnected details popup is still exposed.");
+				if (!ContainsControlText(main.m_TvForm, "Export selected") || !ContainsControlText(main.m_TvForm, "Replace native asset"))
+					throw new InvalidDataException("Broadcast scoreboard export/replacement controls are missing.");
 				var miniface = FindControl(main.m_PlayerForm, "viewer2DPhoto");
 				if (miniface == null || miniface.Width > 104 || miniface.Height > 129)
 					throw new InvalidDataException("Player miniface exceeds the classic CM26 layout boundary.");

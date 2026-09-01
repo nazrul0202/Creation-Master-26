@@ -1,3 +1,9 @@
+Creation Master 26 v1.0.198 - 1 September 2026
+
+- Allowed valid Player Career containers to open in a clearly identified read-only mode when Manager budget tables are absent.
+- Kept Manager Career budget editing guarded by backup and reload verification.
+- Added selected scoreboard/broadcast export and verified-path native replacement to the Classic Broadcast section.
+
 Creation Master 26 v1.0.197 - 1 September 2026
 
 - Added preflighted 180x180 miniface batch alignment, duplicate-ID rejection and DDS dimension validation.

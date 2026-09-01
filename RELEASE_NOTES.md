@@ -1,5 +1,18 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.198 - Career and broadcast completion (2026-09-01)
+
+- The Career module now opens both Manager and Player Career containers. Manager
+  saves retain reload-verified budget editing; Player Career saves without the
+  exact Manager budget table are identified and opened safely as read-only.
+- Career type, active club availability and decoded Career table count are shown
+  explicitly rather than rejecting a valid non-Manager container.
+- The Classic Broadcast section now exports the selected scoreboard/broadcast
+  asset and can stage a format-compatible native replacement when the indexed
+  entry has a verified writable `data/` path.
+- Unverified Frostbite catalog names remain export-only; CM26 does not invent a
+  replacement path for them.
+
 ## Version 1.0.197 - comprehensive workflow hardening (2026-09-01)
 
 - Batch miniface import now preflights the complete folder, rejects duplicate

@@ -6,7 +6,7 @@ Status legend: **Implemented** = every named poster capability has a real Classi
 
 | # | Area | Current status | Code evidence | Verification / maintenance |
 |---|---|---|---|---|
-| 1 | Project launcher | Implemented | `Fc26ProjectLauncherForm`, `Fc26ProjectSessionService`, `MainForm` | Installed, extracted and saved-project smoke paths. |
+| 1 | Project launcher | Implemented | `Fc26ProjectLauncherForm`, `Fc26ProjectSessionService`, `MainForm`; Manager and Player Career containers open with capability-aware write protection | Installed, extracted, saved-project and Career-container smoke paths. |
 | 2 | Direct Frostbite workflow | Implemented | `Fc26HostBridge`, `Fc26SnapshotLoader`, direct-save validation/backup/reload verification | Keep Title Update schema fingerprints and destructive-save fixtures current. |
 | 3 | Advanced database workspace | Implemented | `Fc26DatabaseWorkspaceForm`: all tables, accent-insensitive search, saved filters, row templates, clone/delete, copy/paste, bulk set/replace, compare, TSV single/all exchange, changed-record filter, XML validation and friendly linked IDs | Large-database timing and all-table rollback regression gates. |
 | 4 | Dependency-aware editing | Implemented | reference scan/preview/replace/remove/swap in `Fc26DatabaseWorkspaceForm`; dependency-cleaned delete in `Fc26SnapshotLoader` | Maintain relationship metadata with each Title Update. |
@@ -24,7 +24,7 @@ Status legend: **Implemented** = every named poster capability has a real Classi
 | 16 | League and competition | Implemented | `LeagueForm`, Competition section and FC26 compdata tooling | Maintain promotion/relegation fixtures. |
 | 17 | Cup/draw/tournament | Implemented | `Fc26CompdataForm`, league/cup wizard, schedule generation, advancement, native knockout/draw/end-rule/date/seeding settings, dependency-aware unused cleanup and validation | Maintain result fixtures for Career-save schemas that expose writable match results. |
 | 18 | Kit and asset manager | Implemented | `KitForm`, batch team kits, `Fc26AssetManagerForm`, Frostbite asset bridge | Maintain the native asset fixture pack. |
-| 19 | Stadium and presentation | Implemented | `StadiumForm`, ball/presentation editors, HUD/font/scoreboard/adboard families and previews | Maintain relationship mappings per Title Update. |
+| 19 | Stadium and presentation | Implemented | `StadiumForm`, ball/presentation editors, HUD/font/scoreboard/adboard families, previews, selected broadcast export and verified-path native replacement | Maintain relationship and writable-path mappings per Title Update. |
 | 20 | Asset dependency | Implemented | reverse DB usage, known file families, atomic batch family import, family export and validation CSV in `Fc26AssetManagerForm` | Extend mappings when EA adds new families. |
 
 ## Stable / advanced release gate

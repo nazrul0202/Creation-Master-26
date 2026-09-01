@@ -1,4 +1,4 @@
-# Creation Master 26 v1.0.197 implementation status
+# Creation Master 26 v1.0.198 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
@@ -15,6 +15,8 @@ This status is intentionally conservative: a visible control is not counted as w
 - National and youth workflows enforce the 26-player national limit, exclude injured replacements, and reject invalid/duplicate roster CSV input before mutation.
 - Competition adds native knockout/draw/end-rule/seeding controls and dependency-aware cleanup of unmapped, teamless competition structures.
 - Asset-family import is atomic from the Classic UI through the x64 host and rolls back the batch state if any payload cannot be prepared.
+- Manager and Player Career containers both open: verified Manager budget fields remain writable with backup/reload proof, while a valid Player Career without those fields is identified and kept read-only.
+- Broadcast exposes scoreboard/catalog preview, selected native export and verified-`data/` replacement staging inside the Classic section.
 - Extracted-database validation is isolated and non-destructive; FIFA Mod export requires an installed Frostbite source.
 
 - Completed the comprehensive 1–20 Classic feature checklist: multi-profile Appearance Assistant; aligned miniface and visual similarity helper; native face/cranium round-trip; injury-aware national squads; dedicated U21 exchange; FC25/Excel player conversion; saved filters and row templates; safe reference removal; batch asset-family exchange and validation reports.

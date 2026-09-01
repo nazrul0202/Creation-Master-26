@@ -1,6 +1,6 @@
 {
-  "version": "1.0.197",
+  "version": "1.0.198",
   "name": "Creation Master 26",
-  "notes": "v1.0.197 - Safe 180x180 miniface batches, squad preflight, native knockout/draw rules and atomic asset-family staging.",
+  "notes": "v1.0.198 - Manager/Player Career opening and Classic scoreboard/broadcast export plus safe native replacement.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }
