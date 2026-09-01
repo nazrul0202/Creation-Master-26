@@ -2,6 +2,8 @@
 // This file contains NO database-format logic. It only adapts the native cm26::DatabaseEngine
 // (compiled unchanged from src/database_engine.cpp) to managed DTOs consumed by CM26.Application.
 #include "database_engine.h"
+#include <algorithm>
+#include <cctype>
 
 #using <System.dll>
 #include <vcclr.h>
@@ -52,6 +54,31 @@ namespace CM26 { namespace EngineBridge {
                 if (eq(db.tables[i].name, name) || eq(db.tables[i].shortName, name)) { index = (int)i; return &db.tables[i]; }
             }
             index = -1; return nullptr;
+        }
+        inline cm26::EditResult AppendBlankRow(cm26::NativeDatabase& db, const std::string& name) {
+            int tableIndex = -1;
+            auto table = FindTable(db, name, tableIndex);
+            if (table == nullptr) return { false, "Table not found" };
+            if (table->recordCount >= 65535) return { false, "Table has reached the T3DB record limit" };
+            for (const auto& column : table->columns) {
+                if (column.type == cm26::NativeFieldType::ShortCompressedString ||
+                    column.type == cm26::NativeFieldType::LongCompressedString)
+                    return { false, "Blank rows are not supported for compressed-text tables" };
+            }
+            cm26::NativeRow row;
+            row.originalBytes.assign(table->recordSize, 0);
+            row.sourceRecordIndex = table->validRecordCount;
+            row.inserted = true;
+            for (const auto& column : table->columns) {
+                if (column.type == cm26::NativeFieldType::Integer) row.values.emplace_back(column.rangeLow);
+                else if (column.type == cm26::NativeFieldType::Float) row.values.emplace_back(0.0f);
+                else if (column.type == cm26::NativeFieldType::String) row.values.emplace_back(std::string());
+                else return { false, "Unsupported field type for blank row" };
+            }
+            row.originalValues = row.values;
+            table->rows.push_back(std::move(row));
+            ++table->recordCount; ++table->validRecordCount; table->structuralChanged = true;
+            return { true, "Blank record appended; set required fields before saving" };
         }
     }
     using namespace detail;
@@ -213,6 +240,19 @@ namespace CM26 { namespace EngineBridge {
             if (handle == nullptr) { outcome->Success = false; outcome->Message = "Database not loaded"; return outcome; }
             auto r = _engine->duplicateRow(*handle->_db, Narrow(tableName), (size_t)rowIndex);
             outcome->Success = r.success; outcome->Message = gcnew String(r.message.c_str());
+            return outcome;
+        }
+
+        // Append a deterministic blank record even when the FC26 table has no
+        // template rows (for example the stock `transfers` history table).
+        // The protected database engine already rebuilds inserted rows safely;
+        // this bridge only constructs the zero/range-low native record model.
+        EditOutcome^ AppendRow(bool locale, String^ tableName) {
+            auto outcome = gcnew EditOutcome();
+            NativeDatabaseHandle^ handle = locale ? _locale : _main;
+            if (handle == nullptr) { outcome->Success = false; outcome->Message = "Database not loaded"; return outcome; }
+            auto result = AppendBlankRow(*handle->_db, Narrow(tableName));
+            outcome->Success = result.success; outcome->Message = gcnew String(result.message.c_str());
             return outcome;
         }
 

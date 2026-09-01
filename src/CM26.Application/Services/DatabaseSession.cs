@@ -192,6 +192,15 @@ public sealed class DatabaseSession : IDisposable
         return _session.DuplicateRow(table.IsLocale, tableName, rowIndex);
     }
 
+    /// <summary>Stages a range-low/zero record for a table that may have no template rows.</summary>
+    public EditOutcome AppendRow(string tableName)
+    {
+        if (_session == null) return Fail("Database not loaded");
+        var table = GetTable(tableName);
+        if (table == null) return Fail($"Table '{tableName}' not found");
+        return _session.AppendRow(table.IsLocale, tableName);
+    }
+
     /// <summary>Stages deletion of an existing record. Relationship cleanup remains the caller's responsibility.</summary>
     public EditOutcome DeleteRow(string tableName, int rowIndex)
     {

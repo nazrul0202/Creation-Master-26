@@ -1,3 +1,11 @@
+Creation Master 26 v1.0.195 - 1 September 2026
+
+- Added native range-safe append support for valid FC26 tables with zero template rows.
+- Club transfers now record player, selling club, buying club and fee in the real `transfers` table.
+- Added a per-player transfer-fee control to the Classic Roster tools.
+- Made extracted-database `--legacy-save-verify` non-destructive; verification now writes and reloads an isolated staging copy.
+- Blocked FIFA Mod export from an extracted-only source instead of silently saving that source.
+
 Creation Master 26 v1.0.194 - 1 September 2026
 
 - Fixed roster and U21 CSV imports for quoted names containing commas or escaped quotes.

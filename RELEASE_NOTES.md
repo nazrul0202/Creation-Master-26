@@ -1,5 +1,19 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.195 - real transfer history and empty-table creation (2026-09-01)
+
+- Added a native append operation for non-compressed FC26 tables that have no
+  existing template row. Defaults are derived from each schema field's range.
+- Club transfer workflows now stage a real `transfers` record containing the
+  player, selling club, buying club and user-entered fee for every player.
+- Added `Fee / player` to the Classic Roster tools and block the roster move if
+  transfer history cannot be represented safely by the loaded Title Update.
+- Corrected extracted-database verification so it saves and reloads a temporary
+  copy without modifying the selected source. Extracted-only FIFA Mod export is
+  rejected clearly because a matching installed Frostbite source is required.
+- Verified the zero-row `transfers` case against an FC26 snapshot through plan
+  generation, native T3DB/CRC writing and independent reload validation.
+
 ## Version 1.0.194 - hardened Classic feature workflows (2026-09-01)
 
 - Corrected roster and U21 CSV import so quoted player names containing commas

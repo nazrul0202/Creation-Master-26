@@ -57,7 +57,7 @@ internal static class Program
 				foreach (FifaLibrary.Team candidate in FifaLibrary.FifaEnvironment.Teams)
 				{
 					if (candidate.NationalTeam) continue;
-					if (source == null && candidate.Roster.Count > 0)
+					if (source == null && candidate.Id > 1 && candidate.Roster.Count > 0)
 					{
 						source = candidate;
 						playerLink = (FifaLibrary.TeamPlayer)candidate.Roster[0];
@@ -70,11 +70,21 @@ internal static class Program
 				// destination is sufficient here to verify snapshot persistence without
 				// disturbing formation/set-piece assignments during the diagnostic.
 				playerLink.Team = destination;
+				Fc26RosterToolsForm.StageTransferHistory(playerLink.Player.Id, source.Id, destination.Id, 1234567);
 				Fc26SnapshotLoader.WriteChanges(args[2]);
 				var plan = File.ReadAllText(args[2]);
 				var expected = "\"FieldName\":\"teamid\",\"Value\":\"" + destination.Id + "\"";
 				if (plan.IndexOf(expected, StringComparison.Ordinal) < 0)
 					throw new InvalidDataException("FC26 player transfer was not saved as a teamplayerlinks.teamid change.");
+				foreach (var required in new[]
+				{
+					"\"Kind\":\"append\"", "\"TableName\":\"transfers\"",
+					"\"FieldName\":\"sellingteamid\",\"Value\":\"" + source.Id + "\"",
+					"\"FieldName\":\"buyingteamid\",\"Value\":\"" + destination.Id + "\"",
+					"\"FieldName\":\"transferamount\",\"Value\":\"1234567\""
+				})
+					if (plan.IndexOf(required, StringComparison.Ordinal) < 0)
+						throw new InvalidDataException("FC26 transfer history plan is missing " + required + ".");
 				Environment.ExitCode = 0;
 			}
 			catch (Exception ex)
@@ -405,7 +415,7 @@ internal static class Program
 					foreach (var required in new[] { "Add / Clone Row", "Set Selected", "Changed records only", "Remove References", "Import All", "Export All", "Save Filter", "Load Filter", "Save Row Template", "Apply Row Template" })
 						if (!ContainsControlText(workspace, required)) throw new InvalidDataException("Advanced Database Workspace is missing: " + required);
 				using (var roster = new Fc26RosterToolsForm())
-					foreach (var required in new[] { "Replace injured call-ups", "Export U21 CSV", "Import / merge U21 CSV", "Sync nationality links" })
+					foreach (var required in new[] { "Fee / player", "Replace injured call-ups", "Export U21 CSV", "Import / merge U21 CSV", "Sync nationality links" })
 						if (!ContainsControlText(roster, required)) throw new InvalidDataException("Roster/National/Youth tools are missing: " + required);
 				var csvProbe = Fc26RosterToolsForm.ParseCsvLine("1,\"José Test, Jr.\",19,77,88,24,10");
 				if (csvProbe.Length != 7 || csvProbe[1] != "José Test, Jr." || csvProbe[5] != "24" || csvProbe[6] != "10")

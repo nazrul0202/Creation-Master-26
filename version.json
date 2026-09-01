@@ -1,6 +1,6 @@
 {
-  "version": "1.0.194",
+  "version": "1.0.195",
   "name": "Creation Master 26",
-  "notes": "v1.0.194 - Hardened Classic roster, youth, Transfermarkt and appearance workflows with mandatory integration gates.",
+  "notes": "v1.0.195 - Native empty-table append and reload-verified transfer history in the Classic roster workflow.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

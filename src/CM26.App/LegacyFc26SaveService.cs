@@ -13,7 +13,11 @@ internal static class LegacyFc26SaveService
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
             ?? throw new InvalidDataException("FC26 change plan is empty.");
         if (string.IsNullOrWhiteSpace(plan.GameRoot) && Directory.Exists(plan.DatabaseFolder))
-            return ApplyExtracted(plan);
+        {
+            if (!string.IsNullOrWhiteSpace(exportDestination))
+                throw new InvalidOperationException("FIFA Mod export requires an installed FC26 source. Save extracted-database changes to their session instead.");
+            return ApplyExtracted(plan, applyDirect);
+        }
         var gameRoot = FrostbiteAssetSession.ResolveGameRoot(
             string.IsNullOrWhiteSpace(plan.GameRoot) ? SettingsService.FC26GameFolder : plan.GameRoot)
             ?? throw new InvalidOperationException("FC26 installation was not detected.");
@@ -95,7 +99,7 @@ internal static class LegacyFc26SaveService
         return $"Saved and verified {plan.Changes.Count} database change(s) and {assetCount} asset file(s). {applied.Message}";
     }
 
-    private static string ApplyExtracted(ChangePlan plan)
+    private static string ApplyExtracted(ChangePlan plan, bool applyDirect)
     {
         if (plan.Changes.Count == 0 && plan.StructuralChanges.Count == 0) return "No extracted-database changes to save.";
         using var session = new DatabaseSession();
@@ -105,6 +109,24 @@ internal static class LegacyFc26SaveService
         failures.AddRange(StageChanges(session, rowMap, plan.Changes));
         if (failures.Count > 0)
             throw new InvalidOperationException("FC26 rejected the edit plan: " + string.Join("; ", failures.Take(8)));
+        if (!applyDirect)
+        {
+            var stagingFolder = Path.Combine(Path.GetTempPath(), "CM26-extracted-verify-" + Guid.NewGuid().ToString("N"));
+            var staged = new SaveService(session).SaveToDirectory(stagingFolder);
+            if (!staged.Success) throw new InvalidOperationException(staged.Message);
+            if (!string.IsNullOrWhiteSpace(session.MetaPath) && File.Exists(session.MetaPath))
+                File.Copy(session.MetaPath, Path.Combine(stagingFolder, Path.GetFileName(session.MetaPath)), overwrite: true);
+            using var verification = new DatabaseSession();
+            verification.Load(stagingFolder);
+            var mismatches = plan.Changes.Where(change =>
+                !rowMap.TryTranslate(ActualTable(change.TableName), change.RowIndex, out var actualRow) ||
+                !string.Equals(verification.GetCell(ActualTable(change.TableName), actualRow, change.FieldName),
+                    change.Value, StringComparison.Ordinal)).Take(8).ToList();
+            if (mismatches.Count > 0)
+                throw new InvalidOperationException("FC26 extracted reload verification failed: " +
+                    string.Join("; ", mismatches.Select(change => $"{change.TableName}[{change.RowIndex}].{change.FieldName}")));
+            return $"Staged and reload-verified {plan.Changes.Count} field edit(s) and {plan.StructuralChanges.Count} structural edit(s) at {stagingFolder}";
+        }
         var saved = new SaveService(session).SaveToSourceFolder();
         if (!saved.Success) throw new InvalidOperationException(saved.Message);
         return $"Saved and reload-verified {plan.Changes.Count} field edit(s) and {plan.StructuralChanges.Count} structural edit(s) to the extracted database. {saved.Message}";
@@ -132,6 +154,28 @@ internal static class LegacyFc26SaveService
                 continue;
             }
             rowMap.InsertAfter(tableName, target, actualSource + 1);
+            session.RefreshSchema();
+        }
+        foreach (var change in structural.Where(value => value.Kind.Equals("append", StringComparison.OrdinalIgnoreCase)))
+        {
+            var tableName = ActualTable(change.TableName);
+            var table = session.GetTable(tableName);
+            if (table == null)
+            {
+                failures.Add($"Append {change.TableName}: table was not found.");
+                continue;
+            }
+            var target = change.TargetRowIndex >= 0
+                ? change.TargetRowIndex
+                : rowMap.NextPlannedIndex(tableName);
+            var actualRow = table.RowCount;
+            var outcome = session.AppendRow(tableName);
+            if (!outcome.Success)
+            {
+                failures.Add($"Append {change.TableName}: {outcome.Message}");
+                continue;
+            }
+            rowMap.Append(tableName, target, actualRow);
             session.RefreshSchema();
         }
         // Deletions are deliberately isolated by the legacy UI. Process descending
@@ -233,6 +277,15 @@ internal static class LegacyFc26SaveService
 
             foreach (var key in indexes.Keys.ToArray())
                 if (indexes[key] >= actualInserted) indexes[key]++;
+            indexes[targetPlanned] = actualInserted;
+            if (!_nextPlanned.TryGetValue(tableName, out var next) || targetPlanned >= next)
+                _nextPlanned[tableName] = targetPlanned + 1;
+        }
+
+        internal void Append(string tableName, int targetPlanned, int actualInserted)
+        {
+            if (!_rows.TryGetValue(tableName, out var indexes))
+                _rows[tableName] = indexes = new Dictionary<int, int>();
             indexes[targetPlanned] = actualInserted;
             if (!_nextPlanned.TryGetValue(tableName, out var next) || targetPlanned >= next)
                 _nextPlanned[tableName] = targetPlanned + 1;

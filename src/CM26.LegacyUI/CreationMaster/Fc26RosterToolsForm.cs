@@ -22,6 +22,7 @@ internal sealed class Fc26RosterToolsForm : Form
     private readonly DateTimePicker _joinDate = new DateTimePicker { Format = DateTimePickerFormat.Short, Width = 105 };
     private readonly DateTimePicker _loanEnd = new DateTimePicker { Format = DateTimePickerFormat.Short, Width = 105 };
     private readonly NumericUpDown _contractYear = new NumericUpDown { Minimum = 2026, Maximum = 2100, Value = 2030, Width = 68 };
+    private readonly NumericUpDown _transferFee = new NumericUpDown { Minimum = 1, Maximum = 900000000, Value = 1000000, Increment = 100000, ThousandsSeparator = true, Width = 105 };
     private readonly CheckBox _loanToBuy = new CheckBox { Text = "Loan-to-buy", AutoSize = true };
     private Team[] _teams = Array.Empty<Team>();
 
@@ -65,7 +66,7 @@ internal sealed class Fc26RosterToolsForm : Form
             Button("Add / transfer selected", (_, _) => AddSelected()),
             Button("Transfer roster → target", (_, _) => TransferSelected()),
             Button("Transfer ALL → target", (_, _) => TransferAll()),
-            Label("Join"), _joinDate, Label("Contract"), _contractYear,
+            Label("Join"), _joinDate, Label("Contract"), _contractYear, Label("Fee / player"), _transferFee,
             Button("Start loan → target", (_, _) => StartLoan()), _loanEnd, _loanToBuy,
             Button("Terminate selected loan", (_, _) => TerminateLoan()),
             Button("Remove from team", (_, _) => RemoveSelected()),
@@ -185,6 +186,13 @@ internal sealed class Fc26RosterToolsForm : Form
         {
             MessageBox.Show(this, "Club transfers and national-team call-ups are separate operations. Select two clubs or two national teams.", "Transfer validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); return;
         }
+        var recordHistory = source.IsClub() && target.IsClub();
+        if (recordHistory && !Fc26SnapshotLoader.CanAppendDetailRow("transfers",
+                new[] { "playerid", "sellingteamid", "buyingteamid", "transferamount" }, out var historyReason))
+        {
+            MessageBox.Show(this, "Transfer history cannot be recorded safely, so no roster changes were made.\r\n\r\n" + historyReason,
+                "Transfer validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); return;
+        }
         var loanRows = players.Select(player => new { Player = player, Row = FindLoanRow(player.Id) }).Where(item => item.Row >= 0).ToArray();
         if (loanRows.Length > 0 && Fc26SnapshotLoader.PendingDetailCount > 0)
         {
@@ -192,12 +200,14 @@ internal sealed class Fc26RosterToolsForm : Form
         }
         var message = operation + ": " + players.Length + " player(s)\r\n" + source + " → " + target +
             "\r\nJoin date: " + _joinDate.Value.ToShortDateString() + "\r\nContract through: " + _contractYear.Value +
+            (recordHistory ? "\r\nTransfer fee per player: " + _transferFee.Value.ToString("N0", CultureInfo.CurrentCulture) : string.Empty) +
             (loanRows.Length > 0 ? "\r\nExisting loans to terminate: " + loanRows.Length : string.Empty) +
             "\r\n\r\nNational-team links are preserved. Formation, shirts, captain and set pieces will be repaired.";
         if (MessageBox.Show(this, message, "Transfer preview", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
         foreach (var item in loanRows) Fc26SnapshotLoader.DeleteDetailRow("playerloans", item.Row);
         foreach (var player in players)
         {
+            if (recordHistory) StageTransferHistory(player.Id, source.Id, target.Id, Decimal.ToInt32(_transferFee.Value));
             player.IsLoaned = false; player.TeamLoanedFrom = null; player.loandateend = DateTime.MinValue;
             player.joindate = _joinDate.Value.Date; player.contractvaliduntil = (int)_contractYear.Value;
             player.PreviousTeam = source;
@@ -205,6 +215,19 @@ internal sealed class Fc26RosterToolsForm : Form
             if (!player.IsPlayingFor(target)) target.AddTeamPlayer(player);
         }
         RepairTeam(source); RepairTeam(target); Fc26ActivityLog.Add("Transfer", operation + ": " + players.Length + " player(s), " + source.Id + " → " + target.Id); RefreshAll();
+    }
+
+    internal static int StageTransferHistory(int playerId, int sellingTeamId, int buyingTeamId, int amount)
+    {
+        if (!Fc26SnapshotLoader.CanAppendDetailRow("transfers",
+                new[] { "playerid", "sellingteamid", "buyingteamid", "transferamount" }, out var reason))
+            throw new InvalidOperationException(reason);
+        var row = Fc26SnapshotLoader.AppendDetailRow("transfers");
+        Fc26SnapshotLoader.StageDetailValue("transfers", row, "playerid", playerId.ToString(CultureInfo.InvariantCulture));
+        Fc26SnapshotLoader.StageDetailValue("transfers", row, "sellingteamid", sellingTeamId.ToString(CultureInfo.InvariantCulture));
+        Fc26SnapshotLoader.StageDetailValue("transfers", row, "buyingteamid", buyingTeamId.ToString(CultureInfo.InvariantCulture));
+        Fc26SnapshotLoader.StageDetailValue("transfers", row, "transferamount", Math.Max(1, Math.Min(900000000, amount)).ToString(CultureInfo.InvariantCulture));
+        return row;
     }
 
     private void StartLoan()

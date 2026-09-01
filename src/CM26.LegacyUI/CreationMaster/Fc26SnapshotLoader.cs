@@ -1051,6 +1051,45 @@ internal static class Fc26SnapshotLoader
         return newIndex;
     }
 
+    internal static bool CanAppendDetailRow(string tableName, IEnumerable<string> requiredFields, out string reason)
+    {
+        var table = s_snapshot?.Tables.FirstOrDefault(candidate => candidate.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
+        if (table == null) { reason = "The FC26 " + tableName + " table is unavailable."; return false; }
+        var missing = (requiredFields ?? Enumerable.Empty<string>()).Where(field => Column(table, field) < 0).ToArray();
+        if (missing.Length > 0) { reason = "Missing required field(s): " + string.Join(", ", missing); return false; }
+        if (table.ColumnDetails.Any(column => column.Kind == 13 || column.Kind == 14))
+        { reason = "Blank rows are not supported for compressed-text tables."; return false; }
+        if (table.RowCount >= 65535) { reason = "The table has reached the T3DB record limit."; return false; }
+        reason = "Ready";
+        return true;
+    }
+
+    /// <summary>Appends a deterministic range-low/zero row, including to an empty FC26 table.</summary>
+    internal static int AppendDetailRow(string tableName)
+    {
+        if (!CanAppendDetailRow(tableName, Array.Empty<string>(), out var reason))
+            throw new InvalidOperationException(reason);
+        var table = s_snapshot.Tables.First(candidate => candidate.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
+        EnsureRows(table, s_snapshotPath);
+        var values = new string[table.Columns.Length];
+        for (var column = 0; column < values.Length; column++)
+        {
+            var detail = column < table.ColumnDetails.Count ? table.ColumnDetails[column] : null;
+            values[column] = detail?.Kind == 3
+                ? detail.RangeLow.ToString(CultureInfo.InvariantCulture)
+                : detail?.Kind == 4 ? "0" : string.Empty;
+        }
+        var newIndex = table.Rows.Count;
+        table.Rows.Add(values);
+        table.RowCount = table.Rows.Count;
+        s_structuralChanges.Add(new StructuralChange
+        {
+            Kind = "append", TableName = table.Name, RowIndex = -1, TargetRowIndex = newIndex
+        });
+        Fc26ActivityLog.Add("Append row", table.Name + " → staged row " + newIndex);
+        return newIndex;
+    }
+
     internal static void DeleteDetailRow(string tableName, int rowIndex)
     {
         if (s_detailChanges.Count > 0 || s_structuralChanges.Any(change => change.Kind != "delete"))
