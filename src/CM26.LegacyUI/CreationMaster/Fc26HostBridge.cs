@@ -734,6 +734,28 @@ internal static class Fc26HostBridge
         return string.IsNullOrWhiteSpace(output) ? $"Saved {changeCount} FC26 change(s)." : output;
     }
 
+    internal static string ExportMod(string destination)
+    {
+        if (string.IsNullOrWhiteSpace(s_HostPath) || !File.Exists(s_HostPath))
+            throw new FileNotFoundException("CM26 FC26 host executable was not found.", s_HostPath);
+        var outputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Creation Master 26", "legacy");
+        Directory.CreateDirectory(outputDirectory);
+        var planPath = Path.Combine(outputDirectory, "fc26-export-changes.json");
+        var changeCount = Fc26SnapshotLoader.WriteChanges(planPath);
+        var start = new ProcessStartInfo
+        {
+            FileName = s_HostPath,
+            Arguments = "--legacy-export-fet \"" + planPath + "\" \"" + destination + "\"",
+            UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true,
+            WorkingDirectory = Path.GetDirectoryName(s_HostPath) ?? Environment.CurrentDirectory
+        };
+        var result = RunProcess(start, DatabaseCommandTimeoutMs, "FC26 mod export");
+        var output = result.StandardOutput.Trim(); var error = result.StandardError.Trim();
+        if (result.ExitCode != 0) throw new InvalidOperationException(string.IsNullOrWhiteSpace(error) ? output : error);
+        Fc26ActivityLog.Add("Mod export", changeCount + " FC26 database change(s) exported to " + destination);
+        return string.IsNullOrWhiteSpace(output) ? "FIFA Mod exported: " + destination : output;
+    }
+
     private static ProcessResult RunProcess(ProcessStartInfo start, int timeoutMilliseconds, string operation)
     {
         using var process = Process.Start(start) ??

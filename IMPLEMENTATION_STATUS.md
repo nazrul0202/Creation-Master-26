@@ -6,6 +6,7 @@ This status is intentionally conservative: a visible control is not counted as w
 
 - Batch Player now reads and writes native `.xlsx` workbooks with an automated Unicode/comma round-trip gate; CSV remains available as a fallback.
 - Team `Club Worth` and `Transfer Budget` use regular system-grey text instead of bold black presentation.
+- Classic File menu now exports staged database and asset changes through the validated `.fifamod` pipeline without applying them to FC26 Data/Patch.
 
 - Completed the comprehensive 1–20 Classic feature checklist: multi-profile Appearance Assistant; aligned miniface and visual similarity helper; native face/cranium round-trip; injury-aware national squads; dedicated U21 exchange; FC25/Excel player conversion; saved filters and row templates; safe reference removal; batch asset-family exchange and validation reports.
 

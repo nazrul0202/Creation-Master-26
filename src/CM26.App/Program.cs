@@ -214,6 +214,21 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 3 && args[0] == "--legacy-export-fet")
+        {
+            try
+            {
+                Console.WriteLine(LegacyFc26SaveService.Apply(args[1], applyDirect: false, exportDestination: args[2]));
+                Environment.ExitCode = 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex.Message);
+                Environment.ExitCode = 1;
+            }
+            return;
+        }
+
         // User/CI diagnostics need a console. The --legacy-* commands above are
         // invisible helper processes launched by the CM16 shell with redirected
         // output; allocating a console for them causes a black window to flash on

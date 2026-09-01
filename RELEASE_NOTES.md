@@ -7,6 +7,8 @@
 - Kept CSV support as a fallback for scripts and older spreadsheet tools.
 - Changed Club Worth and Transfer Budget to regular system-grey text rather
   than bold black values in the Classic Team editor.
+- Connected the existing validated FIFA Mod writer to the Classic File menu;
+  database and asset changes can now be exported without direct game writes.
 
 ## Version 1.0.192 - comprehensive Classic feature completion (2026-09-01)
 

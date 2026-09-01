@@ -357,6 +357,8 @@ public class MainForm : Form
 		openSession.Click += (_, _) => OpenFc26ProjectSession();
 		var saveSession = new ToolStripMenuItem("Save CM26 project/session...");
 		saveSession.Click += (_, _) => SaveFc26ProjectSession();
+		var exportMod = new ToolStripMenuItem("Export FC26 FIFA Mod...") { Name = "menuExportFc26Mod" };
+		exportMod.Click += (_, _) => ExportFc26ModProject();
 		// Keep the original File menu order and place the FC26 source directly
 		// after Open FC26 rather than creating a new launcher/dashboard.
 		var openFc26Index = menuFile.DropDownItems.IndexOf(menuOpenFifa16);
@@ -364,6 +366,7 @@ public class MainForm : Form
 		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 2), openExtracted);
 		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 3), openSession);
 		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 4), saveSession);
+		menuFile.DropDownItems.Insert(Math.Max(0, openFc26Index + 5), exportMod);
 		var healthCentre = new ToolStripMenuItem("Database Health Centre...");
 		healthCentre.Click += (_, _) => ShowFc26HealthCentre();
 		var publicReadiness = new ToolStripMenuItem("Public Readiness Centre...") { Name = "menuPublicReadiness" };
@@ -450,6 +453,24 @@ public class MainForm : Form
 		}, "Opening CM26 project", "CM26 project loaded: " + fileName, "Open CM26 project");
 		if (loaded)
 			Fc26ActivityLog.Add("Project", "Opened CM26 session: " + fileName);
+	}
+
+	private async void ExportFc26ModProject()
+	{
+		if (!Fc26SnapshotLoader.IsLoaded) { MessageBox.Show(this, "Open FC26 first.", "Export FIFA Mod"); return; }
+		using (var dialog = new SaveFileDialog { Filter = "FIFA Mod (*.fifamod)|*.fifamod", DefaultExt = "fifamod", FileName = "CM26-" + DateTime.Now.ToString("yyyyMMdd-HHmm") + ".fifamod" })
+		{
+			if (dialog.ShowDialog(this) != DialogResult.OK) return;
+			try
+			{
+				UseWaitCursor = true; statusBar.Text = "Validating and exporting FC26 FIFA Mod...";
+				var message = await System.Threading.Tasks.Task.Run(() => Fc26HostBridge.ExportMod(dialog.FileName));
+				statusBar.Text = "FIFA Mod exported: " + dialog.FileName;
+				MessageBox.Show(this, message, "Export FIFA Mod", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			}
+			catch (Exception ex) { Fc26FriendlyError.Show(this, "Export FIFA Mod", ex, "No incomplete mod package was reported as successful."); }
+			finally { UseWaitCursor = false; }
+		}
 	}
 
 	internal void ShowFc26CareerSaveModule()

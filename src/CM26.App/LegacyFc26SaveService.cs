@@ -6,7 +6,7 @@ namespace CM26.App;
 /// <summary>Applies edits collected from the original x86 CM16 forms through the native FC26 engine.</summary>
 internal static class LegacyFc26SaveService
 {
-    internal static string Apply(string planPath, bool applyDirect = true)
+    internal static string Apply(string planPath, bool applyDirect = true, string? exportDestination = null)
     {
         if (!File.Exists(planPath)) throw new FileNotFoundException("FC26 change plan was not found.", planPath);
         var plan = JsonSerializer.Deserialize<ChangePlan>(File.ReadAllText(planPath),
@@ -75,7 +75,7 @@ internal static class LegacyFc26SaveService
                         $"{change.TableName}[{change.RowIndex}].{change.FieldName}")));
         }
 
-        if (!applyDirect)
+        if (!applyDirect && string.IsNullOrWhiteSpace(exportDestination))
             return stagingFolder != null
                 ? $"Staged and reload-verified {plan.Changes.Count} FC26 database change(s) at {stagingFolder}"
                 : $"Validated {mods.Count} staged asset file(s); no database changes were requested.";
@@ -83,6 +83,12 @@ internal static class LegacyFc26SaveService
         var assetCount = mods.Count;
         if (stagingFolder != null) mods.StageDatabase(stagingFolder, includeLocale: HasLocaleChanges(plan));
         var directPlan = mods.WriteDirectPlan();
+        if (!string.IsNullOrWhiteSpace(exportDestination))
+        {
+            var exported = assets.ExportFetMod(directPlan, exportDestination);
+            if (!exported.Success) throw new InvalidOperationException(exported.Message);
+            return $"Exported {plan.Changes.Count} database change(s) and {assetCount} asset file(s). {exported.Message}";
+        }
         var applied = assets.ApplyDirect(directPlan);
         if (!applied.Success) throw new InvalidOperationException(applied.Message);
         mods.MarkApplied();

@@ -357,7 +357,7 @@ internal static class Program
 					suppressCheck.Checked = true;
 					suppress.Invoke(legacyMessage, null);
 				}
-				foreach (var command in new[] { "Create New League...", "Create New Team..." })
+				foreach (var command in new[] { "Create New League...", "Create New Team...", "Export FC26 FIFA Mod..." })
 					if (!ContainsMenuText(main.MainMenuStrip?.Items, command))
 						throw new InvalidDataException("The direct record command is missing: " + command);
 				if (!ContainsMenuText(main.MainMenuStrip?.Items, "Public Readiness Centre..."))
