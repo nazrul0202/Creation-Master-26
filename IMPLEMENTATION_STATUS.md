@@ -1,4 +1,4 @@
-# Creation Master 26 v1.0.196 implementation status
+# Creation Master 26 v1.0.197 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
@@ -11,6 +11,10 @@ This status is intentionally conservative: a visible control is not counted as w
 - Specialist Classic tools open safely before FC26 is loaded, and the full feature integration gate is mandatory in CI and package assembly.
 - Club transfers append reload-verified history records even when the stock FC26 `transfers` table has zero rows; fee, player and both club relationships are mandatory.
 - Loans and loan-to-buy append a reload-verified native `playerloans` row without depending on an existing template; schema validation happens before roster mutation.
+- Miniface folders are preflighted as a batch; raster portraits are aligned to 180×180, DDS dimensions and duplicate player IDs are validated before the first stage operation.
+- National and youth workflows enforce the 26-player national limit, exclude injured replacements, and reject invalid/duplicate roster CSV input before mutation.
+- Competition adds native knockout/draw/end-rule/seeding controls and dependency-aware cleanup of unmapped, teamless competition structures.
+- Asset-family import is atomic from the Classic UI through the x64 host and rolls back the batch state if any payload cannot be prepared.
 - Extracted-database validation is isolated and non-destructive; FIFA Mod export requires an installed Frostbite source.
 
 - Completed the comprehensive 1–20 Classic feature checklist: multi-profile Appearance Assistant; aligned miniface and visual similarity helper; native face/cranium round-trip; injury-aware national squads; dedicated U21 exchange; FC25/Excel player conversion; saved filters and row templates; safe reference removal; batch asset-family exchange and validation reports.

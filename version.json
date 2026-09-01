@@ -1,6 +1,6 @@
 {
-  "version": "1.0.196",
+  "version": "1.0.197",
   "name": "Creation Master 26",
-  "notes": "v1.0.196 - Template-free, reload-verified loan and loan-to-buy creation in the Classic roster workflow.",
+  "notes": "v1.0.197 - Safe 180x180 miniface batches, squad preflight, native knockout/draw rules and atomic asset-family staging.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

@@ -144,20 +144,55 @@ internal sealed class Fc26FaceToolsForm : Form
 			if (dialog.ShowDialog(this) != DialogResult.OK) return;
 			Run("Staging batch minifaces...", () =>
 			{
-				var count = 0; var skipped = 0;
-				foreach (var file in Directory.GetFiles(dialog.SelectedPath))
+				var skipped = 0;
+				var imports = new List<MinifaceImport>();
+				foreach (var file in Directory.GetFiles(dialog.SelectedPath).OrderBy(path => path, StringComparer.OrdinalIgnoreCase))
 				{
 					var extension = Path.GetExtension(file);
 					if (!new[] { ".png", ".jpg", ".jpeg", ".bmp", ".dds" }.Contains(extension, StringComparer.OrdinalIgnoreCase)) { skipped++; continue; }
 					var stem = Path.GetFileNameWithoutExtension(file);
 					if (!stem.StartsWith("p", StringComparison.OrdinalIgnoreCase) || !int.TryParse(stem.Substring(1), out var id) || FifaEnvironment.Players.SearchId(id) == null) { skipped++; continue; }
-					var width = 1; var height = 1;
-					if (!extension.Equals(".dds", StringComparison.OrdinalIgnoreCase))
-						using (var image = Image.FromFile(file)) { width = image.Width; height = image.Height; }
-					Fc26HostBridge.StageImage(Player.SpecificPhotoDdsFileName(id), file, width, height);
+					imports.Add(new MinifaceImport(file, id, extension.Equals(".dds", StringComparison.OrdinalIgnoreCase)));
+				}
+				var duplicateIds = imports.GroupBy(item => item.PlayerId).Where(group => group.Count() > 1).Select(group => group.Key).ToArray();
+				if (duplicateIds.Length > 0)
+					throw new InvalidDataException("More than one miniface was supplied for player ID(s): " + string.Join(", ", duplicateIds) + ". Keep one p<id> file per player.");
+
+				// Validate and decode every candidate before staging the first asset so
+				// malformed input cannot leave a predictable half-imported batch.
+				foreach (var item in imports)
+				{
+					if (item.IsDds)
+					{
+						if (!TryReadDdsDimensions(item.Path, out var width, out var height) || width != 180 || height != 180)
+							throw new InvalidDataException(Path.GetFileName(item.Path) + " must be a readable 180×180 DDS miniface.");
+					}
+					else using (var image = Image.FromFile(item.Path))
+					{
+						if (image.Width <= 0 || image.Height <= 0) throw new InvalidDataException(Path.GetFileName(item.Path) + " is not a readable portrait image.");
+					}
+				}
+
+				var count = 0;
+				foreach (var item in imports)
+				{
+					if (item.IsDds)
+						Fc26HostBridge.StageImage(Player.SpecificPhotoDdsFileName(item.PlayerId), item.Path, 180, 180);
+					else
+					{
+						var temporary = Path.Combine(Path.GetTempPath(), "cm26_miniface_" + item.PlayerId + "_" + Guid.NewGuid().ToString("N") + ".png");
+						try
+						{
+							using (var source = Image.FromFile(item.Path))
+							using (var aligned = CreateAlignedMiniface(source))
+								aligned.Save(temporary, System.Drawing.Imaging.ImageFormat.Png);
+							Fc26HostBridge.StageImage(Player.SpecificPhotoDdsFileName(item.PlayerId), temporary, 180, 180);
+						}
+						finally { try { if (File.Exists(temporary)) File.Delete(temporary); } catch { } }
+					}
 					count++;
 				}
-				return count + " miniface(s) staged; " + skipped + " unrelated/unknown file(s) skipped. Use File > Save to commit.";
+				return count + " aligned 180×180 miniface(s) staged; " + skipped + " unrelated/unknown file(s) skipped. Use File > Save to commit.";
 			});
 		}
 	}
@@ -316,15 +351,7 @@ internal sealed class Fc26FaceToolsForm : Form
 		try
 		{
 			using var source = new Bitmap(open.FileName);
-			var side = Math.Min(source.Width, source.Height);
-			var x = Math.Max(0, (source.Width - side) / 2);
-			var y = Math.Max(0, Math.Min(source.Height - side, (source.Height - side) / 3));
-			using var aligned = new Bitmap(180, 180, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-			using (var graphics = Graphics.FromImage(aligned))
-			{
-				graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-				graphics.DrawImage(source, new Rectangle(0, 0, 180, 180), new Rectangle(x, y, side, side), GraphicsUnit.Pixel);
-			}
+			using var aligned = CreateAlignedMiniface(source);
 			var temp = Path.Combine(Path.GetTempPath(), "cm26_miniface_" + row.Id + "_" + Guid.NewGuid().ToString("N") + ".png");
 			aligned.Save(temp, System.Drawing.Imaging.ImageFormat.Png);
 			try { Fc26HostBridge.StageImage(Player.SpecificPhotoDdsFileName(row.Id), temp, 180, 180); }
@@ -334,6 +361,42 @@ internal sealed class Fc26FaceToolsForm : Form
 		}
 		catch (Exception ex) { Fc26FriendlyError.Show(this, "Align miniface", ex, "No miniface was staged."); }
 	}
+
+	private static Bitmap CreateAlignedMiniface(Image source)
+	{
+		if (source == null || source.Width <= 0 || source.Height <= 0) throw new InvalidDataException("A readable portrait image is required.");
+		var side = Math.Min(source.Width, source.Height);
+		var x = Math.Max(0, (source.Width - side) / 2);
+		var y = Math.Max(0, Math.Min(source.Height - side, (source.Height - side) / 3));
+		var aligned = new Bitmap(180, 180, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+		using (var graphics = Graphics.FromImage(aligned))
+		{
+			graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+			graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+			graphics.DrawImage(source, new Rectangle(0, 0, 180, 180), new Rectangle(x, y, side, side), GraphicsUnit.Pixel);
+		}
+		return aligned;
+	}
+
+	private static bool TryReadDdsDimensions(string path, out int width, out int height)
+	{
+		width = 0; height = 0;
+		try
+		{
+			using (var stream = File.OpenRead(path))
+			using (var reader = new BinaryReader(stream))
+			{
+				if (stream.Length < 128 || reader.ReadUInt32() != 0x20534444 || reader.ReadUInt32() != 124) return false;
+				reader.ReadUInt32();
+				height = reader.ReadInt32(); width = reader.ReadInt32();
+				return width > 0 && height > 0;
+			}
+		}
+		catch { width = 0; height = 0; return false; }
+	}
+
+	internal static Bitmap CreateAlignedMinifaceForTest(Image source) => CreateAlignedMiniface(source);
+	internal static bool TryReadDdsDimensionsForTest(string path, out int width, out int height) => TryReadDdsDimensions(path, out width, out height);
 
 	private async void FaceSimilarity(object sender, EventArgs e)
 	{
@@ -417,6 +480,13 @@ internal sealed class Fc26FaceToolsForm : Form
 			FaceTexture = Exists(Player.SpecificFaceTextureFileName(Id)); Hair = Exists(Player.SpecificHairModelFileName(Id));
 		}
 		private static string Exists(string path) { var file = Fc26HostBridge.ExportAsset(path); return !string.IsNullOrWhiteSpace(file) && File.Exists(file) ? "Installed" : "Missing"; }
+	}
+	private sealed class MinifaceImport
+	{
+		internal MinifaceImport(string path, int playerId, bool isDds) { Path = path; PlayerId = playerId; IsDds = isDds; }
+		internal string Path { get; }
+		internal int PlayerId { get; }
+		internal bool IsDds { get; }
 	}
 	private sealed class TeamChoice
 	{

@@ -73,6 +73,12 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 2 && args[0] == "--legacy-stage-files")
+        {
+            Environment.ExitCode = StageLegacyFiles(args[1]);
+            return;
+        }
+
         if (args.Length >= 3 && args[0] == "--legacy-move-asset")
         {
             Environment.ExitCode = MoveLegacyAsset(args[1], args[2]);
@@ -888,6 +894,37 @@ internal static class Program
             var mods = new LegacyAssetModService();
             mods.Open(assets.Fingerprint);
             Console.WriteLine(mods.StageFile(legacyPath, sourcePath));
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
+    }
+
+    private static int StageLegacyFiles(string manifestPath)
+    {
+        try
+        {
+            if (!File.Exists(manifestPath)) throw new FileNotFoundException("The asset batch manifest was not found.", manifestPath);
+            var requests = File.ReadAllLines(manifestPath).Where(line => !string.IsNullOrWhiteSpace(line)).Select(line =>
+            {
+                var parts = line.Split('\t');
+                if (parts.Length != 2) throw new InvalidDataException("The asset batch manifest contains an invalid row.");
+                var legacyPath = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[0]));
+                var sourcePath = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
+                if (!legacyPath.Replace('\\', '/').StartsWith("data/", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException("Every batch target must be a verified FC26 data/ logical path.");
+                if (!File.Exists(sourcePath)) throw new FileNotFoundException("A batch source asset was not found.", sourcePath);
+                return (LegacyPath: legacyPath, SourcePath: sourcePath);
+            }).ToArray();
+            if (requests.Length == 0) throw new InvalidDataException("The asset batch manifest is empty.");
+            var gameRoot = FrostbiteAssetSession.ResolveGameRoot(SettingsService.FC26GameFolder);
+            if (string.IsNullOrWhiteSpace(gameRoot)) throw new InvalidOperationException("FC26 installation was not detected.");
+            var assets = new FrostbiteAssetSession();
+            assets.Open(gameRoot);
+            if (!assets.IsAvailable) throw new InvalidOperationException(assets.Status);
+            var mods = new LegacyAssetModService();
+            mods.Open(assets.Fingerprint);
+            var staged = mods.StageFilesAtomically(requests);
+            Console.WriteLine(staged.Count + " asset replacement(s) staged atomically");
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }

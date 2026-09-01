@@ -1,3 +1,10 @@
+Creation Master 26 v1.0.197 - 1 September 2026
+
+- Added preflighted 180x180 miniface batch alignment, duplicate-ID rejection and DDS dimension validation.
+- Enforced national-squad capacity, injury-safe replacement selection and strict roster/U21 CSV slots before mutation.
+- Added native FC26 knockout, draw, end-rule, draw-date and seeded-slot Compdata editing plus dependency-aware unused competition cleanup.
+- Made native asset-family batch imports atomic through the x64 host.
+
 Creation Master 26 v1.0.196 - 1 September 2026
 
 - Made loan and loan-to-buy creation append a native `playerloans` row without requiring an existing template record.

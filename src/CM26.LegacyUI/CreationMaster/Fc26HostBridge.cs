@@ -242,6 +242,29 @@ internal static class Fc26HostBridge
         return result.StandardOutput.Trim();
     }
 
+    internal static string StageFilesAtomically(IEnumerable<Tuple<string, string>> files)
+    {
+        var requests = (files ?? Enumerable.Empty<Tuple<string, string>>()).ToArray();
+        if (requests.Length == 0) throw new InvalidOperationException("Select at least one native asset for the batch import.");
+        var manifest = Path.Combine(Path.GetTempPath(), "cm26-asset-batch-" + Guid.NewGuid().ToString("N") + ".tsv");
+        try
+        {
+            var lines = requests.Select(item =>
+            {
+                if (item == null || string.IsNullOrWhiteSpace(item.Item1) || !File.Exists(item.Item2))
+                    throw new InvalidDataException("Every batch asset requires a verified target path and an existing source file.");
+                return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(item.Item1)) + "\t" +
+                    Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(item.Item2));
+            }).ToArray();
+            File.WriteAllLines(manifest, lines);
+            var result = RunHost("--legacy-stage-files \"" + manifest.Replace("\"", string.Empty) + "\"", AssetCommandTimeoutMs,
+                "FC26 atomic asset-family importer", allowValidationIssues: false);
+            foreach (var request in requests) s_AssetCache.Remove(request.Item1);
+            return result.StandardOutput.Trim();
+        }
+        finally { try { if (File.Exists(manifest)) File.Delete(manifest); } catch { } }
+    }
+
     internal static string MoveStagedAsset(string sourceLegacyPath, string targetLegacyPath)
     {
         var result = RunHost("--legacy-move-asset \"" + sourceLegacyPath.Replace("\"", string.Empty) + "\" \"" +

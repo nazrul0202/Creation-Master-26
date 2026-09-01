@@ -14,18 +14,18 @@ Status legend: **Implemented** = every named poster capability has a real Classi
 | 6 | Player ID and names manager | Implemented | `Fc26ModdingUtilitiesForm`, `PlayerNameService`, `NameResolver`, duplicate audit, safe ID migration and FC25 conversion | Maintain FC25/FC26 mapping fixtures. |
 | 7 | Transfermarkt import | Implemented | `Fc26TransfermarktForm`: name/URL search, biodata, position, generated attributes/OVR/POT, duplicate preview, team target and audit | Maintain parser fixtures when the source site changes. |
 | 8 | Appearance Assistant | Implemented | `AppearanceAssistant`: local skin/beard/hair analysis, confidence, nationality-region tie-break, multiple profiles, manual override and fallback | Maintain representative portrait fixtures. |
-| 9 | Miniface and face tools | Implemented | `Fc26FaceToolsForm`: scaling/alignment, batch import, missing report, linked rename, generic browser, similarity helper and native cranium import/export | Similarity is explicitly a visual helper, not biometric identification. |
+| 9 | Miniface and face tools | Implemented | `Fc26FaceToolsForm`: preflighted 180×180 scaling/alignment, duplicate-safe batch import, DDS validation, missing report, linked rename, generic browser, similarity helper and native cranium import/export | Similarity is explicitly a visual helper, not biometric identification. |
 | 10 | Transfer and loan system | Implemented | classic Team/Player workflows, `Fc26RosterToolsForm`, native empty-table append, reload-verified `transfers` history (player/seller/buyer/fee), template-free reload-verified `playerloans` creation and transactional staged save | Maintain cancel/rollback fixtures for every loan variant. |
 | 11 | Roster and squad tools | Implemented | `Fc26RosterToolsForm`, health repair, formation/set-piece repair | Maintain invalid-slot regression datasets. |
-| 12 | National-team management | Implemented | call-up/remove, size/goalkeeper/nationality/slot rules, injured-call-up replacement, CSV exchange and nationality synchronization | Competition-specific squad limits remain data-driven. |
-| 13 | Youth squad tools | Implemented | U21 merge/sync, dedicated CSV import/export and duplicate-safe roster repair | Career-only youth tables require a loaded Career save. |
+| 12 | National-team management | Implemented | call-up/remove, enforced 26-player capacity, size/goalkeeper/nationality/slot rules, injury-safe call-up replacement, CSV exchange and nationality synchronization | Competition-specific squad limits remain data-driven. |
+| 13 | Youth squad tools | Implemented | U21 merge/sync, dedicated CSV import/export, duplicate-ID rejection, shirt/slot preflight and roster repair | Career-only youth tables require a loaded Career save. |
 | 14 | Create Team | Implemented | guided `CreateNewTeamWorkflow`, relationship staging, starter-roster clone | Maintain create/save/reload fixture coverage. |
 | 15 | Team editor | Implemented | `TeamForm` and FC26 financial/tactics/profile mappings | Verify mappings per Title Update. |
 | 16 | League and competition | Implemented | `LeagueForm`, Competition section and FC26 compdata tooling | Maintain promotion/relegation fixtures. |
-| 17 | Cup/draw/tournament | Implemented | `Fc26CompdataForm`, league/cup wizard, schedule generation, advancement and validation | Maintain knockout/seeding/result fixtures. |
+| 17 | Cup/draw/tournament | Implemented | `Fc26CompdataForm`, league/cup wizard, schedule generation, advancement, native knockout/draw/end-rule/date/seeding settings, dependency-aware unused cleanup and validation | Maintain result fixtures for Career-save schemas that expose writable match results. |
 | 18 | Kit and asset manager | Implemented | `KitForm`, batch team kits, `Fc26AssetManagerForm`, Frostbite asset bridge | Maintain the native asset fixture pack. |
 | 19 | Stadium and presentation | Implemented | `StadiumForm`, ball/presentation editors, HUD/font/scoreboard/adboard families and previews | Maintain relationship mappings per Title Update. |
-| 20 | Asset dependency | Implemented | reverse DB usage, known file families, batch family import/export and validation CSV in `Fc26AssetManagerForm` | Extend mappings when EA adds new families. |
+| 20 | Asset dependency | Implemented | reverse DB usage, known file families, atomic batch family import, family export and validation CSV in `Fc26AssetManagerForm` | Extend mappings when EA adds new families. |
 
 ## Stable / advanced release gate
 

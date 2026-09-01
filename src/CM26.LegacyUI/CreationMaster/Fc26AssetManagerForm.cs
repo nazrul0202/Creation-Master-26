@@ -349,8 +349,8 @@ internal sealed class Fc26AssetManagerForm : Form
             MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
         Run("Staging asset family...", () =>
         {
-            foreach (var item in matches) Fc26HostBridge.StageFile(item.Target, item.Source);
-            return matches.Length + " native family file(s) staged. Use File > Save to validate and commit.";
+			Fc26HostBridge.StageFilesAtomically(matches.Select(item => Tuple.Create(item.Target, item.Source)));
+			return matches.Length + " native family file(s) staged atomically. Use File > Save to validate and commit.";
         });
     }
 

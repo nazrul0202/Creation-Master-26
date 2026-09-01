@@ -332,13 +332,22 @@ internal sealed class Fc26RosterToolsForm : Form
         if (national == null || !national.IsNationalTeam()) { MessageBox.Show(this, "Select a national team as Target team."); return; }
         if (players.Length == 0) return;
         var invalid = players.Where(player => national.Country == null || player.Country == null || player.Country.Id != national.Country.Id).ToArray();
-        if (invalid.Length > 0)
-        {
+		if (invalid.Length > 0)
+		{
             MessageBox.Show(this, invalid.Length + " selected player(s) do not match " + national.Country + " nationality. No changes were made.",
-                "Nationality validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); return;
-        }
-        foreach (var player in players) { player.RemoveCurrentConflictingTeam(national); if (!player.IsPlayingFor(national)) national.AddTeamPlayer(player); }
-        RepairTeam(national); MessageBox.Show(this, players.Length + " national-team call-up(s) staged. Use File > Save to commit.");
+				"Nationality validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); return;
+		}
+		var additions = players.Where(player => !player.IsPlayingFor(national)).ToArray();
+		if (additions.Length == 0) { MessageBox.Show(this, "Every selected player is already in this national squad."); return; }
+		var currentCount = national.Roster.Cast<TeamPlayer>().Count(link => link?.Player != null);
+		if (!CanAddToNationalSquad(currentCount, additions.Length))
+		{
+			MessageBox.Show(this, "This call-up would create a " + (currentCount + additions.Length) +
+				"-player squad. Remove players first; CM26 will not exceed the 26-player national-squad limit.",
+				"National squad capacity", MessageBoxButtons.OK, MessageBoxIcon.Warning); return;
+		}
+		foreach (var player in additions) { player.RemoveCurrentConflictingTeam(national); national.AddTeamPlayer(player); }
+		RepairTeam(national); MessageBox.Show(this, additions.Length + " national-team call-up(s) staged. Use File > Save to commit.");
     }
 
     private void RemoveNationalCallUp()
@@ -412,8 +421,9 @@ internal sealed class Fc26RosterToolsForm : Form
         var injured = national.Roster.Cast<TeamPlayer>().Where(link => link?.Player != null && link.injury > 0).ToArray();
         if (injured.Length == 0) { MessageBox.Show(this, "No injured call-ups were found in this national squad."); return; }
         var currentIds = new HashSet<int>(national.Roster.Cast<TeamPlayer>().Where(link => link?.Player != null).Select(link => link.Player.Id));
-        var replacements = FifaEnvironment.Players.Cast<Player>()
-            .Where(player => player?.Country != null && player.Country.Id == national.Country.Id && !currentIds.Contains(player.Id))
+		var replacements = FifaEnvironment.Players.Cast<Player>()
+			.Where(player => player?.Country != null && player.Country.Id == national.Country.Id &&
+				!currentIds.Contains(player.Id) && !IsPlayerInjured(player))
             .OrderByDescending(player => player.overallrating).ThenByDescending(player => player.potential).Take(injured.Length).ToArray();
         if (replacements.Length < injured.Length)
         { MessageBox.Show(this, "Only " + replacements.Length + " eligible replacement(s) were found for " + injured.Length + " injured player(s)."); return; }
@@ -453,16 +463,29 @@ internal sealed class Fc26RosterToolsForm : Form
         File.WriteAllLines(dialog.FileName, lines, new UTF8Encoding(true));
     }
 
-    private void ImportYouth()
+	private void ImportYouth()
     {
         var team = CurrentTeam(); if (team == null) return;
         using var dialog = new OpenFileDialog { Filter = "Youth CSV (*.csv)|*.csv|All files (*.*)|*.*" };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
-        var resolved = File.ReadAllLines(dialog.FileName).Skip(1).Select(ParseCsvLine)
-            .Where(parts => parts.Length >= 7 && int.TryParse(parts[0], out _))
-            .Select(parts => new { Player = FifaEnvironment.Players.SearchId(Parse(parts[0])) as Player,
-                Number = Parse(parts[parts.Length - 2]), Position = Parse(parts[parts.Length - 1]) })
-            .Where(item => item.Player != null && Age(item.Player) <= 21).GroupBy(item => item.Player.Id).Select(group => group.First()).ToArray();
+		var parsedYouth = File.ReadAllLines(dialog.FileName).Skip(1).Select(ParseCsvLine)
+			.Where(parts => parts.Length >= 7 && int.TryParse(parts[0], out _))
+			.Select(parts => new { Player = FifaEnvironment.Players.SearchId(Parse(parts[0])) as Player,
+				Number = Parse(parts[parts.Length - 2]), Position = Parse(parts[parts.Length - 1]) })
+			.Where(item => item.Player != null && Age(item.Player) <= 21).ToArray();
+		var duplicateIds = parsedYouth.GroupBy(item => item.Player.Id).Where(group => group.Count() > 1).Select(group => group.Key).ToArray();
+		if (duplicateIds.Length > 0)
+		{
+			MessageBox.Show(this, "The youth CSV contains duplicate player ID(s): " + string.Join(", ", duplicateIds) + ". No changes were made.",
+				"Youth CSV validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); return;
+		}
+		var resolved = parsedYouth;
+		var invalidRows = resolved.Where(item => !IsValidRosterSlot(item.Number, item.Position)).ToArray();
+		if (invalidRows.Length > 0)
+		{
+			MessageBox.Show(this, invalidRows.Length + " U21 row(s) have a shirt number outside 1–99 or squad position outside 0–29. No changes were made.",
+				"Youth CSV validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); return;
+		}
         var existing = new HashSet<int>(team.Roster.Cast<TeamPlayer>().Where(link => link?.Player != null).Select(link => link.Player.Id));
         var additions = resolved.Where(item => !existing.Contains(item.Player.Id)).ToArray();
         if (additions.Length == 0) { MessageBox.Show(this, "No new valid U21 player IDs were found."); return; }
@@ -526,16 +549,28 @@ internal sealed class Fc26RosterToolsForm : Form
         File.WriteAllLines(dialog.FileName, lines, new UTF8Encoding(true));
     }
 
-    private void ImportRoster()
+	private void ImportRoster()
     {
         var team = CurrentTeam(); if (team == null) return;
         using var dialog = new OpenFileDialog { Filter = "CSV (*.csv)|*.csv|All files (*.*)|*.*" };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         var rows = File.ReadAllLines(dialog.FileName).Skip(1).Select(ParseCsvLine)
             .Where(parts => parts.Length >= 4 && int.TryParse(parts[0], out _)).ToArray();
-        var resolved = rows.Select(parts => new { Player = FifaEnvironment.Players.SearchId(int.Parse(parts[0], CultureInfo.InvariantCulture)) as Player,
-            Number = Parse(parts[parts.Length - 2]), Position = Parse(parts[parts.Length - 1]) }).Where(row => row.Player != null).ToArray();
-        if (resolved.Length == 0) { MessageBox.Show(this, "No valid FC26 player IDs were found in this roster file."); return; }
+		var resolved = rows.Select(parts => new { Player = FifaEnvironment.Players.SearchId(int.Parse(parts[0], CultureInfo.InvariantCulture)) as Player,
+			Number = Parse(parts[parts.Length - 2]), Position = Parse(parts[parts.Length - 1]) }).Where(row => row.Player != null).ToArray();
+		if (resolved.Length == 0) { MessageBox.Show(this, "No valid FC26 player IDs were found in this roster file."); return; }
+		var duplicateIds = resolved.GroupBy(row => row.Player.Id).Where(group => group.Count() > 1).Select(group => group.Key).ToArray();
+		if (duplicateIds.Length > 0)
+		{
+			MessageBox.Show(this, "The roster CSV contains duplicate player ID(s): " + string.Join(", ", duplicateIds) + ". No changes were made.",
+				"Roster CSV validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); return;
+		}
+		var invalidRows = resolved.Where(row => !IsValidRosterSlot(row.Number, row.Position)).ToArray();
+		if (invalidRows.Length > 0)
+		{
+			MessageBox.Show(this, invalidRows.Length + " roster row(s) have a shirt number outside 1–99 or squad position outside 0–29. No changes were made.",
+				"Roster CSV validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); return;
+		}
         if (MessageBox.Show(this, "Replace the " + team + " roster with " + resolved.Length + " resolved player(s)? Affected links will be repaired.",
             "Roster import preview", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
         foreach (var link in team.Roster.Cast<TeamPlayer>().ToArray()) team.RemoveTeamPlayer(link);
@@ -543,7 +578,11 @@ internal sealed class Fc26RosterToolsForm : Form
         RepairTeam(team); RefreshAll();
     }
 
-    private static int Parse(string value) => int.TryParse(value.Trim().Trim('"'), NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) ? result : 0;
+	private static int Parse(string value) => int.TryParse(value.Trim().Trim('"'), NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) ? result : 0;
+	internal static bool CanAddToNationalSquad(int currentCount, int additions) => currentCount >= 0 && additions >= 0 && currentCount + additions <= 26;
+	internal static bool IsValidRosterSlot(int shirtNumber, int position) => shirtNumber >= 1 && shirtNumber <= 99 && position >= 0 && position <= 29;
+	private static bool IsPlayerInjured(Player player) => FifaEnvironment.Teams != null && FifaEnvironment.Teams.Cast<Team>()
+		.SelectMany(team => team.Roster.Cast<TeamPlayer>()).Any(link => link?.Player?.Id == player.Id && link.injury > 0);
 
     /// <summary>Parses one RFC 4180-style CSV record, including escaped quotes and commas inside names.</summary>
     internal static string[] ParseCsvLine(string line)

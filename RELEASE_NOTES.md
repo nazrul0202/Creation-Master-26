@@ -1,5 +1,20 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.197 - comprehensive workflow hardening (2026-09-01)
+
+- Batch miniface import now preflights the complete folder, rejects duplicate
+  player IDs, validates DDS dimensions and aligns ordinary portraits to the
+  required 180×180 canvas before staging.
+- National call-ups cannot exceed 26 players; injured-call-up replacement
+  excludes players injured at their clubs. Roster and U21 CSV imports reject
+  duplicate IDs, invalid shirt numbers and invalid squad slots before mutation.
+- Added a friendly Classic editor for native FC26 knockout stage type, match
+  situation, end rules, random draws, draw dates and UEFA seeded slots.
+- Added dependency-aware cleanup for genuinely unused Compdata competitions;
+  mapped competitions and competitions with assigned teams remain protected.
+- Asset-family batch imports now use the engine's atomic staging transaction,
+  preventing a partially staged family when one source fails.
+
 ## Version 1.0.196 - template-free native loans (2026-09-01)
 
 - Loan and loan-to-buy creation now appends a range-safe native

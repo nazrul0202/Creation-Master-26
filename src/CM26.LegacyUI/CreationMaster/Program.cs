@@ -477,6 +477,35 @@ internal static class Program
 				using (var workspace = new Fc26DatabaseWorkspaceForm())
 					foreach (var required in new[] { "Add / Clone Row", "Set Selected", "Changed records only", "Remove References", "Import All", "Export All", "Save Filter", "Load Filter", "Save Row Template", "Apply Row Template" })
 						if (!ContainsControlText(workspace, required)) throw new InvalidDataException("Advanced Database Workspace is missing: " + required);
+				var ruleTable = new System.Data.DataTable("settings");
+				ruleTable.Columns.Add("Object"); ruleTable.Columns.Add("Setting"); ruleTable.Columns.Add("Value");
+				Fc26CompdataPanel.ApplyStageRulesForTest(ruleTable, 500, "KO2LEGS", "SEMI", "PENS", true, 250, 4);
+				var ruleProbe = ruleTable.Rows.Cast<System.Data.DataRow>().ToDictionary(row => Convert.ToString(row[1]), row => Convert.ToString(row[2]));
+				if (!ruleProbe.TryGetValue("match_stagetype", out var stageRule) || stageRule != "KO2LEGS" ||
+					!ruleProbe.TryGetValue("match_endruleko2leg1", out var firstLegRule) || firstLegRule != "END" ||
+					!ruleProbe.TryGetValue("match_endruleko2leg2", out var secondLegRule) || secondLegRule != "PENS" ||
+					!ruleProbe.TryGetValue("advance_randomdraw", out var randomRule) || randomRule != "1" ||
+					!ruleProbe.TryGetValue("schedule_stage_draw_date", out var drawRule) || drawRule != "250" ||
+					!ruleProbe.TryGetValue("uefa_seeded_slots", out var seedRule) || seedRule != "4")
+					throw new InvalidDataException("Native FC26 knockout/draw rule staging failed.");
+				Fc26CompdataPanel.ApplyStageRulesForTest(ruleTable, 500, "LEAGUE", "GROUP", "END", false, 0, 0);
+				if (ruleTable.Rows.Count != 2)
+					throw new InvalidDataException("Obsolete knockout/draw settings were not removed when switching to league rules.");
+				var cleanupObjects = new System.Data.DataTable("compobj");
+				for (var column = 0; column < 5; column++) cleanupObjects.Columns.Add("c" + column);
+				cleanupObjects.Rows.Add("10", "3", "C10", "Active", "0"); cleanupObjects.Rows.Add("11", "4", "S1", "", "10");
+				cleanupObjects.Rows.Add("20", "3", "C20", "Unused", "0"); cleanupObjects.Rows.Add("21", "4", "S1", "", "20"); cleanupObjects.Rows.Add("22", "5", "G1", "", "21");
+				var cleanupIds = new System.Data.DataTable("compids"); cleanupIds.Columns.Add("id"); cleanupIds.Rows.Add("10");
+				var cleanupTeams = new System.Data.DataTable("initteams"); cleanupTeams.Columns.Add("competition"); cleanupTeams.Columns.Add("position"); cleanupTeams.Columns.Add("team"); cleanupTeams.Rows.Add("10", "0", "1");
+				var cleanupSettings = new System.Data.DataTable("settings"); cleanupSettings.Columns.Add("object"); cleanupSettings.Columns.Add("key"); cleanupSettings.Columns.Add("value"); cleanupSettings.Rows.Add("21", "match_stagetype", "KO1LEG");
+				var cleanupTables = new System.Collections.Generic.Dictionary<string, System.Data.DataTable>(StringComparer.OrdinalIgnoreCase)
+				{
+					["compobj"] = cleanupObjects, ["compids"] = cleanupIds, ["initteams"] = cleanupTeams, ["settings"] = cleanupSettings
+				};
+				var unusedCompetitions = Fc26CompdataPanel.FindUnusedCompetitionIds(cleanupTables);
+				if (unusedCompetitions.Length != 1 || unusedCompetitions[0] != 20 || Fc26CompdataPanel.RemoveUnusedCompetitions(cleanupTables, unusedCompetitions) != 3 ||
+					cleanupObjects.Rows.Count != 2 || cleanupSettings.Rows.Count != 0)
+					throw new InvalidDataException("Dependency-aware unused competition cleanup failed.");
 				using (var roster = new Fc26RosterToolsForm())
 					foreach (var required in new[] { "Fee / player", "Replace injured call-ups", "Export U21 CSV", "Import / merge U21 CSV", "Sync nationality links" })
 						if (!ContainsControlText(roster, required)) throw new InvalidDataException("Roster/National/Youth tools are missing: " + required);
@@ -485,6 +514,11 @@ internal static class Program
 					throw new InvalidDataException("Roster/U21 quoted CSV parsing failed.");
 				try { Fc26RosterToolsForm.ParseCsvLine("1,\"broken"); throw new InvalidDataException("Malformed roster CSV was accepted."); }
 				catch (InvalidDataException ex) when (ex.Message.IndexOf("unterminated", StringComparison.OrdinalIgnoreCase) >= 0) { }
+				if (!Fc26RosterToolsForm.IsValidRosterSlot(1, 0) || !Fc26RosterToolsForm.IsValidRosterSlot(99, 29) ||
+					Fc26RosterToolsForm.IsValidRosterSlot(0, 0) || Fc26RosterToolsForm.IsValidRosterSlot(10, 30))
+					throw new InvalidDataException("Roster/Youth CSV shirt-number or squad-slot validation failed.");
+				if (!Fc26RosterToolsForm.CanAddToNationalSquad(24, 2) || Fc26RosterToolsForm.CanAddToNationalSquad(25, 2))
+					throw new InvalidDataException("National-squad 26-player capacity validation failed.");
 				var transfermarktHtml = "<html><head><meta property='og:title' content='José Test - Player profile 26/27'/></head><body>" +
 					"Date of birth/Age: 31/01/2000\r\nHeight: 1,84 m\r\nCitizenship: Malaysia\r\nPosition: Central Midfield\r\nCurrent market value: €12.5m</body></html>";
 				var transfermarktProbe = Fc26TransfermarktForm.ParseProfileForTest(transfermarktHtml);
@@ -504,7 +538,23 @@ internal static class Program
 					if (appearance.Count < 3 || appearance.Any(item => item.SkinToneCode < 1 || item.SkinToneCode > 10) ||
 						appearance.Any(item => item.Confidence < 0 || item.Confidence > 100))
 						throw new InvalidDataException("Appearance Assistant deterministic portrait analysis failed.");
+					using (var aligned = Fc26FaceToolsForm.CreateAlignedMinifaceForTest(portrait))
+						if (aligned.Width != 180 || aligned.Height != 180)
+							throw new InvalidDataException("Miniface alignment did not produce the required 180×180 image.");
 				}
+				var ddsProbe = Path.Combine(Path.GetTempPath(), "cm26-miniface-dds-probe-" + Guid.NewGuid().ToString("N") + ".dds");
+				try
+				{
+					var header = new byte[128];
+					Array.Copy(BitConverter.GetBytes(0x20534444u), 0, header, 0, 4);
+					Array.Copy(BitConverter.GetBytes(124u), 0, header, 4, 4);
+					Array.Copy(BitConverter.GetBytes(180), 0, header, 12, 4);
+					Array.Copy(BitConverter.GetBytes(180), 0, header, 16, 4);
+					File.WriteAllBytes(ddsProbe, header);
+					if (!Fc26FaceToolsForm.TryReadDdsDimensionsForTest(ddsProbe, out var ddsWidth, out var ddsHeight) || ddsWidth != 180 || ddsHeight != 180)
+						throw new InvalidDataException("Miniface DDS dimension preflight failed.");
+				}
+				finally { try { File.Delete(ddsProbe); } catch { } }
 				using (var faces = new Fc26FaceToolsForm())
 					foreach (var required in new[] { "Auto-align miniface", "Face similarity helper", "Import native cranium/face", "Export native cranium/face" })
 						if (!ContainsControlText(faces, required)) throw new InvalidDataException("Face tools are missing: " + required);
@@ -547,6 +597,8 @@ internal static class Program
 					ContainsControlText(main.m_LeagueForm, "Make In-Game Ready"))
 					throw new InvalidDataException("League still exposes obsolete multi-step creation buttons.");
 				if (!ContainsControlText(main.m_TrophyForm, "Load FC26 Compdata") ||
+					!ContainsControlText(main.m_TrophyForm, "Knockout / Draw Rules") ||
+					!ContainsControlText(main.m_TrophyForm, "Clear Unused Competitions") ||
 					!ContainsControlText(main.m_TrophyForm, "Stage Compdata to Save"))
 					throw new InvalidDataException("League-to-Compdata save integration is missing.");
 				if (!ContainsControlText(main.m_PlayerForm, "Tactical Roles") ||

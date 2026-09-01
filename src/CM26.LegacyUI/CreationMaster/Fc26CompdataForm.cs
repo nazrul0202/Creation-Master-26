@@ -32,10 +32,12 @@ internal sealed class Fc26CompdataPanel : UserControl
         tools.Items.Add(Item("Open Workbook", (_, _) => OpenWorkbook()));
         tools.Items.Add(new ToolStripSeparator());
         tools.Items.Add(Item("Create Tournament", (_, _) => TournamentWizard()));
+		tools.Items.Add(Item("Knockout / Draw Rules", (_, _) => EditTournamentRules()));
         tools.Items.Add(Item("Promotion / Relegation Paths", (_, _) => AddAdvancement()));
         tools.Items.Add(Item("Assign Teams", (_, _) => AssignTeams()));
         tools.Items.Add(Item("Generate Schedule", (_, _) => GenerateSchedule()));
         tools.Items.Add(Item("Career Ready Check", (_, _) => ShowCareerReadyReport()));
+		tools.Items.Add(Item("Clear Unused Competitions", (_, _) => ClearUnusedCompetitions()));
         tools.Items.Add(Item("Make League In-Game Ready", (_, _) => ChooseLeagueForCareerSetup()));
         tools.Items.Add(Item("Stage Compdata to Save", (_, _) => StageCurrentCompdata()));
         tools.Items.Add(new ToolStripSeparator());
@@ -198,6 +200,187 @@ internal sealed class Fc26CompdataPanel : UserControl
             finally { try { File.Delete(snapshot); } catch { } }
         });
     }
+
+	private void EditTournamentRules()
+	{
+		EnsureLoaded();
+		if (!_tables.TryGetValue("compobj", out var objects) || !_tables.TryGetValue("settings", out var settings))
+		{ MessageBox.Show(this, "Compdata requires compobj and settings sections.", Text); return; }
+		var names = ObjectNames();
+		var stages = objects.Rows.Cast<DataRow>()
+			.Where(row => Int(row, 0, out _) && Int(row, 1, out var type) && type == 4)
+			.Select(row =>
+			{
+				Int(row, 0, out var id); Int(row, 4, out var parent);
+				var name = Value(row, 3); if (string.IsNullOrWhiteSpace(name)) name = Value(row, 2);
+				return new StageChoice(id, (names.TryGetValue(parent, out var competition) ? competition + " · " : string.Empty) + name);
+			}).OrderBy(stage => stage.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+		if (stages.Length == 0) { MessageBox.Show(this, "Create a tournament stage first.", Text); return; }
+
+		using var dialog = new Form { Text = "FC26 Knockout / Draw Rules", StartPosition = FormStartPosition.CenterParent,
+			FormBorderStyle = FormBorderStyle.FixedDialog, ClientSize = new Size(610, 405), MaximizeBox = false, MinimizeBox = false };
+		var stage = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 410, DataSource = stages };
+		var stageType = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 210 };
+		stageType.Items.AddRange(new object[] { "LEAGUE", "SETUP", "KO1LEG", "KO2LEGS", "FRIENDLY" });
+		var situation = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 210 };
+		situation.Items.AddRange(new object[] { "GROUP", "QUALIFY", "PLAYOFF", "ROUND64", "ROUND32", "ROUND16", "QUARTER", "SEMI", "THIRDPLACE", "FINAL", "ROUNDX" });
+		var endRule = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 210 };
+		endRule.Items.AddRange(new object[] { "END", "ET", "PENS", "AGG" });
+		var randomDraw = new CheckBox { Text = "Random draw / redraw event", AutoSize = true };
+		var drawDay = new NumericUpDown { Minimum = 0, Maximum = 730, Width = 100 };
+		var seededSlots = new NumericUpDown { Minimum = 0, Maximum = 64, Width = 100 };
+		var note = new Label { AutoSize = true, MaximumSize = new Size(560, 0), ForeColor = Color.DimGray,
+			Text = "These are native FC26 Compdata settings. KO1LEG uses END/ET/PENS; KO2LEGS stores first-leg END plus the selected second-leg rule. Seeded slots use FC26's UEFA setting where applicable." };
+		var apply = new Button { Text = "Preview & Apply", DialogResult = DialogResult.OK, AutoSize = true };
+		var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true };
+		var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(14), ColumnCount = 2, AutoSize = true };
+		layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+		void AddRule(string label, Control control)
+		{
+			var row = layout.RowCount++; layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+			layout.Controls.Add(new Label { Text = label, AutoSize = true, Padding = new Padding(0, 6, 0, 0) }, 0, row);
+			layout.Controls.Add(control, 1, row);
+		}
+		AddRule("Tournament stage", stage); AddRule("Stage type", stageType); AddRule("Match situation", situation);
+		AddRule("End rule", endRule); AddRule("Draw day", drawDay); AddRule("Seeded slots", seededSlots); AddRule(string.Empty, randomDraw);
+		layout.Controls.Add(note, 0, layout.RowCount); layout.SetColumnSpan(note, 2); layout.RowCount++;
+		var buttons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight };
+		buttons.Controls.AddRange(new Control[] { apply, cancel }); layout.Controls.Add(buttons, 1, layout.RowCount++);
+		dialog.Controls.Add(layout); dialog.AcceptButton = apply; dialog.CancelButton = cancel;
+
+		void LoadRules()
+		{
+			if (stage.SelectedItem is not StageChoice choice) return;
+			string Setting(string key) => settings.Rows.Cast<DataRow>().Where(row => Value(row, 0) == choice.Id.ToString() &&
+				string.Equals(Value(row, 1), key, StringComparison.OrdinalIgnoreCase)).Select(row => Value(row, 2)).FirstOrDefault() ?? string.Empty;
+			SelectText(stageType, Setting("match_stagetype"), "SETUP");
+			SelectText(situation, Setting("match_matchsituation"), "ROUNDX");
+			var rule = Setting("match_endruleko1leg"); if (string.IsNullOrWhiteSpace(rule)) rule = Setting("match_endruleko2leg2");
+			SelectText(endRule, rule, "PENS");
+			randomDraw.Checked = Setting("advance_randomdraw") == "1" || Setting("advance_random_draw_event") == "1";
+			drawDay.Value = DecimalInRange(Setting("schedule_stage_draw_date"), drawDay.Minimum, drawDay.Maximum);
+			seededSlots.Value = DecimalInRange(Setting("uefa_seeded_slots"), seededSlots.Minimum, seededSlots.Maximum);
+		}
+		stage.SelectedIndexChanged += (_, _) => LoadRules(); LoadRules();
+		if (dialog.ShowDialog(this) != DialogResult.OK || stage.SelectedItem is not StageChoice selected) return;
+		var preview = selected + "\r\n" + stageType.Text + " / " + situation.Text + " / " + endRule.Text +
+			"\r\nRandom draw: " + (randomDraw.Checked ? "Yes" : "No") + " | Draw day: " + drawDay.Value + " | Seeded slots: " + seededSlots.Value;
+		if (MessageBox.Show(this, preview + "\r\n\r\nApply these native Compdata settings?", "Knockout / Draw preview",
+			MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+		ApplyStageRules(settings, selected.Id, stageType.Text, situation.Text, endRule.Text, randomDraw.Checked,
+			Decimal.ToInt32(drawDay.Value), Decimal.ToInt32(seededSlots.Value));
+		RefreshSimpleViews(); _status.Text = "Knockout/draw rules staged for " + selected + ". Validate, then Stage Compdata to Save.";
+	}
+
+	private void ClearUnusedCompetitions()
+	{
+		EnsureLoaded();
+		var unused = FindUnusedCompetitionIds(_tables);
+		if (unused.Length == 0) { MessageBox.Show(this, "No unmapped, teamless competition structures were found.", Text); return; }
+		var names = ObjectNames();
+		var preview = string.Join("\r\n", unused.Select(id => id + " · " + (names.TryGetValue(id, out var name) ? name : "Competition")));
+		if (MessageBox.Show(this, "Remove " + unused.Length + " unused competition structure(s) and their child stages/groups?\r\n\r\n" + preview +
+			"\r\n\r\nMapped competitions and competitions with assigned teams are protected.", "Clear unused competitions",
+			MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+		var removedObjects = RemoveUnusedCompetitions(_tables, unused);
+		RefreshSimpleViews(); ShowSheet();
+		_status.Text = unused.Length + " unused competition(s), covering " + removedObjects + " competition/stage/group object(s), removed from the staged Compdata copy.";
+	}
+
+	internal static int[] FindUnusedCompetitionIds(IReadOnlyDictionary<string, DataTable> tables)
+	{
+		if (tables == null || !tables.TryGetValue("compobj", out var objects)) return Array.Empty<int>();
+		tables.TryGetValue("compids", out var compIds); tables.TryGetValue("initteams", out var initTeams);
+		return objects.Rows.Cast<DataRow>().Where(row => Int(row, 0, out _) && Int(row, 1, out var type) && type == 3)
+			.Select(row => Convert.ToInt32(Value(row, 0)))
+			.Where(id => !(compIds?.Rows.Cast<DataRow>().Any(row => Value(row, 0) == id.ToString()) ?? false) &&
+				!(initTeams?.Rows.Cast<DataRow>().Any(row => Value(row, 0) == id.ToString()) ?? false))
+			.OrderBy(id => id).ToArray();
+	}
+
+	internal static int RemoveUnusedCompetitions(IReadOnlyDictionary<string, DataTable> tables, IEnumerable<int> competitionIds)
+	{
+		if (tables == null || !tables.TryGetValue("compobj", out var objects)) return 0;
+		var roots = new HashSet<int>(competitionIds ?? Enumerable.Empty<int>());
+		var ids = new HashSet<int>(roots);
+		var changed = true;
+		while (changed)
+		{
+			changed = false;
+			foreach (var row in objects.Rows.Cast<DataRow>())
+				if (Int(row, 0, out var id) && Int(row, 4, out var parent) && ids.Contains(parent) && ids.Add(id)) changed = true;
+		}
+		if (ids.Count == 0) return 0;
+		void DeleteFirstColumn(string tableName)
+		{
+			if (!tables.TryGetValue(tableName, out var table)) return;
+			foreach (var row in table.Rows.Cast<DataRow>().Where(row => Int(row, 0, out var id) && ids.Contains(id)).ToArray()) row.Delete();
+			table.AcceptChanges();
+		}
+		foreach (var tableName in new[] { "compids", "initteams", "settings", "schedule", "standings", "objectives" }) DeleteFirstColumn(tableName);
+		if (tables.TryGetValue("advancement", out var advancement))
+		{
+			foreach (var row in advancement.Rows.Cast<DataRow>().Where(row =>
+				(Int(row, 0, out var source) && ids.Contains(source)) || (Int(row, 2, out var target) && ids.Contains(target))).ToArray()) row.Delete();
+			advancement.AcceptChanges();
+		}
+		if (tables.TryGetValue("tasks", out var tasks))
+		{
+			foreach (var row in tasks.Rows.Cast<DataRow>().Where(row =>
+				(Int(row, 0, out var competition) && ids.Contains(competition)) ||
+				(Int(row, 3, out var source) && ids.Contains(source)) ||
+				(Int(row, 6, out var target) && ids.Contains(target))).ToArray()) row.Delete();
+			tasks.AcceptChanges();
+		}
+		foreach (var row in objects.Rows.Cast<DataRow>().Where(row => Int(row, 0, out var id) && ids.Contains(id)).ToArray()) row.Delete();
+		objects.AcceptChanges();
+		return ids.Count;
+	}
+
+	private static void SelectText(ComboBox combo, string value, string fallback)
+	{
+		var target = string.IsNullOrWhiteSpace(value) ? fallback : value;
+		for (var index = 0; index < combo.Items.Count; index++)
+			if (string.Equals(Convert.ToString(combo.Items[index]), target, StringComparison.OrdinalIgnoreCase)) { combo.SelectedIndex = index; return; }
+		combo.SelectedIndex = 0;
+	}
+
+	private static decimal DecimalInRange(string value, decimal minimum, decimal maximum) =>
+		decimal.TryParse(value, out var parsed) ? Math.Max(minimum, Math.Min(maximum, parsed)) : minimum;
+
+	private static void SetSingleSetting(DataTable settings, int objectId, string key, string value)
+	{
+		foreach (var row in settings.Rows.Cast<DataRow>().Where(row => Value(row, 0) == objectId.ToString() &&
+			string.Equals(Value(row, 1), key, StringComparison.OrdinalIgnoreCase)).ToArray()) row.Delete();
+		settings.AcceptChanges();
+		if (string.IsNullOrWhiteSpace(value)) return;
+		var added = settings.NewRow(); added[0] = objectId.ToString(); added[1] = key; added[2] = value; settings.Rows.Add(added);
+	}
+
+	private static void ApplyStageRules(DataTable settings, int stageId, string stageType, string situation,
+		string endRule, bool randomDraw, int drawDay, int seededSlots)
+	{
+		if (settings == null || settings.Columns.Count < 3) throw new InvalidDataException("The Compdata settings section is invalid.");
+		if (!new[] { "LEAGUE", "SETUP", "KO1LEG", "KO2LEGS", "FRIENDLY" }.Contains(stageType))
+			throw new InvalidDataException("Unsupported FC26 stage type.");
+		if (!new[] { "GROUP", "QUALIFY", "PLAYOFF", "ROUND64", "ROUND32", "ROUND16", "QUARTER", "SEMI", "THIRDPLACE", "FINAL", "ROUNDX" }.Contains(situation))
+			throw new InvalidDataException("Unsupported FC26 match situation.");
+		if (!new[] { "END", "ET", "PENS", "AGG" }.Contains(endRule)) throw new InvalidDataException("Unsupported FC26 end rule.");
+		if (drawDay < 0 || drawDay > 730 || seededSlots < 0 || seededSlots > 64) throw new InvalidDataException("Draw-day or seeded-slot value is outside the supported range.");
+		SetSingleSetting(settings, stageId, "match_stagetype", stageType);
+		SetSingleSetting(settings, stageId, "match_matchsituation", situation);
+		SetSingleSetting(settings, stageId, "match_endruleko1leg", stageType == "KO1LEG" ? endRule : string.Empty);
+		SetSingleSetting(settings, stageId, "match_endruleko2leg1", stageType == "KO2LEGS" ? "END" : string.Empty);
+		SetSingleSetting(settings, stageId, "match_endruleko2leg2", stageType == "KO2LEGS" ? endRule : string.Empty);
+		SetSingleSetting(settings, stageId, "advance_randomdraw", randomDraw ? "1" : string.Empty);
+		SetSingleSetting(settings, stageId, "advance_random_draw_event", randomDraw ? "1" : string.Empty);
+		SetSingleSetting(settings, stageId, "schedule_stage_draw_date", drawDay > 0 ? drawDay.ToString() : string.Empty);
+		SetSingleSetting(settings, stageId, "uefa_seeded_slots", seededSlots > 0 ? seededSlots.ToString() : string.Empty);
+	}
+
+	internal static void ApplyStageRulesForTest(DataTable settings, int stageId, string stageType, string situation,
+		string endRule, bool randomDraw, int drawDay, int seededSlots) =>
+		ApplyStageRules(settings, stageId, stageType, situation, endRule, randomDraw, drawDay, seededSlots);
 
     private void AddAdvancement()
     {
@@ -598,6 +781,11 @@ internal sealed class Fc26CompdataPanel : UserControl
         internal GroupChoice(int id, string description, string shortName) { Id = id; Name = string.IsNullOrWhiteSpace(description) ? shortName : description; }
         internal int Id { get; } internal string Name { get; } public override string ToString() => Id + " · " + Name;
     }
+	private sealed class StageChoice
+	{
+		internal StageChoice(int id, string name) { Id = id; Name = string.IsNullOrWhiteSpace(name) ? "Stage " + id : name; }
+		internal int Id { get; } internal string Name { get; } public override string ToString() => Id + " · " + Name;
+	}
     private sealed class CompetitionChoice
     {
         internal CompetitionChoice(int id, string name) { Id = id; Name = string.IsNullOrWhiteSpace(name) ? "Competition " + id : name; }
