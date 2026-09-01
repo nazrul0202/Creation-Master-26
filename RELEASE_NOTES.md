@@ -1,5 +1,13 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.193 - native Excel and Team finance styling (2026-09-01)
+
+- Added real `.xlsx` import/export for FC25/Excel batch player conversion,
+  including an automated workbook round-trip integration check.
+- Kept CSV support as a fallback for scripts and older spreadsheet tools.
+- Changed Club Worth and Transfer Budget to regular system-grey text rather
+  than bold black values in the Classic Team editor.
+
 ## Version 1.0.192 - comprehensive Classic feature completion (2026-09-01)
 
 - Completed all 20 feature areas from the CM26 Comprehensive Feature Overview

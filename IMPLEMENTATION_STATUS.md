@@ -1,8 +1,11 @@
-# Creation Master 26 v1.0.192 implementation status
+# Creation Master 26 v1.0.193 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
 ## Complete
+
+- Batch Player now reads and writes native `.xlsx` workbooks with an automated Unicode/comma round-trip gate; CSV remains available as a fallback.
+- Team `Club Worth` and `Transfer Budget` use regular system-grey text instead of bold black presentation.
 
 - Completed the comprehensive 1–20 Classic feature checklist: multi-profile Appearance Assistant; aligned miniface and visual similarity helper; native face/cranium round-trip; injury-aware national squads; dedicated U21 exchange; FC25/Excel player conversion; saved filters and row templates; safe reference removal; batch asset-family exchange and validation reports.
 

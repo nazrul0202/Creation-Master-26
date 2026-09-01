@@ -8,6 +8,9 @@ using System.Globalization;
 using System.Reflection;
 using System.Windows.Forms;
 using FifaLibrary;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace CreationMaster;
 
@@ -99,7 +102,7 @@ internal sealed class Fc26BatchPlayerForm : Form
         _onlyChanged.CheckedChanged += (_, _) => BindPreview();
         _playstyle.Width = 145; _playstyle.DropDownStyle = ComboBoxStyle.DropDownList;
         _playstyle.Items.AddRange(Playstyles.Cast<object>().ToArray()); _playstyle.SelectedIndex = 0;
-        top.Controls.AddRange(new Control[]
+        top.Controls.AddRange(new System.Windows.Forms.Control[]
         {
             Label("Team"), _team, Label("League"), _league, Label("Group"), _playerGroup,
             Label("Age"), _ageGroup, Label("Position"), _positionGroup,
@@ -110,7 +113,7 @@ internal sealed class Fc26BatchPlayerForm : Form
             Button("Technical +5", (_, _) => PreviewPreset("technical")), Label("PlayStyle"), _playstyle,
             Button("Add", (_, _) => PreviewPlaystyle(true, false)), Button("Remove", (_, _) => PreviewPlaystyle(false, false)),
             Button("Add +", (_, _) => PreviewPlaystyle(true, true)), Button("Remove +", (_, _) => PreviewPlaystyle(false, true)),
-            Button("Export Excel CSV", ExportPlayers), Button("Import/Create FC25/Excel CSV", ImportPlayers),
+            Button("Export Excel workbook", ExportPlayers), Button("Import/Create FC25/Excel", ImportPlayers),
             Button("Apply staged", Apply), _onlyChanged
         });
         _preview.Dock = DockStyle.Fill; _preview.ReadOnly = true; _preview.AllowUserToAddRows = false;
@@ -292,7 +295,7 @@ internal sealed class Fc26BatchPlayerForm : Form
 
     private void ExportPlayers(object sender, EventArgs e)
     {
-        using var dialog = new SaveFileDialog { Filter = "Excel-compatible CSV (*.csv)|*.csv", FileName = "CM26_players.csv" };
+        using var dialog = new SaveFileDialog { Filter = "Excel workbook (*.xlsx)|*.xlsx|Excel-compatible CSV (*.csv)|*.csv", FileName = "CM26_players.xlsx" };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         var lines = new List<string> { "playerid,firstname,lastname,nationality,teamid,position,overall,potential,birthdate,height,weight" };
         lines.AddRange(SelectedPlayers().Select(player => string.Join(",", new[]
@@ -302,27 +305,29 @@ internal sealed class Fc26BatchPlayerForm : Form
             player.overallrating.ToString(CultureInfo.InvariantCulture), player.potential.ToString(CultureInfo.InvariantCulture),
             player.birthdate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), player.height.ToString(CultureInfo.InvariantCulture), player.weight.ToString(CultureInfo.InvariantCulture)
         })));
-        File.WriteAllLines(dialog.FileName, lines, new UTF8Encoding(true));
+        if (Path.GetExtension(dialog.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase)) WriteWorkbook(dialog.FileName, lines.Select(ParseCsv).ToArray());
+        else File.WriteAllLines(dialog.FileName, lines, new UTF8Encoding(true));
         _status.Text = (lines.Count - 1).ToString("N0") + " player(s) exported for Excel/FC25 mapping.";
     }
 
     private void ImportPlayers(object sender, EventArgs e)
     {
-        using var dialog = new OpenFileDialog { Filter = "Excel/FC25 CSV (*.csv)|*.csv|All files (*.*)|*.*" };
+        using var dialog = new OpenFileDialog { Filter = "Excel workbook or CSV (*.xlsx;*.csv)|*.xlsx;*.csv|Excel workbook (*.xlsx)|*.xlsx|CSV (*.csv)|*.csv|All files (*.*)|*.*" };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         try
         {
-            var lines = File.ReadAllLines(dialog.FileName);
-            if (lines.Length < 2) throw new InvalidDataException("The CSV contains no player rows.");
-            var header = ParseCsv(lines[0]);
+            var workbookRows = Path.GetExtension(dialog.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase)
+                ? ReadWorkbook(dialog.FileName) : File.ReadAllLines(dialog.FileName).Select(ParseCsv).ToArray();
+            if (workbookRows.Length < 2) throw new InvalidDataException("The workbook contains no player rows.");
+            var header = workbookRows[0];
             var required = new[] { "firstname", "lastname", "nationality", "teamid", "position", "overall", "potential", "birthdate", "height", "weight" };
             if (required.Any(name => !header.Contains(name, StringComparer.OrdinalIgnoreCase)))
                 throw new InvalidDataException("CSV header must contain: " + string.Join(", ", required));
             var indexes = header.Select((name, index) => new { name, index }).ToDictionary(item => item.name, item => item.index, StringComparer.OrdinalIgnoreCase);
             var drafts = new List<PlayerDraft>();
-            foreach (var line in lines.Skip(1).Where(line => !string.IsNullOrWhiteSpace(line)))
+            foreach (var values in workbookRows.Skip(1).Where(row => row.Any(value => !string.IsNullOrWhiteSpace(value))))
             {
-                var values = ParseCsv(line); string Value(string name) => indexes[name] < values.Length ? values[indexes[name]].Trim() : string.Empty;
+                string Value(string name) => indexes[name] < values.Length ? values[indexes[name]].Trim() : string.Empty;
                 if (!int.TryParse(Value("nationality"), out var nationality) || !int.TryParse(Value("teamid"), out var teamId) ||
                     !int.TryParse(Value("position"), out var position) || !int.TryParse(Value("overall"), out var overall) ||
                     !int.TryParse(Value("potential"), out var potential) || !DateTime.TryParse(Value("birthdate"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var birthdate) ||
@@ -367,6 +372,42 @@ internal sealed class Fc26BatchPlayerForm : Form
             else value.Append(character);
         }
         values.Add(value.ToString()); return values.ToArray();
+    }
+
+    internal static void WriteWorkbook(string fileName, string[][] rows)
+    {
+        using var document = SpreadsheetDocument.Create(fileName, SpreadsheetDocumentType.Workbook);
+        var workbookPart = document.AddWorkbookPart(); workbookPart.Workbook = new Workbook();
+        var worksheetPart = workbookPart.AddNewPart<WorksheetPart>(); var sheetData = new SheetData();
+        worksheetPart.Worksheet = new Worksheet(sheetData);
+        foreach (var values in rows)
+        {
+            var row = new Row();
+            foreach (var value in values) row.AppendChild(new Cell { DataType = CellValues.InlineString, InlineString = new InlineString(new Text(value ?? string.Empty)) });
+            sheetData.AppendChild(row);
+        }
+        var sheets = workbookPart.Workbook.AppendChild(new Sheets());
+        sheets.Append(new Sheet { Id = workbookPart.GetIdOfPart(worksheetPart), SheetId = 1, Name = "Players" });
+        workbookPart.Workbook.Save();
+    }
+
+    internal static string[][] ReadWorkbook(string fileName)
+    {
+        using var document = SpreadsheetDocument.Open(fileName, false);
+        var workbookPart = document.WorkbookPart ?? throw new InvalidDataException("Workbook part is missing.");
+        var sheet = workbookPart.Workbook.Sheets?.Elements<Sheet>().FirstOrDefault() ?? throw new InvalidDataException("Workbook has no worksheet.");
+        var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+        var shared = workbookPart.SharedStringTablePart?.SharedStringTable;
+        return worksheetPart.Worksheet.GetFirstChild<SheetData>()?.Elements<Row>().Select(row =>
+            row.Elements<Cell>().Select(cell => CellText(cell, shared)).ToArray()).ToArray() ?? Array.Empty<string[]>();
+    }
+
+    private static string CellText(Cell cell, SharedStringTable shared)
+    {
+        if (cell.DataType?.Value == CellValues.InlineString) return cell.InlineString?.InnerText ?? string.Empty;
+        var raw = cell.CellValue?.Text ?? string.Empty;
+        if (cell.DataType?.Value == CellValues.SharedString && int.TryParse(raw, out var index)) return shared?.Elements<SharedStringItem>().ElementAtOrDefault(index)?.InnerText ?? string.Empty;
+        return raw;
     }
 
     private static Label Label(string text) => new Label { Text = text, AutoSize = true, Padding = new Padding(5, 6, 0, 0) };

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Diagnostics;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace CreationMaster;
@@ -410,8 +411,18 @@ internal static class Program
 					foreach (var required in new[] { "Auto-align miniface", "Face similarity helper", "Import native cranium/face", "Export native cranium/face" })
 						if (!ContainsControlText(faces, required)) throw new InvalidDataException("Face tools are missing: " + required);
 				using (var batchPlayers = new Fc26BatchPlayerForm())
-					foreach (var required in new[] { "Export Excel CSV", "Import/Create FC25/Excel CSV" })
+					foreach (var required in new[] { "Export Excel workbook", "Import/Create FC25/Excel" })
 						if (!ContainsControlText(batchPlayers, required)) throw new InvalidDataException("Batch Player tools are missing: " + required);
+				var workbookProbe = Path.Combine(Path.GetTempPath(), "cm26-player-workbook-probe-" + Guid.NewGuid().ToString("N") + ".xlsx");
+				try
+				{
+					var expectedWorkbook = new[] { new[] { "playerid", "firstname", "lastname" }, new[] { "1", "José", "Test, Jr." } };
+					Fc26BatchPlayerForm.WriteWorkbook(workbookProbe, expectedWorkbook);
+					var actualWorkbook = Fc26BatchPlayerForm.ReadWorkbook(workbookProbe);
+					if (actualWorkbook.Length != 2 || !actualWorkbook[1].SequenceEqual(expectedWorkbook[1]))
+						throw new InvalidDataException("FC25/Excel XLSX player round-trip failed.");
+				}
+				finally { try { File.Delete(workbookProbe); } catch { } }
 				using (var assets = new Fc26AssetManagerForm())
 					foreach (var required in new[] { "Import family folder", "Export family", "Usage / reverse links", "Export validation report" })
 						if (!ContainsControlText(assets, required)) throw new InvalidDataException("Asset tools are missing: " + required);

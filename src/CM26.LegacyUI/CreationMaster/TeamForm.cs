@@ -1514,20 +1514,25 @@ public class TeamForm : Form
 		// Deco presents both figures as calculated information. Do not expose the
 		// compact database value (for example 162100) as money users can edit.
 		numericInitialBudget.Visible = false;
+		labelInitialBudget.Font = new Font(labelInitialBudget.Font, FontStyle.Regular);
+		labelInitialBudget.ForeColor = SystemColors.GrayText;
 		labelFc26ClubWorthValue = new Label
 		{
 			Name = "labelFc26ClubWorthValue",
 			Location = new Point(92, 202), Size = new Size(167, 20),
 			BorderStyle = BorderStyle.Fixed3D,
 			TextAlign = ContentAlignment.MiddleRight,
-			Font = new Font(Font, FontStyle.Bold),
-			BackColor = SystemColors.ControlLightLight
+			Font = new Font(Font, FontStyle.Regular),
+			ForeColor = SystemColors.GrayText,
+			BackColor = SystemColors.Control
 		};
 		var transferBudgetLabel = new Label
 		{
 			Text = "Transfer Budget",
 			Location = new Point(6, 231), Size = new Size(86, 20),
-			TextAlign = ContentAlignment.MiddleLeft
+			TextAlign = ContentAlignment.MiddleLeft,
+			Font = new Font(Font, FontStyle.Regular),
+			ForeColor = SystemColors.GrayText
 		};
 		labelFc26TransferBudgetValue = new Label
 		{
@@ -1535,8 +1540,9 @@ public class TeamForm : Form
 			Location = new Point(92, 228), Size = new Size(167, 21),
 			BorderStyle = BorderStyle.Fixed3D,
 			TextAlign = ContentAlignment.MiddleRight,
-			Font = new Font(Font, FontStyle.Bold),
-			BackColor = SystemColors.ControlLightLight
+			Font = new Font(Font, FontStyle.Regular),
+			ForeColor = SystemColors.GrayText,
+			BackColor = SystemColors.Control
 		};
 		groupBox3.Controls.Add(labelFc26ClubWorthValue);
 		groupBox3.Controls.Add(transferBudgetLabel);

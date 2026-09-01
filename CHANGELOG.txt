@@ -1,3 +1,8 @@
+Creation Master 26 v1.0.193 - 1 September 2026
+
+- Added native XLSX player workbook import/export and round-trip validation.
+- Removed bold black styling from Club Worth and Transfer Budget.
+
 Creation Master 26 v1.0.192 - 1 September 2026
 
 - Completed all 20 comprehensive feature groups in the Classic CM16 interface.
