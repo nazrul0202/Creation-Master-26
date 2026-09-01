@@ -1,6 +1,6 @@
 {
-  "version": "1.0.195",
+  "version": "1.0.196",
   "name": "Creation Master 26",
-  "notes": "v1.0.195 - Native empty-table append and reload-verified transfer history in the Classic roster workflow.",
+  "notes": "v1.0.196 - Template-free, reload-verified loan and loan-to-buy creation in the Classic roster workflow.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

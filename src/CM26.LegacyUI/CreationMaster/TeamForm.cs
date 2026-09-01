@@ -1528,6 +1528,7 @@ public class TeamForm : Form
 		};
 		var transferBudgetLabel = new Label
 		{
+			Name = "labelFc26TransferBudget",
 			Text = "Transfer Budget",
 			Location = new Point(6, 231), Size = new Size(86, 20),
 			TextAlign = ContentAlignment.MiddleLeft,

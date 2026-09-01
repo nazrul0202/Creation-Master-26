@@ -204,6 +204,69 @@ internal static class Program
 			}
 			return;
 		}
+		if (args.Length >= 3 && string.Equals(args[0], "--cm26-loan-plan-test", StringComparison.OrdinalIgnoreCase))
+		{
+			try
+			{
+				Fc26SnapshotLoader.Load(args[1]);
+				var loanTable = Fc26SnapshotLoader.DetailTable("playerloans")
+					?? throw new InvalidDataException("FC26 playerloans table is missing.");
+				var playerColumn = loanTable.Column("playerid");
+				var existingLoans = new System.Collections.Generic.HashSet<int>(loanTable.Rows
+					.Where(row => playerColumn >= 0 && playerColumn < row.Length)
+					.Select(row => int.TryParse(row[playerColumn], out var value) ? value : -1));
+				FifaLibrary.Team source = null;
+				FifaLibrary.Team destination = null;
+				FifaLibrary.TeamPlayer playerLink = null;
+				foreach (FifaLibrary.Team candidate in FifaLibrary.FifaEnvironment.Teams)
+				{
+					if (candidate.NationalTeam) continue;
+					if (source == null)
+					{
+						playerLink = candidate.Roster.Cast<FifaLibrary.TeamPlayer>()
+							.FirstOrDefault(link => link?.Player != null && !existingLoans.Contains(link.Player.Id));
+						if (playerLink != null) source = candidate;
+					}
+					else if (candidate != source) { destination = candidate; break; }
+				}
+				if (source == null || destination == null || playerLink == null)
+					throw new InvalidDataException("FC26 loan test could not find an eligible player and two clubs.");
+				var endDate = new DateTime(2030, 6, 30);
+				playerLink.Team = destination;
+				var loanRow = Fc26RosterToolsForm.StageLoanRecord(playerLink.Player.Id, source.Id, endDate, true);
+				var encodedEnd = FifaLibrary.FifaUtil.ConvertFromDate(endDate).ToString(System.Globalization.CultureInfo.InvariantCulture);
+				foreach (var expected in new[]
+				{
+					new { Field = "playerid", Value = playerLink.Player.Id.ToString(System.Globalization.CultureInfo.InvariantCulture) },
+					new { Field = "teamidloanedfrom", Value = source.Id.ToString(System.Globalization.CultureInfo.InvariantCulture) },
+					new { Field = "loandateend", Value = encodedEnd },
+					new { Field = "isloantobuy", Value = "1" }
+				})
+				{
+					var column = loanTable.Column(expected.Field);
+					if (column < 0 || !string.Equals(loanTable.Rows[loanRow][column], expected.Value, StringComparison.Ordinal))
+						throw new InvalidDataException("FC26 staged loan row has an incorrect " + expected.Field + " value.");
+				}
+				Fc26SnapshotLoader.WriteChanges(args[2]);
+				var plan = File.ReadAllText(args[2]);
+				foreach (var required in new[]
+				{
+					"\"Kind\":\"append\"", "\"TableName\":\"playerloans\"",
+					"\"FieldName\":\"playerid\",\"Value\":\"" + playerLink.Player.Id + "\"",
+					"\"FieldName\":\"loandateend\",\"Value\":\"" + encodedEnd + "\"",
+					"\"FieldName\":\"isloantobuy\",\"Value\":\"1\""
+				})
+					if (plan.IndexOf(required, StringComparison.Ordinal) < 0)
+						throw new InvalidDataException("FC26 loan plan is missing " + required + ".");
+				Environment.ExitCode = 0;
+			}
+			catch (Exception ex)
+			{
+				File.WriteAllText(Path.Combine(Path.GetTempPath(), "cm26-legacy-error.log"), ex.ToString());
+				Environment.ExitCode = 1;
+			}
+			return;
+		}
 		if (args.Length >= 2 && string.Equals(args[0], "--cm26-id-availability", StringComparison.OrdinalIgnoreCase))
 		{
 			try
@@ -521,6 +584,12 @@ internal static class Program
 				if (Math.Abs(decoBudget - 17289023.40328413m) > 0.01m)
 					throw new InvalidDataException("Deco Transfer Budget mapping has drifted: " +
 						decoBudget.ToString("G29", System.Globalization.CultureInfo.InvariantCulture));
+				foreach (var name in new[] { "labelInitialBudget", "labelFc26ClubWorthValue", "labelFc26TransferBudget", "labelFc26TransferBudgetValue" })
+				{
+					var financeLabel = FindControl(main.m_TeamForm, name) as Label;
+					if (financeLabel == null || financeLabel.Font.Bold || financeLabel.ForeColor != System.Drawing.SystemColors.GrayText)
+						throw new InvalidDataException("Club Worth and Transfer Budget must use regular system-grey text: " + name);
+				}
 				File.AppendAllText(uiLog, "passed" + Environment.NewLine);
 				Environment.Exit(0);
 			}

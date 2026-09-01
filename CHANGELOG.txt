@@ -1,3 +1,9 @@
+Creation Master 26 v1.0.196 - 1 September 2026
+
+- Made loan and loan-to-buy creation append a native `playerloans` row without requiring an existing template record.
+- Added schema validation before any roster mutation, so unsupported loan layouts leave the squad untouched.
+- Added real FC26 plan and native reload verification for the appended loan record.
+
 Creation Master 26 v1.0.195 - 1 September 2026
 
 - Added native range-safe append support for valid FC26 tables with zero template rows.

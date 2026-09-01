@@ -237,23 +237,40 @@ internal sealed class Fc26RosterToolsForm : Form
         if (!source.IsClub() || !target.IsClub()) { MessageBox.Show(this, "Loans can only be created between club teams."); return; }
         if (_loanEnd.Value.Date <= _joinDate.Value.Date) { MessageBox.Show(this, "Loan end date must be after the joining date."); return; }
         if (players.Any(player => FindLoanRow(player.Id) >= 0)) { MessageBox.Show(this, "Terminate an existing loan before starting a new one for the same player."); return; }
-        var loanTable = Fc26SnapshotLoader.DetailTable("playerloans");
-        if (loanTable == null || loanTable.Rows.Count == 0) { MessageBox.Show(this, "The FC26 playerloans table is unavailable."); return; }
+        var requiredLoanFields = _loanToBuy.Checked
+            ? new[] { "playerid", "teamidloanedfrom", "loandateend", "isloantobuy" }
+            : new[] { "playerid", "teamidloanedfrom", "loandateend" };
+        if (!Fc26SnapshotLoader.CanAppendDetailRow("playerloans", requiredLoanFields, out var loanReason))
+        {
+            MessageBox.Show(this, "The loan cannot be represented safely, so no roster changes were made.\r\n\r\n" + loanReason,
+                "Loan validation", MessageBoxButtons.OK, MessageBoxIcon.Warning); return;
+        }
         if (MessageBox.Show(this, "Loan " + players.Length + " player(s) from " + source + " to " + target + " until " + _loanEnd.Value.ToShortDateString() +
             (_loanToBuy.Checked ? " with an option to buy?" : "?") + "\r\n\r\nRoster, shirt, formation and set-piece links will be repaired.", "Loan preview", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
         foreach (var player in players)
         {
-            var row = Fc26SnapshotLoader.DuplicateDetailRow("playerloans", 0);
-            Fc26SnapshotLoader.StageDetailValue("playerloans", row, "playerid", player.Id.ToString(CultureInfo.InvariantCulture));
-            Fc26SnapshotLoader.StageDetailValue("playerloans", row, "teamidloanedfrom", source.Id.ToString(CultureInfo.InvariantCulture));
-            Fc26SnapshotLoader.StageDetailValue("playerloans", row, "loandateend", FifaUtil.ConvertFromDate(_loanEnd.Value.Date).ToString(CultureInfo.InvariantCulture));
-            if (loanTable.Column("isloantobuy") >= 0)
-                Fc26SnapshotLoader.StageDetailValue("playerloans", row, "isloantobuy", _loanToBuy.Checked ? "1" : "0");
+            StageLoanRecord(player.Id, source.Id, _loanEnd.Value.Date, _loanToBuy.Checked);
             player.IsLoaned = true; player.TeamLoanedFrom = source; player.loandateend = _loanEnd.Value.Date;
             player.joindate = _joinDate.Value.Date; player.contractvaliduntil = Math.Max((int)_contractYear.Value, _loanEnd.Value.Year + 1);
             player.RemoveCurrentConflictingTeam(target); if (!player.IsPlayingFor(target)) target.AddTeamPlayer(player);
         }
         RepairTeam(source); RepairTeam(target); Fc26ActivityLog.Add("Loan", players.Length + " player(s), " + source.Id + " → " + target.Id); RefreshAll();
+    }
+
+    internal static int StageLoanRecord(int playerId, int loanedFromTeamId, DateTime endDate, bool loanToBuy)
+    {
+        var required = loanToBuy
+            ? new[] { "playerid", "teamidloanedfrom", "loandateend", "isloantobuy" }
+            : new[] { "playerid", "teamidloanedfrom", "loandateend" };
+        if (!Fc26SnapshotLoader.CanAppendDetailRow("playerloans", required, out var reason))
+            throw new InvalidOperationException(reason);
+        var row = Fc26SnapshotLoader.AppendDetailRow("playerloans");
+        Fc26SnapshotLoader.StageDetailValue("playerloans", row, "playerid", playerId.ToString(CultureInfo.InvariantCulture));
+        Fc26SnapshotLoader.StageDetailValue("playerloans", row, "teamidloanedfrom", loanedFromTeamId.ToString(CultureInfo.InvariantCulture));
+        Fc26SnapshotLoader.StageDetailValue("playerloans", row, "loandateend", FifaUtil.ConvertFromDate(endDate.Date).ToString(CultureInfo.InvariantCulture));
+        if (Fc26SnapshotLoader.DetailTable("playerloans")?.Column("isloantobuy") >= 0)
+            Fc26SnapshotLoader.StageDetailValue("playerloans", row, "isloantobuy", loanToBuy ? "1" : "0");
+        return row;
     }
 
     private void TerminateLoan()

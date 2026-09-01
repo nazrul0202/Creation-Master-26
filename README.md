@@ -33,7 +33,7 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite Portable** | See release asset | Smaller package for systems that already have the .NET 8 Desktop Runtime |
 
-Checksums: `SHA256SUMS_v1.0.195.txt` is included with the v1.0.195 release assets.
+Checksums: `SHA256SUMS_v1.0.196.txt` is included with the v1.0.196 release assets.
 
 The familiar Creation Master / CM16 interface is the only public desktop. Its
 section switching and FC26 previews retain the v1.0.188 responsiveness
@@ -63,7 +63,7 @@ existing database row.
 ### Original Creation Master 26 editors with FC26 mapping
 
 - **Players** — classic Info, Skills and Face pages with contracts, appearance, named tactical roles, Composure, Defensive Awareness, PlayStyles/PlayStyles+ and direct miniface/face assets
-- **Teams** — classic Generic and Roster pages with crest, Deco-aligned Team Info, separate Club Worth and read-only Transfer Budget estimate, matchday presentation, transfers/loans, real XI/substitutes/reserves, formations and set pieces
+- **Teams** — classic Generic and Roster pages with crest, Deco-aligned Team Info, regular grey Club Worth and read-only Transfer Budget estimate, matchday presentation, native transfers/loans, real XI/substitutes/reserves, formations and set pieces
 - **Leagues and countries** — original logo/flag, club/national-team and presentation controls with relationship-aware FC26 selectors
 - **Managers · Stadiums · Kits · Competitions · Formations · Balls · Boots · Gloves · Referees · Transfers** — mapped football controls in their owning original editor sections
 - **Sponsors · Adboards · Audio** — mapped artwork and assignment workflows; low-level database/schema tools remain internal

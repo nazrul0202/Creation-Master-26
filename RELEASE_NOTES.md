@@ -1,5 +1,16 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.196 - template-free native loans (2026-09-01)
+
+- Loan and loan-to-buy creation now appends a range-safe native
+  `playerloans` record, including when a Title Update supplies no template row.
+- The Classic roster workflow verifies the required loan fields before moving
+  any player, preventing a partially staged roster when the schema is unsafe.
+- Added an FC26 snapshot integration probe and x64 native save/reload proof for
+  player, source club, end date and loan-to-buy state.
+- Club Worth and Transfer Budget remain regular system-grey text rather than
+  bold black values in the Classic Team editor.
+
 ## Version 1.0.195 - real transfer history and empty-table creation (2026-09-01)
 
 - Added a native append operation for non-compressed FC26 tables that have no
