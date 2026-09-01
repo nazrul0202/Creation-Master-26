@@ -1,3 +1,14 @@
+Creation Master 26 v1.0.199 - 1 September 2026
+
+- Changed the public Classic CM16 shell to create each heavy section only on
+  first use, then retain it for instant return navigation and preserved state.
+- Added deterministic checks proving the empty shell creates zero section
+  editors and opening Team creates exactly one cached editor.
+- Split real-snapshot smoke timing into navigation and record-audit costs, and
+  fail the release gate when any repeated section switch exceeds 100 ms.
+- Removed an unsafe redundant whole-form disposal from the process-isolated
+  smoke runner, preventing a ListView handle-destruction race after a pass.
+
 Creation Master 26 v1.0.198 - 1 September 2026
 
 - Allowed valid Player Career containers to open in a clearly identified read-only mode when Manager budget tables are absent.

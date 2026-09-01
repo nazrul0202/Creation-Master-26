@@ -1,6 +1,6 @@
 {
-  "version": "1.0.198",
+  "version": "1.0.199",
   "name": "Creation Master 26",
-  "notes": "v1.0.198 - Manager/Player Career opening and Classic scoreboard/broadcast export plus safe native replacement.",
+  "notes": "v1.0.199 - Lazy Classic section creation, retained editor state and measured sub-100 ms warm navigation.",
   "url": "https://github.com/nazrul0202/Creation-Master-26/releases"
 }

@@ -409,11 +409,16 @@ internal static class Program
 					throw new InvalidDataException("FC26 player commentary fallback failed.");
 				var main = new MainForm();
 				File.AppendAllText(uiLog, "classic shell constructed" + Environment.NewLine);
+				if (main.CreatedSectionFormCount != 0)
+					throw new InvalidDataException("Classic shell eagerly created " + main.CreatedSectionFormCount + " section editor(s); navigation must be lazy.");
 				var previousYear = FifaLibrary.FifaEnvironment.Year;
 				FifaLibrary.FifaEnvironment.Year = 26;
 				try
 				{
-					if (!main.m_TeamForm.UsesGuidedFc26TeamCreator)
+					var teamEditor = main.m_TeamForm;
+					if (main.CreatedSectionFormCount != 1)
+						throw new InvalidDataException("Opening Team should create exactly one cached section editor.");
+					if (!teamEditor.UsesGuidedFc26TeamCreator)
 						throw new InvalidDataException("The Team picker New button does not route to the guided FC26 creator.");
 				}
 				finally { FifaLibrary.FifaEnvironment.Year = previousYear; }
@@ -680,18 +685,28 @@ internal static class Program
 				main.Show();
 				Application.DoEvents();
 				main.LoadFc26Snapshot(args[1], showCountry: false);
+				var seenSections = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
 				foreach (var section in args[2].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
 				{
 					var name = section.Trim();
-					var timer = Stopwatch.StartNew();
+					var warm = !seenSections.Add(name);
+					var navigation = Stopwatch.StartNew();
 					main.ClickFc26SectionForSmoke(name);
 					Application.DoEvents();
 					main.AssertFc26SectionVisible(name);
+					navigation.Stop();
+					if (warm && navigation.ElapsedMilliseconds > 100)
+						throw new InvalidDataException(name + " warm navigation exceeded 100 ms: " + navigation.ElapsedMilliseconds + " ms.");
+					var audit = Stopwatch.StartNew();
 					main.AuditFc26RecordsForSmoke(name);
-					File.AppendAllText(smokeLog, name + "=" + timer.ElapsedMilliseconds + "ms" + Environment.NewLine);
+					audit.Stop();
+					File.AppendAllText(smokeLog, name + (warm ? " (warm)" : " (first)") + ": navigation=" + navigation.ElapsedMilliseconds +
+						"ms, record-audit=" + audit.ElapsedMilliseconds + "ms" + Environment.NewLine);
 				}
 				File.AppendAllText(smokeLog, "total=" + total.ElapsedMilliseconds + "ms" + Environment.NewLine);
-				main.Dispose();
+				// This is a process-isolated smoke runner. Environment.Exit terminates
+				// every native WinForms handle; explicitly disposing the entire legacy
+				// ListView tree here can race pending handle-destroy messages.
 				Environment.Exit(0);
 			}
 			catch (Exception ex)

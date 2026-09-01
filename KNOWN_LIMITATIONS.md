@@ -1,10 +1,10 @@
 # Creation Master 26 — Current limitations
 
-Status: Version 1.0.198 (MIT License), 2026-09-01.
+Status: Version 1.0.199 (MIT License), 2026-09-01.
 
 ## User interface
 
-The v1.0.198 public launcher is named `Creation Master 26.exe` and opens only the familiar Creation Master / CM16-style interface. There is no separate Studio executable or Studio launch switch. The x64 host remains behind the classic interface for Frostbite database, asset and preview work. Exotic DPI combinations or very small window sizes may still need refinement.
+The v1.0.199 public launcher is named `Creation Master 26.exe` and opens only the familiar Creation Master / CM16-style interface. There is no separate Studio executable or Studio launch switch. The x64 host remains behind the classic interface for Frostbite database, asset and preview work. Exotic DPI combinations or very small window sizes may still need refinement.
 
 All 20 comprehensive feature areas have Classic workflows. Face similarity is a visual matching helper rather than biometric identification; Career-only youth data requires a loaded Career save, and EA Title Updates can require new schema or asset-family mappings. See `docs/reports/COMPREHENSIVE_FEATURE_ACCEPTANCE.md`.
 

@@ -29,7 +29,7 @@ Status legend: **Implemented** = every named poster capability has a real Classi
 
 ## Stable / advanced release gate
 
-The comprehensive poster is feature-complete in the Classic interface. A release is labelled stable only when the normal build, automated tests, comprehensive Classic UI integration test, release self-test, Full/Lite package checks and installed/extracted direct-save fixtures pass.
+The comprehensive poster is feature-complete in the Classic interface. Heavy Classic editors are lazy-created and cached; repeated real-snapshot section navigation must remain below 100 ms. A release is labelled stable only when the normal build, automated tests, comprehensive Classic UI integration test, release self-test, Full/Lite package checks and installed/extracted direct-save fixtures pass.
 
 ## Ongoing release discipline
 

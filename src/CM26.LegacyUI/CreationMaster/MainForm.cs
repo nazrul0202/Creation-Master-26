@@ -45,43 +45,49 @@ public class MainForm : Form
 
 	private AboutForm m_AboutForm = new AboutForm();
 
-	public FormationForm m_FormationForm;
+	private FormationForm _formationForm;
+	private CountryForm _countryForm;
+	private TeamForm _teamForm;
+	private KitForm _kitForm;
+	private BallForm _ballForm;
+	private ManagerForm _managerForm;
+	private GameGraphicForm _gameGraphicForm;
+	private WebBrowserForm _webBrowserForm;
+	private LeagueForm _leagueForm;
+	private ShoesForm _shoesForm;
+	private TvForm _tvForm;
+	private NewspapersForm _newspapersForm;
+	private RefereeForm _refereeForm;
+	private CompetitionForm _trophyForm;
+	private PlayerForm _playerForm;
+	private StadiumForm _stadiumForm;
+	private GlovesForm _glovesForm;
+	private AudioForm _audioForm;
+	private ImportGraphicsForm _importGraphicsForm;
 
-	public CountryForm m_CountryForm;
-
-	public TeamForm m_TeamForm;
-
-	public KitForm m_KitForm;
-
-	public BallForm m_BallForm;
-
-	public ManagerForm m_ManagerForm;
-
-	public GameGraphicForm m_GameGraphicForm;
-
-	public WebBrowserForm m_WebBrowserForm;
-
-	public LeagueForm m_LeagueForm;
-
-	public ShoesForm m_ShoesForm;
-
-	public TvForm m_TvForm;
-
-	public NewspapersForm m_NewspapersForm;
-
-	public RefereeForm m_RefereeForm;
-
-	public CompetitionForm m_TrophyForm;
-
-	public PlayerForm m_PlayerForm;
-
-	public StadiumForm m_StadiumForm;
-
-	public GlovesForm m_GlovesForm;
-
-	public AudioForm m_AudioForm;
-
-	public ImportGraphicsForm m_ImportGraphicsForm;
+	// Keep the original public member names used by the CM16 forms, but create
+	// each large editor only when that section is first requested. The instance
+	// then remains cached, so returning to a warm section is only a visibility
+	// swap and does not discard the user's picker/preview state.
+	public FormationForm m_FormationForm => EnsureHostedForm(ref _formationForm, () => new FormationForm());
+	public CountryForm m_CountryForm => EnsureHostedForm(ref _countryForm, () => new CountryForm());
+	public TeamForm m_TeamForm => EnsureHostedForm(ref _teamForm, () => new TeamForm());
+	public KitForm m_KitForm => EnsureHostedForm(ref _kitForm, () => new KitForm());
+	public BallForm m_BallForm => EnsureHostedForm(ref _ballForm, () => new BallForm());
+	public ManagerForm m_ManagerForm => EnsureHostedForm(ref _managerForm, () => new ManagerForm());
+	public GameGraphicForm m_GameGraphicForm => EnsureHostedForm(ref _gameGraphicForm, () => new GameGraphicForm());
+	public WebBrowserForm m_WebBrowserForm => EnsureHostedForm(ref _webBrowserForm, () => new WebBrowserForm());
+	public LeagueForm m_LeagueForm => EnsureHostedForm(ref _leagueForm, () => new LeagueForm());
+	public ShoesForm m_ShoesForm => EnsureHostedForm(ref _shoesForm, () => new ShoesForm());
+	public TvForm m_TvForm => EnsureHostedForm(ref _tvForm, () => new TvForm());
+	public NewspapersForm m_NewspapersForm => EnsureHostedForm(ref _newspapersForm, () => new NewspapersForm());
+	public RefereeForm m_RefereeForm => EnsureHostedForm(ref _refereeForm, () => new RefereeForm());
+	public CompetitionForm m_TrophyForm => EnsureHostedForm(ref _trophyForm, () => new CompetitionForm());
+	public PlayerForm m_PlayerForm => EnsureHostedForm(ref _playerForm, () => new PlayerForm());
+	public StadiumForm m_StadiumForm => EnsureHostedForm(ref _stadiumForm, () => new StadiumForm());
+	public GlovesForm m_GlovesForm => EnsureHostedForm(ref _glovesForm, () => new GlovesForm());
+	public AudioForm m_AudioForm => EnsureHostedForm(ref _audioForm, () => new AudioForm());
+	public ImportGraphicsForm m_ImportGraphicsForm => EnsureHostedForm(ref _importGraphicsForm, () => new ImportGraphicsForm());
 
 	public static PatchCreatorForm m_PatchCreatorForm;
 
@@ -637,88 +643,58 @@ public class MainForm : Form
 
 	private void CreateForms()
 	{
-		m_FormationForm = new FormationForm();
-		m_FormationForm.TopLevel = false;
-		m_FormationForm.Dock = DockStyle.Fill;
-		m_CountryForm = new CountryForm();
-		m_CountryForm.TopLevel = false;
-		m_CountryForm.Dock = DockStyle.Fill;
-		m_TeamForm = new TeamForm();
-		m_TeamForm.TopLevel = false;
-		m_TeamForm.Dock = DockStyle.Fill;
-		m_KitForm = new KitForm();
-		m_KitForm.TopLevel = false;
-		m_KitForm.Dock = DockStyle.Fill;
-		m_BallForm = new BallForm();
-		m_BallForm.TopLevel = false;
-		m_BallForm.Dock = DockStyle.Fill;
-		m_ManagerForm = new ManagerForm();
-		m_ManagerForm.TopLevel = false;
-		m_ManagerForm.Dock = DockStyle.Fill;
-		m_GameGraphicForm = new GameGraphicForm();
-		m_GameGraphicForm.TopLevel = false;
-		m_GameGraphicForm.Dock = DockStyle.Fill;
-		m_WebBrowserForm = new WebBrowserForm();
-		m_WebBrowserForm.TopLevel = false;
-		m_WebBrowserForm.Dock = DockStyle.Fill;
-		m_LeagueForm = new LeagueForm();
-		m_LeagueForm.TopLevel = false;
-		m_LeagueForm.Dock = DockStyle.Fill;
-		m_ShoesForm = new ShoesForm();
-		m_ShoesForm.TopLevel = false;
-		m_ShoesForm.Dock = DockStyle.Fill;
-		m_TvForm = new TvForm();
-		m_TvForm.TopLevel = false;
-		m_TvForm.Dock = DockStyle.Fill;
-		m_NewspapersForm = new NewspapersForm();
-		m_NewspapersForm.TopLevel = false;
-		m_NewspapersForm.Dock = DockStyle.Fill;
-		m_RefereeForm = new RefereeForm();
-		m_RefereeForm.TopLevel = false;
-		m_RefereeForm.Dock = DockStyle.Fill;
-		m_TrophyForm = new CompetitionForm();
-		m_TrophyForm.TopLevel = false;
-		m_TrophyForm.Dock = DockStyle.Fill;
-		m_PlayerForm = new PlayerForm();
-		m_PlayerForm.TopLevel = false;
-		m_PlayerForm.Dock = DockStyle.Fill;
-		m_StadiumForm = new StadiumForm();
-		m_StadiumForm.TopLevel = false;
-		m_StadiumForm.Dock = DockStyle.Fill;
-		m_GlovesForm = new GlovesForm();
-		m_GlovesForm.TopLevel = false;
-		m_GlovesForm.Dock = DockStyle.Fill;
-		m_AudioForm = new AudioForm();
-		m_AudioForm.TopLevel = false;
-		m_AudioForm.Dock = DockStyle.Fill;
-		m_ImportGraphicsForm = new ImportGraphicsForm();
-		m_ImportGraphicsForm.TopLevel = false;
-		m_ImportGraphicsForm.Dock = DockStyle.Fill;
+		// Section editors are intentionally lazy. Only the two modal patch tools
+		// are prepared here because they are not part of section navigation.
 		m_PatchCreatorForm = new PatchCreatorForm();
 		m_PatchLoaderForm = new PatchLoaderForm();
 	}
 
+	private static T EnsureHostedForm<T>(ref T form, Func<T> factory) where T : Form
+	{
+		if (form == null || form.IsDisposed)
+		{
+			form = factory();
+			form.TopLevel = false;
+			form.Dock = DockStyle.Fill;
+		}
+		return form;
+	}
+
+	private static void DisposeHostedForm<T>(ref T form) where T : Form
+	{
+		if (form != null) form.Dispose();
+		form = null;
+	}
+
+	internal int CreatedSectionFormCount => new Form[]
+	{
+		_formationForm, _countryForm, _teamForm, _kitForm, _ballForm, _managerForm,
+		_gameGraphicForm, _webBrowserForm, _leagueForm, _shoesForm, _tvForm,
+		_newspapersForm, _refereeForm, _trophyForm, _playerForm, _stadiumForm,
+		_glovesForm, _audioForm, _importGraphicsForm
+	}.Count(form => form != null && !form.IsDisposed);
+
 	private void DestroyForms()
 	{
-		m_FormationForm.Dispose();
-		m_CountryForm.Dispose();
-		m_TeamForm.Dispose();
-		m_KitForm.Dispose();
-		m_BallForm.Dispose();
-		m_ManagerForm.Dispose();
-		m_GameGraphicForm.Dispose();
-		m_WebBrowserForm.Dispose();
-		m_LeagueForm.Dispose();
-		m_ShoesForm.Dispose();
-		m_TvForm.Dispose();
-		m_NewspapersForm.Dispose();
-		m_RefereeForm.Dispose();
-		m_TrophyForm.Dispose();
-		m_PlayerForm.Dispose();
-		m_StadiumForm.Dispose();
-		m_GlovesForm.Dispose();
-		m_AudioForm.Dispose();
-		m_ImportGraphicsForm.Dispose();
+		DisposeHostedForm(ref _formationForm);
+		DisposeHostedForm(ref _countryForm);
+		DisposeHostedForm(ref _teamForm);
+		DisposeHostedForm(ref _kitForm);
+		DisposeHostedForm(ref _ballForm);
+		DisposeHostedForm(ref _managerForm);
+		DisposeHostedForm(ref _gameGraphicForm);
+		DisposeHostedForm(ref _webBrowserForm);
+		DisposeHostedForm(ref _leagueForm);
+		DisposeHostedForm(ref _shoesForm);
+		DisposeHostedForm(ref _tvForm);
+		DisposeHostedForm(ref _newspapersForm);
+		DisposeHostedForm(ref _refereeForm);
+		DisposeHostedForm(ref _trophyForm);
+		DisposeHostedForm(ref _playerForm);
+		DisposeHostedForm(ref _stadiumForm);
+		DisposeHostedForm(ref _glovesForm);
+		DisposeHostedForm(ref _audioForm);
+		DisposeHostedForm(ref _importGraphicsForm);
 	}
 
 	private void EnablePanels(bool enable)
@@ -1579,23 +1555,23 @@ public class MainForm : Form
 		m_PendingLeagueCompdataIds.Clear();
 		m_PendingTeamIds.Clear();
 		m_PendingPlayerIds.Clear();
-		m_CountryForm.Clean();
-		m_LeagueForm.Clean();
-		m_TeamForm.Clean();
-		m_KitForm.Clean();
-		m_PlayerForm.Clean();
-		m_StadiumForm.Clean();
-		m_RefereeForm.Clean();
-		m_FormationForm.Clean();
-		m_TrophyForm.Clean();
-		m_ManagerForm.Clean();
-		m_GameGraphicForm.Clean();
-		m_TvForm.Clean();
-		m_ShoesForm.Clean();
-		m_BallForm.Clean();
-		m_GlovesForm.Clean();
-		m_AudioForm.Clean();
-		m_ImportGraphicsForm.Clean();
+		_countryForm?.Clean();
+		_leagueForm?.Clean();
+		_teamForm?.Clean();
+		_kitForm?.Clean();
+		_playerForm?.Clean();
+		_stadiumForm?.Clean();
+		_refereeForm?.Clean();
+		_formationForm?.Clean();
+		_trophyForm?.Clean();
+		_managerForm?.Clean();
+		_gameGraphicForm?.Clean();
+		_tvForm?.Clean();
+		_shoesForm?.Clean();
+		_ballForm?.Clean();
+		_glovesForm?.Clean();
+		_audioForm?.Clean();
+		_importGraphicsForm?.Clean();
 		DestroyForms();
 		CreateForms();
 		EnableMenus();
@@ -3257,7 +3233,7 @@ public class MainForm : Form
 		centre.Show(this);
 	}
 
-	internal Team CurrentFc26Team => m_TeamForm?.m_CurrentTeam;
+	internal Team CurrentFc26Team => _teamForm?.m_CurrentTeam;
 
 	internal void ShowFc26CompdataCentre()
 	{

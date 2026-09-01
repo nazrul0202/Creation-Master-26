@@ -1,5 +1,17 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.199 - instant warm Classic navigation (2026-09-01)
+
+- The Classic CM16 shell no longer constructs all heavy editors at startup.
+  Country, League, Team, Kit, Player, Competition and the remaining sections
+  are created only when first opened and retained afterwards.
+- Cached sections preserve picker and preview state; measured real-snapshot
+  return navigation for Country, Team and Player is 2–5 ms on the release host.
+- The smoke gate now measures navigation separately from deep record auditing
+  and rejects any warm section switch above 100 ms.
+- Hardened the isolated smoke-process shutdown so native ListView destruction
+  cannot turn a successful navigation run into a false failure.
+
 ## Version 1.0.198 - Career and broadcast completion (2026-09-01)
 
 - The Career module now opens both Manager and Player Career containers. Manager
