@@ -84,11 +84,13 @@ internal sealed class Fc26BatchPlayerForm : Form
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, Padding = new Padding(8), WrapContents = true };
         _team.Width = 230; _team.DropDownStyle = ComboBoxStyle.DropDownList;
         _team.Items.Add(new TeamChoice(null));
-        foreach (Team team in FifaEnvironment.Teams.Cast<Team>().OrderBy(team => team.TeamNameFull)) _team.Items.Add(new TeamChoice(team));
+        if (FifaEnvironment.Teams != null)
+            foreach (Team team in FifaEnvironment.Teams.Cast<Team>().OrderBy(team => team.TeamNameFull)) _team.Items.Add(new TeamChoice(team));
         _team.SelectedIndex = 0;
         _league.Width = 190; _league.DropDownStyle = ComboBoxStyle.DropDownList;
         _league.Items.Add(new LeagueChoice(null));
-        foreach (League league in FifaEnvironment.Leagues.Cast<League>().OrderBy(league => league.ToString())) _league.Items.Add(new LeagueChoice(league));
+        if (FifaEnvironment.Leagues != null)
+            foreach (League league in FifaEnvironment.Leagues.Cast<League>().OrderBy(league => league.ToString())) _league.Items.Add(new LeagueChoice(league));
         _league.SelectedIndex = 0;
         _ageGroup.Width = 105; _ageGroup.DropDownStyle = ComboBoxStyle.DropDownList;
         _ageGroup.Items.AddRange(new object[] { "All ages", "Under 21", "21–29", "30 and over" }); _ageGroup.SelectedIndex = 0;
@@ -151,7 +153,8 @@ internal sealed class Fc26BatchPlayerForm : Form
         var selectedTeam = ((TeamChoice)_team.SelectedItem).Team;
         var selectedLeague = ((LeagueChoice)_league.SelectedItem).League;
         var query = _playerGroup.Text.Trim();
-        return FifaEnvironment.Players.Cast<Player>()
+        var players = FifaEnvironment.Players == null ? Enumerable.Empty<Player>() : FifaEnvironment.Players.Cast<Player>();
+        return players
             .Where(player => selectedTeam == null || player.GetClub() == selectedTeam)
             .Where(player => selectedLeague == null || player.GetClub()?.League == selectedLeague)
             .Where(player => string.IsNullOrWhiteSpace(query) || player.Id.ToString().Contains(query) ||

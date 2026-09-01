@@ -1,3 +1,10 @@
+Creation Master 26 v1.0.194 - 1 September 2026
+
+- Fixed roster and U21 CSV imports for quoted names containing commas or escaped quotes.
+- Hardened the Transfermarkt importer with exact official-host validation and locale-safe profile dates.
+- Made Roster, Face, Batch Player and Public Readiness tools safe to open before loading FC26.
+- Added deterministic Transfermarkt, Appearance Assistant and CSV checks to the mandatory Classic integration gate.
+
 Creation Master 26 v1.0.193 - 1 September 2026
 
 - Added native XLSX player workbook import/export and round-trip validation.

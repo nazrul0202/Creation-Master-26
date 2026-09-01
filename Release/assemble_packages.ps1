@@ -176,6 +176,21 @@ function Invoke-LegacyWorkspaceSizeSmoke {
     else { Write-Host "    classic workspace sizing: passed" }
 }
 
+function Invoke-LegacyFeatureIntegration {
+    param([string]$PackageDir, [string]$Label)
+
+    $exe = Join-Path $PackageDir 'CM26.LegacyUI\CM26.LegacyUI.exe'
+    if (-not (Test-Path $exe)) { return }
+    $process = Start-Process -FilePath $exe -ArgumentList '--cm26-ui-integration-test' `
+        -WorkingDirectory (Split-Path $exe -Parent) -WindowStyle Hidden -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        $errorLog = Join-Path ([System.IO.Path]::GetTempPath()) 'cm26-legacy-error.log'
+        $detail = if (Test-Path $errorLog) { [string](Get-Content $errorLog -Raw) } else { 'No diagnostic log was produced.' }
+        $errors.Add("$Label classic feature integration failed (exit $($process.ExitCode)): $detail")
+    }
+    else { Write-Host "    classic feature integration: passed" }
+}
+
 function Assemble-Package {
     param(
         [string]$PublishDir,   # source publish output
@@ -341,6 +356,7 @@ function Assemble-Package {
     Assert-NoGameContent -PackageDir $PackageDir -Label $Label
     Invoke-PackageSelfTest -PackageDir $PackageDir -Label $Label
     Invoke-LegacyWorkspaceSizeSmoke -PackageDir $PackageDir -Label $Label
+    Invoke-LegacyFeatureIntegration -PackageDir $PackageDir -Label $Label
 }
 
 $fullDir = Join-Path $releaseRoot "Creation_Master_26_v$version`_Full_Portable"

@@ -174,8 +174,9 @@ internal sealed class Fc26PublicReadinessForm : Form
     private void PopulateTeams()
     {
         var current = SelectedTeam()?.Id ?? _main.CurrentFc26Team?.Id ?? -1;
-        var teams = FifaEnvironment.Teams.Cast<Team>().Where(value => value != null)
-            .OrderBy(value => value.ToString(), StringComparer.CurrentCultureIgnoreCase).ThenBy(value => value.Id).ToArray();
+        var teams = FifaEnvironment.Teams?.Cast<Team>().Where(value => value != null)
+            .OrderBy(value => value.ToString(), StringComparer.CurrentCultureIgnoreCase).ThenBy(value => value.Id).ToArray()
+            ?? Array.Empty<Team>();
         _team.BeginUpdate();
         _team.DataSource = teams;
         _team.EndUpdate();

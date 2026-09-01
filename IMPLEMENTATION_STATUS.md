@@ -1,4 +1,4 @@
-# Creation Master 26 v1.0.193 implementation status
+# Creation Master 26 v1.0.194 implementation status
 
 This status is intentionally conservative: a visible control is not counted as working unless it has a real data path.
 
@@ -7,6 +7,8 @@ This status is intentionally conservative: a visible control is not counted as w
 - Batch Player now reads and writes native `.xlsx` workbooks with an automated Unicode/comma round-trip gate; CSV remains available as a fallback.
 - Team `Club Worth` and `Transfer Budget` use regular system-grey text instead of bold black presentation.
 - Classic File menu now exports staged database and asset changes through the validated `.fifamod` pipeline without applying them to FC26 Data/Patch.
+- Roster/U21 CSV exchange preserves quoted Unicode names and rejects malformed quoted rows; Transfermarkt and Appearance Assistant now have deterministic Classic integration probes.
+- Specialist Classic tools open safely before FC26 is loaded, and the full feature integration gate is mandatory in CI and package assembly.
 
 - Completed the comprehensive 1–20 Classic feature checklist: multi-profile Appearance Assistant; aligned miniface and visual similarity helper; native face/cranium round-trip; injury-aware national squads; dedicated U21 exchange; FC25/Excel player conversion; saved filters and row templates; safe reference removal; batch asset-family exchange and validation reports.
 

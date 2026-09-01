@@ -105,8 +105,10 @@ internal sealed class Fc26RosterToolsForm : Form
 
     private void LoadTeams()
     {
-        _teams = FifaEnvironment.Teams.Cast<Team>().Where(team => team != null)
-            .OrderBy(team => team.ToString(), StringComparer.CurrentCultureIgnoreCase).ThenBy(team => team.Id).ToArray();
+        _teams = FifaEnvironment.Teams == null
+            ? Array.Empty<Team>()
+            : FifaEnvironment.Teams.Cast<Team>().Where(team => team != null)
+                .OrderBy(team => team.ToString(), StringComparer.CurrentCultureIgnoreCase).ThenBy(team => team.Id).ToArray();
         _team.DataSource = _teams.ToArray();
         _targetTeam.DataSource = _teams.ToArray();
         if (_targetTeam.Items.Count > 1) _targetTeam.SelectedIndex = 1;
@@ -416,7 +418,7 @@ internal sealed class Fc26RosterToolsForm : Form
         var team = CurrentTeam(); if (team == null) return;
         using var dialog = new OpenFileDialog { Filter = "Youth CSV (*.csv)|*.csv|All files (*.*)|*.*" };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
-        var resolved = File.ReadAllLines(dialog.FileName).Skip(1).Select(line => line.Split(','))
+        var resolved = File.ReadAllLines(dialog.FileName).Skip(1).Select(ParseCsvLine)
             .Where(parts => parts.Length >= 7 && int.TryParse(parts[0], out _))
             .Select(parts => new { Player = FifaEnvironment.Players.SearchId(Parse(parts[0])) as Player,
                 Number = Parse(parts[parts.Length - 2]), Position = Parse(parts[parts.Length - 1]) })
@@ -489,7 +491,7 @@ internal sealed class Fc26RosterToolsForm : Form
         var team = CurrentTeam(); if (team == null) return;
         using var dialog = new OpenFileDialog { Filter = "CSV (*.csv)|*.csv|All files (*.*)|*.*" };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
-        var rows = File.ReadAllLines(dialog.FileName).Skip(1).Select(line => line.Split(','))
+        var rows = File.ReadAllLines(dialog.FileName).Skip(1).Select(ParseCsvLine)
             .Where(parts => parts.Length >= 4 && int.TryParse(parts[0], out _)).ToArray();
         var resolved = rows.Select(parts => new { Player = FifaEnvironment.Players.SearchId(int.Parse(parts[0], CultureInfo.InvariantCulture)) as Player,
             Number = Parse(parts[parts.Length - 2]), Position = Parse(parts[parts.Length - 1]) }).Where(row => row.Player != null).ToArray();
@@ -502,6 +504,36 @@ internal sealed class Fc26RosterToolsForm : Form
     }
 
     private static int Parse(string value) => int.TryParse(value.Trim().Trim('"'), NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) ? result : 0;
+
+    /// <summary>Parses one RFC 4180-style CSV record, including escaped quotes and commas inside names.</summary>
+    internal static string[] ParseCsvLine(string line)
+    {
+        var fields = new List<string>();
+        var value = new StringBuilder();
+        var quoted = false;
+        for (var index = 0; index < (line ?? string.Empty).Length; index++)
+        {
+            var character = line[index];
+            if (character == '"')
+            {
+                if (quoted && index + 1 < line.Length && line[index + 1] == '"')
+                {
+                    value.Append('"');
+                    index++;
+                }
+                else quoted = !quoted;
+            }
+            else if (character == ',' && !quoted)
+            {
+                fields.Add(value.ToString());
+                value.Clear();
+            }
+            else value.Append(character);
+        }
+        if (quoted) throw new InvalidDataException("CSV contains an unterminated quoted field.");
+        fields.Add(value.ToString());
+        return fields.ToArray();
+    }
     private static int SlotOrder(int position) => position < 28 ? 0 : position == 28 ? 1 : 2;
     private static int Age(Player player) { var today = DateTime.Today; var age = today.Year - player.birthdate.Year; if (player.birthdate.Date > today.AddYears(-age)) age--; return Math.Max(0, age); }
     private static Label Label(string text) => new Label { Text = text, AutoSize = true, Anchor = AnchorStyles.Left };

@@ -407,6 +407,31 @@ internal static class Program
 				using (var roster = new Fc26RosterToolsForm())
 					foreach (var required in new[] { "Replace injured call-ups", "Export U21 CSV", "Import / merge U21 CSV", "Sync nationality links" })
 						if (!ContainsControlText(roster, required)) throw new InvalidDataException("Roster/National/Youth tools are missing: " + required);
+				var csvProbe = Fc26RosterToolsForm.ParseCsvLine("1,\"José Test, Jr.\",19,77,88,24,10");
+				if (csvProbe.Length != 7 || csvProbe[1] != "José Test, Jr." || csvProbe[5] != "24" || csvProbe[6] != "10")
+					throw new InvalidDataException("Roster/U21 quoted CSV parsing failed.");
+				try { Fc26RosterToolsForm.ParseCsvLine("1,\"broken"); throw new InvalidDataException("Malformed roster CSV was accepted."); }
+				catch (InvalidDataException ex) when (ex.Message.IndexOf("unterminated", StringComparison.OrdinalIgnoreCase) >= 0) { }
+				var transfermarktHtml = "<html><head><meta property='og:title' content='José Test - Player profile 26/27'/></head><body>" +
+					"Date of birth/Age: 31/01/2000\r\nHeight: 1,84 m\r\nCitizenship: Malaysia\r\nPosition: Central Midfield\r\nCurrent market value: €12.5m</body></html>";
+				var transfermarktProbe = Fc26TransfermarktForm.ParseProfileForTest(transfermarktHtml);
+				if (!transfermarktProbe.SequenceEqual(new[] { "José Test", "2000-01-31", "184", "Malaysia", "Central Midfield", "12.5" }))
+					throw new InvalidDataException("Transfermarkt player-profile parser round-trip failed: " + string.Join(" | ", transfermarktProbe));
+				if (!Fc26TransfermarktForm.ValidateUrlForTest("https://www.transfermarkt.com/test/profil/spieler/1") ||
+					Fc26TransfermarktForm.ValidateUrlForTest("https://transfermarkt.example.com/test/profil/spieler/1") ||
+					Fc26TransfermarktForm.ValidateUrlForTest("http://www.transfermarkt.com/test/profil/spieler/1"))
+					throw new InvalidDataException("Transfermarkt URL allow-list validation failed.");
+				using (var portrait = new System.Drawing.Bitmap(180, 220))
+				using (var graphics = System.Drawing.Graphics.FromImage(portrait))
+				{
+					graphics.Clear(System.Drawing.Color.White);
+					graphics.FillEllipse(System.Drawing.Brushes.Peru, 48, 40, 84, 130);
+					graphics.FillRectangle(System.Drawing.Brushes.Black, 45, 16, 90, 55);
+					var appearance = AppearanceAssistant.AnalyzeAlternatives(portrait, 4);
+					if (appearance.Count < 3 || appearance.Any(item => item.SkinToneCode < 1 || item.SkinToneCode > 10) ||
+						appearance.Any(item => item.Confidence < 0 || item.Confidence > 100))
+						throw new InvalidDataException("Appearance Assistant deterministic portrait analysis failed.");
+				}
 				using (var faces = new Fc26FaceToolsForm())
 					foreach (var required in new[] { "Auto-align miniface", "Face similarity helper", "Import native cranium/face", "Export native cranium/face" })
 						if (!ContainsControlText(faces, required)) throw new InvalidDataException("Face tools are missing: " + required);

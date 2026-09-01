@@ -33,7 +33,7 @@
 | **Full Portable** | See release asset | Self-contained, includes .NET 8 runtime — works on any Windows x64 |
 | **Lite Portable** | See release asset | Smaller package for systems that already have the .NET 8 Desktop Runtime |
 
-Checksums: `SHA256SUMS_v1.0.193.txt` is included with the v1.0.193 release assets.
+Checksums: `SHA256SUMS_v1.0.194.txt` is included with the v1.0.194 release assets.
 
 The familiar Creation Master / CM16 interface is the only public desktop. Its
 section switching and FC26 previews retain the v1.0.188 responsiveness

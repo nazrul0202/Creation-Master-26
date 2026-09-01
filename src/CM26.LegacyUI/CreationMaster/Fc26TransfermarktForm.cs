@@ -230,7 +230,7 @@ public sealed class Fc26TransfermarktForm : Form
 		var dobText = FindFact(plain, "Date of birth/Age", "Date of birth");
 		DateTime? dob = null;
 		var dobMatch = Regex.Match(dobText, @"\d{1,2}/\d{1,2}/\d{4}|\d{1,2}\.\d{1,2}\.\d{4}");
-		if (dobMatch.Success && DateTime.TryParse(dobMatch.Value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)) dob = parsed;
+		if (dobMatch.Success && TryParseProfileDate(dobMatch.Value, out var parsed)) dob = parsed;
 		var heightText = FindFact(plain, "Height");
 		var height = 0;
 		var metres = Regex.Match(heightText, @"(?<m>[12])[,.](?<cm>\d{2})\s*m");
@@ -286,6 +286,26 @@ public sealed class Fc26TransfermarktForm : Form
 		var unit = match.Groups["u"].Value;
 		return unit == "k" ? amount / 1000f : unit == "bn" ? amount * 1000f : amount;
 	}
+
+	private static bool TryParseProfileDate(string value, out DateTime date)
+	{
+		return DateTime.TryParseExact(value, new[] { "d/M/yyyy", "dd/MM/yyyy", "M/d/yyyy", "MM/dd/yyyy", "d.M.yyyy", "dd.MM.yyyy" },
+			CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+	}
+
+	internal static string[] ParseProfileForTest(string html)
+	{
+		var profile = ParseProfile(html);
+		return new[]
+		{
+			profile.Name,
+			profile.BirthDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
+			profile.Height.ToString(CultureInfo.InvariantCulture), profile.Nationality, profile.Position,
+			profile.MarketValueMillions.ToString("0.###", CultureInfo.InvariantCulture)
+		};
+	}
+
+	internal static bool ValidateUrlForTest(string value) => TryTransfermarktUri(value, out _);
 
 	private static async System.Threading.Tasks.Task<Uri> FindPlayerUriAsync(string query)
 	{
@@ -360,7 +380,15 @@ public sealed class Fc26TransfermarktForm : Form
 		uri = null;
 		if (!Uri.TryCreate((value ?? string.Empty).Trim(), UriKind.Absolute, out var parsed) || parsed.Scheme != Uri.UriSchemeHttps) return false;
 		var host = parsed.Host.ToLowerInvariant();
-		if (!host.StartsWith("www.transfermarkt.", StringComparison.Ordinal) && !host.StartsWith("transfermarkt.", StringComparison.Ordinal)) return false;
+		if (host.StartsWith("www.", StringComparison.Ordinal)) host = host.Substring(4);
+		var officialHosts = new[]
+		{
+			"transfermarkt.com", "transfermarkt.de", "transfermarkt.co.uk", "transfermarkt.fr",
+			"transfermarkt.it", "transfermarkt.es", "transfermarkt.nl", "transfermarkt.pt",
+			"transfermarkt.be", "transfermarkt.us", "transfermarkt.com.tr", "transfermarkt.com.br",
+			"transfermarkt.co.in", "transfermarkt.co.za"
+		};
+		if (!officialHosts.Contains(host, StringComparer.OrdinalIgnoreCase)) return false;
 		uri = parsed;
 		return true;
 	}

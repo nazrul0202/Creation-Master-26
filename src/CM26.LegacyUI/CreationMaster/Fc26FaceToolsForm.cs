@@ -34,7 +34,8 @@ internal sealed class Fc26FaceToolsForm : Form
 		AutoScaleMode = AutoScaleMode.Dpi;
 		Icon = Form.ActiveForm?.Icon;
 		_team.Items.Add(new TeamChoice(null));
-		foreach (Team team in FifaEnvironment.Teams.Cast<Team>().OrderBy(item => item.TeamNameFull)) _team.Items.Add(new TeamChoice(team));
+		if (FifaEnvironment.Teams != null)
+			foreach (Team team in FifaEnvironment.Teams.Cast<Team>().OrderBy(item => item.TeamNameFull)) _team.Items.Add(new TeamChoice(team));
 		_team.SelectedIndex = 0;
 		var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, Padding = new Padding(8), WrapContents = true };
 			top.Controls.AddRange(new Control[]
@@ -81,7 +82,8 @@ internal sealed class Fc26FaceToolsForm : Form
 	{
 		var query = _search.Text.Trim();
 		var team = (_team.SelectedItem as TeamChoice)?.Team;
-		_rows = FifaEnvironment.Players.Cast<Player>()
+		var players = FifaEnvironment.Players == null ? Enumerable.Empty<Player>() : FifaEnvironment.Players.Cast<Player>();
+		_rows = players
 			.Where(player => team == null || player.GetClub() == team)
 			.Where(player => query.Length == 0 || player.Id.ToString().Contains(query) || player.ToString().IndexOf(query, StringComparison.CurrentCultureIgnoreCase) >= 0)
 			.Take(2000).Select(player => new Row(player)).ToList();

@@ -32,6 +32,16 @@ jobs:
           $exe = 'src\CM26.LegacyUI\bin\Release\net48\CM26.LegacyUI.exe'
           $process = Start-Process -FilePath $exe -ArgumentList '--cm26-workspace-size-test' -WindowStyle Hidden -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Classic workspace smoke failed (exit $($process.ExitCode))." }
+      - name: Classic CM16 feature integration
+        shell: pwsh
+        run: |
+          $exe = 'src\CM26.LegacyUI\bin\Release\net48\CM26.LegacyUI.exe'
+          $process = Start-Process -FilePath $exe -ArgumentList '--cm26-ui-integration-test' -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            $errorLog = Join-Path ([System.IO.Path]::GetTempPath()) 'cm26-legacy-error.log'
+            if (Test-Path $errorLog) { Get-Content $errorLog }
+            throw "Classic feature integration failed (exit $($process.ExitCode))."
+          }
       - name: Validate release metadata
         shell: pwsh
         run: ./Release/validate_release_metadata.ps1

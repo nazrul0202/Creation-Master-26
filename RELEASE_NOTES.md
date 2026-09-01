@@ -1,5 +1,17 @@
 # Release Notes — Creation Master 26
 
+## Version 1.0.194 - hardened Classic feature workflows (2026-09-01)
+
+- Corrected roster and U21 CSV import so quoted player names containing commas
+  or escaped quotes cannot shift shirt-number and position columns.
+- Restricted Transfermarkt requests to an exact official-domain allow-list and
+  made profile birth-date parsing deterministic across Windows locales.
+- Roster, Face, Batch Player and Public Readiness tools now show safe empty
+  states when opened before an FC26 database is loaded instead of crashing.
+- Promoted the comprehensive Classic feature integration check into both CI and
+  Full/Lite package assembly, with real exit-code handling and deterministic
+  Transfermarkt, Appearance Assistant, Excel and CSV behavior checks.
+
 ## Version 1.0.193 - native Excel and Team finance styling (2026-09-01)
 
 - Added real `.xlsx` import/export for FC25/Excel batch player conversion,
